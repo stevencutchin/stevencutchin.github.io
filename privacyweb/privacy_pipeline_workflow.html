@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Inspection Pipeline - Automated Workflow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .pipeline-overview {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .pipeline-overview h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .pipeline-overview p {
+            color: #555;
+            margin-bottom: 10px;
+        }
+        
+        .phase-section {
+            margin-bottom: 40px;
+        }
+        
+        .phase-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .phase-number {
+            font-size: 2em;
+            font-weight: bold;
+            background: rgba(255,255,255,0.2);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .phase-title h3 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        
+        .phase-title p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+        
+        .phase-body {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 25px;
+        }
+        
+        .step {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .step:last-child {
+            margin-bottom: 0;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .step-icon {
+            font-size: 1.3em;
+        }
+        
+        .step-description {
+            color: #555;
+            margin-bottom: 12px;
+        }
+        
+        .step-command {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        
+        .step-output {
+            background: #edf2f7;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            margin-top: 10px;
+            color: #2d3748;
+        }
+        
+        .step-notes {
+            background: #e6fffa;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 3px solid #38b2ac;
+        }
+        
+        .step-notes strong {
+            color: #234e52;
+        }
+        
+        .tools-used {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .tool-badge {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+        
+        .automation-benefits {
+            background: #d1f2eb;
+            padding: 25px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .automation-benefits h3 {
+            color: #27ae60;
+            margin-bottom: 15px;
+        }
+        
+        .automation-benefits ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .automation-benefits li {
+            padding: 8px 0;
+            color: #555;
+        }
+        
+        .automation-benefits li:before {
+            content: "✓ ";
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .directory-structure {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .directory-structure h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .directory-structure pre {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.9em;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 25px;
+            text-align: center;
+            color: #666;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .workflow-diagram {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 30px 0;
+            border: 2px solid #e9ecef;
+        }
+        
+        .workflow-diagram h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .flow-arrow {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.5em;
+            margin: 10px 0;
+        }
+        
+        .flow-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #667eea;
+            margin: 10px 0;
+        }
+        
+        .flow-box strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Privacy Inspection Pipeline</h1>
+            <p>Automated Website Privacy Analysis Workflow</p>
+        </div>
+        
+        <div class="content">
+            <div class="pipeline-overview">
+                <h2>📋 Pipeline Overview</h2>
+                <p>The <code>runone.sh</code> script provides a fully automated privacy investigation pipeline that transforms raw website URLs into comprehensive privacy investigation documentation. This end-to-end automation integrates blacklight-collector for privacy scanning with custom Python parsers and shell scripts.</p>
+                <p><strong>Key Features:</strong> Handles multiple URL formats, avoids sitemap crawling, uses sanitized path naming to prevent filename conflicts, and organizes all outputs under a structured "data/" directory.</p>
+            </div>
+            
+            <div class="workflow-diagram">
+                <h3>🔁 Complete Workflow</h3>
+                <div class="flow-box">
+                    <strong>INPUT:</strong> Website URL
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-box">
+                    <strong>SCAN:</strong> Blacklight Privacy Analysis
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-box">
+                    <strong>EXTRACT:</strong> CSV Data Files
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-box">
+                    <strong>GENERATE:</strong> HTML Privacy Report
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-box">
+                    <strong>PARSE:</strong> Investigation Template
+                </div>
+                <div class="flow-arrow">↓</div>
+                <div class="flow-box">
+                    <strong>OUTPUT:</strong> Complete Documentation Package
+                </div>
+            </div>
+
+            <!-- Phase 0: Setup -->
+            <div class="phase-section">
+                <div class="phase-header">
+                    <div class="phase-number">0</div>
+                    <div class="phase-title">
+                        <h3>Setup & Installation</h3>
+                        <p>Initial environment configuration</p>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">📦</span>
+                            Install Blacklight Collector
+                        </div>
+                        <div class="step-description">
+                            Set up the blacklight-collector tool for automated privacy scanning.
+                        </div>
+                        <div class="step-command">npm install -g @themarkup/blacklight-collector</div>
+                        <div class="tools-used">
+                            <span class="tool-badge">npm</span>
+                            <span class="tool-badge">Node.js</span>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">🐍</span>
+                            Install Python Dependencies
+                        </div>
+                        <div class="step-description">
+                            Install required Python libraries for HTML parsing and report generation.
+                        </div>
+                        <div class="step-command">pip install beautifulsoup4 lxml</div>
+                        <div class="tools-used">
+                            <span class="tool-badge">Python</span>
+                            <span class="tool-badge">BeautifulSoup</span>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">📁</span>
+                            Create Directory Structure
+                        </div>
+                        <div class="step-description">
+                            Set up organized directory structure for data storage and outputs.
+                        </div>
+                        <div class="directory-structure">
+                            <h4>Project Directory Structure:</h4>
+                            <pre>
+privacy-investigation/
+├── data/                  # All outputs organized here
+│   ├── example_com/      # Sanitized domain folders
+│   │   ├── *.csv         # CSV data files
+│   │   ├── *.html        # HTML reports
+│   │   └── *.md          # Investigation reports
+│   └── another_site/
+├── runone.sh             # Main automation script
+├── generic_privacy_report_enhanced.py
+└── privacy_report_parser.py</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 1: Tracking Discovery -->
+            <div class="phase-section">
+                <div class="phase-header">
+                    <div class="phase-number">1</div>
+                    <div class="phase-title">
+                        <h3>Tracking Discovery</h3>
+                        <p>Automated privacy scanning and data collection</p>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">🔍</span>
+                            URL Sanitization
+                        </div>
+                        <div class="step-description">
+                            Convert input URL to sanitized path format for consistent file naming across multiple pages from the same domain.
+                        </div>
+                        <div class="step-command">
+# Extract and sanitize domain/path
+DOMAIN=$(echo "$URL" | sed 's|https\?://||' | sed 's|/$||')
+SAFE_NAME=$(echo "$DOMAIN" | tr '/' '_' | tr ':' '_')
+OUTPUT_DIR="data/${SAFE_NAME}"
+mkdir -p "$OUTPUT_DIR"</div>
+                        <div class="step-notes">
+                            <strong>Note:</strong> Sanitized naming prevents filename conflicts when scanning multiple pages from the same domain (e.g., example.com/page1 → example_com_page1)
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">🚀</span>
+                            Run Blacklight Privacy Scan
+                        </div>
+                        <div class="step-description">
+                            Execute blacklight-collector to analyze website for tracking technologies, cookies, fingerprinting, and third-party services.
+                        </div>
+                        <div class="step-command">
+blacklight-collector \
+  --url "$URL" \
+  --output "$OUTPUT_DIR" \
+  --format csv \
+  --no-sitemap</div>
+                        <div class="step-output">
+Scanning: https://example.com
+✓ Canvas fingerprinting: 2 detected
+✓ Cookies: 47 found (12 third-party)
+✓ Session recording: 1 detected
+✓ Ad trackers: 8 found
+📊 Data saved to: data/example_com/</div>
+                        <div class="tools-used">
+                            <span class="tool-badge">Blacklight</span>
+                            <span class="tool-badge">Puppeteer</span>
+                            <span class="tool-badge">Chrome Headless</span>
+                        </div>
+                        <div class="step-notes">
+                            <strong>Key Setting:</strong> Using <code>--no-sitemap</code> flag prevents crawling entire site structure, focusing only on the specified URL for faster, targeted analysis.
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">📊</span>
+                            CSV Data Extraction
+                        </div>
+                        <div class="step-description">
+                            Blacklight automatically generates structured CSV files containing detailed privacy data.
+                        </div>
+                        <div class="step-notes">
+                            <strong>Generated Files:</strong>
+                            <ul style="margin-top: 10px;">
+                                <li><code>summary.csv</code> - Overall statistics and metadata</li>
+                                <li><code>cookies.csv</code> - All cookies with attributes (domain, type, expiration, security)</li>
+                                <li><code>canvas_fingerprinters.csv</code> - Canvas fingerprinting scripts</li>
+                                <li><code>session_recorders.csv</code> - Session replay tools detected</li>
+                                <li><code>fb_pixel_events.csv</code> - Facebook Pixel tracking events</li>
+                                <li><code>key_logging.csv</code> - Keystroke monitoring scripts</li>
+                                <li><code>ad_trackers.csv</code> - Advertising and tracking services</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2: Report Generation -->
+            <div class="phase-section">
+                <div class="phase-header">
+                    <div class="phase-number">2</div>
+                    <div class="phase-title">
+                        <h3>Report Generation</h3>
+                        <p>Transform CSV data into comprehensive HTML reports</p>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">🎨</span>
+                            Generate Enhanced HTML Report
+                        </div>
+                        <div class="step-description">
+                            Convert CSV data files into a rich, interactive HTML report with definitions, tooltips, and human-readable formatting.
+                        </div>
+                        <div class="step-command">
+python3 generic_privacy_report_enhanced.py \
+  "$OUTPUT_DIR" \
+  "$OUTPUT_DIR/privacy_report.html"</div>
+                        <div class="step-output">
+✓ Enhanced HTML report generated: privacy_report.html
+  - 1 websites analyzed
+  - 47 cookies found
+  - 2 canvas fingerprinters detected
+  - 1 session recorders found
+  - Includes comprehensive definitions and explanations</div>
+                        <div class="tools-used">
+                            <span class="tool-badge">Python</span>
+                            <span class="tool-badge">Custom Parser</span>
+                        </div>
+                        <div class="step-notes">
+                            <strong>Key Features:</strong> The enhanced report includes:
+                            <ul style="margin-top: 10px;">
+                                <li>Comprehensive privacy term definitions at the top</li>
+                                <li>Interactive tooltip help icons for technical terms</li>
+                                <li>Human-readable values (e.g., "No Expiration" instead of "-1")</li>
+                                <li>Color-coded severity indicators</li>
+                                <li>Complete glossary at the bottom</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3: Investigation Template -->
+            <div class="phase-section">
+                <div class="phase-header">
+                    <div class="phase-number">3</div>
+                    <div class="phase-title">
+                        <h3>Investigation Template Creation</h3>
+                        <p>Parse HTML report into structured investigation format</p>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">📝</span>
+                            Generate Investigation Report
+                        </div>
+                        <div class="step-description">
+                            Parse the HTML privacy report and populate the investigation template with findings organized by TRAP AND TRACE (addressing information) and WIRETAP (content/interaction) categories.
+                        </div>
+                        <div class="step-command">
+python3 privacy_report_parser.py \
+  "$OUTPUT_DIR/privacy_report.html" \
+  "Example Website" \
+  "$URL"</div>
+                        <div class="step-output">
+Parsing privacy_report.html...
+Generating investigation report...
+✓ Report generated: example_website_investigation_report.md
+
+Summary:
+  - Total Cookies: 47
+  - Canvas Fingerprinters: 2
+  - Session Recorders: 1</div>
+                        <div class="tools-used">
+                            <span class="tool-badge">Python</span>
+                            <span class="tool-badge">BeautifulSoup</span>
+                            <span class="tool-badge">Template Engine</span>
+                        </div>
+                        <div class="step-notes">
+                            <strong>Template Structure:</strong> The investigation report includes:
+                            <ul style="margin-top: 10px;">
+                                <li>Site information and metadata</li>
+                                <li>TRAP AND TRACE findings (IP, geolocation, device data)</li>
+                                <li>WIRETAP findings (pageviews, interactions, form data)</li>
+                                <li>Third-party services identified</li>
+                                <li>Blacklight findings summary</li>
+                                <li>Storage analysis (cookies, localStorage, etc.)</li>
+                                <li>Compliance assessment checklist</li>
+                                <li>Key findings and recommendations</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4: VM-Based Capture -->
+            <div class="phase-section">
+                <div class="phase-header">
+                    <div class="phase-number">4</div>
+                    <div class="phase-title">
+                        <h3>Manual Evidence Capture (Optional)</h3>
+                        <p>VM-based testing for enhanced security and evidence quality</p>
+                    </div>
+                </div>
+                <div class="phase-body">
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">🖥️</span>
+                            Windows VM Environment
+                        </div>
+                        <div class="step-description">
+                            For Phase 1 capture work requiring clean environment control and enhanced security, use a dedicated Windows VM to maintain professional evidence quality standards.
+                        </div>
+                        <div class="step-notes">
+                            <strong>Benefits of VM-Based Testing:</strong>
+                            <ul style="margin-top: 10px;">
+                                <li>Clean, isolated environment for consistent results</li>
+                                <li>Enhanced security for sensitive investigations</li>
+                                <li>Professional evidence quality maintenance</li>
+                                <li>Easy environment reset between tests</li>
+                                <li>Protection of host system from tracking/fingerprinting</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-title">
+                            <span class="step-icon">📸</span>
+                            Manual Evidence Collection
+                        </div>
+                        <div class="step-description">
+                            Supplement automated findings with manual evidence capture using browser DevTools.
+                        </div>
+                        <div class="tools-used">
+                            <span class="tool-badge">Chrome DevTools</span>
+                            <span class="tool-badge">Network Tab</span>
+                            <span class="tool-badge">Application Tab</span>
+                            <span class="tool-badge">Screenshots</span>
+                        </div>
+                        <div class="step-notes">
+                            <strong>Manual Testing Tasks:</strong>
+                            <ul style="margin-top: 10px;">
+                                <li>Test consent mechanisms (accept/reject/partial)</li>
+                                <li>Capture network HAR files for evidence</li>
+                                <li>Take timestamped screenshots of tracking behavior</li>
+                                <li>Verify tracking before AND after consent</li>
+                                <li>Test different user journeys (guest vs authenticated)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Automation Benefits -->
+            <div class="automation-benefits">
+                <h3>✨ Benefits of Automated Pipeline</h3>
+                <ul>
+                    <li><strong>Repeatability:</strong> Consistent methodology across multiple website assessments</li>
+                    <li><strong>Efficiency:</strong> Process multiple URLs quickly with minimal manual intervention</li>
+                    <li><strong>Comprehensive Documentation:</strong> Automatic generation of multiple report formats</li>
+                    <li><strong>Organized Structure:</strong> All outputs systematically organized under data/ directory</li>
+                    <li><strong>Scalability:</strong> Handle multiple pages from same domain without filename conflicts</li>
+                    <li><strong>Professional Quality:</strong> Standardized templates and structured investigation reports</li>
+                    <li><strong>Time Savings:</strong> Automated processes replace hours of manual analysis</li>
+                    <li><strong>Error Reduction:</strong> Minimize human error in data collection and reporting</li>
+                </ul>
+            </div>
+
+            <!-- Final Output Structure -->
+            <div class="directory-structure" style="margin-top: 30px;">
+                <h4>📁 Complete Output Structure</h4>
+                <pre>
+data/example_com/
+├── summary.csv                          # Overall statistics
+├── cookies.csv                          # Cookie details
+├── canvas_fingerprinters.csv            # Fingerprinting scripts
+├── session_recorders.csv                # Session replay tools
+├── fb_pixel_events.csv                  # Facebook Pixel events
+├── key_logging.csv                      # Keystroke monitoring
+├── ad_trackers.csv                      # Ad tracking services
+├── privacy_report.html                  # Rich HTML report with definitions
+└── example_website_investigation_report.md  # Structured investigation template</pre>
+            </div>
+
+        </div>
+        
+        <div class="footer">
+            <p><strong>Privacy Inspection Pipeline</strong></p>
+            <p>Automated workflow using Blacklight Privacy Inspector tools, Python parsers, and custom shell scripts</p>
+            <p style="margin-top: 15px; font-size: 0.9em;">
+                Technical assessment methodology for systematic privacy analysis • Separate from legal compliance evaluation
+            </p>
+        </div>
+    </div>
+</body>
+</html>

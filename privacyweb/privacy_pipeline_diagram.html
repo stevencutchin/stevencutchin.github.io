@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Analysis Pipeline - System Overview</title>
+    <style>
+        :root {
+            --bg-dark: #0f1419;
+            --bg-card: #1a2332;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-cyan: #06b6d4;
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --border-color: #374151;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+        
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .pipeline-svg {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto 60px;
+            display: block;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-left: 15px;
+            border-left: 4px solid var(--accent-blue);
+        }
+        
+        .stages-detail {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 60px;
+        }
+        
+        .stage-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .stage-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.15);
+        }
+        
+        .stage-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .stage-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .stage-1 .stage-number { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .stage-2 .stage-number { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .stage-3 .stage-number { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+        .stage-4 .stage-number { background: linear-gradient(135deg, #10b981, #059669); }
+        .stage-5 .stage-number { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        
+        .stage-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .stage-desc {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .stage-tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .tool-tag {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .data-flow {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 60px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .tracking-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .category-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+        
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .category-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .category-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .legal-framework {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 60px;
+        }
+        
+        .legal-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .legal-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .legal-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .trap-trace .legal-badge {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+        
+        .wiretap .legal-badge {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+        }
+        
+        .legal-list {
+            list-style: none;
+            color: var(--text-secondary);
+        }
+        
+        .legal-list li {
+            padding: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .legal-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent-blue);
+        }
+        
+        .outputs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .output-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        .output-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .output-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .output-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+            margin-top: 40px;
+        }
+        
+        footer strong {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 Privacy Analysis Pipeline</h1>
+            <p class="subtitle">
+                A technical assessment system for documenting website tracking practices and mapping 
+                detected data collection to California statutory definitions under CIPA, CDAFA, and Penal Codes § 631 & § 638.51
+            </p>
+        </header>
+        
+        <!-- Main Pipeline SVG Diagram -->
+        <svg class="pipeline-svg" viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <!-- Gradients -->
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3b82f6"/>
+                    <stop offset="100%" style="stop-color:#2563eb"/>
+                </linearGradient>
+                <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#8b5cf6"/>
+                    <stop offset="100%" style="stop-color:#7c3aed"/>
+                </linearGradient>
+                <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#06b6d4"/>
+                    <stop offset="100%" style="stop-color:#0891b2"/>
+                </linearGradient>
+                <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#10b981"/>
+                    <stop offset="100%" style="stop-color:#059669"/>
+                </linearGradient>
+                <linearGradient id="grad5" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#f59e0b"/>
+                    <stop offset="100%" style="stop-color:#d97706"/>
+                </linearGradient>
+                
+                <!-- Arrow marker -->
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#4b5563"/>
+                </marker>
+                
+                <!-- Glow filter -->
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            
+            <!-- Background -->
+            <rect width="1200" height="500" fill="#0f1419"/>
+            
+            <!-- Connection Lines -->
+            <g stroke="#4b5563" stroke-width="2" fill="none" stroke-dasharray="5,5">
+                <!-- Stage 1 to 2 -->
+                <path d="M 220 150 L 280 150" marker-end="url(#arrowhead)"/>
+                <!-- Stage 2 to 3 -->
+                <path d="M 440 150 L 500 150" marker-end="url(#arrowhead)"/>
+                <!-- Stage 3 to 4 -->
+                <path d="M 660 150 L 720 150" marker-end="url(#arrowhead)"/>
+                <!-- Stage 4 to 5 -->
+                <path d="M 880 150 L 940 150" marker-end="url(#arrowhead)"/>
+                
+                <!-- Feedback loop -->
+                <path d="M 1060 200 Q 1100 250 1060 300 Q 900 350 600 350 Q 300 350 140 300 Q 100 250 140 200" 
+                      stroke="#374151" stroke-dasharray="8,4" marker-end="url(#arrowhead)"/>
+            </g>
+            
+            <!-- Stage 1: Website Input -->
+            <g transform="translate(60, 80)">
+                <rect width="160" height="140" rx="16" fill="#1a2332" stroke="#374151" stroke-width="2"/>
+                <rect width="160" height="8" rx="4" fill="url(#grad1)" y="0"/>
+                <text x="80" y="45" text-anchor="middle" fill="#f3f4f6" font-size="14" font-weight="600">STAGE 1</text>
+                <text x="80" y="70" text-anchor="middle" fill="#9ca3af" font-size="12">Website Input</text>
+                
+                <!-- Globe icon -->
+                <circle cx="80" cy="105" r="20" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                <ellipse cx="80" cy="105" rx="8" ry="20" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+                <line x1="60" y1="105" x2="100" y2="105" stroke="#3b82f6" stroke-width="1.5"/>
+            </g>
+            
+            <!-- Stage 2: Blacklight Scan -->
+            <g transform="translate(280, 80)">
+                <rect width="160" height="140" rx="16" fill="#1a2332" stroke="#374151" stroke-width="2"/>
+                <rect width="160" height="8" rx="4" fill="url(#grad2)" y="0"/>
+                <text x="80" y="45" text-anchor="middle" fill="#f3f4f6" font-size="14" font-weight="600">STAGE 2</text>
+                <text x="80" y="70" text-anchor="middle" fill="#9ca3af" font-size="12">Blacklight Scan</text>
+                
+                <!-- Scan icon -->
+                <rect x="55" y="90" width="50" height="35" rx="4" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+                <line x1="65" y1="100" x2="95" y2="100" stroke="#8b5cf6" stroke-width="2"/>
+                <line x1="65" y1="108" x2="85" y2="108" stroke="#8b5cf6" stroke-width="2"/>
+                <line x1="65" y1="116" x2="90" y2="116" stroke="#8b5cf6" stroke-width="2"/>
+            </g>
+            
+            <!-- Stage 3: Data Processing -->
+            <g transform="translate(500, 80)">
+                <rect width="160" height="140" rx="16" fill="#1a2332" stroke="#374151" stroke-width="2"/>
+                <rect width="160" height="8" rx="4" fill="url(#grad3)" y="0"/>
+                <text x="80" y="45" text-anchor="middle" fill="#f3f4f6" font-size="14" font-weight="600">STAGE 3</text>
+                <text x="80" y="70" text-anchor="middle" fill="#9ca3af" font-size="12">Data Processing</text>
+                
+                <!-- Python/gear icon -->
+                <g transform="translate(60, 88)">
+                    <circle cx="20" cy="20" r="18" fill="none" stroke="#06b6d4" stroke-width="2"/>
+                    <circle cx="20" cy="20" r="8" fill="none" stroke="#06b6d4" stroke-width="2"/>
+                    <g stroke="#06b6d4" stroke-width="3">
+                        <line x1="20" y1="0" x2="20" y2="5"/>
+                        <line x1="20" y1="35" x2="20" y2="40"/>
+                        <line x1="0" y1="20" x2="5" y2="20"/>
+                        <line x1="35" y1="20" x2="40" y2="20"/>
+                    </g>
+                </g>
+            </g>
+            
+            <!-- Stage 4: Analysis -->
+            <g transform="translate(720, 80)">
+                <rect width="160" height="140" rx="16" fill="#1a2332" stroke="#374151" stroke-width="2"/>
+                <rect width="160" height="8" rx="4" fill="url(#grad4)" y="0"/>
+                <text x="80" y="45" text-anchor="middle" fill="#f3f4f6" font-size="14" font-weight="600">STAGE 4</text>
+                <text x="80" y="70" text-anchor="middle" fill="#9ca3af" font-size="12">Statutory Mapping</text>
+                
+                <!-- Scale/balance icon -->
+                <g transform="translate(55, 88)">
+                    <line x1="25" y1="5" x2="25" y2="35" stroke="#10b981" stroke-width="2"/>
+                    <line x1="5" y1="15" x2="45" y2="15" stroke="#10b981" stroke-width="2"/>
+                    <polygon points="5,15 15,25 -5,25" fill="none" stroke="#10b981" stroke-width="2" transform="translate(5,0)"/>
+                    <polygon points="35,15 45,25 25,25" fill="none" stroke="#10b981" stroke-width="2" transform="translate(5,0)"/>
+                    <rect x="18" y="32" width="14" height="6" fill="none" stroke="#10b981" stroke-width="2"/>
+                </g>
+            </g>
+            
+            <!-- Stage 5: Report Generation -->
+            <g transform="translate(940, 80)">
+                <rect width="160" height="140" rx="16" fill="#1a2332" stroke="#374151" stroke-width="2"/>
+                <rect width="160" height="8" rx="4" fill="url(#grad5)" y="0"/>
+                <text x="80" y="45" text-anchor="middle" fill="#f3f4f6" font-size="14" font-weight="600">STAGE 5</text>
+                <text x="80" y="70" text-anchor="middle" fill="#9ca3af" font-size="12">Report Generation</text>
+                
+                <!-- Document icon -->
+                <g transform="translate(55, 88)">
+                    <path d="M 5 0 L 35 0 L 45 12 L 45 40 L 5 40 Z" fill="none" stroke="#f59e0b" stroke-width="2"/>
+                    <path d="M 35 0 L 35 12 L 45 12" fill="none" stroke="#f59e0b" stroke-width="2"/>
+                    <line x1="12" y1="20" x2="38" y2="20" stroke="#f59e0b" stroke-width="1.5"/>
+                    <line x1="12" y1="27" x2="38" y2="27" stroke="#f59e0b" stroke-width="1.5"/>
+                    <line x1="12" y1="34" x2="28" y2="34" stroke="#f59e0b" stroke-width="1.5"/>
+                </g>
+            </g>
+            
+            <!-- Data Categories Section -->
+            <g transform="translate(60, 280)">
+                <text x="0" y="0" fill="#f3f4f6" font-size="16" font-weight="600">7 Key Tracking Categories Analyzed:</text>
+                
+                <!-- Category boxes -->
+                <g transform="translate(0, 20)">
+                    <rect x="0" y="0" width="140" height="50" rx="8" fill="#1a2332" stroke="#3b82f6" stroke-width="1.5"/>
+                    <text x="70" y="22" text-anchor="middle" fill="#3b82f6" font-size="20">🍪</text>
+                    <text x="70" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">Cookies</text>
+                </g>
+                
+                <g transform="translate(155, 20)">
+                    <rect x="0" y="0" width="140" height="50" rx="8" fill="#1a2332" stroke="#8b5cf6" stroke-width="1.5"/>
+                    <text x="70" y="22" text-anchor="middle" fill="#8b5cf6" font-size="20">🎨</text>
+                    <text x="70" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">Canvas Fingerprint</text>
+                </g>
+                
+                <g transform="translate(310, 20)">
+                    <rect x="0" y="0" width="140" height="50" rx="8" fill="#1a2332" stroke="#06b6d4" stroke-width="1.5"/>
+                    <text x="70" y="22" text-anchor="middle" fill="#06b6d4" font-size="20">📘</text>
+                    <text x="70" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">Facebook Pixel</text>
+                </g>
+                
+                <g transform="translate(465, 20)">
+                    <rect x="0" y="0" width="140" height="50" rx="8" fill="#1a2332" stroke="#10b981" stroke-width="1.5"/>
+                    <text x="70" y="22" text-anchor="middle" fill="#10b981" font-size="20">⌨️</text>
+                    <text x="70" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">Key Logging</text>
+                </g>
+                
+                <g transform="translate(620, 20)">
+                    <rect x="0" y="0" width="140" height="50" rx="8" fill="#1a2332" stroke="#f59e0b" stroke-width="1.5"/>
+                    <text x="70" y="22" text-anchor="middle" fill="#f59e0b" font-size="20">🎥</text>
+                    <text x="70" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">Session Recording</text>
+                </g>
+                
+                <g transform="translate(775, 20)">
+                    <rect x="0" y="0" width="140" height="50" rx="8" fill="#1a2332" stroke="#ef4444" stroke-width="1.5"/>
+                    <text x="70" y="22" text-anchor="middle" fill="#ef4444" font-size="20">📡</text>
+                    <text x="70" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">Third-Party Trackers</text>
+                </g>
+                
+                <g transform="translate(930, 20)">
+                    <rect x="0" y="0" width="140" height="50" rx="8" fill="#1a2332" stroke="#ec4899" stroke-width="1.5"/>
+                    <text x="70" y="22" text-anchor="middle" fill="#ec4899" font-size="20">📊</text>
+                    <text x="70" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">Summary Data</text>
+                </g>
+            </g>
+            
+            <!-- Output Section -->
+            <g transform="translate(60, 400)">
+                <text x="0" y="0" fill="#f3f4f6" font-size="16" font-weight="600">Pipeline Outputs:</text>
+                
+                <g transform="translate(0, 15)">
+                    <rect x="0" y="0" width="180" height="40" rx="8" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6" stroke-width="1"/>
+                    <text x="15" y="25" fill="#3b82f6" font-size="12" font-weight="500">📄 HTML Privacy Report</text>
+                </g>
+                
+                <g transform="translate(200, 15)">
+                    <rect x="0" y="0" width="180" height="40" rx="8" fill="rgba(139, 92, 246, 0.1)" stroke="#8b5cf6" stroke-width="1"/>
+                    <text x="15" y="25" fill="#8b5cf6" font-size="12" font-weight="500">📝 Investigation Report</text>
+                </g>
+                
+                <g transform="translate(400, 15)">
+                    <rect x="0" y="0" width="180" height="40" rx="8" fill="rgba(16, 185, 129, 0.1)" stroke="#10b981" stroke-width="1"/>
+                    <text x="15" y="25" fill="#10b981" font-size="12" font-weight="500">📊 Evidence Inventory</text>
+                </g>
+                
+                <g transform="translate(600, 15)">
+                    <rect x="0" y="0" width="180" height="40" rx="8" fill="rgba(245, 158, 11, 0.1)" stroke="#f59e0b" stroke-width="1"/>
+                    <text x="15" y="25" fill="#f59e0b" font-size="12" font-weight="500">⚖️ Statutory Mapping</text>
+                </g>
+            </g>
+        </svg>
+        
+        <!-- Detailed Stage Descriptions -->
+        <h2 class="section-title">Pipeline Stages Explained</h2>
+        <div class="stages-detail">
+            <div class="stage-card stage-1">
+                <div class="stage-header">
+                    <div class="stage-number">1</div>
+                    <div class="stage-title">Website Input & Configuration</div>
+                </div>
+                <p class="stage-desc">
+                    The pipeline begins with target website identification. URLs can be processed individually 
+                    or in batch mode via CSV files. Configuration includes defining scan parameters, 
+                    consent testing scenarios, and evidence collection requirements.
+                </p>
+                <div class="stage-tools">
+                    <span class="tool-tag">URL Input</span>
+                    <span class="tool-tag">CSV Batch Processing</span>
+                    <span class="tool-tag">runone.sh</span>
+                </div>
+            </div>
+            
+            <div class="stage-card stage-2">
+                <div class="stage-header">
+                    <div class="stage-number">2</div>
+                    <div class="stage-title">Blacklight Privacy Scan</div>
+                </div>
+                <p class="stage-desc">
+                    Automated crawling using The Markup's Blacklight scanner to detect tracking technologies. 
+                    Captures cookies, canvas fingerprinting, session recording scripts, Facebook pixels, 
+                    key loggers, and third-party tracker requests.
+                </p>
+                <div class="stage-tools">
+                    <span class="tool-tag">Blacklight Scanner</span>
+                    <span class="tool-tag">Puppeteer</span>
+                    <span class="tool-tag">Network Analysis</span>
+                </div>
+            </div>
+            
+            <div class="stage-card stage-3">
+                <div class="stage-header">
+                    <div class="stage-number">3</div>
+                    <div class="stage-title">Data Processing & Parsing</div>
+                </div>
+                <p class="stage-desc">
+                    Python scripts process raw Blacklight CSV outputs with comprehensive analysis. 
+                    All cookies are analyzed (not just samples) with automatic delays and retry logic 
+                    for API rate limiting. Data is normalized and categorized for legal framework mapping.
+                </p>
+                <div class="stage-tools">
+                    <span class="tool-tag">Python Scripts</span>
+                    <span class="tool-tag">CSV Processing</span>
+                    <span class="tool-tag">Data Normalization</span>
+                </div>
+            </div>
+            
+            <div class="stage-card stage-4">
+                <div class="stage-header">
+                    <div class="stage-number">4</div>
+                    <div class="stage-title">Statutory Framework Mapping</div>
+                </div>
+                <p class="stage-desc">
+                    Detected tracking practices are categorized according to California statutory definitions. 
+                    Data collection is mapped to TRAP AND TRACE (§ 638.51) addressing information categories 
+                    and WIRETAP (§ 631) content interception categories. This technical mapping provides 
+                    documentation for subsequent legal review by counsel.
+                </p>
+                <div class="stage-tools">
+                    <span class="tool-tag">Evidence Categorization</span>
+                    <span class="tool-tag">Statutory Definitions</span>
+                    <span class="tool-tag">§ 631 / § 638.51</span>
+                </div>
+            </div>
+            
+            <div class="stage-card stage-5">
+                <div class="stage-header">
+                    <div class="stage-number">5</div>
+                    <div class="stage-title">Report Generation</div>
+                </div>
+                <p class="stage-desc">
+                    Professional HTML reports are generated with legal-quality formatting. Reports include 
+                    complete evidence inventories, specific cookie counts, tracker instances, and clear 
+                    separation between technical findings and legal compliance evaluation.
+                </p>
+                <div class="stage-tools">
+                    <span class="tool-tag">HTML Reports</span>
+                    <span class="tool-tag">Markdown Docs</span>
+                    <span class="tool-tag">Evidence Package</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statutory Framework Section -->
+        <h2 class="section-title">Statutory Framework Mapping</h2>
+        <div class="legal-framework">
+            <div class="legal-card trap-trace">
+                <h3>
+                    <span class="legal-badge">§ 638.51</span>
+                    TRAP AND TRACE - Addressing Information
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">
+                    Data collection mapped to statutory definitions of "addressing information":
+                </p>
+                <ul class="legal-list">
+                    <li>IP address collection and transmission</li>
+                    <li>Geolocation data (including ZIP codes)</li>
+                    <li>Unique device identifiers</li>
+                    <li>Browser and device fingerprinting</li>
+                    <li>Age and demographic information</li>
+                    <li>User agent and system information</li>
+                </ul>
+            </div>
+            
+            <div class="legal-card wiretap">
+                <h3>
+                    <span class="legal-badge">§ 631</span>
+                    WIRETAP - Content Interception
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">
+                    Data collection mapped to statutory definitions of intercepted "contents":
+                </p>
+                <ul class="legal-list">
+                    <li>Page view and content tracking</li>
+                    <li>Form interactions and submissions</li>
+                    <li>Search queries and clicks</li>
+                    <li>Session recording and replay</li>
+                    <li>Key logging and input capture</li>
+                    <li>E-commerce tracking (cart, checkout, purchase)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Tracking Categories -->
+        <h2 class="section-title">Tracking Technologies Detected</h2>
+        <div class="data-flow">
+            <div class="tracking-categories">
+                <div class="category-item">
+                    <div class="category-icon">🍪</div>
+                    <div class="category-name">Cookies</div>
+                    <div class="category-desc">First-party, third-party, session, persistent, HTTP, JavaScript</div>
+                </div>
+                <div class="category-item">
+                    <div class="category-icon">🎨</div>
+                    <div class="category-name">Canvas Fingerprinting</div>
+                    <div class="category-desc">Graphics rendering exploitation for unique device identification</div>
+                </div>
+                <div class="category-item">
+                    <div class="category-icon">📘</div>
+                    <div class="category-name">Facebook Pixel</div>
+                    <div class="category-desc">Standard and custom events for cross-site tracking</div>
+                </div>
+                <div class="category-item">
+                    <div class="category-icon">⌨️</div>
+                    <div class="category-name">Key Logging</div>
+                    <div class="category-desc">Keyboard input monitoring and capture scripts</div>
+                </div>
+                <div class="category-item">
+                    <div class="category-icon">🎥</div>
+                    <div class="category-name">Session Recording</div>
+                    <div class="category-desc">FullStory, Hotjar, LogRocket and similar tools</div>
+                </div>
+                <div class="category-item">
+                    <div class="category-icon">📡</div>
+                    <div class="category-name">Third-Party Trackers</div>
+                    <div class="category-desc">Advertising networks, analytics platforms, data brokers</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pipeline Outputs -->
+        <h2 class="section-title">Final Deliverables</h2>
+        <div class="outputs-grid">
+            <div class="output-card">
+                <div class="output-icon">📄</div>
+                <div class="output-title">HTML Privacy Report</div>
+                <div class="output-desc">Professional, legal-quality formatted report with comprehensive findings and evidence citations</div>
+            </div>
+            <div class="output-card">
+                <div class="output-icon">📝</div>
+                <div class="output-title">Investigation Report</div>
+                <div class="output-desc">Markdown documentation with detailed technical assessment and methodology notes</div>
+            </div>
+            <div class="output-card">
+                <div class="output-icon">📊</div>
+                <div class="output-title">Evidence Inventory</div>
+                <div class="output-desc">Complete raw data dumps including all cookies, trackers, and fingerprinting instances</div>
+            </div>
+            <div class="output-card">
+                <div class="output-icon">⚖️</div>
+                <div class="output-title">Statutory Mapping</div>
+                <div class="output-desc">Categorized findings mapped to TRAP AND TRACE and WIRETAP statutory definitions for legal counsel review</div>
+            </div>
+        </div>
+        
+        <footer>
+            <p><strong>Privacy Inspection Pipeline</strong> | Technical Privacy Assessment System</p>
+            <p style="margin-top: 10px; font-size: 0.9rem;">
+                Documents tracking practices and maps findings to statutory definitions • 
+                Compliance determination requires review by legal counsel
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

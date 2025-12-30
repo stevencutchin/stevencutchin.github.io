@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Site Tracking: How Lowe's Cookies Enable Facebook Advertising</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+            line-height: 1.2;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .alert-box {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 6px;
+        }
+        
+        .alert-box h3 {
+            color: #664d03;
+            margin-bottom: 10px;
+        }
+        
+        .alert-box p {
+            color: #664d03;
+            line-height: 1.7;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #e9ecef;
+        }
+        
+        .section p {
+            color: #555;
+            margin-bottom: 15px;
+            line-height: 1.7;
+        }
+        
+        .scenario-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .scenario-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+            margin: 30px 0;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #667eea;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -33px;
+            top: 25px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 4px solid white;
+            box-shadow: 0 0 0 2px #667eea;
+        }
+        
+        .timeline-item .step-number {
+            background: #667eea;
+            color: white;
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .timeline-item h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .timeline-item p {
+            color: #555;
+            margin-bottom: 10px;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #68d391;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .data-flow {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .flow-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+            text-align: center;
+        }
+        
+        .flow-box strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .flow-arrow {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.5em;
+            margin: 10px 0;
+        }
+        
+        .legal-section {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 25px;
+            border-radius: 6px;
+            margin: 30px 0;
+        }
+        
+        .legal-section h3 {
+            color: #842029;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        .legal-section p {
+            color: #842029;
+            line-height: 1.7;
+        }
+        
+        .legal-section ul {
+            color: #842029;
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .legal-section li {
+            margin-bottom: 8px;
+        }
+        
+        .key-point {
+            background: #e7e3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        
+        .key-point strong {
+            color: #4c3a96;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .key-point p {
+            color: #4c3a96;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .violation-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .violation-box h4 {
+            color: #664d03;
+            margin-bottom: 10px;
+        }
+        
+        .violation-box p {
+            color: #664d03;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 Cross-Site Tracking Explained</h1>
+            <p>How a Lowe's Cookie Enables Facebook Advertising Surveillance</p>
+        </div>
+        
+        <div class="content">
+            <div class="alert-box">
+                <h3>⚠️ The Privacy Paradox</h3>
+                <p>
+                    You visit Lowe's website to shop for a drill. Hours later, you see ads for drills on Facebook—even though 
+                    you never told Facebook about your shopping. How does Facebook know? Through a sophisticated web of cookies 
+                    and cross-site tracking that most users never consented to or even know exists.
+                </p>
+            </div>
+            
+            <!-- THE MECHANICS -->
+            <div class="section">
+                <h2>📊 The Tracking Mechanism: Step by Step</h2>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <span class="step-number">Step 1</span>
+                        <h4>You Visit Lowe's Website</h4>
+                        <p>
+                            You navigate to <code>lowes.com</code> to browse power tools. The moment the page loads, 
+                            multiple tracking systems activate.
+                        </p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <span class="step-number">Step 2</span>
+                        <h4>Lowe's Sets First-Party Cookies</h4>
+                        <p>
+                            Lowe's server sends cookie instructions to your browser:
+                        </p>
+                        <div class="code-block">
+Set-Cookie: dbidv2=abc123xyz; Domain=lowes.com; Expires=2026-12-15; Path=/
+Set-Cookie: user_session=789def456; Domain=lowes.com</div>
+                        <p>
+                            These cookies track your shopping behavior, cart items, and browsing patterns on Lowe's site. 
+                            Your browser stores: Your unique user ID, items you viewed, searches you performed, how long you 
+                            spent on each page.
+                        </p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <span class="step-number">Step 3</span>
+                        <h4>Facebook Pixel Loads on Lowe's Site</h4>
+                        <p>
+                            Embedded in Lowe's website is Facebook's tracking code (the "Pixel"). When Lowe's page loads, 
+                            your browser automatically downloads and executes JavaScript from Facebook's servers:
+                        </p>
+                        <div class="code-block">
+&lt;script&gt;
+  !function(f,b,e,v,n,t,s) {/* Facebook Pixel Code */}
+  fbq('init', '1234567890');  // Lowe's Facebook Pixel ID
+  fbq('track', 'PageView');
+&lt;/script&gt;</div>
+                        <p>
+                            <strong>Key point:</strong> This is Facebook's code running on Lowe's website. Facebook is now 
+                            watching your activity, even though you're not on Facebook.
+                        </p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <span class="step-number">Step 4</span>
+                        <h4>Facebook Sets Its Own Cookies</h4>
+                        <p>
+                            The Facebook Pixel code creates multiple cookies on your computer:
+                        </p>
+                        <div class="code-block">
+Set-Cookie: _fbp=fb.1.1699123456789.987654321; Domain=lowes.com; Expires=90 days
+Set-Cookie: fr=abc123def456; Domain=.facebook.com; Expires=90 days</div>
+                        <p>
+                            These Facebook cookies contain: A unique identifier linking you across websites, timestamps of 
+                            your visit, your device fingerprint.
+                        </p>
+                        <div class="key-point">
+                            <strong>Critical Detail:</strong>
+                            <p>
+                                The <code>_fbp</code> cookie is set on Lowe's domain, but Facebook controls it. The <code>fr</code> 
+                                cookie is set on Facebook's domain and persists across all sites with Facebook integration.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <span class="step-number">Step 5</span>
+                        <h4>Your Shopping Actions Are Transmitted to Facebook</h4>
+                        <p>
+                            As you browse Lowe's, the Facebook Pixel reports every significant action directly to Facebook's servers:
+                        </p>
+                        <div class="code-block">
+// When you view a drill
+fbq('track', 'ViewContent', {
+  content_name: 'DEWALT 20V Cordless Drill',
+  content_category: 'Power Tools',
+  content_ids: ['SKU12345'],
+  value: 129.99,
+  currency: 'USD'
+});
+
+// When you add to cart
+fbq('track', 'AddToCart', {
+  content_ids: ['SKU12345'],
+  value: 129.99
+});</div>
+                        <p>
+                            Each event triggers an HTTP request to <code>facebook.com/tr/</code> containing: The exact product 
+                            you viewed, price, category, your Facebook tracking ID, your IP address, timestamp.
+                        </p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <span class="step-number">Step 6</span>
+                        <h4>Facebook Links Data to Your Profile</h4>
+                        <p>
+                            Facebook receives the data and performs identity resolution:
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li><strong>If you're logged into Facebook:</strong> Direct link to your account via cookies</li>
+                            <li><strong>If you're logged out:</strong> Facebook uses device fingerprinting (IP address + browser 
+                            fingerprint + tracking ID) to identify you probabilistically</li>
+                            <li><strong>If you don't have Facebook:</strong> Facebook creates a "shadow profile" - a profile 
+                            about you that you never created</li>
+                        </ul>
+                        <p style="margin-top: 15px;">
+                            Facebook now knows: You visited Lowe's, you looked at a DEWALT drill, you added it to cart, 
+                            you didn't purchase (if you left without buying).
+                        </p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <span class="step-number">Step 7</span>
+                        <h4>Hours/Days Later: You Visit Facebook</h4>
+                        <p>
+                            Later, you open Facebook or Instagram. Your browser automatically sends Facebook's cookies:
+                        </p>
+                        <div class="code-block">
+GET /feed HTTP/1.1
+Host: www.facebook.com
+Cookie: fr=abc123def456; _fbp=fb.1.1699123456789.987654321</div>
+                        <p>
+                            Facebook's servers immediately recognize you: "This is the person who looked at drills on Lowe's."
+                        </p>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <span class="step-number">Step 8</span>
+                        <h4>Targeted Advertising Appears</h4>
+                        <p>
+                            Facebook serves you ads for:
+                        </p>
+                        <ul style="margin-left: 20px; margin-top: 10px;">
+                            <li>The exact DEWALT drill you viewed at Lowe's (retargeting)</li>
+                            <li>Competing drills from Home Depot or Amazon (competitive targeting)</li>
+                            <li>Drill bits, batteries, and related accessories (upsell targeting)</li>
+                        </ul>
+                        <p style="margin-top: 15px;">
+                            <strong>You never told Facebook about your drill shopping.</strong> You didn't post about it, search 
+                            for it on Facebook, or click any ads. Yet Facebook knows—because Lowe's gave Facebook permission to 
+                            track you.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- DATA FLOW DIAGRAM -->
+            <div class="section">
+                <h2>🔄 Data Flow Visualization</h2>
+                
+                <div class="data-flow">
+                    <div class="flow-box">
+                        <strong>You visit Lowes.com</strong>
+                        Lowe's sets: dbidv2=abc123
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box">
+                        <strong>Facebook Pixel loads from Lowe's page</strong>
+                        Facebook sets: _fbp=fb.1.xyz, fr=def456
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box">
+                        <strong>You view DEWALT drill on Lowe's</strong>
+                        Facebook Pixel sends: ViewContent event to facebook.com/tr/
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box">
+                        <strong>Facebook's servers receive data</strong>
+                        Links your activity to your Facebook profile/fingerprint
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box">
+                        <strong>Later: You visit Facebook.com</strong>
+                        Your browser sends: Cookie: fr=def456; _fbp=fb.1.xyz
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box">
+                        <strong>Facebook recognizes you</strong>
+                        Serves targeted ads for drills and related products
+                    </div>
+                </div>
+            </div>
+            
+            <!-- COOKIE TABLE -->
+            <div class="section">
+                <h2>🍪 The Cookie Ecosystem</h2>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cookie Name</th>
+                                <th>Set By</th>
+                                <th>Domain</th>
+                                <th>Purpose</th>
+                                <th>Who Can Read It</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>dbidv2</code></td>
+                                <td>Lowe's server</td>
+                                <td>lowes.com</td>
+                                <td>Track your shopping on Lowe's</td>
+                                <td>Only Lowe's</td>
+                            </tr>
+                            <tr>
+                                <td><code>_fbp</code></td>
+                                <td>Facebook Pixel (via JavaScript)</td>
+                                <td>lowes.com</td>
+                                <td>Facebook browser ID</td>
+                                <td>Facebook Pixel on Lowe's site</td>
+                            </tr>
+                            <tr>
+                                <td><code>fr</code></td>
+                                <td>Facebook Pixel</td>
+                                <td>.facebook.com</td>
+                                <td>Facebook advertising ID</td>
+                                <td>Facebook & any site with FB Pixel</td>
+                            </tr>
+                            <tr>
+                                <td><code>datr</code></td>
+                                <td>Facebook</td>
+                                <td>.facebook.com</td>
+                                <td>Browser identification</td>
+                                <td>Facebook across all sites</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="key-point">
+                    <strong>The Critical Insight:</strong>
+                    <p>
+                        Lowe's cookies stay on lowes.com. But Facebook's cookies work across EVERY website with Facebook 
+                        integration—creating a surveillance network across millions of sites. One shopping session on Lowe's 
+                        feeds into a comprehensive profile Facebook maintains about you across the entire web.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- LEGAL ANALYSIS -->
+            <div class="section">
+                <h2>⚖️ Potential Coordinated Privacy Violations</h2>
+                
+                <div class="legal-section">
+                    <h3>California Privacy Statutes Analysis</h3>
+                    
+                    <p>
+                        This tracking mechanism potentially violates multiple California privacy laws through coordinated 
+                        action between Lowe's and Facebook:
+                    </p>
+                    
+                    <h4 style="margin-top: 20px; margin-bottom: 10px;">1. WIRETAP (Penal Code § 631)</h4>
+                    <ul>
+                        <li><strong>The Law:</strong> Prohibits intentionally tapping or intercepting electronic communications 
+                        without consent of all parties</li>
+                        <li><strong>Potential Violation:</strong> The Facebook Pixel intercepts and transmits user activity 
+                        (browsing, cart additions, purchases) in real-time from Lowe's to Facebook without explicit user consent</li>
+                        <li><strong>Coordination:</strong> Lowe's embeds Facebook's code knowing it will intercept communications. 
+                        Facebook provides the interception technology. Both benefit from the data collected.</li>
+                    </ul>
+                    
+                    <h4 style="margin-top: 20px; margin-bottom: 10px;">2. TRAP AND TRACE (Penal Code § 638.51)</h4>
+                    <ul>
+                        <li><strong>The Law:</strong> Requires consent before installing devices that record addressing 
+                        information (who you communicate with, when, from where)</li>
+                        <li><strong>Potential Violation:</strong> The tracking cookies record: Your IP address (location), 
+                        unique identifiers, which sites you visit, when you visit them, your browsing patterns</li>
+                        <li><strong>Coordination:</strong> Lowe's allows Facebook to install tracking cookies on Lowe's domain. 
+                        These cookies then follow you to other sites, building a map of your web travels.</li>
+                    </ul>
+                    
+                    <h4 style="margin-top: 20px; margin-bottom: 10px;">3. CCPA/CPRA Violations</h4>
+                    <ul>
+                        <li><strong>Sale of Personal Information:</strong> Lowe's transmits your browsing data to Facebook. 
+                        This is arguably a "sale" under CCPA, which requires clear disclosure and opt-out mechanisms</li>
+                        <li><strong>Dark Patterns:</strong> Users cannot reasonably understand that shopping on Lowe's results 
+                        in Facebook tracking</li>
+                        <li><strong>Third-Party Sharing:</strong> Inadequate disclosure that Facebook receives real-time 
+                        shopping data</li>
+                    </ul>
+                </div>
+                
+                <div class="violation-box">
+                    <h4>Why This Constitutes "Coordination"</h4>
+                    <p>
+                        This isn't accidental or independent action—it's a coordinated surveillance partnership:
+                    </p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Contractual Agreement:</strong> Lowe's signs up for Facebook Business Tools, agreeing to 
+                        install the Pixel</li>
+                        <li><strong>Technical Integration:</strong> Lowe's developers intentionally embed Facebook's tracking 
+                        code on every page</li>
+                        <li><strong>Data Sharing Agreement:</strong> Both parties agree to terms about what data flows where</li>
+                        <li><strong>Mutual Benefit:</strong> Lowe's gets better ad targeting, Facebook gets more data and ad revenue</li>
+                        <li><strong>Joint Control:</strong> Lowe's controls what events to track, Facebook controls what happens 
+                        with the data</li>
+                    </ul>
+                    
+                    <p style="margin-top: 15px;">
+                        <strong>Legal Theory:</strong> When two parties deliberately establish an infrastructure for surveillance 
+                        that neither could accomplish alone, and both benefit from the resulting privacy invasion, they may be 
+                        jointly liable for statutory violations.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- CONSENT FAILURES -->
+            <div class="section">
+                <h2>🚫 The Consent Problem</h2>
+                
+                <div class="scenario-box">
+                    <h3>What Users Think They're Consenting To:</h3>
+                    <p>
+                        "I'm shopping on Lowe's website. Lowe's might remember my cart and preferences."
+                    </p>
+                </div>
+                
+                <div class="scenario-box">
+                    <h3>What's Actually Happening:</h3>
+                    <p>
+                        "Lowe's is transmitting my shopping behavior to Facebook in real-time. Facebook is building a profile 
+                        of my interests. Facebook will use this data to target me with ads across the internet for months. 
+                        This data may be combined with data from hundreds of other websites I visit. I'm being surveilled by 
+                        Facebook even though I'm not using Facebook."
+                    </p>
+                </div>
+                
+                <div class="key-point">
+                    <strong>Why Consent Fails:</strong>
+                    <p>
+                        Most users have no idea Facebook is watching them on Lowe's website. Cookie banners are vague and 
+                        don't clearly explain that "third-party advertising cookies" means "Facebook will track your shopping 
+                        and show you ads later." The complexity and technical nature of the tracking makes informed consent 
+                        practically impossible.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- TECHNICAL EVASION -->
+            <div class="section">
+                <h2>🔓 Why Traditional Privacy Tools Fail</h2>
+                
+                <div class="scenario-box">
+                    <h3>Even "Privacy-Conscious" Users Are Tracked:</h3>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Logged Out of Facebook?</strong> Facebook still tracks via device fingerprinting and 
+                        probabilistic matching</li>
+                        <li><strong>Don't Have a Facebook Account?</strong> Facebook creates "shadow profiles" of non-users</li>
+                        <li><strong>Use Incognito Mode?</strong> The Pixel still fires, tracking still occurs (just not linked 
+                        to existing cookies)</li>
+                        <li><strong>Clear Cookies Regularly?</strong> Canvas fingerprinting and browser fingerprinting 
+                        provide backup identification</li>
+                        <li><strong>Use VPN?</strong> Doesn't prevent Facebook Pixel from tracking your actions on Lowe's</li>
+                    </ul>
+                </div>
+                
+                <p style="margin-top: 20px;">
+                    <strong>The only effective defenses require technical expertise:</strong> Browser extensions that block 
+                    Facebook domains entirely, uBlock Origin with advanced filters, Privacy Badger, or Firefox with Enhanced 
+                    Tracking Protection. Most users don't know these tools exist or how to use them effectively.
+                </p>
+            </div>
+            
+            <!-- REAL-WORLD IMPLICATIONS -->
+            <div class="section">
+                <h2>🌐 Scale of the Surveillance Network</h2>
+                
+                <p>
+                    This isn't just Lowe's and Facebook. The Facebook Pixel is embedded on:
+                </p>
+                
+                <div class="table-wrapper" style="margin-top: 20px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Examples</th>
+                                <th>What Facebook Learns</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Retail</strong></td>
+                                <td>Home Depot, Target, Best Buy</td>
+                                <td>What you shop for, price sensitivity, purchase timing</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Travel</strong></td>
+                                <td>Expedia, Hotels.com, Airlines</td>
+                                <td>Travel plans, destinations, dates, budget</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Healthcare</strong></td>
+                                <td>Health insurance sites, pharmacy lookups</td>
+                                <td>Medical conditions, prescriptions (highly sensitive)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Financial</strong></td>
+                                <td>Loan applications, credit cards</td>
+                                <td>Financial situation, credit seeking behavior</td>
+                            </tr>
+                            <tr>
+                                <td><strong>News/Media</strong></td>
+                                <td>News sites, blogs, forums</td>
+                                <td>Political views, interests, reading habits</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="legal-section" style="margin-top: 30px;">
+                    <h3>⚠️ The Surveillance Profile</h3>
+                    <p>
+                        By tracking across millions of websites, Facebook builds a comprehensive dossier about you containing:
+                    </p>
+                    <ul>
+                        <li>Shopping habits and product interests (from e-commerce sites)</li>
+                        <li>Political leanings (from news site reading)</li>
+                        <li>Health conditions (from health-related searches and pharmacy sites)</li>
+                        <li>Financial status (from loan applications and financial product research)</li>
+                        <li>Life events (wedding planning, new baby, moving, etc.)</li>
+                        <li>Travel plans (from travel booking sites)</li>
+                        <li>Personal relationships (inferred from combined data)</li>
+                    </ul>
+                    <p style="margin-top: 15px;">
+                        <strong>You never gave Facebook this information directly—it was assembled from surveillance across 
+                        third-party websites.</strong>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- CONCLUSION -->
+            <div class="section">
+                <h2>🎯 Summary: The Privacy Violation</h2>
+                
+                <div class="alert-box">
+                    <h3>The Core Problem</h3>
+                    <p>
+                        When you visit Lowe's to shop for a drill, you enter into what you believe is a transaction with 
+                        Lowe's. Instead, you've unknowingly entered a surveillance arrangement involving Lowe's, Facebook, 
+                        and potentially dozens of other third parties. Your shopping behavior is intercepted, transmitted, 
+                        stored, analyzed, and monetized—all without your meaningful consent or understanding.
+                    </p>
+                </div>
+                
+                <div class="key-point">
+                    <strong>Why This Matters:</strong>
+                    <p>
+                        This isn't about whether targeted ads are annoying. It's about fundamental privacy rights, informed 
+                        consent, and whether corporations can create secret surveillance partnerships to monitor your private 
+                        activities. California privacy laws exist because the legislature recognized that this kind of 
+                        surveillance, conducted without clear consent, violates basic dignity and autonomy.
+                    </p>
+                </div>
+                
+                <div class="legal-section">
+                    <h3>Potential Legal Arguments</h3>
+                    <ul>
+                        <li><strong>Joint Liability:</strong> Lowe's and Facebook coordinate to enable tracking neither could 
+                        accomplish independently</li>
+                        <li><strong>Inadequate Consent:</strong> Users cannot meaningfully consent to what they don't understand</li>
+                        <li><strong>Interception of Communications:</strong> Real-time transmission of browsing activity 
+                        constitutes electronic interception</li>
+                        <li><strong>Unauthorized Tracking Device:</strong> Cookies that follow you across sites function as 
+                        tracking devices installed without proper consent</li>
+                        <li><strong>Sale of Personal Information:</strong> Transmitting user data to Facebook for commercial 
+                        benefit constitutes a "sale" under CCPA</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Cross-Site Tracking Analysis</strong></p>
+            <p>Technical assessment of coordinated surveillance mechanisms</p>
+            <p style="margin-top: 15px; font-size: 0.9em;">
+                This document provides technical analysis of tracking mechanisms for privacy assessment purposes. 
+                Legal determinations should be made by qualified attorneys.
+            </p>
+            <p style="font-size: 0.85em; margin-top: 10px; color: #999;">
+                Part of the Privacy Investigation Toolkit
+            </p>
+        </div>
+    </div>
+</body>
+</html>
