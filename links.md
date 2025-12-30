@@ -1,9 +1,6 @@
 ---
 title: Links
 layout: categories
-excerpt: "Category index"
+excerpt: "External links and resources"
 aside: true
 ---
-
-
-testing the webiste

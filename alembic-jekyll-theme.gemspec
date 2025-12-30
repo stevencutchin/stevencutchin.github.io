@@ -3,12 +3,12 @@
 Gem::Specification.new do |spec|
   spec.name          = "alembic-jekyll-theme"
   spec.version       = "4.1.0"
-  spec.authors       = ["Ha"]
-  spec.email         = ["me@daviddarnes.com"]
+  spec.authors       = ["Steven Cutchin"]
+  spec.email         = ["scutchin@gmail.com"]
 
-  spec.summary       = %q{summary.}
-  spec.description   = "Description."
-  spec.homepage      = "https://alembic.darn.es"
+  spec.summary       = %q{Alembic Jekyll theme for personal website.}
+  spec.description   = "Alembic Jekyll theme customized for Steven Cutchin's website."
+  spec.homepage      = "https://stevencutchin.github.io"
   spec.license       = "MIT"
 
   spec.metadata["plugin_type"] = "theme"

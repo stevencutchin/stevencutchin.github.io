@@ -11,7 +11,7 @@ feature_image: "https://cdn.dribbble.com/users/6203/screenshots/3889093/gp_air_2
  * Terascale computational visualization techniques
 
 
-# Areas of interets include 
+# Areas of interest include 
 
 * Scientific Data Visualization
 * Immersive Environments

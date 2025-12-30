@@ -3,7 +3,7 @@ title: Current Students
 feature_text: | 
    
 feature_image: "../assets/images/mec402.jpg"
-excerpt: "Studetns page"
+excerpt: "Students page"
 aside: true
 ---
  
@@ -11,7 +11,7 @@ aside: true
 * Rezvan Joshaghani, (Ph.D.)
 
 
-# Graudate Alumni
+# Graduate Alumni
 
 * Suadad Jasim Computer Science, Boise State University
 * Yuan Li Computer Science, (Ph.D.)

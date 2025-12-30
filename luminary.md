@@ -15,10 +15,10 @@ The Keith and Catherine Stein Luminary is an all-digital immersive museum space 
 
 The Stein Luminary combines both touch-activated screens and immersive projection. 
 
-Luminary focuses on visual expierience. Cutchin's work focuses on building and fostering the archiving cultural histories through this project using high technology and intricate software building. 
+Luminary focuses on visual experience. Cutchin's work focuses on building and fostering the archiving cultural histories through this project using high technology and intricate software building. 
 
 
-### A few photo showcasing Luminary 
+### A few photos showcasing Luminary 
 
 {% include figure.html image="/assets/images/luminary4.jpg" caption="Image with caption" width="500" height="1000" %}
 

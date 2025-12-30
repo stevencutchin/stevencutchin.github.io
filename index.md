@@ -26,7 +26,7 @@ Currently he is working on development of Keith and Katherine stien Luminary mus
 * M.S. in Computer Science, Dept. of Computer Sciences, Purdue University, May 1993.
 * B.S. Double Major in Computer Science and Mathematics, Purdue University, May 1990.
 
-# Areas of Intereset 
+# Areas of Interest 
 
 * Scientific Data Visualization
 * Immersive Environments
@@ -34,7 +34,4 @@ Currently he is working on development of Keith and Katherine stien Luminary mus
 * High Performance Computing
 * Multi-terabyte data visualization
 
-# Invited lectures, confences and seminars
-
-
-{% include button.html text="button 1" icon="github" link="https://github.com/daviddarnes/alembic" color="#0366d6" %} {% include button.html text="Button2" link="" color="#f68140" %} {% include button.html text="button three" icon="twitter" link="" color="#0d94e7" %} {% include button.html text="⚗️" link=" " %}
+# Invited lectures, conferences and seminars
