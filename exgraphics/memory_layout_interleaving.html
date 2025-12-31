@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Layout Interleaving - Graphics Data Structures</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 30px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: white;
+            margin: 20px 0;
+        }
+        
+        .note {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #0c5460;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .key-fact {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+        
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💾 Memory Layout Interleaving</h1>
+            <p>Array of Structures (AoS) vs Structure of Arrays (SoA)</p>
+        </div>
+        
+        <div class="content">
+            <!-- Overview -->
+            <div class="section">
+                <h2>🎯 Overview</h2>
+                <p style="line-height: 1.8; margin-bottom: 15px;">
+                    When storing vertex data for graphics, there are two fundamental approaches to organizing memory:
+                    <strong>Interleaved (AoS)</strong> and <strong>Non-Interleaved (SoA)</strong>. Each has different 
+                    performance characteristics depending on access patterns and hardware architecture.
+                </p>
+                
+                <div class="note key-fact">
+                    <strong>🔑 Key Concept:</strong>
+                    The choice between AoS and SoA affects cache performance, memory bandwidth, and GPU efficiency. 
+                    Most modern graphics APIs prefer interleaved data for vertex attributes, but non-interleaved 
+                    can be better for CPU processing and certain compute operations.
+                </div>
+            </div>
+
+            <!-- Interleaved Layout (AoS) -->
+            <div class="section">
+                <h2>📦 Interleaved Layout (Array of Structures)</h2>
+                
+                <svg viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Title -->
+                    <text x="600" y="30" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">
+                        Interleaved Memory Layout (AoS)
+                    </text>
+                    <text x="600" y="50" font-size="14" fill="#666" text-anchor="middle">
+                        All attributes for one vertex stored together
+                    </text>
+                    
+                    <!-- Memory blocks for Vertex 0 -->
+                    <g transform="translate(50, 80)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Vertex 0:</text>
+                        
+                        <!-- Position -->
+                        <rect x="0" y="0" width="120" height="60" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="60" y="25" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Position</text>
+                        <text x="60" y="45" font-size="11" fill="#fff" text-anchor="middle">(x, y, z)</text>
+                        
+                        <!-- Normal -->
+                        <rect x="130" y="0" width="120" height="60" fill="#4ecdc4" stroke="#333" stroke-width="2"/>
+                        <text x="190" y="25" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Normal</text>
+                        <text x="190" y="45" font-size="11" fill="#fff" text-anchor="middle">(nx, ny, nz)</text>
+                        
+                        <!-- UV -->
+                        <rect x="260" y="0" width="80" height="60" fill="#ffe66d" stroke="#333" stroke-width="2"/>
+                        <text x="300" y="25" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">UV</text>
+                        <text x="300" y="45" font-size="11" fill="#333" text-anchor="middle">(u, v)</text>
+                        
+                        <!-- Color -->
+                        <rect x="350" y="0" width="120" height="60" fill="#a8dadc" stroke="#333" stroke-width="2"/>
+                        <text x="410" y="25" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Color</text>
+                        <text x="410" y="45" font-size="11" fill="#333" text-anchor="middle">(r, g, b, a)</text>
+                    </g>
+                    
+                    <!-- Memory blocks for Vertex 1 -->
+                    <g transform="translate(50, 160)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Vertex 1:</text>
+                        
+                        <rect x="0" y="0" width="120" height="60" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="60" y="25" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Position</text>
+                        <text x="60" y="45" font-size="11" fill="#fff" text-anchor="middle">(x, y, z)</text>
+                        
+                        <rect x="130" y="0" width="120" height="60" fill="#4ecdc4" stroke="#333" stroke-width="2"/>
+                        <text x="190" y="25" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Normal</text>
+                        <text x="190" y="45" font-size="11" fill="#fff" text-anchor="middle">(nx, ny, nz)</text>
+                        
+                        <rect x="260" y="0" width="80" height="60" fill="#ffe66d" stroke="#333" stroke-width="2"/>
+                        <text x="300" y="25" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">UV</text>
+                        <text x="300" y="45" font-size="11" fill="#333" text-anchor="middle">(u, v)</text>
+                        
+                        <rect x="350" y="0" width="120" height="60" fill="#a8dadc" stroke="#333" stroke-width="2"/>
+                        <text x="410" y="25" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Color</text>
+                        <text x="410" y="45" font-size="11" fill="#333" text-anchor="middle">(r, g, b, a)</text>
+                    </g>
+                    
+                    <!-- Memory blocks for Vertex 2 -->
+                    <g transform="translate(50, 240)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Vertex 2:</text>
+                        
+                        <rect x="0" y="0" width="120" height="60" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="60" y="25" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Position</text>
+                        <text x="60" y="45" font-size="11" fill="#fff" text-anchor="middle">(x, y, z)</text>
+                        
+                        <rect x="130" y="0" width="120" height="60" fill="#4ecdc4" stroke="#333" stroke-width="2"/>
+                        <text x="190" y="25" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle">Normal</text>
+                        <text x="190" y="45" font-size="11" fill="#fff" text-anchor="middle">(nx, ny, nz)</text>
+                        
+                        <rect x="260" y="0" width="80" height="60" fill="#ffe66d" stroke="#333" stroke-width="2"/>
+                        <text x="300" y="25" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">UV</text>
+                        <text x="300" y="45" font-size="11" fill="#333" text-anchor="middle">(u, v)</text>
+                        
+                        <rect x="350" y="0" width="120" height="60" fill="#a8dadc" stroke="#333" stroke-width="2"/>
+                        <text x="410" y="25" font-size="12" font-weight="bold" fill="#333" text-anchor="middle">Color</text>
+                        <text x="410" y="45" font-size="11" fill="#333" text-anchor="middle">(r, g, b, a)</text>
+                    </g>
+                    
+                    <!-- Stride indicator -->
+                    <line x1="50" y1="330" x2="520" y2="330" stroke="#e74c3c" stroke-width="3" stroke-dasharray="5,5"/>
+                    <text x="285" y="350" font-size="14" font-weight="bold" fill="#e74c3c" text-anchor="middle">
+                        Stride = 32 bytes (3 + 3 + 2 + 4 floats)
+                    </text>
+                    
+                    <!-- Data flow diagram -->
+                    <g transform="translate(650, 80)">
+                        <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">Memory Access Pattern:</text>
+                        
+                        <!-- Sequential access arrow -->
+                        <rect x="0" y="20" width="500" height="200" fill="#f8f9fa" stroke="#667eea" stroke-width="2" rx="5"/>
+                        
+                        <text x="250" y="50" font-size="13" fill="#333" text-anchor="middle" font-weight="bold">
+                            Reading one vertex = one cache line
+                        </text>
+                        
+                        <!-- Cache line visualization -->
+                        <rect x="20" y="70" width="460" height="40" fill="#e8f4f8" stroke="#4fc3f7" stroke-width="2"/>
+                        <text x="250" y="95" font-size="12" fill="#333" text-anchor="middle">
+                            [Pos | Normal | UV | Color] ← One cache line fetch
+                        </text>
+                        
+                        <!-- Advantages -->
+                        <text x="20" y="135" font-size="13" fill="#2e7d32" font-weight="bold">✓ Advantages:</text>
+                        <text x="30" y="155" font-size="11" fill="#333">• Perfect for GPU vertex fetch</text>
+                        <text x="30" y="172" font-size="11" fill="#333">• Excellent cache locality per vertex</text>
+                        <text x="30" y="189" font-size="11" fill="#333">• Single buffer for all attributes</text>
+                        <text x="30" y="206" font-size="11" fill="#333">• Natural for vertex shaders</text>
+                    </g>
+                </svg>
+                
+                <div class="code-block">
+<span style="color: #7f848e;">// Interleaved vertex data structure</span>
+<span style="color: #c678dd;">struct</span> <span style="color: #e5c07b;">Vertex</span> {
+    <span style="color: #c678dd;">float</span> position[<span style="color: #d19a66;">3</span>];   <span style="color: #7f848e;">// x, y, z</span>
+    <span style="color: #c678dd;">float</span> normal[<span style="color: #d19a66;">3</span>];     <span style="color: #7f848e;">// nx, ny, nz</span>
+    <span style="color: #c678dd;">float</span> uv[<span style="color: #d19a66;">2</span>];          <span style="color: #7f848e;">// u, v</span>
+    <span style="color: #c678dd;">float</span> color[<span style="color: #d19a66;">4</span>];       <span style="color: #7f848e;">// r, g, b, a</span>
+};
+
+<span style="color: #7f848e;">// Array of structures</span>
+<span style="color: #e5c07b;">Vertex</span> vertices[] = {
+    { {<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>} },
+    { {<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>} },
+    { {<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>}, {<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>}, {<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>} }
+};
+
+<span style="color: #7f848e;">// WebGL setup with interleaved data</span>
+<span style="color: #c678dd;">const</span> stride = <span style="color: #d19a66;">12</span> * <span style="color: #d19a66;">4</span>; <span style="color: #7f848e;">// 12 floats × 4 bytes = 48 bytes</span>
+gl.<span style="color: #61afef;">vertexAttribPointer</span>(posLoc, <span style="color: #d19a66;">3</span>, gl.FLOAT, <span style="color: #d19a66;">false</span>, stride, <span style="color: #d19a66;">0</span>);     <span style="color: #7f848e;">// offset 0</span>
+gl.<span style="color: #61afef;">vertexAttribPointer</span>(normLoc, <span style="color: #d19a66;">3</span>, gl.FLOAT, <span style="color: #d19a66;">false</span>, stride, <span style="color: #d19a66;">12</span>);    <span style="color: #7f848e;">// offset 12 bytes</span>
+gl.<span style="color: #61afef;">vertexAttribPointer</span>(uvLoc, <span style="color: #d19a66;">2</span>, gl.FLOAT, <span style="color: #d19a66;">false</span>, stride, <span style="color: #d19a66;">24</span>);      <span style="color: #7f848e;">// offset 24 bytes</span>
+gl.<span style="color: #61afef;">vertexAttribPointer</span>(colorLoc, <span style="color: #d19a66;">4</span>, gl.FLOAT, <span style="color: #d19a66;">false</span>, stride, <span style="color: #d19a66;">32</span>);   <span style="color: #7f848e;">// offset 32 bytes</span>
+                </div>
+            </div>
+
+            <!-- Non-Interleaved Layout (SoA) -->
+            <div class="section">
+                <h2>📊 Non-Interleaved Layout (Structure of Arrays)</h2>
+                
+                <svg viewBox="0 0 1200 450" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Title -->
+                    <text x="600" y="30" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">
+                        Non-Interleaved Memory Layout (SoA)
+                    </text>
+                    <text x="600" y="50" font-size="14" fill="#666" text-anchor="middle">
+                        Each attribute stored in separate contiguous arrays
+                    </text>
+                    
+                    <!-- Position array -->
+                    <g transform="translate(50, 80)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#ff6b6b">Position Buffer:</text>
+                        <rect x="0" y="0" width="120" height="50" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="60" y="30" font-size="11" fill="#fff" text-anchor="middle">V0: (x, y, z)</text>
+                        
+                        <rect x="130" y="0" width="120" height="50" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="190" y="30" font-size="11" fill="#fff" text-anchor="middle">V1: (x, y, z)</text>
+                        
+                        <rect x="260" y="0" width="120" height="50" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="320" y="30" font-size="11" fill="#fff" text-anchor="middle">V2: (x, y, z)</text>
+                        
+                        <rect x="390" y="0" width="120" height="50" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="450" y="30" font-size="11" fill="#fff" text-anchor="middle">V3: (x, y, z)</text>
+                        
+                        <text x="520" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- Normal array -->
+                    <g transform="translate(50, 150)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#4ecdc4">Normal Buffer:</text>
+                        <rect x="0" y="0" width="120" height="50" fill="#4ecdc4" stroke="#333" stroke-width="2"/>
+                        <text x="60" y="30" font-size="11" fill="#fff" text-anchor="middle">V0: (nx, ny, nz)</text>
+                        
+                        <rect x="130" y="0" width="120" height="50" fill="#4ecdc4" stroke="#333" stroke-width="2"/>
+                        <text x="190" y="30" font-size="11" fill="#fff" text-anchor="middle">V1: (nx, ny, nz)</text>
+                        
+                        <rect x="260" y="0" width="120" height="50" fill="#4ecdc4" stroke="#333" stroke-width="2"/>
+                        <text x="320" y="30" font-size="11" fill="#fff" text-anchor="middle">V2: (nx, ny, nz)</text>
+                        
+                        <rect x="390" y="0" width="120" height="50" fill="#4ecdc4" stroke="#333" stroke-width="2"/>
+                        <text x="450" y="30" font-size="11" fill="#fff" text-anchor="middle">V3: (nx, ny, nz)</text>
+                        
+                        <text x="520" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- UV array -->
+                    <g transform="translate(50, 220)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#b8860b">UV Buffer:</text>
+                        <rect x="0" y="0" width="120" height="50" fill="#ffe66d" stroke="#333" stroke-width="2"/>
+                        <text x="60" y="30" font-size="11" fill="#333" text-anchor="middle">V0: (u, v)</text>
+                        
+                        <rect x="130" y="0" width="120" height="50" fill="#ffe66d" stroke="#333" stroke-width="2"/>
+                        <text x="190" y="30" font-size="11" fill="#333" text-anchor="middle">V1: (u, v)</text>
+                        
+                        <rect x="260" y="0" width="120" height="50" fill="#ffe66d" stroke="#333" stroke-width="2"/>
+                        <text x="320" y="30" font-size="11" fill="#333" text-anchor="middle">V2: (u, v)</text>
+                        
+                        <rect x="390" y="0" width="120" height="50" fill="#ffe66d" stroke="#333" stroke-width="2"/>
+                        <text x="450" y="30" font-size="11" fill="#333" text-anchor="middle">V3: (u, v)</text>
+                        
+                        <text x="520" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- Color array -->
+                    <g transform="translate(50, 290)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#457b9d">Color Buffer:</text>
+                        <rect x="0" y="0" width="120" height="50" fill="#a8dadc" stroke="#333" stroke-width="2"/>
+                        <text x="60" y="30" font-size="11" fill="#333" text-anchor="middle">V0: (r, g, b, a)</text>
+                        
+                        <rect x="130" y="0" width="120" height="50" fill="#a8dadc" stroke="#333" stroke-width="2"/>
+                        <text x="190" y="30" font-size="11" fill="#333" text-anchor="middle">V1: (r, g, b, a)</text>
+                        
+                        <rect x="260" y="0" width="120" height="50" fill="#a8dadc" stroke="#333" stroke-width="2"/>
+                        <text x="320" y="30" font-size="11" fill="#333" text-anchor="middle">V2: (r, g, b, a)</text>
+                        
+                        <rect x="390" y="0" width="120" height="50" fill="#a8dadc" stroke="#333" stroke-width="2"/>
+                        <text x="450" y="30" font-size="11" fill="#333" text-anchor="middle">V3: (r, g, b, a)</text>
+                        
+                        <text x="520" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- Data flow diagram -->
+                    <g transform="translate(650, 80)">
+                        <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">Memory Access Pattern:</text>
+                        
+                        <rect x="0" y="20" width="500" height="260" fill="#f8f9fa" stroke="#667eea" stroke-width="2" rx="5"/>
+                        
+                        <text x="250" y="50" font-size="13" fill="#333" text-anchor="middle" font-weight="bold">
+                            Processing by attribute type
+                        </text>
+                        
+                        <!-- Sequential attribute access -->
+                        <rect x="20" y="70" width="460" height="35" fill="#ffe6e6" stroke="#ff6b6b" stroke-width="2"/>
+                        <text x="250" y="92" font-size="11" fill="#333" text-anchor="middle">
+                            [Pos₀ | Pos₁ | Pos₂ | Pos₃ | ...] ← All positions together
+                        </text>
+                        
+                        <rect x="20" y="115" width="460" height="35" fill="#e6f7f7" stroke="#4ecdc4" stroke-width="2"/>
+                        <text x="250" y="137" font-size="11" fill="#333" text-anchor="middle">
+                            [Norm₀ | Norm₁ | Norm₂ | Norm₃ | ...] ← All normals together
+                        </text>
+                        
+                        <!-- Advantages -->
+                        <text x="20" y="175" font-size="13" fill="#2e7d32" font-weight="bold">✓ Advantages:</text>
+                        <text x="30" y="195" font-size="11" fill="#333">• Excellent for SIMD operations</text>
+                        <text x="30" y="212" font-size="11" fill="#333">• Better for CPU batch processing</text>
+                        <text x="30" y="229" font-size="11" fill="#333">• Easy to add/remove attributes</text>
+                        <text x="30" y="246" font-size="11" fill="#333">• Optimal for compute shaders</text>
+                        <text x="30" y="263" font-size="11" fill="#333">• Good cache usage per attribute</text>
+                    </g>
+                </svg>
+                
+                <div class="code-block">
+<span style="color: #7f848e;">// Non-interleaved separate arrays</span>
+<span style="color: #c678dd;">float</span> positions[] = {
+    <span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>,  <span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>,  <span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>  <span style="color: #7f848e;">// V0, V1, V2</span>
+};
+
+<span style="color: #c678dd;">float</span> normals[] = {
+    <span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>,  <span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>,  <span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>  <span style="color: #7f848e;">// V0, V1, V2</span>
+};
+
+<span style="color: #c678dd;">float</span> uvs[] = {
+    <span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>,  <span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>,  <span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">1</span>  <span style="color: #7f848e;">// V0, V1, V2</span>
+};
+
+<span style="color: #c678dd;">float</span> colors[] = {
+    <span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,  <span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,  <span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">1</span>  <span style="color: #7f848e;">// V0, V1, V2</span>
+};
+
+<span style="color: #7f848e;">// WebGL requires separate buffers</span>
+<span style="color: #c678dd;">const</span> posBuffer = gl.<span style="color: #61afef;">createBuffer</span>();
+gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, posBuffer);
+gl.<span style="color: #61afef;">bufferData</span>(gl.ARRAY_BUFFER, <span style="color: #c678dd;">new</span> <span style="color: #e5c07b;">Float32Array</span>(positions), gl.STATIC_DRAW);
+
+<span style="color: #c678dd;">const</span> normBuffer = gl.<span style="color: #61afef;">createBuffer</span>();
+gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, normBuffer);
+gl.<span style="color: #61afef;">bufferData</span>(gl.ARRAY_BUFFER, <span style="color: #c678dd;">new</span> <span style="color: #e5c07b;">Float32Array</span>(normals), gl.STATIC_DRAW);
+
+<span style="color: #7f848e;">// ... bind and set up each buffer separately</span>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="section">
+                <h2>⚖️ Performance Comparison</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Interleaved (AoS)</th>
+                            <th>Non-Interleaved (SoA)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>GPU Vertex Fetch</strong></td>
+                            <td style="color: #2e7d32;">✓ Excellent - Single fetch per vertex</td>
+                            <td style="color: #d32f2f;">✗ Multiple fetches needed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cache Locality (per vertex)</strong></td>
+                            <td style="color: #2e7d32;">✓ Perfect - All data in one line</td>
+                            <td style="color: #d32f2f;">✗ Scattered across buffers</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cache Locality (per attribute)</strong></td>
+                            <td style="color: #d32f2f;">✗ Attributes scattered</td>
+                            <td style="color: #2e7d32;">✓ Perfect - Sequential access</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SIMD Operations</strong></td>
+                            <td style="color: #d32f2f;">✗ Requires gather/scatter</td>
+                            <td style="color: #2e7d32;">✓ Natural vector operations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Adding/Removing Attributes</strong></td>
+                            <td style="color: #d32f2f;">✗ Requires struct change</td>
+                            <td style="color: #2e7d32;">✓ Just add/remove array</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Memory Overhead</strong></td>
+                            <td style="color: #d32f2f;">✗ Padding for alignment</td>
+                            <td style="color: #2e7d32;">✓ No padding between elements</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Buffer Management</strong></td>
+                            <td style="color: #2e7d32;">✓ Single buffer</td>
+                            <td style="color: #d32f2f;">✗ Multiple buffers</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WebGL Standard</strong></td>
+                            <td style="color: #2e7d32;">✓ Preferred/common</td>
+                            <td style="color: #f57c00;">△ Supported but less common</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- When to Use Each -->
+            <div class="section">
+                <h2>🎓 When to Use Each Layout</h2>
+                
+                <div class="note key-fact">
+                    <strong>✓ Use Interleaved (AoS) when:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li>Working with GPU vertex rendering (most common case)</li>
+                        <li>Processing entire vertices together</li>
+                        <li>Cache locality per vertex matters most</li>
+                        <li>Standard graphics pipeline usage</li>
+                        <li>Following WebGL/OpenGL best practices</li>
+                    </ul>
+                </div>
+                
+                <div class="note warning">
+                    <strong>✓ Use Non-Interleaved (SoA) when:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li>Doing heavy CPU-side processing on specific attributes</li>
+                        <li>Using SIMD instructions for batch operations</li>
+                        <li>Frequently updating only certain attributes</li>
+                        <li>Working with compute shaders that process attributes separately</li>
+                        <li>Need flexible attribute management</li>
+                        <li>Implementing physics simulations (positions update separately)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="section">
+                <h2>📋 Summary</h2>
+                
+                <div class="note">
+                    <strong>🎯 Key Takeaways:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Interleaved (AoS)</strong> is the standard for GPU vertex data - excellent cache locality per vertex</li>
+                        <li><strong>Non-Interleaved (SoA)</strong> shines for CPU batch processing and SIMD operations</li>
+                        <li>Modern GPUs are optimized for interleaved vertex fetch patterns</li>
+                        <li>Choice depends on access patterns: per-vertex vs per-attribute</li>
+                        <li>WebGL and most graphics APIs prefer interleaved layouts</li>
+                        <li>Hybrid approaches exist: interleaved within groups, non-interleaved between groups</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

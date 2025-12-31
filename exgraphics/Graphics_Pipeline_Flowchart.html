@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphics Pipeline Flowchart</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 1200px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        svg {
+            display: block;
+            margin: 0 auto;
+        }
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .legend h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .legend-item {
+            display: inline-block;
+            margin-right: 30px;
+            margin-bottom: 10px;
+        }
+        .legend-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Graphics Pipeline Flowchart</h1>
+        <p class="subtitle">From 3D Textured Model to Rasterized Framebuffer</p>
+        
+        <svg width="1000" height="1650" viewBox="0 0 1000 1650" xmlns="http://www.w3.org/2000/svg">
+            <!-- Define gradients and styles -->
+            <defs>
+                <!-- Arrow marker -->
+                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                    <polygon points="0 0, 10 3, 0 6" fill="#333" />
+                </marker>
+                
+                <!-- Gradients for different stage types -->
+                <linearGradient id="vertexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#45a049;stop-opacity:1" />
+                </linearGradient>
+                
+                <linearGradient id="fixedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#1976D2;stop-opacity:1" />
+                </linearGradient>
+                
+                <linearGradient id="rasterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FF9800;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#F57C00;stop-opacity:1" />
+                </linearGradient>
+                
+                <linearGradient id="fragmentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#9C27B0;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#7B1FA2;stop-opacity:1" />
+                </linearGradient>
+                
+                <linearGradient id="outputGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#F44336;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#D32F2F;stop-opacity:1" />
+                </linearGradient>
+                
+                <linearGradient id="inputGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#607D8B;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#455A64;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            
+            <!-- Title and coordinate space labels on the side -->
+            <text x="850" y="80" font-size="14" font-weight="bold" fill="#666">Coordinate Spaces:</text>
+            
+            <!-- INPUT: 3D Scene (Large bubble) -->
+            <ellipse cx="500" cy="100" rx="420" ry="85" fill="#E8F5E9" stroke="#4CAF50" stroke-width="3"/>
+            <text x="500" y="50" font-size="20" font-weight="bold" fill="#2E7D32" text-anchor="middle">3D SCENE</text>
+            <text x="500" y="75" font-size="12" fill="#558B2F" text-anchor="middle">Coordinate Space • Camera • Lights • Materials • Textures</text>
+            
+            <!-- Inner box: 3D Textured Model -->
+            <rect x="280" y="95" width="440" height="75" rx="10" fill="url(#inputGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="125" font-size="18" font-weight="bold" fill="white" text-anchor="middle">3D Textured Model (Geometry)</text>
+            <text x="500" y="145" font-size="13" fill="white" text-anchor="middle">Vertices • Faces • Normals • UV Coords</text>
+            <text x="500" y="162" font-size="13" fill="white" text-anchor="middle">Colors • Material Properties</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="185" x2="500" y2="225" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 1: Model Transformation -->
+            <rect x="300" y="225" width="400" height="60" rx="8" fill="url(#vertexGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="250" font-size="16" font-weight="bold" fill="white" text-anchor="middle">1. Model Transformation</text>
+            <text x="500" y="270" font-size="12" fill="white" text-anchor="middle">Model Space → World Space</text>
+            <text x="850" y="260" font-size="13" fill="#4CAF50" font-weight="bold">Model Space</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="285" x2="500" y2="315" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 2: View Transformation -->
+            <rect x="300" y="315" width="400" height="60" rx="8" fill="url(#vertexGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="340" font-size="16" font-weight="bold" fill="white" text-anchor="middle">2. View Transformation</text>
+            <text x="500" y="360" font-size="12" fill="white" text-anchor="middle">World Space → View Space (Camera)</text>
+            <text x="850" y="350" font-size="13" fill="#4CAF50" font-weight="bold">World Space</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="375" x2="500" y2="405" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 3: Per-Vertex Lighting (Optional) -->
+            <rect x="300" y="405" width="400" height="60" rx="8" fill="url(#vertexGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="430" font-size="16" font-weight="bold" fill="white" text-anchor="middle">3. Lighting (Per-Vertex)</text>
+            <text x="500" y="450" font-size="12" fill="white" text-anchor="middle">Ambient • Diffuse • Specular (Gouraud)</text>
+            <text x="850" y="440" font-size="13" fill="#4CAF50" font-weight="bold">View Space</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="465" x2="500" y2="495" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 4: Projection -->
+            <rect x="300" y="495" width="400" height="60" rx="8" fill="url(#vertexGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="520" font-size="16" font-weight="bold" fill="white" text-anchor="middle">4. Projection Transformation</text>
+            <text x="500" y="540" font-size="12" fill="white" text-anchor="middle">View Space → Clip Space (Perspective/Ortho)</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="555" x2="500" y2="585" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 5: Clipping -->
+            <rect x="300" y="585" width="400" height="60" rx="8" fill="url(#fixedGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="610" font-size="16" font-weight="bold" fill="white" text-anchor="middle">5. Clipping</text>
+            <text x="500" y="630" font-size="12" fill="white" text-anchor="middle">Remove/Trim Geometry Outside View Frustum</text>
+            <text x="850" y="620" font-size="13" fill="#2196F3" font-weight="bold">Clip Space</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="645" x2="500" y2="675" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 6: Perspective Division -->
+            <rect x="300" y="675" width="400" height="60" rx="8" fill="url(#fixedGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="700" font-size="16" font-weight="bold" fill="white" text-anchor="middle">6. Perspective Division</text>
+            <text x="500" y="720" font-size="12" fill="white" text-anchor="middle">Divide by w → Normalized Device Coords (NDC)</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="735" x2="500" y2="765" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 7: Viewport Transform -->
+            <rect x="300" y="765" width="400" height="60" rx="8" fill="url(#fixedGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="790" font-size="16" font-weight="bold" fill="white" text-anchor="middle">7. Viewport Transformation</text>
+            <text x="500" y="810" font-size="12" fill="white" text-anchor="middle">NDC → Screen Space (Pixel Coordinates)</text>
+            <text x="850" y="800" font-size="13" fill="#2196F3" font-weight="bold">Screen Space</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="825" x2="500" y2="855" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 8: Rasterization -->
+            <rect x="300" y="855" width="400" height="60" rx="8" fill="url(#rasterGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="880" font-size="16" font-weight="bold" fill="white" text-anchor="middle">8. Rasterization</text>
+            <text x="500" y="900" font-size="12" fill="white" text-anchor="middle">Triangles → Fragments (Pixel Candidates)</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="915" x2="500" y2="945" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 9: Interpolation -->
+            <rect x="300" y="945" width="400" height="60" rx="8" fill="url(#fragmentGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="970" font-size="16" font-weight="bold" fill="white" text-anchor="middle">9. Attribute Interpolation</text>
+            <text x="500" y="990" font-size="12" fill="white" text-anchor="middle">Colors • Normals • UVs • Depth per Fragment</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="1005" x2="500" y2="1035" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 10: Fragment Processing -->
+            <rect x="300" y="1035" width="400" height="80" rx="8" fill="url(#fragmentGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="1065" font-size="16" font-weight="bold" fill="white" text-anchor="middle">10. Fragment Processing</text>
+            <text x="500" y="1085" font-size="12" fill="white" text-anchor="middle">• Per-Fragment Lighting (Phong Shading)</text>
+            <text x="500" y="1103" font-size="12" fill="white" text-anchor="middle">• Texture Sampling • Compute Final Color</text>
+            
+            <!-- Texture input side arrow -->
+            <line x1="200" y1="1075" x2="300" y2="1075" stroke="#FF6B6B" stroke-width="2" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+            <text x="180" y="1073" font-size="12" fill="#FF6B6B" text-anchor="end">Textures</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="1115" x2="500" y2="1145" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 11: Depth Test -->
+            <rect x="300" y="1145" width="400" height="60" rx="8" fill="url(#outputGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="1170" font-size="16" font-weight="bold" fill="white" text-anchor="middle">11. Depth Testing</text>
+            <text x="500" y="1190" font-size="12" fill="white" text-anchor="middle">Compare with Z-Buffer • Keep/Discard Fragment</text>
+            
+            <!-- Z-Buffer side connection -->
+            <line x1="700" y1="1175" x2="780" y2="1175" stroke="#666" stroke-width="2"/>
+            <rect x="780" y="1155" width="120" height="40" rx="5" fill="#666" stroke="#333" stroke-width="1"/>
+            <text x="840" y="1180" font-size="12" fill="white" text-anchor="middle" font-weight="bold">Z-Buffer</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="1205" x2="500" y2="1235" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 12: Blending (Optional) -->
+            <rect x="300" y="1235" width="400" height="60" rx="8" fill="url(#outputGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="1260" font-size="16" font-weight="bold" fill="white" text-anchor="middle">12. Color Blending (Optional)</text>
+            <text x="500" y="1280" font-size="12" fill="white" text-anchor="middle">Alpha Compositing for Transparency</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="1295" x2="500" y2="1325" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- STEP 13: Framebuffer Write -->
+            <rect x="300" y="1325" width="400" height="60" rx="8" fill="url(#outputGrad)" stroke="#333" stroke-width="2"/>
+            <text x="500" y="1350" font-size="16" font-weight="bold" fill="white" text-anchor="middle">13. Framebuffer Update</text>
+            <text x="500" y="1370" font-size="12" fill="white" text-anchor="middle">Write Color to Color Buffer • Update Depth</text>
+            
+            <!-- Arrow -->
+            <line x1="500" y1="1385" x2="500" y2="1425" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+            
+            <!-- OUTPUT: Rasterized Framebuffer -->
+            <rect x="300" y="1425" width="400" height="80" rx="10" fill="#333" stroke="#333" stroke-width="2"/>
+            <text x="500" y="1455" font-size="18" font-weight="bold" fill="white" text-anchor="middle">Rasterized Framebuffer</text>
+            <text x="500" y="1480" font-size="13" fill="white" text-anchor="middle">Color Buffer + Depth Buffer</text>
+            <text x="500" y="1497" font-size="12" fill="#ccc" text-anchor="middle">Ready for Display</text>
+            
+            <!-- Stage labels on the left -->
+            <text x="50" y="255" font-size="13" fill="#4CAF50" font-weight="bold">VERTEX</text>
+            <text x="50" y="270" font-size="13" fill="#4CAF50" font-weight="bold">PROCESSING</text>
+            <text x="50" y="285" font-size="13" fill="#4CAF50" font-weight="bold">STAGE</text>
+            
+            <text x="50" y="620" font-size="13" fill="#2196F3" font-weight="bold">FIXED</text>
+            <text x="50" y="635" font-size="13" fill="#2196F3" font-weight="bold">FUNCTION</text>
+            
+            <text x="50" y="885" font-size="13" fill="#FF9800" font-weight="bold">RASTER</text>
+            <text x="50" y="900" font-size="13" fill="#FF9800" font-weight="bold">STAGE</text>
+            
+            <text x="50" y="995" font-size="13" fill="#9C27B0" font-weight="bold">FRAGMENT</text>
+            <text x="50" y="1010" font-size="13" fill="#9C27B0" font-weight="bold">PROCESSING</text>
+            <text x="50" y="1025" font-size="13" fill="#9C27B0" font-weight="bold">STAGE</text>
+            
+            <text x="50" y="1185" font-size="13" fill="#F44336" font-weight="bold">OUTPUT</text>
+            <text x="50" y="1200" font-size="13" fill="#F44336" font-weight="bold">MERGER</text>
+            <text x="50" y="1215" font-size="13" fill="#F44336" font-weight="bold">STAGE</text>
+        </svg>
+        
+        <div class="legend">
+            <h3>Pipeline Stage Legend</h3>
+            <div class="legend-item">
+                <span class="legend-box" style="background: linear-gradient(135deg, #4CAF50, #45a049);"></span>
+                <span>Vertex Processing (Per-Vertex Operations)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: linear-gradient(135deg, #2196F3, #1976D2);"></span>
+                <span>Fixed Function (Hardware-Controlled)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: linear-gradient(135deg, #FF9800, #F57C00);"></span>
+                <span>Rasterization (Geometry to Pixels)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: linear-gradient(135deg, #9C27B0, #7B1FA2);"></span>
+                <span>Fragment Processing (Per-Pixel Operations)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: linear-gradient(135deg, #F44336, #D32F2F);"></span>
+                <span>Output Merger (Final Output)</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

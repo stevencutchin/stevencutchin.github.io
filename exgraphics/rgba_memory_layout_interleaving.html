@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGBA Pixel Memory Layout - Interleaved vs Planar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 30px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: white;
+            margin: 20px 0;
+        }
+        
+        .note {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #0c5460;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .key-fact {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+        
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💾 RGBA Pixel Memory Layout</h1>
+            <p>Interleaved vs Planar Image Data Formats</p>
+        </div>
+        
+        <div class="content">
+            <!-- Overview -->
+            <div class="section">
+                <h2>🎯 Overview</h2>
+                <p style="line-height: 1.8; margin-bottom: 15px;">
+                    When storing RGBA image data (pixmaps) in memory, there are multiple ways to organize the color 
+                    channels. The most common approaches are <strong>Interleaved (RGBA)</strong> and 
+                    <strong>Planar (separate R, G, B, A planes)</strong>. Each layout has different performance 
+                    characteristics for image processing, texture sampling, and memory access patterns.
+                </p>
+                
+                <div class="note key-fact">
+                    <strong>🔑 Key Concept:</strong>
+                    The choice between interleaved and planar formats affects cache performance, SIMD efficiency, 
+                    and how easily you can process individual color channels. Most graphics APIs and image formats 
+                    use interleaved RGBA, but planar formats excel for video processing and color space conversions.
+                </div>
+            </div>
+
+            <!-- Interleaved Layout (RGBA) -->
+            <div class="section">
+                <h2>📦 Interleaved Layout (RGBARGBA...)</h2>
+                
+                <svg viewBox="0 0 1200 450" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Title -->
+                    <text x="600" y="30" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">
+                        Interleaved RGBA Layout
+                    </text>
+                    <text x="600" y="50" font-size="14" fill="#666" text-anchor="middle">
+                        All channels for one pixel stored together in sequence
+                    </text>
+                    
+                    <!-- Memory blocks for Pixel 0 -->
+                    <g transform="translate(100, 80)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Pixel 0:</text>
+                        
+                        <rect x="0" y="0" width="60" height="60" fill="#ff0000" stroke="#333" stroke-width="2"/>
+                        <text x="30" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">R</text>
+                        <text x="30" y="80" font-size="11" fill="#333" text-anchor="middle">255</text>
+                        
+                        <rect x="70" y="0" width="60" height="60" fill="#00ff00" stroke="#333" stroke-width="2"/>
+                        <text x="100" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">G</text>
+                        <text x="100" y="80" font-size="11" fill="#333" text-anchor="middle">128</text>
+                        
+                        <rect x="140" y="0" width="60" height="60" fill="#0000ff" stroke="#333" stroke-width="2"/>
+                        <text x="170" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">B</text>
+                        <text x="170" y="80" font-size="11" fill="#333" text-anchor="middle">64</text>
+                        
+                        <rect x="210" y="0" width="60" height="60" fill="#888888" stroke="#333" stroke-width="2"/>
+                        <text x="240" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">A</text>
+                        <text x="240" y="80" font-size="11" fill="#333" text-anchor="middle">255</text>
+                        
+                        <!-- Resulting color -->
+                        <rect x="290" y="10" width="40" height="40" fill="rgba(255, 128, 64, 1)" stroke="#333" stroke-width="2"/>
+                    </g>
+                    
+                    <!-- Memory blocks for Pixel 1 -->
+                    <g transform="translate(100, 160)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Pixel 1:</text>
+                        
+                        <rect x="0" y="0" width="60" height="60" fill="#ff0000" stroke="#333" stroke-width="2"/>
+                        <text x="30" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">R</text>
+                        <text x="30" y="80" font-size="11" fill="#333" text-anchor="middle">0</text>
+                        
+                        <rect x="70" y="0" width="60" height="60" fill="#00ff00" stroke="#333" stroke-width="2"/>
+                        <text x="100" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">G</text>
+                        <text x="100" y="80" font-size="11" fill="#333" text-anchor="middle">255</text>
+                        
+                        <rect x="140" y="0" width="60" height="60" fill="#0000ff" stroke="#333" stroke-width="2"/>
+                        <text x="170" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">B</text>
+                        <text x="170" y="80" font-size="11" fill="#333" text-anchor="middle">200</text>
+                        
+                        <rect x="210" y="0" width="60" height="60" fill="#888888" stroke="#333" stroke-width="2"/>
+                        <text x="240" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">A</text>
+                        <text x="240" y="80" font-size="11" fill="#333" text-anchor="middle">128</text>
+                        
+                        <rect x="290" y="10" width="40" height="40" fill="rgba(0, 255, 200, 0.5)" stroke="#333" stroke-width="2"/>
+                    </g>
+                    
+                    <!-- Memory blocks for Pixel 2 -->
+                    <g transform="translate(100, 240)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Pixel 2:</text>
+                        
+                        <rect x="0" y="0" width="60" height="60" fill="#ff0000" stroke="#333" stroke-width="2"/>
+                        <text x="30" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">R</text>
+                        <text x="30" y="80" font-size="11" fill="#333" text-anchor="middle">200</text>
+                        
+                        <rect x="70" y="0" width="60" height="60" fill="#00ff00" stroke="#333" stroke-width="2"/>
+                        <text x="100" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">G</text>
+                        <text x="100" y="80" font-size="11" fill="#333" text-anchor="middle">100</text>
+                        
+                        <rect x="140" y="0" width="60" height="60" fill="#0000ff" stroke="#333" stroke-width="2"/>
+                        <text x="170" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">B</text>
+                        <text x="170" y="80" font-size="11" fill="#333" text-anchor="middle">255</text>
+                        
+                        <rect x="210" y="0" width="60" height="60" fill="#888888" stroke="#333" stroke-width="2"/>
+                        <text x="240" y="35" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle">A</text>
+                        <text x="240" y="80" font-size="11" fill="#333" text-anchor="middle">255</text>
+                        
+                        <rect x="290" y="10" width="40" height="40" fill="rgba(200, 100, 255, 1)" stroke="#333" stroke-width="2"/>
+                    </g>
+                    
+                    <!-- Stride indicator -->
+                    <line x1="100" y1="330" x2="370" y2="330" stroke="#e74c3c" stroke-width="3" stroke-dasharray="5,5"/>
+                    <text x="235" y="350" font-size="14" font-weight="bold" fill="#e74c3c" text-anchor="middle">
+                        Stride = 4 bytes per pixel
+                    </text>
+                    
+                    <!-- Linear memory representation -->
+                    <g transform="translate(100, 370)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Linear Memory:</text>
+                        <rect x="0" y="0" width="900" height="50" fill="#f0f0f0" stroke="#333" stroke-width="2"/>
+                        <text x="450" y="30" font-size="12" fill="#333" text-anchor="middle" font-family="monospace">
+                            [R₀ G₀ B₀ A₀ | R₁ G₁ B₁ A₁ | R₂ G₂ B₂ A₂ | R₃ G₃ B₃ A₃ ...]
+                        </text>
+                    </g>
+                    
+                    <!-- Data flow diagram -->
+                    <g transform="translate(550, 80)">
+                        <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">Access Pattern:</text>
+                        
+                        <rect x="0" y="20" width="550" height="220" fill="#f8f9fa" stroke="#667eea" stroke-width="2" rx="5"/>
+                        
+                        <text x="275" y="50" font-size="13" fill="#333" text-anchor="middle" font-weight="bold">
+                            Reading one pixel = sequential 4 bytes
+                        </text>
+                        
+                        <!-- Cache line visualization -->
+                        <rect x="20" y="70" width="510" height="40" fill="#e8f4f8" stroke="#4fc3f7" stroke-width="2"/>
+                        <text x="275" y="95" font-size="12" fill="#333" text-anchor="middle">
+                            [R | G | B | A] ← Single cache line, perfect locality
+                        </text>
+                        
+                        <!-- Advantages -->
+                        <text x="20" y="135" font-size="13" fill="#2e7d32" font-weight="bold">✓ Advantages:</text>
+                        <text x="30" y="155" font-size="11" fill="#333">• Perfect for texture sampling (GPU)</text>
+                        <text x="30" y="172" font-size="11" fill="#333">• All channels in one cache line</text>
+                        <text x="30" y="189" font-size="11" fill="#333">• Simple pointer arithmetic</text>
+                        <text x="30" y="206" font-size="11" fill="#333">• Standard for PNG, WebGL, OpenGL</text>
+                        <text x="30" y="223" font-size="11" fill="#333">• Easy to blit/copy entire pixels</text>
+                    </g>
+                </svg>
+                
+                <div class="code-block">
+<span style="color: #7f848e;">// Interleaved RGBA pixel data</span>
+<span style="color: #c678dd;">unsigned char</span> pixels[] = {
+    <span style="color: #7f848e;">// Pixel 0: Orange, opaque</span>
+    <span style="color: #d19a66;">255</span>, <span style="color: #d19a66;">128</span>, <span style="color: #d19a66;">64</span>, <span style="color: #d19a66;">255</span>,
+    
+    <span style="color: #7f848e;">// Pixel 1: Cyan, semi-transparent</span>
+    <span style="color: #d19a66;">0</span>, <span style="color: #d19a66;">255</span>, <span style="color: #d19a66;">200</span>, <span style="color: #d19a66;">128</span>,
+    
+    <span style="color: #7f848e;">// Pixel 2: Purple, opaque</span>
+    <span style="color: #d19a66;">200</span>, <span style="color: #d19a66;">100</span>, <span style="color: #d19a66;">255</span>, <span style="color: #d19a66;">255</span>
+};
+
+<span style="color: #7f848e;">// Access pixel at (x, y) in width×height image</span>
+<span style="color: #c678dd;">int</span> <span style="color: #61afef;">getPixelIndex</span>(<span style="color: #c678dd;">int</span> x, <span style="color: #c678dd;">int</span> y, <span style="color: #c678dd;">int</span> width) {
+    <span style="color: #c678dd;">return</span> (y * width + x) * <span style="color: #d19a66;">4</span>; <span style="color: #7f848e;">// 4 bytes per pixel</span>
+}
+
+<span style="color: #7f848e;">// Read a pixel</span>
+<span style="color: #c678dd;">int</span> idx = <span style="color: #61afef;">getPixelIndex</span>(x, y, width);
+<span style="color: #c678dd;">unsigned char</span> r = pixels[idx + <span style="color: #d19a66;">0</span>];
+<span style="color: #c678dd;">unsigned char</span> g = pixels[idx + <span style="color: #d19a66;">1</span>];
+<span style="color: #c678dd;">unsigned char</span> b = pixels[idx + <span style="color: #d19a66;">2</span>];
+<span style="color: #c678dd;">unsigned char</span> a = pixels[idx + <span style="color: #d19a66;">3</span>];
+
+<span style="color: #7f848e;">// Canvas 2D Context (JavaScript)</span>
+<span style="color: #c678dd;">const</span> imageData = ctx.<span style="color: #61afef;">getImageData</span>(<span style="color: #d19a66;">0</span>, <span style="color: #d19a66;">0</span>, width, height);
+<span style="color: #c678dd;">const</span> data = imageData.<span style="color: #e06c75;">data</span>; <span style="color: #7f848e;">// Uint8ClampedArray in RGBA format</span>
+<span style="color: #c678dd;">const</span> pixelIndex = (y * width + x) * <span style="color: #d19a66;">4</span>;
+data[pixelIndex + <span style="color: #d19a66;">0</span>] = <span style="color: #d19a66;">255</span>; <span style="color: #7f848e;">// R</span>
+data[pixelIndex + <span style="color: #d19a66;">1</span>] = <span style="color: #d19a66;">0</span>;   <span style="color: #7f848e;">// G</span>
+data[pixelIndex + <span style="color: #d19a66;">2</span>] = <span style="color: #d19a66;">0</span>;   <span style="color: #7f848e;">// B</span>
+data[pixelIndex + <span style="color: #d19a66;">3</span>] = <span style="color: #d19a66;">255</span>; <span style="color: #7f848e;">// A</span>
+                </div>
+            </div>
+
+            <!-- Planar Layout -->
+            <div class="section">
+                <h2>📊 Planar Layout (RRRR...GGGG...BBBB...AAAA...)</h2>
+                
+                <svg viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Title -->
+                    <text x="600" y="30" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">
+                        Planar RGBA Layout
+                    </text>
+                    <text x="600" y="50" font-size="14" fill="#666" text-anchor="middle">
+                        Each color channel stored in separate contiguous plane
+                    </text>
+                    
+                    <!-- Red plane -->
+                    <g transform="translate(50, 80)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#ff0000">Red Plane:</text>
+                        <rect x="0" y="0" width="100" height="50" fill="#ff0000" stroke="#333" stroke-width="2"/>
+                        <text x="50" y="30" font-size="11" fill="#fff" text-anchor="middle">P₀: 255</text>
+                        
+                        <rect x="110" y="0" width="100" height="50" fill="#ff0000" stroke="#333" stroke-width="2"/>
+                        <text x="160" y="30" font-size="11" fill="#fff" text-anchor="middle">P₁: 0</text>
+                        
+                        <rect x="220" y="0" width="100" height="50" fill="#ff0000" stroke="#333" stroke-width="2"/>
+                        <text x="270" y="30" font-size="11" fill="#fff" text-anchor="middle">P₂: 200</text>
+                        
+                        <rect x="330" y="0" width="100" height="50" fill="#ff0000" stroke="#333" stroke-width="2"/>
+                        <text x="380" y="30" font-size="11" fill="#fff" text-anchor="middle">P₃: 128</text>
+                        
+                        <text x="440" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- Green plane -->
+                    <g transform="translate(50, 150)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#00aa00">Green Plane:</text>
+                        <rect x="0" y="0" width="100" height="50" fill="#00ff00" stroke="#333" stroke-width="2"/>
+                        <text x="50" y="30" font-size="11" fill="#333" text-anchor="middle">P₀: 128</text>
+                        
+                        <rect x="110" y="0" width="100" height="50" fill="#00ff00" stroke="#333" stroke-width="2"/>
+                        <text x="160" y="30" font-size="11" fill="#333" text-anchor="middle">P₁: 255</text>
+                        
+                        <rect x="220" y="0" width="100" height="50" fill="#00ff00" stroke="#333" stroke-width="2"/>
+                        <text x="270" y="30" font-size="11" fill="#333" text-anchor="middle">P₂: 100</text>
+                        
+                        <rect x="330" y="0" width="100" height="50" fill="#00ff00" stroke="#333" stroke-width="2"/>
+                        <text x="380" y="30" font-size="11" fill="#333" text-anchor="middle">P₃: 64</text>
+                        
+                        <text x="440" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- Blue plane -->
+                    <g transform="translate(50, 220)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#0000ff">Blue Plane:</text>
+                        <rect x="0" y="0" width="100" height="50" fill="#0000ff" stroke="#333" stroke-width="2"/>
+                        <text x="50" y="30" font-size="11" fill="#fff" text-anchor="middle">P₀: 64</text>
+                        
+                        <rect x="110" y="0" width="100" height="50" fill="#0000ff" stroke="#333" stroke-width="2"/>
+                        <text x="160" y="30" font-size="11" fill="#fff" text-anchor="middle">P₁: 200</text>
+                        
+                        <rect x="220" y="0" width="100" height="50" fill="#0000ff" stroke="#333" stroke-width="2"/>
+                        <text x="270" y="30" font-size="11" fill="#fff" text-anchor="middle">P₂: 255</text>
+                        
+                        <rect x="330" y="0" width="100" height="50" fill="#0000ff" stroke="#333" stroke-width="2"/>
+                        <text x="380" y="30" font-size="11" fill="#fff" text-anchor="middle">P₃: 192</text>
+                        
+                        <text x="440" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- Alpha plane -->
+                    <g transform="translate(50, 290)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#666">Alpha Plane:</text>
+                        <rect x="0" y="0" width="100" height="50" fill="#888888" stroke="#333" stroke-width="2"/>
+                        <text x="50" y="30" font-size="11" fill="#fff" text-anchor="middle">P₀: 255</text>
+                        
+                        <rect x="110" y="0" width="100" height="50" fill="#888888" stroke="#333" stroke-width="2"/>
+                        <text x="160" y="30" font-size="11" fill="#fff" text-anchor="middle">P₁: 128</text>
+                        
+                        <rect x="220" y="0" width="100" height="50" fill="#888888" stroke="#333" stroke-width="2"/>
+                        <text x="270" y="30" font-size="11" fill="#fff" text-anchor="middle">P₂: 255</text>
+                        
+                        <rect x="330" y="0" width="100" height="50" fill="#888888" stroke="#333" stroke-width="2"/>
+                        <text x="380" y="30" font-size="11" fill="#fff" text-anchor="middle">P₃: 200</text>
+                        
+                        <text x="440" y="30" font-size="14" fill="#666">...</text>
+                    </g>
+                    
+                    <!-- Linear memory representation -->
+                    <g transform="translate(50, 370)">
+                        <text x="0" y="-10" font-size="14" font-weight="bold" fill="#333">Linear Memory:</text>
+                        <rect x="0" y="0" width="500" height="100" fill="#f0f0f0" stroke="#333" stroke-width="2"/>
+                        <text x="250" y="25" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">
+                            [R₀ R₁ R₂ R₃ ... Rₙ]
+                        </text>
+                        <text x="250" y="45" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">
+                            [G₀ G₁ G₂ G₃ ... Gₙ]
+                        </text>
+                        <text x="250" y="65" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">
+                            [B₀ B₁ B₂ B₃ ... Bₙ]
+                        </text>
+                        <text x="250" y="85" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">
+                            [A₀ A₁ A₂ A₃ ... Aₙ]
+                        </text>
+                    </g>
+                    
+                    <!-- Data flow diagram -->
+                    <g transform="translate(600, 80)">
+                        <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">Access Pattern:</text>
+                        
+                        <rect x="0" y="20" width="550" height="290" fill="#f8f9fa" stroke="#667eea" stroke-width="2" rx="5"/>
+                        
+                        <text x="275" y="50" font-size="13" fill="#333" text-anchor="middle" font-weight="bold">
+                            Processing by channel
+                        </text>
+                        
+                        <!-- Sequential channel access -->
+                        <rect x="20" y="70" width="510" height="35" fill="#ffe6e6" stroke="#ff0000" stroke-width="2"/>
+                        <text x="275" y="92" font-size="11" fill="#333" text-anchor="middle">
+                            [R₀ | R₁ | R₂ | R₃ | ...] ← All red values together
+                        </text>
+                        
+                        <rect x="20" y="115" width="510" height="35" fill="#e6ffe6" stroke="#00ff00" stroke-width="2"/>
+                        <text x="275" y="137" font-size="11" fill="#333" text-anchor="middle">
+                            [G₀ | G₁ | G₂ | G₃ | ...] ← All green values together
+                        </text>
+                        
+                        <!-- Advantages -->
+                        <text x="20" y="175" font-size="13" fill="#2e7d32" font-weight="bold">✓ Advantages:</text>
+                        <text x="30" y="195" font-size="11" fill="#333">• Excellent for channel operations</text>
+                        <text x="30" y="212" font-size="11" fill="#333">• Perfect for SIMD/vectorization</text>
+                        <text x="30" y="229" font-size="11" fill="#333">• Better CPU cache for filters</text>
+                        <text x="30" y="246" font-size="11" fill="#333">• Grayscale = use R plane only</text>
+                        <text x="30" y="263" font-size="11" fill="#333">• Easy color space conversion</text>
+                        <text x="30" y="280" font-size="11" fill="#333">• Used in video (YUV 4:2:0)</text>
+                    </g>
+                </svg>
+                
+                <div class="code-block">
+<span style="color: #7f848e;">// Planar RGBA - separate arrays per channel</span>
+<span style="color: #c678dd;">int</span> width = <span style="color: #d19a66;">1920</span>, height = <span style="color: #d19a66;">1080</span>;
+<span style="color: #c678dd;">int</span> numPixels = width * height;
+
+<span style="color: #c678dd;">unsigned char</span>* redPlane   = <span style="color: #c678dd;">new</span> <span style="color: #c678dd;">unsigned char</span>[numPixels];
+<span style="color: #c678dd;">unsigned char</span>* greenPlane = <span style="color: #c678dd;">new</span> <span style="color: #c678dd;">unsigned char</span>[numPixels];
+<span style="color: #c678dd;">unsigned char</span>* bluePlane  = <span style="color: #c678dd;">new</span> <span style="color: #c678dd;">unsigned char</span>[numPixels];
+<span style="color: #c678dd;">unsigned char</span>* alphaPlane = <span style="color: #c678dd;">new</span> <span style="color: #c678dd;">unsigned char</span>[numPixels];
+
+<span style="color: #7f848e;">// Access pixel at (x, y)</span>
+<span style="color: #c678dd;">int</span> idx = y * width + x;
+<span style="color: #c678dd;">unsigned char</span> r = redPlane[idx];
+<span style="color: #c678dd;">unsigned char</span> g = greenPlane[idx];
+<span style="color: #c678dd;">unsigned char</span> b = bluePlane[idx];
+<span style="color: #c678dd;">unsigned char</span> a = alphaPlane[idx];
+
+<span style="color: #7f848e;">// Example: Invert red channel for entire image (SIMD-friendly)</span>
+<span style="color: #c678dd;">for</span> (<span style="color: #c678dd;">int</span> i = <span style="color: #d19a66;">0</span>; i < numPixels; i++) {
+    redPlane[i] = <span style="color: #d19a66;">255</span> - redPlane[i];
+}
+
+<span style="color: #7f848e;">// Grayscale conversion: just copy red plane</span>
+<span style="color: #c678dd;">unsigned char</span>* grayscale = redPlane; <span style="color: #7f848e;">// if storing luminance in R</span>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="section">
+                <h2>⚖️ Performance Comparison</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aspect</th>
+                            <th>Interleaved (RGBARGBA...)</th>
+                            <th>Planar (RRR...GGG...BBB...AAA...)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Texture Sampling (GPU)</strong></td>
+                            <td style="color: #2e7d32;">✓ Excellent - Single fetch per pixel</td>
+                            <td style="color: #d32f2f;">✗ Multiple memory reads needed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cache Locality (per pixel)</strong></td>
+                            <td style="color: #2e7d32;">✓ Perfect - RGBA in one cache line</td>
+                            <td style="color: #d32f2f;">✗ Scattered across planes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cache Locality (per channel)</strong></td>
+                            <td style="color: #d32f2f;">✗ Channels scattered</td>
+                            <td style="color: #2e7d32;">✓ Perfect - Sequential access</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Channel Operations</strong></td>
+                            <td style="color: #d32f2f;">✗ Requires strided access</td>
+                            <td style="color: #2e7d32;">✓ Direct array operations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SIMD/Vectorization</strong></td>
+                            <td style="color: #f57c00;">△ Possible with gather/deinterleave</td>
+                            <td style="color: #2e7d32;">✓ Natural vector operations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Grayscale Conversion</strong></td>
+                            <td style="color: #d32f2f;">✗ Must process all channels</td>
+                            <td style="color: #2e7d32;">✓ Just use one plane</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Alpha Channel Optional</strong></td>
+                            <td style="color: #d32f2f;">✗ RGB data wastes space</td>
+                            <td style="color: #2e7d32;">✓ Can omit alpha plane entirely</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Image Format Support</strong></td>
+                            <td style="color: #2e7d32;">✓ PNG, BMP, TGA, WebGL</td>
+                            <td style="color: #f57c00;">△ YUV video, some RAW formats</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Memory Overhead</strong></td>
+                            <td style="color: #2e7d32;">✓ Compact, no padding</td>
+                            <td style="color: #2e7d32;">✓ Also compact</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Color Space Conversion</strong></td>
+                            <td style="color: #d32f2f;">✗ Must deinterleave first</td>
+                            <td style="color: #2e7d32;">✓ Process each plane separately</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Other Variants -->
+            <div class="section">
+                <h2>🔀 Other Channel Orderings</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    Beyond interleaved vs planar, there are different channel orderings within interleaved formats:
+                </p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Memory Layout</th>
+                            <th>Common Usage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>RGBA</strong></td>
+                            <td>[R, G, B, A, R, G, B, A, ...]</td>
+                            <td>OpenGL, WebGL, PNG (with alpha)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>BGRA</strong></td>
+                            <td>[B, G, R, A, B, G, R, A, ...]</td>
+                            <td>Windows DIB, Direct3D, some GPUs</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ARGB</strong></td>
+                            <td>[A, R, G, B, A, R, G, B, ...]</td>
+                            <td>Quartz (macOS), some image libraries</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RGB</strong></td>
+                            <td>[R, G, B, R, G, B, ...]</td>
+                            <td>JPEG, BMP (no alpha), 3 bytes/pixel</td>
+                        </tr>
+                        <tr>
+                            <td><strong>BGR</strong></td>
+                            <td>[B, G, R, B, G, R, ...]</td>
+                            <td>BMP files, OpenCV default</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Grayscale</strong></td>
+                            <td>[L, L, L, ...]</td>
+                            <td>Single channel, 1 byte/pixel</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="note warning">
+                    <strong>⚠️ Channel Order Matters!</strong>
+                    Always verify the channel order when loading images. A common bug is treating BGRA data as RGBA, 
+                    which swaps red and blue channels. When converting between formats, be explicit about the source 
+                    and destination ordering.
+                </div>
+            </div>
+
+            <!-- When to Use Each -->
+            <div class="section">
+                <h2>🎓 When to Use Each Layout</h2>
+                
+                <div class="note key-fact">
+                    <strong>✓ Use Interleaved (RGBA) when:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li>Rendering textures with WebGL/OpenGL (most common case)</li>
+                        <li>Loading/saving standard image formats (PNG, BMP, TGA)</li>
+                        <li>Displaying images directly to screen</li>
+                        <li>Working with HTML5 Canvas ImageData</li>
+                        <li>GPU texture sampling and filtering</li>
+                        <li>Blitting/copying entire pixels at once</li>
+                        <li>Standard image I/O operations</li>
+                    </ul>
+                </div>
+                
+                <div class="note warning">
+                    <strong>✓ Use Planar (separate R,G,B,A) when:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li>Applying filters to individual color channels</li>
+                        <li>Performing color space conversions (RGB to YUV)</li>
+                        <li>Processing video frames (especially with chroma subsampling)</li>
+                        <li>Using SIMD instructions for batch channel operations</li>
+                        <li>Working with algorithms that process one channel at a time</li>
+                        <li>Grayscale images (single plane only)</li>
+                        <li>Image compression (JPEG works with separate Y, Cb, Cr planes)</li>
+                        <li>Computer vision tasks (often operate on single channels)</li>
+                    </ul>
+                </div>
+                
+                <div class="note">
+                    <strong>💡 Hybrid Approach:</strong>
+                    Many image processing pipelines use both formats:
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Load:</strong> Interleaved RGBA (from PNG/file)</li>
+                        <li><strong>Process:</strong> Convert to planar for efficient channel operations</li>
+                        <li><strong>Save/Display:</strong> Convert back to interleaved for output</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="section">
+                <h2>📋 Summary</h2>
+                
+                <div class="note">
+                    <strong>🎯 Key Takeaways:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Interleaved RGBA</strong> is the standard for image storage and GPU textures</li>
+                        <li><strong>Planar format</strong> excels for image processing and color space operations</li>
+                        <li>Most image formats (PNG, BMP, TGA) use interleaved RGBA or RGB</li>
+                        <li>Video codecs often use planar YUV for efficient compression</li>
+                        <li>HTML5 Canvas uses interleaved RGBA (Uint8ClampedArray)</li>
+                        <li>Channel ordering matters: RGBA vs BGRA vs ARGB are incompatible</li>
+                        <li>Consider conversion overhead when mixing formats</li>
+                        <li>For GPU work, always use interleaved; for CPU filters, planar may be faster</li>
+                    </ul>
+                </div>
+                
+                <div class="note key-fact">
+                    <strong>✅ Best Practice:</strong>
+                    Use interleaved RGBA as your default format for general-purpose image work. Only convert 
+                    to planar when you need to perform extensive channel-wise operations, then convert back 
+                    to interleaved for display or saving. This matches how most graphics libraries and 
+                    hardware are optimized.
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

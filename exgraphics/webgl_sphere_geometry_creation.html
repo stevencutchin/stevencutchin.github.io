@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Sphere Geometry Creation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 35px;
+            border-left: 6px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+        
+        .section h3 {
+            color: #764ba2;
+            margin: 25px 0 15px 0;
+            font-size: 1.5em;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .formula-box {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #ffc107;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            line-height: 1.8;
+        }
+        
+        .note {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            color: #0c5460;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .key-fact {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .code-section {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 30px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.95em;
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.95em;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 25px;
+            border-radius: 3px;
+            margin-right: 10px;
+            border: 2px solid #333;
+            flex-shrink: 0;
+        }
+
+        .step-box {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .step-box h4 {
+            color: #764ba2;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-size: 1.05em;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 WebGL Sphere Geometry Creation</h1>
+            <p>Mathematical Generation, Vertex Attributes & Texture Mapping</p>
+            <p style="font-size: 1em; margin-top: 10px;">Understanding UV Sphere Construction for 3D Graphics</p>
+        </div>
+        
+        <div class="content">
+            <!-- Overview Section -->
+            <div class="section">
+                <h2>🎯 Sphere Geometry Overview</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 25px;">
+                    A <strong>UV sphere</strong> is created by parameterizing the sphere's surface using spherical coordinates (latitude and longitude), similar to how Earth's surface is mapped. The sphere is divided into horizontal <strong>stacks</strong> (latitude rings) and vertical <strong>sectors</strong> (longitude slices), creating a grid of quadrilaterals that are then subdivided into triangles.
+                </p>
+
+                <svg viewBox="0 0 1400 600" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="1400" height="600" fill="#f8f9fa"/>
+                    
+                    <!-- Title -->
+                    <text x="700" y="35" font-size="22" font-weight="bold" fill="#333" text-anchor="middle">Sphere Construction Pipeline</text>
+                    
+                    <!-- Step 1: Parameters -->
+                    <g transform="translate(50, 80)">
+                        <rect x="0" y="0" width="200" height="450" fill="white" stroke="#667eea" stroke-width="3" rx="8"/>
+                        <text x="100" y="30" font-size="16" font-weight="bold" fill="#667eea" text-anchor="middle">Step 1: Parameters</text>
+                        
+                        <!-- Parameter boxes -->
+                        <rect x="20" y="60" width="160" height="80" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="5"/>
+                        <text x="100" y="85" font-size="14" font-weight="bold" fill="#1976d2" text-anchor="middle">Radius</text>
+                        <text x="100" y="110" font-size="24" font-weight="bold" fill="#333" text-anchor="middle">r = 1.0</text>
+                        <text x="100" y="130" font-size="11" fill="#666" text-anchor="middle">sphere size</text>
+                        
+                        <rect x="20" y="160" width="160" height="80" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2" rx="5"/>
+                        <text x="100" y="185" font-size="14" font-weight="bold" fill="#7b1fa2" text-anchor="middle">Stacks</text>
+                        <text x="100" y="210" font-size="24" font-weight="bold" fill="#333" text-anchor="middle">m = 16</text>
+                        <text x="100" y="230" font-size="11" fill="#666" text-anchor="middle">latitude rings</text>
+                        
+                        <rect x="20" y="260" width="160" height="80" fill="#fff3e0" stroke="#ff9800" stroke-width="2" rx="5"/>
+                        <text x="100" y="285" font-size="14" font-weight="bold" fill="#e65100" text-anchor="middle">Sectors</text>
+                        <text x="100" y="310" font-size="24" font-weight="bold" fill="#333" text-anchor="middle">n = 32</text>
+                        <text x="100" y="330" font-size="11" fill="#666" text-anchor="middle">longitude slices</text>
+                        
+                        <rect x="20" y="360" width="160" height="70" fill="#e8f5e9" stroke="#4caf50" stroke-width="2" rx="5"/>
+                        <text x="100" y="385" font-size="13" font-weight="bold" fill="#2e7d32" text-anchor="middle">Vertices</text>
+                        <text x="100" y="410" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">(m+1) × (n+1)</text>
+                        <text x="100" y="425" font-size="11" fill="#666" text-anchor="middle">= 17 × 33 = 561</text>
+                    </g>
+                    
+                    <!-- Arrow 1 -->
+                    <defs>
+                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#333"/>
+                        </marker>
+                    </defs>
+                    <line x1="270" y1="305" x2="330" y2="305" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+                    
+                    <!-- Step 2: Generate Vertices -->
+                    <g transform="translate(350, 80)">
+                        <rect x="0" y="0" width="280" height="450" fill="white" stroke="#667eea" stroke-width="3" rx="8"/>
+                        <text x="140" y="30" font-size="16" font-weight="bold" fill="#667eea" text-anchor="middle">Step 2: Generate Vertices</text>
+                        
+                        <!-- Spherical coordinates diagram -->
+                        <circle cx="140" cy="160" r="70" fill="none" stroke="#2196f3" stroke-width="2"/>
+                        <ellipse cx="140" cy="160" rx="70" ry="25" fill="none" stroke="#2196f3" stroke-width="1" stroke-dasharray="3,3"/>
+                        
+                        <!-- Angles -->
+                        <line x1="140" y1="160" x2="140" y2="80" stroke="#9c27b0" stroke-width="2"/>
+                        <line x1="140" y1="160" x2="195" y2="195" stroke="#ff9800" stroke-width="2"/>
+                        
+                        <!-- Angle arcs -->
+                        <path d="M 140,120 A 40,40 0 0,1 165,140" fill="none" stroke="#9c27b0" stroke-width="1.5"/>
+                        <text x="150" y="125" font-size="12" fill="#9c27b0" font-weight="bold">φ</text>
+                        
+                        <path d="M 165,160 A 25,25 0 0,1 165,175" fill="none" stroke="#ff9800" stroke-width="1.5"/>
+                        <text x="175" y="172" font-size="12" fill="#ff9800" font-weight="bold">θ</text>
+                        
+                        <!-- Point -->
+                        <circle cx="195" cy="195" r="4" fill="#e74c3c"/>
+                        <text x="205" y="195" font-size="11" fill="#e74c3c" font-weight="bold">P(x,y,z)</text>
+                        
+                        <!-- Formula box -->
+                        <rect x="10" y="260" width="260" height="170" fill="#fff3cd" stroke="#ffc107" stroke-width="2" rx="5"/>
+                        <text x="140" y="285" font-size="13" font-weight="bold" fill="#856404" text-anchor="middle">Spherical → Cartesian</text>
+                        
+                        <text x="20" y="310" font-size="12" fill="#333">φ = stack × π / m</text>
+                        <text x="20" y="330" font-size="12" fill="#333">θ = sector × 2π / n</text>
+                        
+                        <text x="140" y="360" font-size="13" font-weight="bold" fill="#333" text-anchor="middle">Position:</text>
+                        <text x="20" y="380" font-size="12" fill="#333">x = r × sin(φ) × cos(θ)</text>
+                        <text x="20" y="400" font-size="12" fill="#333">y = r × cos(φ)</text>
+                        <text x="20" y="420" font-size="12" fill="#333">z = r × sin(φ) × sin(θ)</text>
+                    </g>
+                    
+                    <!-- Arrow 2 -->
+                    <line x1="650" y1="305" x2="710" y2="305" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+                    
+                    <!-- Step 3: Calculate Attributes -->
+                    <g transform="translate(730, 80)">
+                        <rect x="0" y="0" width="280" height="450" fill="white" stroke="#667eea" stroke-width="3" rx="8"/>
+                        <text x="140" y="30" font-size="16" font-weight="bold" fill="#667eea" text-anchor="middle">Step 3: Attributes</text>
+                        
+                        <!-- Normal vector -->
+                        <g transform="translate(140, 100)">
+                            <circle cx="0" cy="0" r="50" fill="#e3f2fd" stroke="#2196f3" stroke-width="2"/>
+                            <line x1="0" y1="0" x2="0" y2="-80" stroke="#2196f3" stroke-width="3" marker-end="url(#arrow)"/>
+                            <text x="10" y="-85" font-size="13" fill="#2196f3" font-weight="bold">Normal n</text>
+                            <circle cx="0" cy="0" r="3" fill="#e74c3c"/>
+                            <text x="0" y="75" font-size="12" fill="#333" text-anchor="middle" font-weight="bold">n = normalize(P)</text>
+                        </g>
+                        
+                        <!-- UV coordinates -->
+                        <rect x="20" y="200" width="240" height="100" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2" rx="5"/>
+                        <text x="140" y="225" font-size="13" font-weight="bold" fill="#7b1fa2" text-anchor="middle">Texture Coordinates</text>
+                        <text x="140" y="250" font-size="13" fill="#333" text-anchor="middle">u = sector / n</text>
+                        <text x="140" y="275" font-size="13" fill="#333" text-anchor="middle">v = stack / m</text>
+                        <text x="140" y="295" font-size="11" fill="#666" text-anchor="middle">Range: [0, 1] × [0, 1]</text>
+                        
+                        <!-- Tangent (optional) -->
+                        <rect x="20" y="320" width="240" height="100" fill="#fff3e0" stroke="#ff9800" stroke-width="2" rx="5"/>
+                        <text x="140" y="345" font-size="13" font-weight="bold" fill="#e65100" text-anchor="middle">Tangent (Optional)</text>
+                        <text x="140" y="370" font-size="11" fill="#333" text-anchor="middle">t = (-sin(θ), 0, cos(θ))</text>
+                        <text x="140" y="390" font-size="11" fill="#333" text-anchor="middle">For normal mapping</text>
+                        <text x="140" y="407" font-size="10" fill="#666" text-anchor="middle">perpendicular to meridian</text>
+                    </g>
+                    
+                    <!-- Arrow 3 -->
+                    <line x1="1030" y1="305" x2="1090" y2="305" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+                    
+                    <!-- Step 4: Build Triangles -->
+                    <g transform="translate(1110, 80)">
+                        <rect x="0" y="0" width="240" height="450" fill="white" stroke="#667eea" stroke-width="3" rx="8"/>
+                        <text x="120" y="30" font-size="16" font-weight="bold" fill="#667eea" text-anchor="middle">Step 4: Triangles</text>
+                        
+                        <!-- Quad subdivision -->
+                        <text x="120" y="65" font-size="13" fill="#333" text-anchor="middle">Quad → 2 Triangles</text>
+                        
+                        <!-- Grid cell -->
+                        <g transform="translate(50, 80)">
+                            <!-- Vertices -->
+                            <circle cx="0" cy="0" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <circle cx="140" cy="0" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <circle cx="0" cy="100" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <circle cx="140" cy="100" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            
+                            <!-- Labels -->
+                            <text x="0" y="-10" font-size="11" fill="#e74c3c" text-anchor="middle" font-weight="bold">v0</text>
+                            <text x="140" y="-10" font-size="11" fill="#e74c3c" text-anchor="middle" font-weight="bold">v1</text>
+                            <text x="0" y="115" font-size="11" fill="#e74c3c" text-anchor="middle" font-weight="bold">v2</text>
+                            <text x="140" y="115" font-size="11" fill="#e74c3c" text-anchor="middle" font-weight="bold">v3</text>
+                            
+                            <!-- Triangle 1 -->
+                            <path d="M 0,0 L 140,0 L 0,100 Z" fill="#4caf50" opacity="0.3" stroke="#2e7d32" stroke-width="2"/>
+                            <text x="45" y="40" font-size="12" fill="#2e7d32" font-weight="bold">T1</text>
+                            
+                            <!-- Triangle 2 -->
+                            <path d="M 140,0 L 140,100 L 0,100 Z" fill="#2196f3" opacity="0.3" stroke="#1565c0" stroke-width="2"/>
+                            <text x="95" y="75" font-size="12" fill="#1565c0" font-weight="bold">T2</text>
+                        </g>
+                        
+                        <!-- Index formula -->
+                        <rect x="10" y="210" width="220" height="220" fill="#fff3cd" stroke="#ffc107" stroke-width="2" rx="5"/>
+                        <text x="120" y="235" font-size="13" font-weight="bold" fill="#856404" text-anchor="middle">Index Calculation</text>
+                        
+                        <text x="15" y="260" font-size="11" fill="#333">For each stack i, sector j:</text>
+                        
+                        <text x="15" y="285" font-size="11" fill="#333">v0 = i × (n+1) + j</text>
+                        <text x="15" y="305" font-size="11" fill="#333">v1 = i × (n+1) + j + 1</text>
+                        <text x="15" y="325" font-size="11" fill="#333">v2 = (i+1) × (n+1) + j</text>
+                        <text x="15" y="345" font-size="11" fill="#333">v3 = (i+1) × (n+1) + j + 1</text>
+                        
+                        <text x="120" y="375" font-size="12" font-weight="bold" fill="#856404" text-anchor="middle">Triangles:</text>
+                        <text x="15" y="395" font-size="11" fill="#2e7d32" font-weight="bold">T1: [v0, v1, v2]</text>
+                        <text x="15" y="415" font-size="11" fill="#1565c0" font-weight="bold">T2: [v1, v3, v2]</text>
+                    </g>
+                </svg>
+
+                <div class="note key-fact">
+                    <strong>📐 Why This Works:</strong>
+                    The sphere surface is parameterized using two angles: φ (phi) for latitude from pole to pole (0 to π), and θ (theta) for longitude around the equator (0 to 2π). By dividing these ranges into regular intervals (stacks and sectors), we create a uniform grid on the sphere's surface. Each grid cell is a slightly curved quadrilateral that we approximate with two flat triangles.
+                </div>
+            </div>
+
+            <!-- Mathematical Formulas -->
+            <div class="section">
+                <h2>📐 Mathematical Foundation</h2>
+                
+                <h3>Spherical Coordinates</h3>
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    A point on a sphere is defined by three parameters: radius <strong>r</strong>, latitude angle <strong>φ</strong> (phi), and longitude angle <strong>θ</strong> (theta).
+                </p>
+
+                <div class="formula-box">
+                    <strong>For vertex at stack i, sector j:</strong><br><br>
+                    
+                    φ = i × π / m<br>
+                    θ = j × 2π / n<br><br>
+                    
+                    <strong>Cartesian coordinates (position):</strong><br>
+                    x = r × sin(φ) × cos(θ)<br>
+                    y = r × cos(φ)<br>
+                    z = r × sin(φ) × sin(θ)<br><br>
+                    
+                    <strong>Normal vector (for unit sphere):</strong><br>
+                    n = (x, y, z)  <span style="color: #666;">// Already normalized when r=1</span><br><br>
+                    
+                    <strong>Texture coordinates:</strong><br>
+                    u = j / n<br>
+                    v = i / m<br><br>
+                    
+                    <strong>Tangent vector (optional):</strong><br>
+                    t = (-sin(θ), 0, cos(θ))
+                </div>
+
+                <svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="1200" height="600" fill="white"/>
+                    
+                    <!-- Title -->
+                    <text x="600" y="35" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">Sphere Parameterization Visualization</text>
+                    
+                    <!-- Left: Sphere with angles -->
+                    <g transform="translate(250, 300)">
+                        <!-- Sphere -->
+                        <circle cx="0" cy="0" r="150" fill="#e3f2fd" stroke="#2196f3" stroke-width="3"/>
+                        
+                        <!-- Equator -->
+                        <ellipse cx="0" cy="0" rx="150" ry="40" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="5,3"/>
+                        
+                        <!-- Meridians (longitude lines) -->
+                        <ellipse cx="0" cy="0" rx="40" ry="150" fill="none" stroke="#9c27b0" stroke-width="1" stroke-dasharray="3,3"/>
+                        <ellipse cx="0" cy="0" rx="80" ry="150" fill="none" stroke="#9c27b0" stroke-width="1" stroke-dasharray="3,3"/>
+                        <ellipse cx="0" cy="0" rx="120" ry="150" fill="none" stroke="#9c27b0" stroke-width="1" stroke-dasharray="3,3"/>
+                        
+                        <!-- Parallels (latitude lines) -->
+                        <ellipse cx="0" cy="-75" rx="130" ry="30" fill="none" stroke="#ff9800" stroke-width="1" stroke-dasharray="3,3"/>
+                        <ellipse cx="0" cy="-110" rx="95" ry="20" fill="none" stroke="#ff9800" stroke-width="1" stroke-dasharray="3,3"/>
+                        <ellipse cx="0" cy="75" rx="130" ry="30" fill="none" stroke="#ff9800" stroke-width="1" stroke-dasharray="3,3"/>
+                        <ellipse cx="0" cy="110" rx="95" ry="20" fill="none" stroke="#ff9800" stroke-width="1" stroke-dasharray="3,3"/>
+                        
+                        <!-- Axes -->
+                        <line x1="0" y1="0" x2="0" y2="-180" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+                        <text x="10" y="-185" font-size="14" fill="#333" font-weight="bold">+Y (North Pole)</text>
+                        
+                        <line x1="0" y1="0" x2="180" y2="0" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+                        <text x="185" y="5" font-size="14" fill="#333" font-weight="bold">+X</text>
+                        
+                        <line x1="0" y1="0" x2="-100" y2="80" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+                        <text x="-110" y="95" font-size="14" fill="#333" font-weight="bold">+Z</text>
+                        
+                        <!-- Sample point -->
+                        <circle cx="95" cy="-85" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                        <line x1="0" y1="0" x2="95" y2="-85" stroke="#e74c3c" stroke-width="2"/>
+                        
+                        <!-- Angle φ (latitude) -->
+                        <path d="M 0,-60 A 60,60 0 0,1 38,-45" fill="none" stroke="#ff9800" stroke-width="2"/>
+                        <text x="45" y="-45" font-size="16" fill="#ff9800" font-weight="bold">φ</text>
+                        <text x="30" y="-25" font-size="11" fill="#ff9800">(latitude)</text>
+                        
+                        <!-- Angle θ (longitude) -->
+                        <path d="M 60,0 A 60,60 0 0,1 50,30" fill="none" stroke="#9c27b0" stroke-width="2"/>
+                        <text x="65" y="20" font-size="16" fill="#9c27b0" font-weight="bold">θ</text>
+                        <text x="50" y="40" font-size="11" fill="#9c27b0">(longitude)</text>
+                        
+                        <!-- Point label -->
+                        <text x="110" y="-85" font-size="13" fill="#e74c3c" font-weight="bold">P(x,y,z)</text>
+                        
+                        <!-- Poles -->
+                        <circle cx="0" cy="-150" r="4" fill="#2196f3"/>
+                        <text x="10" y="-150" font-size="11" fill="#2196f3" font-weight="bold">North (0,r,0)</text>
+                        
+                        <circle cx="0" cy="150" r="4" fill="#2196f3"/>
+                        <text x="10" y="155" font-size="11" fill="#2196f3" font-weight="bold">South (0,-r,0)</text>
+                    </g>
+                    
+                    <!-- Right: Unwrapped UV map -->
+                    <g transform="translate(700, 100)">
+                        <text x="200" y="-10" font-size="16" font-weight="bold" fill="#333" text-anchor="middle">UV Texture Mapping</text>
+                        
+                        <!-- UV rectangle -->
+                        <rect x="0" y="0" width="400" height="400" fill="#f0f0f0" stroke="#333" stroke-width="3"/>
+                        
+                        <!-- Grid -->
+                        <g opacity="0.3">
+                            <!-- Vertical lines (longitude) -->
+                            <line x1="50" y1="0" x2="50" y2="400" stroke="#9c27b0" stroke-width="1"/>
+                            <line x1="100" y1="0" x2="100" y2="400" stroke="#9c27b0" stroke-width="1"/>
+                            <line x1="150" y1="0" x2="150" y2="400" stroke="#9c27b0" stroke-width="1"/>
+                            <line x1="200" y1="0" x2="200" y2="400" stroke="#9c27b0" stroke-width="1"/>
+                            <line x1="250" y1="0" x2="250" y2="400" stroke="#9c27b0" stroke-width="1"/>
+                            <line x1="300" y1="0" x2="300" y2="400" stroke="#9c27b0" stroke-width="1"/>
+                            <line x1="350" y1="0" x2="350" y2="400" stroke="#9c27b0" stroke-width="1"/>
+                            
+                            <!-- Horizontal lines (latitude) -->
+                            <line x1="0" y1="50" x2="400" y2="50" stroke="#ff9800" stroke-width="1"/>
+                            <line x1="0" y1="100" x2="400" y2="100" stroke="#ff9800" stroke-width="1"/>
+                            <line x1="0" y1="150" x2="400" y2="150" stroke="#ff9800" stroke-width="1"/>
+                            <line x1="0" y1="200" x2="400" y2="200" stroke="#ff9800" stroke-width="1"/>
+                            <line x1="0" y1="250" x2="400" y2="250" stroke="#ff9800" stroke-width="1"/>
+                            <line x1="0" y1="300" x2="400" y2="300" stroke="#ff9800" stroke-width="1"/>
+                            <line x1="0" y1="350" x2="400" y2="350" stroke="#ff9800" stroke-width="1"/>
+                        </g>
+                        
+                        <!-- Sample quad highlighted -->
+                        <rect x="150" y="150" width="50" height="50" fill="#4caf50" opacity="0.3" stroke="#2e7d32" stroke-width="2"/>
+                        
+                        <!-- Corner points -->
+                        <circle cx="0" cy="0" r="4" fill="#2196f3"/>
+                        <circle cx="400" cy="0" r="4" fill="#2196f3"/>
+                        <circle cx="0" cy="400" r="4" fill="#2196f3"/>
+                        <circle cx="400" cy="400" r="4" fill="#2196f3"/>
+                        
+                        <!-- Sample quad corners -->
+                        <circle cx="150" cy="150" r="4" fill="#e74c3c"/>
+                        <circle cx="200" cy="150" r="4" fill="#e74c3c"/>
+                        <circle cx="150" cy="200" r="4" fill="#e74c3c"/>
+                        <circle cx="200" cy="200" r="4" fill="#e74c3c"/>
+                        
+                        <!-- UV coordinate labels -->
+                        <text x="-10" y="5" font-size="13" fill="#333" text-anchor="end">(0,0)</text>
+                        <text x="410" y="5" font-size="13" fill="#333">(1,0)</text>
+                        <text x="-10" y="405" font-size="13" fill="#333" text-anchor="end">(0,1)</text>
+                        <text x="410" y="405" font-size="13" fill="#333">(1,1)</text>
+                        
+                        <!-- Axis labels -->
+                        <text x="200" y="-25" font-size="14" fill="#9c27b0" font-weight="bold" text-anchor="middle">u (longitude: 0 to 2π)</text>
+                        <text x="-35" y="200" font-size="14" fill="#ff9800" font-weight="bold" text-anchor="middle" transform="rotate(-90 -35 200)">v (latitude: 0 to π)</text>
+                        
+                        <!-- North/South labels -->
+                        <text x="-50" y="5" font-size="12" fill="#2196f3" font-weight="bold" text-anchor="end">North Pole</text>
+                        <text x="-50" y="405" font-size="12" fill="#2196f3" font-weight="bold" text-anchor="end">South Pole</text>
+                        
+                        <!-- Seam indicator -->
+                        <line x1="400" y1="0" x2="400" y2="400" stroke="#e74c3c" stroke-width="3" stroke-dasharray="8,4"/>
+                        <text x="420" y="200" font-size="12" fill="#e74c3c" font-weight="bold">Seam</text>
+                        <text x="420" y="215" font-size="10" fill="#666">(u=0 joins u=1)</text>
+                    </g>
+                </svg>
+
+                <div class="note">
+                    <strong>🔍 Understanding φ and θ:</strong>
+                    <ul style="margin-top: 10px; line-height: 1.8;">
+                        <li><strong>φ (phi)</strong> is the latitude angle, measured from the positive Y-axis (north pole) down to the negative Y-axis (south pole). Range: [0, π]</li>
+                        <li><strong>θ (theta)</strong> is the longitude angle, measured counterclockwise around the Y-axis starting from the positive X-axis. Range: [0, 2π]</li>
+                        <li>When φ = 0, we're at the north pole (0, r, 0)</li>
+                        <li>When φ = π, we're at the south pole (0, -r, 0)</li>
+                        <li>When φ = π/2, we're on the equator</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Vertex Data Structure -->
+            <div class="section">
+                <h2>💾 Vertex Data Structure</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    Each vertex attribute is stored in its own separate array. This approach keeps position data together, normal data together, and UV data together, making the structure simpler and easier to update individual attributes.
+                </p>
+
+                <svg viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="1200" height="500" fill="white"/>
+                    
+                    <!-- Title -->
+                    <text x="600" y="30" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">Separate Array Layout</text>
+                    
+                    <!-- Positions Array -->
+                    <g transform="translate(100, 80)">
+                        <text x="0" y="-10" font-size="15" font-weight="bold" fill="#2196f3">Positions Array</text>
+                        
+                        <rect x="0" y="0" width="1000" height="60" fill="#e3f2fd" stroke="#2196f3" stroke-width="3" rx="5"/>
+                        
+                        <!-- Position elements -->
+                        <rect x="10" y="10" width="80" height="40" fill="white" stroke="#1976d2" stroke-width="1" rx="3"/>
+                        <text x="50" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">x₀,y₀,z₀</text>
+                        
+                        <rect x="100" y="10" width="80" height="40" fill="white" stroke="#1976d2" stroke-width="1" rx="3"/>
+                        <text x="140" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">x₁,y₁,z₁</text>
+                        
+                        <rect x="190" y="10" width="80" height="40" fill="white" stroke="#1976d2" stroke-width="1" rx="3"/>
+                        <text x="230" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">x₂,y₂,z₂</text>
+                        
+                        <rect x="280" y="10" width="80" height="40" fill="white" stroke="#1976d2" stroke-width="1" rx="3"/>
+                        <text x="320" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">x₃,y₃,z₃</text>
+                        
+                        <text x="380" y="35" font-size="16" fill="#666" text-anchor="middle">...</text>
+                        
+                        <rect x="420" y="10" width="80" height="40" fill="white" stroke="#1976d2" stroke-width="1" rx="3"/>
+                        <text x="460" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">xₙ,yₙ,zₙ</text>
+                        
+                        <text x="550" y="35" font-size="12" fill="#666">Float32Array</text>
+                        <text x="680" y="35" font-size="11" fill="#999">length = vertexCount × 3</text>
+                    </g>
+                    
+                    <!-- Normals Array -->
+                    <g transform="translate(100, 170)">
+                        <text x="0" y="-10" font-size="15" font-weight="bold" fill="#9c27b0">Normals Array</text>
+                        
+                        <rect x="0" y="0" width="1000" height="60" fill="#f3e5f5" stroke="#9c27b0" stroke-width="3" rx="5"/>
+                        
+                        <!-- Normal elements -->
+                        <rect x="10" y="10" width="90" height="40" fill="white" stroke="#7b1fa2" stroke-width="1" rx="3"/>
+                        <text x="55" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">nx₀,ny₀,nz₀</text>
+                        
+                        <rect x="110" y="10" width="90" height="40" fill="white" stroke="#7b1fa2" stroke-width="1" rx="3"/>
+                        <text x="155" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">nx₁,ny₁,nz₁</text>
+                        
+                        <rect x="210" y="10" width="90" height="40" fill="white" stroke="#7b1fa2" stroke-width="1" rx="3"/>
+                        <text x="255" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">nx₂,ny₂,nz₂</text>
+                        
+                        <rect x="310" y="10" width="90" height="40" fill="white" stroke="#7b1fa2" stroke-width="1" rx="3"/>
+                        <text x="355" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">nx₃,ny₃,nz₃</text>
+                        
+                        <text x="420" y="35" font-size="16" fill="#666" text-anchor="middle">...</text>
+                        
+                        <rect x="470" y="10" width="90" height="40" fill="white" stroke="#7b1fa2" stroke-width="1" rx="3"/>
+                        <text x="515" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">nxₙ,nyₙ,nzₙ</text>
+                        
+                        <text x="600" y="35" font-size="12" fill="#666">Float32Array</text>
+                        <text x="730" y="35" font-size="11" fill="#999">length = vertexCount × 3</text>
+                    </g>
+                    
+                    <!-- UVs Array -->
+                    <g transform="translate(100, 260)">
+                        <text x="0" y="-10" font-size="15" font-weight="bold" fill="#ff9800">Texture Coordinates Array</text>
+                        
+                        <rect x="0" y="0" width="1000" height="60" fill="#fff3e0" stroke="#ff9800" stroke-width="3" rx="5"/>
+                        
+                        <!-- UV elements -->
+                        <rect x="10" y="10" width="60" height="40" fill="white" stroke="#e65100" stroke-width="1" rx="3"/>
+                        <text x="40" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">u₀,v₀</text>
+                        
+                        <rect x="80" y="10" width="60" height="40" fill="white" stroke="#e65100" stroke-width="1" rx="3"/>
+                        <text x="110" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">u₁,v₁</text>
+                        
+                        <rect x="150" y="10" width="60" height="40" fill="white" stroke="#e65100" stroke-width="1" rx="3"/>
+                        <text x="180" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">u₂,v₂</text>
+                        
+                        <rect x="220" y="10" width="60" height="40" fill="white" stroke="#e65100" stroke-width="1" rx="3"/>
+                        <text x="250" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">u₃,v₃</text>
+                        
+                        <rect x="290" y="10" width="60" height="40" fill="white" stroke="#e65100" stroke-width="1" rx="3"/>
+                        <text x="320" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">u₄,v₄</text>
+                        
+                        <text x="370" y="35" font-size="16" fill="#666" text-anchor="middle">...</text>
+                        
+                        <rect x="410" y="10" width="60" height="40" fill="white" stroke="#e65100" stroke-width="1" rx="3"/>
+                        <text x="440" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">uₙ,vₙ</text>
+                        
+                        <text x="510" y="35" font-size="12" fill="#666">Float32Array</text>
+                        <text x="640" y="35" font-size="11" fill="#999">length = vertexCount × 2</text>
+                    </g>
+                    
+                    <!-- Tangents Array (Optional) -->
+                    <g transform="translate(100, 350)">
+                        <text x="0" y="-10" font-size="15" font-weight="bold" fill="#4caf50">Tangents Array (Optional)</text>
+                        
+                        <rect x="0" y="0" width="1000" height="60" fill="#e8f5e9" stroke="#4caf50" stroke-width="3" rx="5"/>
+                        
+                        <!-- Tangent elements -->
+                        <rect x="10" y="10" width="90" height="40" fill="white" stroke="#2e7d32" stroke-width="1" rx="3"/>
+                        <text x="55" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">tx₀,ty₀,tz₀</text>
+                        
+                        <rect x="110" y="10" width="90" height="40" fill="white" stroke="#2e7d32" stroke-width="1" rx="3"/>
+                        <text x="155" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">tx₁,ty₁,tz₁</text>
+                        
+                        <rect x="210" y="10" width="90" height="40" fill="white" stroke="#2e7d32" stroke-width="1" rx="3"/>
+                        <text x="255" y="35" font-size="11" fill="#333" text-anchor="middle" font-family="monospace">tx₂,ty₂,tz₂</text>
+                        
+                        <text x="320" y="35" font-size="16" fill="#666" text-anchor="middle">...</text>
+                        
+                        <text x="400" y="35" font-size="12" fill="#666">Float32Array</text>
+                        <text x="530" y="35" font-size="11" fill="#999">length = vertexCount × 3</text>
+                        <text x="730" y="35" font-size="10" fill="#999">(for normal mapping)</text>
+                    </g>
+                    
+                    <!-- Vertex count indicator -->
+                    <g transform="translate(100, 445)">
+                        <rect x="0" y="0" width="400" height="40" fill="#fff3cd" stroke="#ffc107" stroke-width="2" rx="5"/>
+                        <text x="200" y="25" font-size="13" fill="#856404" text-anchor="middle" font-weight="bold">Total Vertices: (stacks + 1) × (sectors + 1)</text>
+                    </g>
+                </svg>
+
+                <h3>Memory Layout Comparison</h3>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layout Type</th>
+                            <th>Description</th>
+                            <th>Advantages</th>
+                            <th>Disadvantages</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Separate Arrays</strong><br>(Used Here)</td>
+                            <td>Each attribute in its own array:<br><code>positions[], normals[], uvs[]</code></td>
+                            <td>
+                                • Easy to update one attribute<br>
+                                • Can omit unused attributes<br>
+                                • Simpler structure<br>
+                                • Clearer code organization
+                            </td>
+                            <td>
+                                • Multiple buffers required<br>
+                                • More buffer binding calls<br>
+                                • Potentially worse cache performance
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Interleaved</strong></td>
+                            <td>All attributes for one vertex together:<br><code>[x,y,z,nx,ny,nz,u,v, x,y,z,nx,ny,nz,u,v, ...]</code></td>
+                            <td>
+                                • Better cache locality<br>
+                                • Single buffer<br>
+                                • Fewer binding calls
+                            </td>
+                            <td>
+                                • Harder to update single attribute<br>
+                                • Stride calculation needed<br>
+                                • More complex structure
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="note">
+                    <strong>💡 Design Choice:</strong>
+                    We use <strong>separate arrays</strong> for this implementation because it provides clearer code organization and makes it easier to understand how each attribute is generated. For static geometry like spheres, the performance difference is negligible on modern GPUs. Each array becomes its own VBO in WebGL.
+                </div>
+            </div>
+
+            <!-- Index Buffer Section -->
+            <div class="section">
+                <h2>🔢 Index Buffer Construction</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    Instead of duplicating vertices, we use an <strong>index buffer</strong> (Element Array Buffer) that references vertices by their index. Each quad on the sphere surface is split into two triangles.
+                </p>
+
+                <svg viewBox="0 0 1200 550" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="1200" height="550" fill="white"/>
+                    
+                    <!-- Title -->
+                    <text x="600" y="30" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">Quad to Triangle Conversion</text>
+                    
+                    <!-- Grid section -->
+                    <g transform="translate(100, 80)">
+                        <text x="200" y="-10" font-size="15" font-weight="bold" fill="#667eea" text-anchor="middle">Vertex Grid (4×4 example)</text>
+                        
+                        <!-- Grid of vertices -->
+                        <g id="vertex-grid">
+                            <!-- Row 0 -->
+                            <circle cx="0" cy="0" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="0" y="-12" font-size="10" fill="#333" text-anchor="middle">0</text>
+                            
+                            <circle cx="100" cy="0" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="100" y="-12" font-size="10" fill="#333" text-anchor="middle">1</text>
+                            
+                            <circle cx="200" cy="0" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="200" y="-12" font-size="10" fill="#333" text-anchor="middle">2</text>
+                            
+                            <circle cx="300" cy="0" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="300" y="-12" font-size="10" fill="#333" text-anchor="middle">3</text>
+                            
+                            <circle cx="400" cy="0" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="400" y="-12" font-size="10" fill="#333" text-anchor="middle">4</text>
+                            
+                            <!-- Row 1 -->
+                            <circle cx="0" cy="100" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="0" y="88" font-size="10" fill="#333" text-anchor="middle">5</text>
+                            
+                            <circle cx="100" cy="100" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="100" y="88" font-size="10" fill="#333" text-anchor="middle">6</text>
+                            
+                            <circle cx="200" cy="100" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="200" y="88" font-size="10" fill="#333" text-anchor="middle">7</text>
+                            
+                            <circle cx="300" cy="100" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="300" y="88" font-size="10" fill="#333" text-anchor="middle">8</text>
+                            
+                            <circle cx="400" cy="100" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="400" y="88" font-size="10" fill="#333" text-anchor="middle">9</text>
+                            
+                            <!-- Row 2 -->
+                            <circle cx="0" cy="200" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="0" y="188" font-size="10" fill="#333" text-anchor="middle">10</text>
+                            
+                            <circle cx="100" cy="200" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="100" y="188" font-size="10" fill="#333" text-anchor="middle">11</text>
+                            
+                            <circle cx="200" cy="200" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="200" y="188" font-size="10" fill="#333" text-anchor="middle">12</text>
+                            
+                            <circle cx="300" cy="200" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="300" y="188" font-size="10" fill="#333" text-anchor="middle">13</text>
+                            
+                            <circle cx="400" cy="200" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="400" y="188" font-size="10" fill="#333" text-anchor="middle">14</text>
+                            
+                            <!-- Row 3 -->
+                            <circle cx="0" cy="300" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="0" y="288" font-size="10" fill="#333" text-anchor="middle">15</text>
+                            
+                            <circle cx="100" cy="300" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="100" y="288" font-size="10" fill="#333" text-anchor="middle">16</text>
+                            
+                            <circle cx="200" cy="300" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="200" y="288" font-size="10" fill="#333" text-anchor="middle">17</text>
+                            
+                            <circle cx="300" cy="300" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="300" y="288" font-size="10" fill="#333" text-anchor="middle">18</text>
+                            
+                            <circle cx="400" cy="300" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="400" y="288" font-size="10" fill="#333" text-anchor="middle">19</text>
+                            
+                            <!-- Row 4 -->
+                            <circle cx="0" cy="400" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="0" y="388" font-size="10" fill="#333" text-anchor="middle">20</text>
+                            
+                            <circle cx="100" cy="400" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="100" y="388" font-size="10" fill="#333" text-anchor="middle">21</text>
+                            
+                            <circle cx="200" cy="400" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="200" y="388" font-size="10" fill="#333" text-anchor="middle">22</text>
+                            
+                            <circle cx="300" cy="400" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="300" y="388" font-size="10" fill="#333" text-anchor="middle">23</text>
+                            
+                            <circle cx="400" cy="400" r="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+                            <text x="400" y="388" font-size="10" fill="#333" text-anchor="middle">24</text>
+                        </g>
+                        
+                        <!-- Highlight one quad -->
+                        <rect x="100" y="100" width="100" height="100" fill="#ffc107" opacity="0.2" stroke="#ff9800" stroke-width="3"/>
+                        
+                        <!-- Triangle 1 -->
+                        <path d="M 100,100 L 200,100 L 100,200 Z" fill="#4caf50" opacity="0.3" stroke="#2e7d32" stroke-width="2"/>
+                        <text x="130" y="140" font-size="14" fill="#2e7d32" font-weight="bold">T1</text>
+                        
+                        <!-- Triangle 2 -->
+                        <path d="M 200,100 L 200,200 L 100,200 Z" fill="#2196f3" opacity="0.3" stroke="#1565c0" stroke-width="2"/>
+                        <text x="165" y="175" font-size="14" fill="#1565c0" font-weight="bold">T2</text>
+                        
+                        <!-- Labels -->
+                        <text x="150" y="-30" font-size="12" fill="#666">Grid: (sectors+1) × (stacks+1)</text>
+                        <text x="150" y="-15" font-size="11" fill="#666">Example: 5 × 5 = 25 vertices</text>
+                    </g>
+                    
+                    <!-- Index calculation -->
+                    <g transform="translate(650, 80)">
+                        <text x="250" y="-10" font-size="15" font-weight="bold" fill="#667eea" text-anchor="middle">Index Calculation for Quad</text>
+                        
+                        <rect x="0" y="10" width="500" height="480" fill="#fff3cd" stroke="#ffc107" stroke-width="2" rx="8"/>
+                        
+                        <text x="250" y="45" font-size="14" font-weight="bold" fill="#856404" text-anchor="middle">For quad at stack i, sector j:</text>
+                        
+                        <!-- Variables -->
+                        <text x="20" y="80" font-size="13" fill="#333">Let n = sectors + 1  (row width)</text>
+                        
+                        <!-- Vertex indices -->
+                        <text x="20" y="120" font-size="13" font-weight="bold" fill="#e74c3c">Vertex Indices:</text>
+                        <text x="20" y="145" font-size="12" fill="#333">v0 = i × n + j</text>
+                        <text x="300" y="145" font-size="11" fill="#666">(top-left)</text>
+                        
+                        <text x="20" y="170" font-size="12" fill="#333">v1 = i × n + j + 1</text>
+                        <text x="300" y="170" font-size="11" fill="#666">(top-right)</text>
+                        
+                        <text x="20" y="195" font-size="12" fill="#333">v2 = (i + 1) × n + j</text>
+                        <text x="300" y="195" font-size="11" fill="#666">(bottom-left)</text>
+                        
+                        <text x="20" y="220" font-size="12" fill="#333">v3 = (i + 1) × n + j + 1</text>
+                        <text x="300" y="220" font-size="11" fill="#666">(bottom-right)</text>
+                        
+                        <!-- Example calculation -->
+                        <text x="20" y="260" font-size="13" font-weight="bold" fill="#667eea">Example (i=1, j=1, n=5):</text>
+                        <text x="20" y="285" font-size="12" fill="#333">v0 = 1×5 + 1 = 6</text>
+                        <text x="20" y="305" font-size="12" fill="#333">v1 = 1×5 + 2 = 7</text>
+                        <text x="20" y="325" font-size="12" fill="#333">v2 = 2×5 + 1 = 11</text>
+                        <text x="20" y="345" font-size="12" fill="#333">v3 = 2×5 + 2 = 12</text>
+                        
+                        <!-- Triangle indices -->
+                        <text x="20" y="385" font-size="13" font-weight="bold" fill="#2e7d32">Triangle 1 (counter-clockwise):</text>
+                        <text x="20" y="410" font-size="12" fill="#333">indices = [v0, v1, v2]</text>
+                        <text x="20" y="430" font-size="12" fill="#333">        = [6, 7, 11]</text>
+                        
+                        <text x="20" y="460" font-size="13" font-weight="bold" fill="#1565c0">Triangle 2 (counter-clockwise):</text>
+                        <text x="20" y="485" font-size="12" fill="#333">indices = [v1, v3, v2]</text>
+                        <text x="280" y="485" font-size="11" fill="#666">or [v2, v3, v1]</text>
+                    </g>
+                </svg>
+
+                <div class="note">
+                    <strong>⚠️ Winding Order:</strong>
+                    The order of vertex indices determines the triangle's facing direction. Use <strong>counter-clockwise</strong> winding for front-facing triangles (when viewed from outside the sphere). This is crucial for back-face culling to work correctly. Triangle 1: [v0, v1, v2], Triangle 2: [v1, v3, v2].
+                </div>
+            </div>
+
+            <!-- Complete JavaScript Implementation -->
+            <div class="section">
+                <h2>💻 Complete JavaScript Implementation</h2>
+                
+                <div class="code-section">
+<pre><span style="color: #7f848e;">/**
+ * Creates a UV sphere geometry with separate arrays for each attribute
+ * 
+ * @param {number} radius - Sphere radius
+ * @param {number} stacks - Number of horizontal divisions (latitude)
+ * @param {number} sectors - Number of vertical divisions (longitude)
+ * @returns {object} Object containing separate position, normal, UV, and index arrays
+ */</span>
+<span style="color: #c678dd;">function</span> <span style="color: #61afef;">createSphere</span>(radius, stacks, sectors) {
+    <span style="color: #c678dd;">const</span> positions = [];
+    <span style="color: #c678dd;">const</span> normals = [];
+    <span style="color: #c678dd;">const</span> uvs = [];
+    <span style="color: #c678dd;">const</span> indices = [];
+    
+    <span style="color: #7f848e;">// Generate vertices</span>
+    <span style="color: #c678dd;">for</span> (<span style="color: #c678dd;">let</span> i = <span style="color: #d19a66;">0</span>; i &lt;= stacks; i++) {
+        <span style="color: #7f848e;">// Latitude angle from 0 (north pole) to π (south pole)</span>
+        <span style="color: #c678dd;">const</span> phi = i * <span style="color: #e5c07b;">Math</span>.PI / stacks;
+        <span style="color: #c678dd;">const</span> sinPhi = <span style="color: #e5c07b;">Math</span>.<span style="color: #61afef;">sin</span>(phi);
+        <span style="color: #c678dd;">const</span> cosPhi = <span style="color: #e5c07b;">Math</span>.<span style="color: #61afef;">cos</span>(phi);
+        
+        <span style="color: #c678dd;">for</span> (<span style="color: #c678dd;">let</span> j = <span style="color: #d19a66;">0</span>; j &lt;= sectors; j++) {
+            <span style="color: #7f848e;">// Longitude angle from 0 to 2π</span>
+            <span style="color: #c678dd;">const</span> theta = j * <span style="color: #d19a66;">2</span> * <span style="color: #e5c07b;">Math</span>.PI / sectors;
+            <span style="color: #c678dd;">const</span> sinTheta = <span style="color: #e5c07b;">Math</span>.<span style="color: #61afef;">sin</span>(theta);
+            <span style="color: #c678dd;">const</span> cosTheta = <span style="color: #e5c07b;">Math</span>.<span style="color: #61afef;">cos</span>(theta);
+            
+            <span style="color: #7f848e;">// Position (spherical to Cartesian conversion)</span>
+            <span style="color: #c678dd;">const</span> x = radius * sinPhi * cosTheta;
+            <span style="color: #c678dd;">const</span> y = radius * cosPhi;
+            <span style="color: #c678dd;">const</span> z = radius * sinPhi * sinTheta;
+            
+            <span style="color: #7f848e;">// Add position</span>
+            positions.<span style="color: #61afef;">push</span>(x, y, z);
+            
+            <span style="color: #7f848e;">// Normal (for unit sphere, this is the normalized position)</span>
+            <span style="color: #7f848e;">// For non-unit spheres, divide by radius to normalize</span>
+            <span style="color: #c678dd;">const</span> nx = x / radius;
+            <span style="color: #c678dd;">const</span> ny = y / radius;
+            <span style="color: #c678dd;">const</span> nz = z / radius;
+            
+            <span style="color: #7f848e;">// Add normal</span>
+            normals.<span style="color: #61afef;">push</span>(nx, ny, nz);
+            
+            <span style="color: #7f848e;">// Texture coordinates</span>
+            <span style="color: #c678dd;">const</span> u = j / sectors;
+            <span style="color: #c678dd;">const</span> v = i / stacks;
+            
+            <span style="color: #7f848e;">// Add UV</span>
+            uvs.<span style="color: #61afef;">push</span>(u, v);
+        }
+    }
+    
+    <span style="color: #7f848e;">// Generate indices for triangles</span>
+    <span style="color: #c678dd;">const</span> rowWidth = sectors + <span style="color: #d19a66;">1</span>;
+    
+    <span style="color: #c678dd;">for</span> (<span style="color: #c678dd;">let</span> i = <span style="color: #d19a66;">0</span>; i &lt; stacks; i++) {
+        <span style="color: #c678dd;">for</span> (<span style="color: #c678dd;">let</span> j = <span style="color: #d19a66;">0</span>; j &lt; sectors; j++) {
+            <span style="color: #7f848e;">// Calculate vertex indices for the quad</span>
+            <span style="color: #c678dd;">const</span> v0 = i * rowWidth + j;           <span style="color: #7f848e;">// top-left</span>
+            <span style="color: #c678dd;">const</span> v1 = i * rowWidth + j + <span style="color: #d19a66;">1</span>;       <span style="color: #7f848e;">// top-right</span>
+            <span style="color: #c678dd;">const</span> v2 = (i + <span style="color: #d19a66;">1</span>) * rowWidth + j;     <span style="color: #7f848e;">// bottom-left</span>
+            <span style="color: #c678dd;">const</span> v3 = (i + <span style="color: #d19a66;">1</span>) * rowWidth + j + <span style="color: #d19a66;">1</span>; <span style="color: #7f848e;">// bottom-right</span>
+            
+            <span style="color: #7f848e;">// Triangle 1 (counter-clockwise)</span>
+            indices.<span style="color: #61afef;">push</span>(v0, v1, v2);
+            
+            <span style="color: #7f848e;">// Triangle 2 (counter-clockwise)</span>
+            indices.<span style="color: #61afef;">push</span>(v1, v3, v2);
+        }
+    }
+    
+    <span style="color: #c678dd;">return</span> {
+        positions: <span style="color: #c678dd;">new</span> <span style="color: #e5c07b;">Float32Array</span>(positions),
+        normals: <span style="color: #c678dd;">new</span> <span style="color: #e5c07b;">Float32Array</span>(normals),
+        uvs: <span style="color: #c678dd;">new</span> <span style="color: #e5c07b;">Float32Array</span>(uvs),
+        indices: <span style="color: #c678dd;">new</span> <span style="color: #e5c07b;">Uint16Array</span>(indices),
+        vertexCount: positions.<span style="color: #e06c75;">length</span> / <span style="color: #d19a66;">3</span>,
+        indexCount: indices.<span style="color: #e06c75;">length</span>
+    };
+}
+
+<span style="color: #7f848e;">// Usage example</span>
+<span style="color: #c678dd;">const</span> sphere = <span style="color: #61afef;">createSphere</span>(<span style="color: #d19a66;">1.0</span>, <span style="color: #d19a66;">16</span>, <span style="color: #d19a66;">32</span>);
+<span style="color: #e5c07b;">console</span>.<span style="color: #61afef;">log</span>(<span style="color: #98c379;">`Created sphere with ${sphere.vertexCount} vertices and ${sphere.indexCount} indices`</span>);
+<span style="color: #e5c07b;">console</span>.<span style="color: #61afef;">log</span>(<span style="color: #98c379;">`Triangle count: ${sphere.indexCount / 3}`</span>);
+<span style="color: #e5c07b;">console</span>.<span style="color: #61afef;">log</span>(<span style="color: #98c379;">`Position array length: ${sphere.positions.length}`</span>);
+<span style="color: #e5c07b;">console</span>.<span style="color: #61afef;">log</span>(<span style="color: #98c379;">`Normal array length: ${sphere.normals.length}`</span>);
+<span style="color: #e5c07b;">console</span>.<span style="color: #61afef;">log</span>(<span style="color: #98c379;">`UV array length: ${sphere.uvs.length}`</span>);
+</pre>
+                </div>
+
+                <h3>WebGL Buffer Setup</h3>
+                
+                <div class="code-section">
+<pre><span style="color: #7f848e;">/**
+ * Creates and binds separate WebGL buffers for each attribute
+ */</span>
+<span style="color: #c678dd;">function</span> <span style="color: #61afef;">setupSphereBuffers</span>(gl, sphere) {
+    <span style="color: #7f848e;">// Create position buffer</span>
+    <span style="color: #c678dd;">const</span> positionBuffer = gl.<span style="color: #61afef;">createBuffer</span>();
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, positionBuffer);
+    gl.<span style="color: #61afef;">bufferData</span>(
+        gl.ARRAY_BUFFER,
+        sphere.positions,
+        gl.STATIC_DRAW
+    );
+    
+    <span style="color: #7f848e;">// Create normal buffer</span>
+    <span style="color: #c678dd;">const</span> normalBuffer = gl.<span style="color: #61afef;">createBuffer</span>();
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, normalBuffer);
+    gl.<span style="color: #61afef;">bufferData</span>(
+        gl.ARRAY_BUFFER,
+        sphere.normals,
+        gl.STATIC_DRAW
+    );
+    
+    <span style="color: #7f848e;">// Create UV buffer</span>
+    <span style="color: #c678dd;">const</span> uvBuffer = gl.<span style="color: #61afef;">createBuffer</span>();
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, uvBuffer);
+    gl.<span style="color: #61afef;">bufferData</span>(
+        gl.ARRAY_BUFFER,
+        sphere.uvs,
+        gl.STATIC_DRAW
+    );
+    
+    <span style="color: #7f848e;">// Create index buffer</span>
+    <span style="color: #c678dd;">const</span> indexBuffer = gl.<span style="color: #61afef;">createBuffer</span>();
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.<span style="color: #61afef;">bufferData</span>(
+        gl.ELEMENT_ARRAY_BUFFER,
+        sphere.indices,
+        gl.STATIC_DRAW
+    );
+    
+    <span style="color: #c678dd;">return</span> { 
+        positionBuffer, 
+        normalBuffer, 
+        uvBuffer, 
+        indexBuffer 
+    };
+}
+
+<span style="color: #7f848e;">/**
+ * Sets up vertex attribute pointers for separate buffers
+ */</span>
+<span style="color: #c678dd;">function</span> <span style="color: #61afef;">setupVertexAttributes</span>(gl, program, buffers) {
+    <span style="color: #7f848e;">// Position attribute (location 0)</span>
+    <span style="color: #c678dd;">const</span> posLoc = gl.<span style="color: #61afef;">getAttribLocation</span>(program, <span style="color: #98c379;">'a_position'</span>);
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, buffers.positionBuffer);
+    gl.<span style="color: #61afef;">enableVertexAttribArray</span>(posLoc);
+    gl.<span style="color: #61afef;">vertexAttribPointer</span>(
+        posLoc,
+        <span style="color: #d19a66;">3</span>,                    <span style="color: #7f848e;">// size (x, y, z)</span>
+        gl.FLOAT,             <span style="color: #7f848e;">// type</span>
+        <span style="color: #d19a66;">false</span>,               <span style="color: #7f848e;">// normalize</span>
+        <span style="color: #d19a66;">0</span>,                    <span style="color: #7f848e;">// stride (0 = tightly packed)</span>
+        <span style="color: #d19a66;">0</span>                     <span style="color: #7f848e;">// offset</span>
+    );
+    
+    <span style="color: #7f848e;">// Normal attribute (location 1)</span>
+    <span style="color: #c678dd;">const</span> normLoc = gl.<span style="color: #61afef;">getAttribLocation</span>(program, <span style="color: #98c379;">'a_normal'</span>);
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, buffers.normalBuffer);
+    gl.<span style="color: #61afef;">enableVertexAttribArray</span>(normLoc);
+    gl.<span style="color: #61afef;">vertexAttribPointer</span>(
+        normLoc,
+        <span style="color: #d19a66;">3</span>,                    <span style="color: #7f848e;">// size (nx, ny, nz)</span>
+        gl.FLOAT,             <span style="color: #7f848e;">// type</span>
+        <span style="color: #d19a66;">false</span>,               <span style="color: #7f848e;">// normalize</span>
+        <span style="color: #d19a66;">0</span>,                    <span style="color: #7f848e;">// stride (0 = tightly packed)</span>
+        <span style="color: #d19a66;">0</span>                     <span style="color: #7f848e;">// offset</span>
+    );
+    
+    <span style="color: #7f848e;">// Texture coordinate attribute (location 2)</span>
+    <span style="color: #c678dd;">const</span> uvLoc = gl.<span style="color: #61afef;">getAttribLocation</span>(program, <span style="color: #98c379;">'a_texCoord'</span>);
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ARRAY_BUFFER, buffers.uvBuffer);
+    gl.<span style="color: #61afef;">enableVertexAttribArray</span>(uvLoc);
+    gl.<span style="color: #61afef;">vertexAttribPointer</span>(
+        uvLoc,
+        <span style="color: #d19a66;">2</span>,                    <span style="color: #7f848e;">// size (u, v)</span>
+        gl.FLOAT,             <span style="color: #7f848e;">// type</span>
+        <span style="color: #d19a66;">false</span>,               <span style="color: #7f848e;">// normalize</span>
+        <span style="color: #d19a66;">0</span>,                    <span style="color: #7f848e;">// stride (0 = tightly packed)</span>
+        <span style="color: #d19a66;">0</span>                     <span style="color: #7f848e;">// offset</span>
+    );
+    
+    <span style="color: #7f848e;">// Bind index buffer</span>
+    gl.<span style="color: #61afef;">bindBuffer</span>(gl.ELEMENT_ARRAY_BUFFER, buffers.indexBuffer);
+}
+
+<span style="color: #7f848e;">/**
+ * Renders the sphere using indexed drawing
+ */</span>
+<span style="color: #c678dd;">function</span> <span style="color: #61afef;">drawSphere</span>(gl, sphere) {
+    gl.<span style="color: #61afef;">drawElements</span>(
+        gl.TRIANGLES,         <span style="color: #7f848e;">// mode</span>
+        sphere.indexCount,    <span style="color: #7f848e;">// count</span>
+        gl.UNSIGNED_SHORT,    <span style="color: #7f848e;">// type (matches Uint16Array)</span>
+        <span style="color: #d19a66;">0</span>                     <span style="color: #7f848e;">// offset</span>
+    );
+}
+</pre>
+                </div>
+
+                <h3>Complete Usage Example</h3>
+                
+                <div class="code-section">
+<pre><span style="color: #7f848e;">// 1. Create sphere geometry</span>
+<span style="color: #c678dd;">const</span> sphere = <span style="color: #61afef;">createSphere</span>(<span style="color: #d19a66;">1.0</span>, <span style="color: #d19a66;">32</span>, <span style="color: #d19a66;">64</span>);
+
+<span style="color: #7f848e;">// 2. Set up WebGL buffers</span>
+<span style="color: #c678dd;">const</span> buffers = <span style="color: #61afef;">setupSphereBuffers</span>(gl, sphere);
+
+<span style="color: #7f848e;">// 3. Set up vertex attributes</span>
+<span style="color: #61afef;">setupVertexAttributes</span>(gl, shaderProgram, buffers);
+
+<span style="color: #7f848e;">// 4. In render loop</span>
+<span style="color: #c678dd;">function</span> <span style="color: #61afef;">render</span>() {
+    <span style="color: #7f848e;">// Clear and set up viewport...</span>
+    
+    <span style="color: #7f848e;">// Use shader program</span>
+    gl.<span style="color: #61afef;">useProgram</span>(shaderProgram);
+    
+    <span style="color: #7f848e;">// Set uniforms (model, view, projection matrices, etc.)</span>
+    <span style="color: #7f848e;">// ...</span>
+    
+    <span style="color: #7f848e;">// Draw the sphere</span>
+    <span style="color: #61afef;">drawSphere</span>(gl, sphere);
+    
+    <span style="color: #61afef;">requestAnimationFrame</span>(render);
+}
+
+<span style="color: #61afef;">render</span>();
+</pre>
+                </div>
+            </div>
+
+            <!-- UV Mapping Issues -->
+            <div class="section">
+                <h2>⚠️ Common Issues and Solutions</h2>
+                
+                <div class="step-box">
+                    <h4>Issue 1: Texture Seam at Longitude 0/2π</h4>
+                    <p style="line-height: 1.8;">
+                        Because the sphere wraps around, vertices at j=0 and j=sectors represent the same physical location but need different UV coordinates (u=0 and u=1). This creates a visible seam if not handled correctly.
+                    </p>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        <strong>Solution:</strong> The algorithm naturally handles this by creating duplicate vertices at the seam (j goes from 0 to sectors+1, not just to sectors). Vertices at j=0 have u=0, and vertices at j=sectors have u=1, even though they're at the same position.
+                    </p>
+                </div>
+
+                <div class="step-box">
+                    <h4>Issue 2: Pole Singularities</h4>
+                    <p style="line-height: 1.8;">
+                        At the north and south poles, all sectors converge to a single point, creating degenerate triangles with zero area. This can cause texture coordinate interpolation issues.
+                    </p>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        <strong>Solution:</strong> This is inherent to UV sphere topology. The degenerate triangles don't affect rendering but may cause visible distortion in texture mapping near poles. For perfect pole texturing, consider using a different topology (like an icosphere) or adjust your texture design.
+                    </p>
+                </div>
+
+                <div class="step-box">
+                    <h4>Issue 3: Triangle Count and Performance</h4>
+                    <p style="line-height: 1.8;">
+                        Triangle count = 2 × stacks × sectors. For stacks=32, sectors=64: 4,096 triangles.
+                    </p>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        <strong>Solution:</strong> Choose appropriate resolution for your use case. For small or distant spheres, use fewer stacks/sectors (16×32 is often sufficient). For large or close spheres, increase resolution (32×64 or higher). Consider using LOD (Level of Detail) systems.
+                    </p>
+                </div>
+
+                <div class="step-box">
+                    <h4>Issue 4: Normal Calculation</h4>
+                    <p style="line-height: 1.8;">
+                        For a sphere centered at origin, the normal at any point is simply the normalized position vector. However, if you transform the sphere (scale non-uniformly), normals need special handling.
+                    </p>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        <strong>Solution:</strong> For uniform scaling, vertex normals remain correct. For non-uniform scaling, transform normals using the inverse transpose of the model matrix in your vertex shader.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="section">
+                <h2>✅ Summary</h2>
+                
+                <div class="note key-fact">
+                    <strong>🎓 Key Takeaways:</strong>
+                    <ul style="margin-top: 10px; line-height: 1.8;">
+                        <li><strong>UV Sphere:</strong> Created by parameterizing with latitude (φ) and longitude (θ) angles</li>
+                        <li><strong>Vertex Count:</strong> (stacks + 1) × (sectors + 1) vertices to handle seam and poles correctly</li>
+                        <li><strong>Triangle Count:</strong> 2 × stacks × sectors triangles from subdividing quads</li>
+                        <li><strong>Spherical to Cartesian:</strong> x = r·sin(φ)·cos(θ), y = r·cos(φ), z = r·sin(φ)·sin(θ)</li>
+                        <li><strong>Normals:</strong> For unit sphere, normal = position; for radius r, normal = position / r</li>
+                        <li><strong>UV Coordinates:</strong> u = sector / sectors, v = stack / stacks (maps to [0,1] × [0,1])</li>
+                        <li><strong>Index Buffer:</strong> Saves memory by reusing vertices; uses counter-clockwise winding</li>
+                        <li><strong>Interleaved Layout:</strong> Best for static geometry; position, normal, and UV together per vertex</li>
+                    </ul>
+                </div>
+
+                <div class="note" style="margin-top: 25px;">
+                    <strong>📚 Alternative Sphere Generation Methods:</strong>
+                    <ul style="margin-top: 10px; line-height: 1.8;">
+                        <li><strong>Icosphere:</strong> Based on subdividing an icosahedron; more uniform triangle distribution, no pole singularities</li>
+                        <li><strong>Cube Sphere:</strong> Project cube faces onto sphere; uniform distribution, easier UV mapping</li>
+                        <li><strong>Fibonacci Sphere:</strong> Uses golden ratio spiral for point distribution; ideal for particle systems</li>
+                    </ul>
+                    <p style="margin-top: 15px;">
+                        UV spheres are the simplest to implement and understand, making them ideal for learning and most practical applications. Use alternatives when you need more uniform triangle distribution or better texture mapping at poles.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

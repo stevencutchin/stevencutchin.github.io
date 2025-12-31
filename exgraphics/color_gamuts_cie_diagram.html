@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Gamuts - CIE 1931 Chromaticity Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 35px;
+            border-left: 6px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+        
+        .section h3 {
+            color: #764ba2;
+            margin: 25px 0 15px 0;
+            font-size: 1.5em;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .note {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            color: #0c5460;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .key-fact {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .warning-note {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-size: 1.1em;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .legend-color {
+            width: 40px;
+            height: 25px;
+            border-radius: 3px;
+            margin-right: 12px;
+            border: 2px solid #333;
+            flex-shrink: 0;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 25px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .control-group label {
+            cursor: pointer;
+            font-size: 1.05em;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Color Gamuts Comparison</h1>
+            <p>CIE 1931 Chromaticity Diagram with Display Standards</p>
+            <p style="font-size: 1em; margin-top: 10px;">Understanding the visible color space and device limitations</p>
+        </div>
+        
+        <div class="content">
+            <!-- Overview Section -->
+            <div class="section">
+                <h2>📊 Understanding Color Gamuts</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 25px;">
+                    A <strong>color gamut</strong> is the range of colors that can be reproduced by a device or color space. The CIE 1931 chromaticity diagram represents all colors visible to the human eye. Different display technologies and standards can only reproduce a subset of these visible colors, shown as triangular or polygonal regions on the diagram.
+                </p>
+
+                <div class="note key-fact">
+                    <strong>📐 Understanding the x and y Coordinates:</strong>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        The CIE 1931 chromaticity diagram uses <strong>x and y coordinates</strong> that are derived from the tristimulus values X, Y, and Z:
+                    </p>
+                    <div style="background: #fff; padding: 15px; margin: 15px 0; border-radius: 5px; border: 2px solid #4caf50;">
+                        <p style="font-family: 'Courier New', monospace; font-size: 1.1em; text-align: center; margin: 5px 0;">
+                            <strong>x = X / (X + Y + Z)</strong>
+                        </p>
+                        <p style="font-family: 'Courier New', monospace; font-size: 1.1em; text-align: center; margin: 5px 0;">
+                            <strong>y = Y / (X + Y + Z)</strong>
+                        </p>
+                        <p style="font-family: 'Courier New', monospace; font-size: 1.1em; text-align: center; margin: 5px 0;">
+                            <strong>z = Z / (X + Y + Z) = 1 - x - y</strong>
+                        </p>
+                    </div>
+                    <p style="line-height: 1.8;">
+                        These are <strong>normalized chromaticity coordinates</strong> that represent color independent of brightness. The coordinates always sum to 1, which is why we only need x and y (z is redundant). The x-axis represents the proportion of red-like sensation, while the y-axis represents the proportion of green-like sensation. Together they define the <strong>hue and saturation</strong> of a color, regardless of how bright or dim it is.
+                    </p>
+                </div>
+                
+                <div class="note key-fact">
+                    <strong>💡 Key Concept:</strong>
+                    The horseshoe-shaped region on the CIE diagram represents <strong>all colors visible to humans</strong> (the "spectral locus"). Display gamuts are triangles within this space, with vertices representing the primary colors (red, green, blue) that the display can produce. The area of overlap between gamuts shows which colors different devices can reproduce in common.
+                </div>
+            </div>
+
+            <!-- Interactive CIE Diagram -->
+            <div class="section">
+                <h2>🎯 CIE 1931 Chromaticity Diagram with Gamuts</h2>
+                
+                <div class="controls">
+                    <strong style="width: 100%; margin-bottom: 10px;">Toggle Gamuts:</strong>
+                    <div class="control-group">
+                        <input type="checkbox" id="toggle-visible" checked>
+                        <label for="toggle-visible">Visible Spectrum</label>
+                    </div>
+                    <div class="control-group">
+                        <input type="checkbox" id="toggle-srgb" checked>
+                        <label for="toggle-srgb">sRGB</label>
+                    </div>
+                    <div class="control-group">
+                        <input type="checkbox" id="toggle-adobe" checked>
+                        <label for="toggle-adobe">Adobe RGB</label>
+                    </div>
+                    <div class="control-group">
+                        <input type="checkbox" id="toggle-p3" checked>
+                        <label for="toggle-p3">DCI-P3</label>
+                    </div>
+                    <div class="control-group">
+                        <input type="checkbox" id="toggle-rec2020" checked>
+                        <label for="toggle-rec2020">Rec. 2020</label>
+                    </div>
+                    <div class="control-group">
+                        <input type="checkbox" id="toggle-ntsc" checked>
+                        <label for="toggle-ntsc">NTSC 1953</label>
+                    </div>
+                    <div class="control-group">
+                        <input type="checkbox" id="toggle-prophoto" checked>
+                        <label for="toggle-prophoto">ProPhoto RGB</label>
+                    </div>
+                </div>
+                
+                <svg viewBox="0 0 800 850" xmlns="http://www.w3.org/2000/svg" id="gamut-diagram">
+                    <!-- Background -->
+                    <rect width="800" height="850" fill="#f8f9fa"/>
+                    
+                    <!-- Title -->
+                    <text x="400" y="30" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">CIE 1931 xy Chromaticity Diagram</text>
+                    <text x="400" y="50" font-size="14" fill="#666" text-anchor="middle">All Visible Colors vs Display Gamuts</text>
+                    
+                    <!-- Main diagram group -->
+                    <g transform="translate(100, 100)">
+                        <!-- Grid lines -->
+                        <defs>
+                            <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+                            </pattern>
+                        </defs>
+                        <rect x="0" y="0" width="600" height="600" fill="url(#grid)"/>
+                        
+                        <!-- Axes -->
+                        <line x1="0" y1="600" x2="600" y2="600" stroke="#333" stroke-width="2"/>
+                        <line x1="0" y1="0" x2="0" y2="600" stroke="#333" stroke-width="2"/>
+                        
+                        <!-- Axis labels -->
+                        <text x="300" y="640" font-size="18" fill="#333" text-anchor="middle" font-weight="bold">x</text>
+                        <text x="-20" y="300" font-size="18" fill="#333" text-anchor="middle" font-weight="bold" transform="rotate(-90 -20 300)">y</text>
+                        
+                        <!-- Tick marks and labels for x axis -->
+                        <g id="x-ticks">
+                            <line x1="0" y1="600" x2="0" y2="610" stroke="#333" stroke-width="2"/>
+                            <text x="0" y="625" font-size="12" fill="#666" text-anchor="middle">0.0</text>
+                            
+                            <line x1="120" y1="600" x2="120" y2="610" stroke="#333" stroke-width="2"/>
+                            <text x="120" y="625" font-size="12" fill="#666" text-anchor="middle">0.2</text>
+                            
+                            <line x1="240" y1="600" x2="240" y2="610" stroke="#333" stroke-width="2"/>
+                            <text x="240" y="625" font-size="12" fill="#666" text-anchor="middle">0.4</text>
+                            
+                            <line x1="360" y1="600" x2="360" y2="610" stroke="#333" stroke-width="2"/>
+                            <text x="360" y="625" font-size="12" fill="#666" text-anchor="middle">0.6</text>
+                            
+                            <line x1="480" y1="600" x2="480" y2="610" stroke="#333" stroke-width="2"/>
+                            <text x="480" y="625" font-size="12" fill="#666" text-anchor="middle">0.8</text>
+                        </g>
+                        
+                        <!-- Tick marks and labels for y axis -->
+                        <g id="y-ticks">
+                            <line x1="-10" y1="600" x2="0" y2="600" stroke="#333" stroke-width="2"/>
+                            <text x="-15" y="605" font-size="12" fill="#666" text-anchor="end">0.0</text>
+                            
+                            <line x1="-10" y1="480" x2="0" y2="480" stroke="#333" stroke-width="2"/>
+                            <text x="-15" y="485" font-size="12" fill="#666" text-anchor="end">0.2</text>
+                            
+                            <line x1="-10" y1="360" x2="0" y2="360" stroke="#333" stroke-width="2"/>
+                            <text x="-15" y="365" font-size="12" fill="#666" text-anchor="end">0.4</text>
+                            
+                            <line x1="-10" y1="240" x2="0" y2="240" stroke="#333" stroke-width="2"/>
+                            <text x="-15" y="245" font-size="12" fill="#666" text-anchor="end">0.6</text>
+                            
+                            <line x1="-10" y1="120" x2="0" y2="120" stroke="#333" stroke-width="2"/>
+                            <text x="-15" y="125" font-size="12" fill="#666" text-anchor="end">0.8</text>
+                        </g>
+                        
+                        <!-- Visible spectrum (horseshoe shape) - corrected to bulge right (higher x) -->
+                        <!-- The spectral locus goes from violet (low x, low y) up through green (moderate x, high y) 
+                             then across and down through red (high x, moderate y) -->
+                        <path id="visible-spectrum" d="
+                            M 90,510
+                            L 102,486
+                            L 114,456
+                            L 126,420
+                            L 138,384
+                            L 150,348
+                            L 162,312
+                            L 174,276
+                            L 186,240
+                            L 198,204
+                            L 210,168
+                            L 222,138
+                            L 234,114
+                            L 246,96
+                            L 258,84
+                            L 270,78
+                            L 282,72
+                            L 294,72
+                            L 306,72
+                            L 318,78
+                            L 330,84
+                            L 342,96
+                            L 354,108
+                            L 366,126
+                            L 378,144
+                            L 390,168
+                            L 402,192
+                            L 414,216
+                            L 426,240
+                            L 438,264
+                            L 450,288
+                            L 462,312
+                            L 474,336
+                            L 486,360
+                            L 498,384
+                            L 510,408
+                            L 516,426
+                            L 516,444
+                            L 510,462
+                            L 498,480
+                            L 486,492
+                            L 468,504
+                            L 450,510
+                            L 426,516
+                            L 402,516
+                            L 378,516
+                            L 354,516
+                            L 330,516
+                            L 306,516
+                            L 282,516
+                            L 258,516
+                            L 234,516
+                            L 210,516
+                            L 186,516
+                            L 162,516
+                            L 138,516
+                            L 114,516
+                            Z
+                        " fill="#f0f0f0" stroke="#333" stroke-width="3" opacity="0.5"/>
+                        
+                        <!-- Add spectral wavelength labels around the edge -->
+                        <text x="75" y="520" font-size="11" fill="#8b00ff" font-weight="bold">380nm</text>
+                        <text x="95" y="470" font-size="10" fill="#0000ff" font-weight="bold">450nm</text>
+                        <text x="125" y="395" font-size="10" fill="#0080ff" font-weight="bold">480nm</text>
+                        <text x="165" y="285" font-size="10" fill="#00ffff" font-weight="bold">500nm</text>
+                        <text x="205" y="160" font-size="10" fill="#00ff00" font-weight="bold">520nm</text>
+                        <text x="260" y="75" font-size="10" fill="#80ff00" font-weight="bold">540nm</text>
+                        <text x="310" y="70" font-size="10" fill="#ffff00" font-weight="bold">560nm</text>
+                        <text x="365" y="110" font-size="10" fill="#ffc000" font-weight="bold">580nm</text>
+                        <text x="420" y="210" font-size="10" fill="#ff8000" font-weight="bold">600nm</text>
+                        <text x="475" y="330" font-size="10" fill="#ff4000" font-weight="bold">620nm</text>
+                        <text x="505" y="440" font-size="10" fill="#ff0000" font-weight="bold">650nm</text>
+                        <text x="485" y="495" font-size="10" fill="#cc0000" font-weight="bold">700nm</text>
+                        <text x="280" y="535" font-size="11" fill="#cc00cc" font-weight="bold">Purple Line (non-spectral)</text>
+                        
+                        <!-- ProPhoto RGB (largest) - with label -->
+                        <polygon id="prophoto-gamut" points="
+                            441,576
+                            96,36
+                            22,600
+                        " fill="#ff69b4" stroke="#c2185b" stroke-width="2.5" opacity="0.15"/>
+                        <text x="250" y="450" font-size="14" fill="#c2185b" font-weight="bold" text-anchor="middle">ProPhoto RGB</text>
+                        
+                        <!-- Rec. 2020 (UHDTV) - with label -->
+                        <polygon id="rec2020-gamut" points="
+                            425,570
+                            102,78
+                            79,570
+                        " fill="#9c27b0" stroke="#6a1b9a" stroke-width="2.5" opacity="0.2"/>
+                        <text x="230" y="390" font-size="14" fill="#6a1b9a" font-weight="bold" text-anchor="middle">Rec. 2020</text>
+                        
+                        <!-- Adobe RGB - with label -->
+                        <polygon id="adobe-gamut" points="
+                            384,552
+                            126,150
+                            90,516
+                        " fill="#ff9800" stroke="#e65100" stroke-width="2.5" opacity="0.25"/>
+                        <text x="210" y="350" font-size="14" fill="#e65100" font-weight="bold" text-anchor="middle">Adobe RGB</text>
+                        
+                        <!-- NTSC 1953 - with label -->
+                        <polygon id="ntsc-gamut" points="
+                            402,552
+                            126,126
+                            84,510
+                        " fill="#00bcd4" stroke="#006064" stroke-width="2.5" opacity="0.2"/>
+                        <text x="220" y="315" font-size="13" fill="#006064" font-weight="bold" text-anchor="middle">NTSC 1953</text>
+                        
+                        <!-- DCI-P3 (Digital Cinema) - with label -->
+                        <polygon id="p3-gamut" points="
+                            408,552
+                            159,348
+                            90,486
+                        " fill="#4caf50" stroke="#2e7d32" stroke-width="2.5" opacity="0.25"/>
+                        <text x="220" y="430" font-size="14" fill="#2e7d32" font-weight="bold" text-anchor="middle">DCI-P3</text>
+                        
+                        <!-- sRGB (most common) - with label -->
+                        <polygon id="srgb-gamut" points="
+                            384,552
+                            180,360
+                            90,486
+                        " fill="#2196f3" stroke="#0d47a1" stroke-width="3" opacity="0.3"/>
+                        <text x="210" y="470" font-size="15" fill="#0d47a1" font-weight="bold" text-anchor="middle">sRGB</text>
+                        
+                        <!-- White point D65 (common reference) -->
+                        <circle cx="186" cy="372" r="6" fill="#fff" stroke="#333" stroke-width="2"/>
+                        <text x="195" y="370" font-size="12" fill="#333" font-weight="bold">D65</text>
+                        <text x="195" y="383" font-size="10" fill="#666">(6500K)</text>
+                        
+                        <!-- Primary color labels for sRGB (as reference) -->
+                        <circle cx="384" cy="558" r="4" fill="#ff0000"/>
+                        <text x="390" y="554" font-size="11" fill="#d32f2f" font-weight="bold">Red Primary</text>
+                        
+                        <circle cx="180" cy="360" r="4" fill="#00ff00"/>
+                        <text x="145" y="356" font-size="11" fill="#2e7d32" font-weight="bold" text-anchor="end">Green Primary</text>
+                        
+                        <circle cx="90" cy="492" r="4" fill="#0000ff"/>
+                        <text x="50" y="488" font-size="11" fill="#1976d2" font-weight="bold" text-anchor="end">Blue Primary</text>
+                    </g>
+                    
+                    <!-- Legend -->
+                    <g transform="translate(50, 720)">
+                        <text x="0" y="0" font-size="16" font-weight="bold" fill="#333">Gamut Legend:</text>
+                        
+                        <rect x="0" y="10" width="30" height="20" fill="#f0f0f0" stroke="#333" stroke-width="2" opacity="0.5"/>
+                        <text x="35" y="25" font-size="13" fill="#333">Visible Spectrum (all colors humans can see)</text>
+                        
+                        <rect x="0" y="40" width="30" height="20" fill="#2196f3" stroke="#0d47a1" stroke-width="2" opacity="0.3"/>
+                        <text x="35" y="55" font-size="13" fill="#333"><strong>sRGB</strong> - Standard web/consumer displays (~35% visible)</text>
+                        
+                        <rect x="0" y="70" width="30" height="20" fill="#4caf50" stroke="#2e7d32" stroke-width="2" opacity="0.25"/>
+                        <text x="35" y="85" font-size="13" fill="#333"><strong>DCI-P3</strong> - Digital cinema, modern smartphones (~45% visible)</text>
+                        
+                        <rect x="400" y="10" width="30" height="20" fill="#ff9800" stroke="#e65100" stroke-width="2" opacity="0.25"/>
+                        <text x="435" y="25" font-size="13" fill="#333"><strong>Adobe RGB</strong> - Professional photography (~50% visible)</text>
+                        
+                        <rect x="400" y="40" width="30" height="20" fill="#9c27b0" stroke="#6a1b9a" stroke-width="2" opacity="0.2"/>
+                        <text x="435" y="55" font-size="13" fill="#333"><strong>Rec. 2020</strong> - UHDTV, HDR (~75% visible)</text>
+                        
+                        <rect x="400" y="70" width="30" height="20" fill="#00bcd4" stroke="#006064" stroke-width="2" opacity="0.2"/>
+                        <text x="435" y="85" font-size="13" fill="#333"><strong>NTSC 1953</strong> - Old TV standard (~47% visible)</text>
+                        
+                        <rect x="200" y="100" width="30" height="20" fill="#ff69b4" stroke="#c2185b" stroke-width="2" opacity="0.15"/>
+                        <text x="235" y="115" font-size="13" fill="#333"><strong>ProPhoto RGB</strong> - Photography, exceeds visible (~90% visible + imaginary)</text>
+                    </g>
+                </svg>
+                
+                <script>
+                    // Toggle functionality
+                    document.getElementById('toggle-visible').addEventListener('change', function(e) {
+                        document.getElementById('visible-spectrum').style.display = e.target.checked ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById('toggle-srgb').addEventListener('change', function(e) {
+                        document.getElementById('srgb-gamut').style.display = e.target.checked ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById('toggle-adobe').addEventListener('change', function(e) {
+                        document.getElementById('adobe-gamut').style.display = e.target.checked ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById('toggle-p3').addEventListener('change', function(e) {
+                        document.getElementById('p3-gamut').style.display = e.target.checked ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById('toggle-rec2020').addEventListener('change', function(e) {
+                        document.getElementById('rec2020-gamut').style.display = e.target.checked ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById('toggle-ntsc').addEventListener('change', function(e) {
+                        document.getElementById('ntsc-gamut').style.display = e.target.checked ? 'block' : 'none';
+                    });
+                    
+                    document.getElementById('toggle-prophoto').addEventListener('change', function(e) {
+                        document.getElementById('prophoto-gamut').style.display = e.target.checked ? 'block' : 'none';
+                    });
+                </script>
+            </div>
+
+            <!-- Detailed Comparison -->
+            <div class="section">
+                <h2>📊 Gamut Comparison Table</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Color Space</th>
+                            <th>Coverage of Visible</th>
+                            <th>Primary Use</th>
+                            <th>Red Primary (x,y)</th>
+                            <th>Green Primary (x,y)</th>
+                            <th>Blue Primary (x,y)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>sRGB</strong></td>
+                            <td>~35%</td>
+                            <td>Web, consumer displays, standard</td>
+                            <td>(0.64, 0.33)</td>
+                            <td>(0.30, 0.60)</td>
+                            <td>(0.15, 0.06)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>DCI-P3</strong></td>
+                            <td>~45%</td>
+                            <td>Digital cinema, modern phones, MacBooks</td>
+                            <td>(0.68, 0.32)</td>
+                            <td>(0.265, 0.690)</td>
+                            <td>(0.150, 0.060)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Adobe RGB</strong></td>
+                            <td>~50%</td>
+                            <td>Professional photography, printing</td>
+                            <td>(0.64, 0.33)</td>
+                            <td>(0.21, 0.71)</td>
+                            <td>(0.15, 0.06)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>NTSC 1953</strong></td>
+                            <td>~47%</td>
+                            <td>Historical TV standard (obsolete)</td>
+                            <td>(0.67, 0.33)</td>
+                            <td>(0.21, 0.71)</td>
+                            <td>(0.14, 0.08)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Rec. 2020</strong></td>
+                            <td>~75%</td>
+                            <td>UHDTV, HDR, future displays</td>
+                            <td>(0.708, 0.292)</td>
+                            <td>(0.170, 0.797)</td>
+                            <td>(0.131, 0.046)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ProPhoto RGB</strong></td>
+                            <td>~90% + imaginary</td>
+                            <td>Photography, archival (includes non-visible colors)</td>
+                            <td>(0.7347, 0.2653)</td>
+                            <td>(0.1596, 0.8404)</td>
+                            <td>(0.0366, 0.0001)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="note warning-note">
+                    <strong>⚠️ Important Note on Coverage Percentages:</strong>
+                    The percentages represent the area within the CIE diagram covered by each gamut. However, these are approximations and vary based on calculation method. ProPhoto RGB actually includes some "imaginary" colors (colors outside the visible spectrum that don't physically exist) which is why it can show >90% while still having primaries within/near the horseshoe.
+                </div>
+            </div>
+
+            <!-- Practical Implications -->
+            <div class="section">
+                <h2>💡 Practical Implications</h2>
+                
+                <h3>Understanding Gamut Limitations</h3>
+                
+                <div class="note key-fact">
+                    <strong>🎯 What This Means for Your Work:</strong>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        <strong>Color Clipping:</strong> When you work in a wide gamut space (like Adobe RGB) but display on sRGB, colors outside the sRGB triangle get "clipped" - they map to the nearest reproducible color on the gamut boundary. This means vivid greens, cyans, and some reds lose their vibrancy.
+                    </p>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        <strong>Device Dependency:</strong> The same image file looks different on different displays because each device can only reproduce colors within its gamut. A photo edited on a wide-gamut monitor (P3) may look dull on a standard sRGB laptop.
+                    </p>
+                </div>
+
+                <h3>Which Gamut Should You Use?</h3>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Use Case</th>
+                            <th>Recommended Gamut</th>
+                            <th>Reasoning</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Web Design</strong></td>
+                            <td>sRGB</td>
+                            <td>Universal standard, ensures consistency across all browsers and devices</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mobile Apps</strong></td>
+                            <td>sRGB or P3</td>
+                            <td>Most modern phones support P3, but sRGB ensures backward compatibility</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Photography (Edit)</strong></td>
+                            <td>Adobe RGB or ProPhoto</td>
+                            <td>Preserve color information during editing, convert to sRGB for sharing</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Photography (Share)</strong></td>
+                            <td>sRGB</td>
+                            <td>Maximum compatibility across viewing devices and platforms</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Print Production</strong></td>
+                            <td>Adobe RGB or CMYK</td>
+                            <td>Better matches printer capabilities, especially for saturated colors</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Video (Web)</strong></td>
+                            <td>sRGB / Rec. 709</td>
+                            <td>Standard for HD video, ensures consistent playback</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Video (Cinema/HDR)</strong></td>
+                            <td>P3 or Rec. 2020</td>
+                            <td>Theatrical projection and HDR displays support wider gamuts</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Scientific Visualization</strong></td>
+                            <td>Rec. 2020 or custom</td>
+                            <td>May need extended gamut to represent data accurately</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Common Pitfalls and Solutions</h3>
+                
+                <div class="warning-note" style="margin-top: 25px;">
+                    <strong>🚫 Common Mistakes:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Editing in sRGB, printing in Adobe RGB:</strong> Your prints will look dull because you didn't use the full color range available. <em>Solution: Edit in Adobe RGB, convert to printer profile.</em></li>
+                        <li><strong>Sharing Adobe RGB images on web:</strong> Images appear oversaturated on sRGB displays without proper conversion. <em>Solution: Always convert to sRGB before uploading.</em></li>
+                        <li><strong>Ignoring color profiles:</strong> Not embedding color profiles leads to inconsistent appearance. <em>Solution: Always embed ICC profiles in images.</em></li>
+                        <li><strong>Assuming all displays are equal:</strong> What looks great on your wide-gamut monitor looks dull on client's standard display. <em>Solution: Preview on sRGB for web work.</em></li>
+                    </ul>
+                </div>
+
+                <div class="key-fact" style="margin-top: 25px;">
+                    <strong>✅ Best Practices:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Work in a wide gamut, deliver in target gamut:</strong> Edit in Adobe RGB or ProPhoto to preserve information, then convert to sRGB for web or appropriate profile for print</li>
+                        <li><strong>Use color management:</strong> Enable color management in your software and use ICC profiles correctly</li>
+                        <li><strong>Soft-proof before delivery:</strong> Preview how images will look in the target gamut before finalizing</li>
+                        <li><strong>Embed profiles:</strong> Always embed ICC profiles so other applications know how to interpret colors</li>
+                        <li><strong>Test on target devices:</strong> View your work on actual devices your audience will use</li>
+                        <li><strong>Consider gamut mapping:</strong> Use perceptual or relative colorimetric rendering intents when converting between gamuts</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Technical Details -->
+            <div class="section">
+                <h2>🔬 Technical Details</h2>
+                
+                <h3>About the CIE 1931 Diagram</h3>
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    The CIE 1931 xy chromaticity diagram was created by the International Commission on Illumination (CIE) based on experiments measuring human color perception. The horseshoe-shaped region represents all colors visible to the "standard observer" under standard illumination conditions.
+                </p>
+                
+                <div class="note">
+                    <strong>📐 Understanding the Coordinates:</strong>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        The <strong>x and y coordinates</strong> represent the chromaticity (hue and saturation) of colors, independent of brightness. Each point on the diagram represents a specific color:
+                    </p>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Spectral locus (curved edge):</strong> Pure monochromatic light at specific wavelengths (380nm-700nm)</li>
+                        <li><strong>Purple line (straight bottom edge):</strong> Non-spectral purples (mixtures of red and blue)</li>
+                        <li><strong>White point (center region):</strong> Achromatic colors (gray/white) - D65 is daylight at 6500K</li>
+                        <li><strong>Distance from white point:</strong> Represents saturation (further = more saturated)</li>
+                        <li><strong>Angle from white point:</strong> Represents hue (which color)</li>
+                    </ul>
+                </div>
+
+                <h3>Why Displays Use Triangles</h3>
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    Display gamuts form triangles because displays use three primary colors (RGB) to create all other colors through additive mixing. Any color within the triangle can be produced by mixing the three primaries at the vertices. Colors outside the triangle cannot be physically reproduced by that display. This is a fundamental limitation of <strong>trichromatic displays</strong> - we can never display all visible colors with just three primaries.
+                </p>
+
+                <div class="note warning-note">
+                    <strong>🔮 The Future: Beyond Three Primaries</strong>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        Research is ongoing into <strong>multi-primary displays</strong> (4, 5, or even 6 primaries) that would form larger polygons on the CIE diagram, covering more of the visible spectrum. However, these face significant technical and cost challenges. The Rec. 2020 standard was designed to cover ~75% of visible colors and represents an achievable target for future display technology.
+                    </p>
+                </div>
+
+                <h3>Imaginary Colors in ProPhoto RGB</h3>
+                <p style="line-height: 1.8; margin-bottom: 20px;">
+                    ProPhoto RGB is unique because some of its gamut extends outside the visible spectrum (horseshoe). These are called "imaginary colors" - they don't physically exist but are mathematically defined in the color space. This allows ProPhoto to encompass essentially all visible colors plus provide mathematical headroom, making it ideal for archival and extensive color grading. However, you must be careful when converting to smaller gamuts to avoid severe clipping.
+                </p>
+            </div>
+
+            <!-- Summary -->
+            <div class="section">
+                <h2>📋 Summary</h2>
+                
+                <div class="key-fact">
+                    <strong>🎓 Key Takeaways:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>No display shows all colors:</strong> Even the widest gamut displays (Rec. 2020) only show ~75% of visible colors</li>
+                        <li><strong>sRGB is the common denominator:</strong> For web and general use, sRGB ensures your work looks consistent everywhere</li>
+                        <li><strong>Wide gamuts are for capture and editing:</strong> Use Adobe RGB or ProPhoto for photography workflow, then convert to sRGB for sharing</li>
+                        <li><strong>P3 is the new standard for premium devices:</strong> Modern iPhones, iPads, and MacBooks support the wider P3 gamut</li>
+                        <li><strong>Rec. 2020 is the future:</strong> UHDTV and HDR standards target this gamut, but current displays only partially support it</li>
+                        <li><strong>Color management matters:</strong> Always use proper color profiles and soft-proofing to ensure accurate color reproduction</li>
+                        <li><strong>Test on target devices:</strong> Colors look different on different displays - always check on the actual viewing device when possible</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

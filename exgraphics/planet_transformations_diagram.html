@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planet Transformations with Matrix Stacks</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 35px;
+            border-left: 6px solid #302b63;
+        }
+        
+        .section h2 {
+            color: #302b63;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+        
+        .section h3 {
+            color: #5c6bc0;
+            margin: 25px 0 15px 0;
+            font-size: 1.5em;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .note {
+            background: #e8eaf6;
+            border: 2px solid #7986cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            color: #283593;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .key-fact {
+            background: #e8f5e9;
+            border: 2px solid #66bb6a;
+            color: #2e7d32;
+        }
+        
+        .warning-note {
+            background: #fff3e0;
+            border: 2px solid #ffb74d;
+            color: #e65100;
+        }
+        
+        .code-block {
+            background: #1e1e3f;
+            color: #a9b7c6;
+            padding: 25px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .code-block pre {
+            margin: 0;
+            white-space: pre;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 0.9em;
+            line-height: 1.7;
+        }
+        
+        .code-block .comment { color: #6a9955; }
+        .code-block .keyword { color: #c586c0; }
+        .code-block .function { color: #dcdcaa; }
+        .code-block .string { color: #ce9178; }
+        .code-block .number { color: #b5cea8; }
+        .code-block .type { color: #4ec9b0; }
+        .code-block .highlight { background: #3d3d6b; display: inline; padding: 2px 4px; border-radius: 3px; }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 25px 0;
+        }
+        
+        .comparison-box {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            border: 3px solid #e0e0e0;
+        }
+        
+        .comparison-box.absolute {
+            border-color: #2196f3;
+        }
+        
+        .comparison-box.incremental {
+            border-color: #ff9800;
+        }
+        
+        .comparison-box h4 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid currentColor;
+        }
+        
+        .comparison-box.absolute h4 {
+            color: #1565c0;
+        }
+        
+        .comparison-box.incremental h4 {
+            color: #e65100;
+        }
+
+        @media (max-width: 1024px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🪐 Planet Transformations with Matrix Stacks</h1>
+            <p>Using Push/Pop for Hierarchical Transformations in a Solar System</p>
+            <p style="font-size: 1em; margin-top: 10px; opacity: 0.85;">Drawing Planets in a Loop with Moon Sub-hierarchies</p>
+        </div>
+        
+        <div class="content">
+            <!-- Part 1: Solar System with Matrix Stack -->
+            <div class="section">
+                <h2>🌍 Part 1: Solar System Layout with Matrix Stack</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 25px;">
+                    When drawing a solar system, each planet is positioned relative to the Sun. Moons, however, are positioned relative to their parent planet. A <strong>matrix stack</strong> allows us to "save" the current transformation state (push), apply additional transformations for moons, then "restore" (pop) to continue with the next planet.
+                </p>
+                
+                <svg viewBox="0 0 1400 600" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background: Space -->
+                    <rect width="1400" height="600" fill="#0a0a1a"/>
+                    
+                    <!-- Stars -->
+                    <g fill="white" opacity="0.6">
+                        <circle cx="50" cy="50" r="1"/>
+                        <circle cx="150" cy="80" r="1.5"/>
+                        <circle cx="280" cy="40" r="1"/>
+                        <circle cx="400" cy="90" r="1"/>
+                        <circle cx="520" cy="30" r="1.5"/>
+                        <circle cx="650" cy="70" r="1"/>
+                        <circle cx="780" cy="45" r="1"/>
+                        <circle cx="900" cy="85" r="1.5"/>
+                        <circle cx="1050" cy="55" r="1"/>
+                        <circle cx="1180" cy="35" r="1"/>
+                        <circle cx="1300" cy="75" r="1.5"/>
+                    </g>
+                    
+                    <!-- Title -->
+                    <text x="700" y="40" font-size="24" font-weight="bold" fill="white" text-anchor="middle">Solar System with Planet Loop and Moon Hierarchies</text>
+                    
+                    <!-- Orbital paths -->
+                    <ellipse cx="200" cy="320" rx="100" ry="100" fill="none" stroke="#444" stroke-width="1" stroke-dasharray="5,5"/>
+                    <ellipse cx="200" cy="320" rx="180" ry="180" fill="none" stroke="#444" stroke-width="1" stroke-dasharray="5,5"/>
+                    <ellipse cx="200" cy="320" rx="280" ry="200" fill="none" stroke="#444" stroke-width="1" stroke-dasharray="5,5"/>
+                    <ellipse cx="200" cy="320" rx="400" ry="220" fill="none" stroke="#444" stroke-width="1" stroke-dasharray="5,5"/>
+                    
+                    <!-- Sun at origin -->
+                    <defs>
+                        <radialGradient id="sunGrad" cx="40%" cy="40%">
+                            <stop offset="0%" style="stop-color:#fff7e0"/>
+                            <stop offset="50%" style="stop-color:#ffcc00"/>
+                            <stop offset="100%" style="stop-color:#ff6600"/>
+                        </radialGradient>
+                        <radialGradient id="earthGrad" cx="30%" cy="30%">
+                            <stop offset="0%" style="stop-color:#87ceeb"/>
+                            <stop offset="50%" style="stop-color:#4a90d9"/>
+                            <stop offset="100%" style="stop-color:#1e5631"/>
+                        </radialGradient>
+                        <radialGradient id="moonGrad" cx="30%" cy="30%">
+                            <stop offset="0%" style="stop-color:#e0e0e0"/>
+                            <stop offset="100%" style="stop-color:#888"/>
+                        </radialGradient>
+                        <radialGradient id="jupiterGrad" cx="30%" cy="30%">
+                            <stop offset="0%" style="stop-color:#f5deb3"/>
+                            <stop offset="50%" style="stop-color:#d4a574"/>
+                            <stop offset="100%" style="stop-color:#8b4513"/>
+                        </radialGradient>
+                    </defs>
+                    
+                    <!-- Sun -->
+                    <circle cx="200" cy="320" r="50" fill="url(#sunGrad)"/>
+                    <text x="200" y="400" font-size="14" fill="#ffcc00" text-anchor="middle" font-weight="bold">SUN (Origin)</text>
+                    
+                    <!-- Mercury (i=0) -->
+                    <circle cx="300" cy="320" r="8" fill="#b0b0b0"/>
+                    <text x="300" y="350" font-size="11" fill="#aaa" text-anchor="middle">Mercury</text>
+                    <text x="300" y="365" font-size="10" fill="#666" text-anchor="middle">i=0</text>
+                    
+                    <!-- Venus (i=1) -->
+                    <circle cx="380" cy="320" r="12" fill="#daa520"/>
+                    <text x="380" y="355" font-size="11" fill="#daa520" text-anchor="middle">Venus</text>
+                    <text x="380" y="370" font-size="10" fill="#666" text-anchor="middle">i=1</text>
+                    
+                    <!-- Earth (i=2) with Moon -->
+                    <g id="earth-system">
+                        <circle cx="480" cy="320" r="45" fill="none" stroke="#4a90d9" stroke-width="2" stroke-dasharray="3,3" opacity="0.5"/>
+                        <circle cx="480" cy="320" r="14" fill="url(#earthGrad)"/>
+                        <text x="480" y="360" font-size="11" fill="#4a90d9" text-anchor="middle" font-weight="bold">Earth</text>
+                        <text x="480" y="375" font-size="10" fill="#666" text-anchor="middle">i=2</text>
+                        
+                        <circle cx="480" cy="320" r="28" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="2,2"/>
+                        <circle cx="508" cy="310" r="5" fill="url(#moonGrad)"/>
+                        <text x="525" y="305" font-size="9" fill="#aaa">Moon</text>
+                        
+                        <rect x="530" y="280" width="80" height="55" fill="#1a237e" rx="5" opacity="0.9"/>
+                        <text x="570" y="298" font-size="10" fill="#7986cb" text-anchor="middle" font-weight="bold">PUSH</text>
+                        <text x="570" y="312" font-size="9" fill="#aaa" text-anchor="middle">draw moon</text>
+                        <text x="570" y="328" font-size="10" fill="#ef5350" text-anchor="middle" font-weight="bold">POP</text>
+                    </g>
+                    
+                    <!-- Mars (i=3) -->
+                    <circle cx="560" cy="380" r="10" fill="#cd5c5c"/>
+                    <text x="560" y="410" font-size="11" fill="#cd5c5c" text-anchor="middle">Mars</text>
+                    <text x="560" y="425" font-size="10" fill="#666" text-anchor="middle">i=3</text>
+                    
+                    <!-- Jupiter (i=4) with Moons -->
+                    <g id="jupiter-system">
+                        <circle cx="600" cy="200" r="85" fill="none" stroke="#d4a574" stroke-width="2" stroke-dasharray="3,3" opacity="0.5"/>
+                        <circle cx="600" cy="200" r="35" fill="url(#jupiterGrad)"/>
+                        <ellipse cx="600" cy="190" rx="33" ry="5" fill="#c19a6b" opacity="0.5"/>
+                        <ellipse cx="600" cy="205" rx="33" ry="6" fill="#a0522d" opacity="0.5"/>
+                        
+                        <text x="600" y="260" font-size="12" fill="#d4a574" text-anchor="middle" font-weight="bold">Jupiter</text>
+                        <text x="600" y="275" font-size="10" fill="#666" text-anchor="middle">i=4</text>
+                        
+                        <circle cx="600" cy="200" r="50" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="2,2"/>
+                        <circle cx="600" cy="200" r="62" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="2,2"/>
+                        <circle cx="600" cy="200" r="74" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="2,2"/>
+                        
+                        <circle cx="650" cy="200" r="5" fill="#ffd700"/>
+                        <text x="660" y="190" font-size="8" fill="#ffd700">Io</text>
+                        
+                        <circle cx="600" cy="138" r="5" fill="#b8d4e8"/>
+                        <text x="615" y="135" font-size="8" fill="#b8d4e8">Europa</text>
+                        
+                        <circle cx="538" cy="185" r="6" fill="#a0a0a0"/>
+                        <text x="520" y="175" font-size="8" fill="#a0a0a0">Ganymede</text>
+                        
+                        <circle cx="560" cy="265" r="5" fill="#707070"/>
+                        <text x="545" y="285" font-size="8" fill="#707070">Callisto</text>
+                        
+                        <rect x="660" y="120" width="90" height="70" fill="#1a237e" rx="5" opacity="0.9"/>
+                        <text x="705" y="140" font-size="10" fill="#7986cb" text-anchor="middle" font-weight="bold">PUSH</text>
+                        <text x="705" y="155" font-size="9" fill="#aaa" text-anchor="middle">for each moon:</text>
+                        <text x="705" y="168" font-size="9" fill="#aaa" text-anchor="middle">  draw moon[j]</text>
+                        <text x="705" y="183" font-size="10" fill="#ef5350" text-anchor="middle" font-weight="bold">POP</text>
+                    </g>
+                    
+                    <!-- Matrix Stack Visualization -->
+                    <g transform="translate(850, 100)">
+                        <rect x="0" y="0" width="500" height="450" fill="#1a1a2e" stroke="#3949ab" stroke-width="3" rx="10"/>
+                        <text x="250" y="30" font-size="18" font-weight="bold" fill="white" text-anchor="middle">Matrix Stack Operations</text>
+                        
+                        <g transform="translate(30, 50)">
+                            <text x="0" y="20" font-size="14" font-weight="bold" fill="#7986cb">Stack State During Loop:</text>
+                            
+                            <!-- Initial state -->
+                            <rect x="0" y="40" width="140" height="80" fill="#263238" stroke="#546e7a" stroke-width="2" rx="5"/>
+                            <text x="70" y="60" font-size="11" fill="#80cbc4" text-anchor="middle" font-weight="bold">Initial</text>
+                            <rect x="10" y="70" width="120" height="20" fill="#37474f" stroke="#78909c" rx="3"/>
+                            <text x="70" y="85" font-size="10" fill="#b0bec5" text-anchor="middle">Identity</text>
+                            <rect x="10" y="95" width="120" height="20" fill="#455a64" stroke="#78909c" rx="3"/>
+                            <text x="70" y="110" font-size="10" fill="#90a4ae" text-anchor="middle">─ bottom ─</text>
+                            
+                            <!-- After planet translate -->
+                            <rect x="160" y="40" width="140" height="100" fill="#263238" stroke="#546e7a" stroke-width="2" rx="5"/>
+                            <text x="230" y="60" font-size="11" fill="#80cbc4" text-anchor="middle" font-weight="bold">At Planet[i]</text>
+                            <rect x="170" y="70" width="120" height="20" fill="#1565c0" stroke="#42a5f5" rx="3"/>
+                            <text x="230" y="85" font-size="10" fill="#bbdefb" text-anchor="middle">T(planet[i])</text>
+                            <rect x="170" y="95" width="120" height="20" fill="#37474f" stroke="#78909c" rx="3"/>
+                            <text x="230" y="110" font-size="10" fill="#b0bec5" text-anchor="middle">Identity</text>
+                            <rect x="170" y="115" width="120" height="20" fill="#455a64" stroke="#78909c" rx="3"/>
+                            <text x="230" y="130" font-size="10" fill="#90a4ae" text-anchor="middle">─ bottom ─</text>
+                            
+                            <!-- After PUSH + moon translate -->
+                            <rect x="320" y="40" width="140" height="120" fill="#263238" stroke="#4caf50" stroke-width="3" rx="5"/>
+                            <text x="390" y="60" font-size="11" fill="#81c784" text-anchor="middle" font-weight="bold">PUSH + Moon</text>
+                            <rect x="330" y="70" width="120" height="20" fill="#7b1fa2" stroke="#ba68c8" rx="3"/>
+                            <text x="390" y="85" font-size="10" fill="#e1bee7" text-anchor="middle">T(moon[j])</text>
+                            <rect x="330" y="95" width="120" height="20" fill="#1565c0" stroke="#42a5f5" rx="3"/>
+                            <text x="390" y="110" font-size="10" fill="#bbdefb" text-anchor="middle">T(planet[i])</text>
+                            <rect x="330" y="115" width="120" height="20" fill="#37474f" stroke="#78909c" rx="3"/>
+                            <text x="390" y="130" font-size="10" fill="#b0bec5" text-anchor="middle">Identity</text>
+                            <rect x="330" y="135" width="120" height="20" fill="#455a64" stroke="#78909c" rx="3"/>
+                            <text x="390" y="150" font-size="10" fill="#90a4ae" text-anchor="middle">─ bottom ─</text>
+                            
+                            <defs>
+                                <marker id="yellowArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#ffcc00"/>
+                                </marker>
+                                <marker id="greenArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#4caf50"/>
+                                </marker>
+                                <marker id="redArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#ef5350"/>
+                                </marker>
+                            </defs>
+                            
+                            <path d="M 145,90 L 155,90" stroke="#ffcc00" stroke-width="2" marker-end="url(#yellowArrow)"/>
+                            <path d="M 305,90 L 315,90" stroke="#4caf50" stroke-width="2" marker-end="url(#greenArrow)"/>
+                        </g>
+                        
+                        <!-- Pop operation -->
+                        <g transform="translate(30, 220)">
+                            <rect x="320" y="0" width="140" height="100" fill="#263238" stroke="#ef5350" stroke-width="3" rx="5"/>
+                            <text x="390" y="20" font-size="11" fill="#ef5350" text-anchor="middle" font-weight="bold">After POP</text>
+                            <rect x="330" y="35" width="120" height="20" fill="#1565c0" stroke="#42a5f5" rx="3"/>
+                            <text x="390" y="50" font-size="10" fill="#bbdefb" text-anchor="middle">T(planet[i])</text>
+                            <rect x="330" y="60" width="120" height="20" fill="#37474f" stroke="#78909c" rx="3"/>
+                            <text x="390" y="75" font-size="10" fill="#b0bec5" text-anchor="middle">Identity</text>
+                            <rect x="330" y="85" width="120" height="20" fill="#455a64" stroke="#78909c" rx="3"/>
+                            <text x="390" y="100" font-size="10" fill="#90a4ae" text-anchor="middle">─ bottom ─</text>
+                            
+                            <path d="M 390,-30 L 390,-5" stroke="#ef5350" stroke-width="2" marker-end="url(#redArrow)"/>
+                            <text x="420" y="-15" font-size="10" fill="#ef5350">POP</text>
+                            
+                            <text x="0" y="20" font-size="12" fill="#aaa">After POP, we're back at planet's</text>
+                            <text x="0" y="38" font-size="12" fill="#aaa">coordinate system. Ready for</text>
+                            <text x="0" y="56" font-size="12" fill="#aaa">next moon or next planet!</text>
+                        </g>
+                        
+                        <!-- Key insight -->
+                        <rect x="30" y="340" width="440" height="90" fill="#1b5e20" stroke="#4caf50" stroke-width="2" rx="8"/>
+                        <text x="250" y="365" font-size="13" font-weight="bold" fill="#a5d6a7" text-anchor="middle">💡 Key Insight</text>
+                        <text x="250" y="385" font-size="11" fill="#c8e6c9" text-anchor="middle">Moon transforms are RELATIVE to their planet.</text>
+                        <text x="250" y="405" font-size="11" fill="#c8e6c9" text-anchor="middle">PUSH saves planet position. Moon transform adds to it.</text>
+                        <text x="250" y="425" font-size="11" fill="#c8e6c9" text-anchor="middle">POP restores planet position for next iteration.</text>
+                    </g>
+                </svg>
+                
+                <h3>Implementation Code</h3>
+                
+                <div class="code-block"><pre><span class="comment">// Planet data: [name, distance from sun, size, [moons]]</span>
+<span class="keyword">const</span> planets = [
+    { name: <span class="string">"Mercury"</span>, dist: <span class="number">100</span>, size: <span class="number">8</span>,  moons: [] },
+    { name: <span class="string">"Venus"</span>,   dist: <span class="number">180</span>, size: <span class="number">12</span>, moons: [] },
+    { name: <span class="string">"Earth"</span>,   dist: <span class="number">280</span>, size: <span class="number">14</span>, moons: [
+        { name: <span class="string">"Moon"</span>, dist: <span class="number">28</span>, size: <span class="number">5</span> }
+    ]},
+    { name: <span class="string">"Mars"</span>,    dist: <span class="number">360</span>, size: <span class="number">10</span>, moons: [] },
+    { name: <span class="string">"Jupiter"</span>, dist: <span class="number">500</span>, size: <span class="number">35</span>, moons: [
+        { name: <span class="string">"Io"</span>,       dist: <span class="number">50</span>, size: <span class="number">5</span> },
+        { name: <span class="string">"Europa"</span>,   dist: <span class="number">62</span>, size: <span class="number">5</span> },
+        { name: <span class="string">"Ganymede"</span>, dist: <span class="number">74</span>, size: <span class="number">6</span> },
+        { name: <span class="string">"Callisto"</span>, dist: <span class="number">86</span>, size: <span class="number">5</span> }
+    ]}
+];
+
+<span class="keyword">function</span> <span class="function">drawSolarSystem</span>(time) {
+    <span class="comment">// Start with identity matrix (at Sun/origin)</span>
+    <span class="keyword">let</span> matrixStack = [];
+    <span class="keyword">let</span> modelMatrix = mat4.<span class="function">create</span>();  <span class="comment">// Identity</span>
+    
+    <span class="comment">// Draw Sun at origin</span>
+    <span class="function">drawSphere</span>(modelMatrix, sunTexture, <span class="number">50</span>);
+    
+    <span class="comment">// Loop through planets</span>
+    <span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i &lt; planets.length; i++) {
+        <span class="keyword">const</span> planet = planets[i];
+        <span class="keyword">const</span> angle = time * (<span class="number">0.5</span> / (i + <span class="number">1</span>));  <span class="comment">// Orbital speed</span>
+        
+        <span class="comment">// Calculate planet position (orbit around sun)</span>
+        <span class="keyword">const</span> x = Math.<span class="function">cos</span>(angle) * planet.dist;
+        <span class="keyword">const</span> z = Math.<span class="function">sin</span>(angle) * planet.dist;
+        
+        <span class="comment">// Create planet's model matrix (ABSOLUTE from origin)</span>
+        modelMatrix = mat4.<span class="function">create</span>();
+        mat4.<span class="function">translate</span>(modelMatrix, modelMatrix, [x, <span class="number">0</span>, z]);
+        
+        <span class="comment">// Draw the planet</span>
+        <span class="function">drawSphere</span>(modelMatrix, planetTextures[i], planet.size);
+        
+        <span class="comment">// If planet has moons, handle them with push/pop</span>
+        <span class="keyword">if</span> (planet.moons.length &gt; <span class="number">0</span>) {
+            <span class="comment highlight">// PUSH: Save current planet transform</span>
+            matrixStack.<span class="function">push</span>(mat4.<span class="function">clone</span>(modelMatrix));
+            
+            <span class="comment">// Draw each moon relative to planet</span>
+            <span class="keyword">for</span> (<span class="keyword">let</span> j = <span class="number">0</span>; j &lt; planet.moons.length; j++) {
+                <span class="keyword">const</span> moon = planet.moons[j];
+                <span class="keyword">const</span> moonAngle = time * <span class="number">2.0</span> * (j + <span class="number">1</span>);
+                
+                <span class="comment">// Moon position relative to planet</span>
+                <span class="keyword">const</span> mx = Math.<span class="function">cos</span>(moonAngle) * moon.dist;
+                <span class="keyword">const</span> mz = Math.<span class="function">sin</span>(moonAngle) * moon.dist;
+                
+                <span class="comment">// Start from planet's position, add moon offset</span>
+                <span class="keyword">let</span> moonMatrix = mat4.<span class="function">clone</span>(modelMatrix);
+                mat4.<span class="function">translate</span>(moonMatrix, moonMatrix, [mx, <span class="number">0</span>, mz]);
+                
+                <span class="comment">// Draw the moon</span>
+                <span class="function">drawSphere</span>(moonMatrix, moonTexture, moon.size);
+            }
+            
+            <span class="comment highlight">// POP: Restore planet transform (ready for next planet)</span>
+            modelMatrix = matrixStack.<span class="function">pop</span>();
+        }
+    }
+}</pre></div>
+                
+                <div class="note key-fact">
+                    <strong>🎯 When to Use Push/Pop</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>PUSH</strong> before entering a sub-hierarchy (like moons of a planet)</li>
+                        <li>Apply relative transforms for children (moon positions relative to planet)</li>
+                        <li><strong>POP</strong> after finishing the sub-hierarchy to restore parent state</li>
+                        <li>This pattern repeats for any hierarchical structure (robot arms, vehicle wheels, etc.)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Part 2: Absolute vs Incremental -->
+            <div class="section">
+                <h2>🔄 Part 2: Absolute vs. Incremental Transformations</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 25px;">
+                    There are two fundamentally different approaches to positioning a sequence of objects. Understanding when to use each is crucial for correct rendering.
+                </p>
+                
+                <svg viewBox="0 0 1400 450" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="1400" height="450" fill="#f5f5f5"/>
+                    
+                    <text x="700" y="35" font-size="22" font-weight="bold" fill="#333" text-anchor="middle">Two Approaches to Positioning Multiple Objects</text>
+                    
+                    <!-- Left: Absolute Approach -->
+                    <g transform="translate(50, 60)">
+                        <rect x="0" y="0" width="600" height="370" fill="#e3f2fd" stroke="#2196f3" stroke-width="3" rx="10"/>
+                        <text x="300" y="30" font-size="18" font-weight="bold" fill="#1565c0" text-anchor="middle">Absolute Transformations</text>
+                        <text x="300" y="50" font-size="12" fill="#666" text-anchor="middle">Each object gets its own matrix FROM THE ORIGIN</text>
+                        
+                        <g transform="translate(30, 70)">
+                            <!-- Origin -->
+                            <circle cx="50" cy="120" r="10" fill="#f44336"/>
+                            <text x="50" y="150" font-size="11" fill="#333" text-anchor="middle" font-weight="bold">Origin</text>
+                            
+                            <!-- Objects -->
+                            <rect x="130" y="100" width="40" height="40" fill="#4caf50" stroke="#2e7d32" stroke-width="2" rx="5"/>
+                            <text x="150" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">A</text>
+                            <text x="150" y="160" font-size="10" fill="#333" text-anchor="middle">pos: (100, 0)</text>
+                            
+                            <rect x="230" y="100" width="40" height="40" fill="#ff9800" stroke="#e65100" stroke-width="2" rx="5"/>
+                            <text x="250" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">B</text>
+                            <text x="250" y="160" font-size="10" fill="#333" text-anchor="middle">pos: (200, 0)</text>
+                            
+                            <rect x="330" y="100" width="40" height="40" fill="#9c27b0" stroke="#6a1b9a" stroke-width="2" rx="5"/>
+                            <text x="350" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">C</text>
+                            <text x="350" y="160" font-size="10" fill="#333" text-anchor="middle">pos: (300, 0)</text>
+                            
+                            <rect x="430" y="100" width="40" height="40" fill="#00bcd4" stroke="#00838f" stroke-width="2" rx="5"/>
+                            <text x="450" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">D</text>
+                            <text x="450" y="160" font-size="10" fill="#333" text-anchor="middle">pos: (400, 0)</text>
+                            
+                            <!-- Arrows from origin -->
+                            <defs>
+                                <marker id="blueArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#2196f3"/>
+                                </marker>
+                            </defs>
+                            <line x1="60" y1="120" x2="125" y2="120" stroke="#2196f3" stroke-width="2" marker-end="url(#blueArrow)"/>
+                            <path d="M 60,115 Q 150,70 225,115" fill="none" stroke="#2196f3" stroke-width="2" marker-end="url(#blueArrow)"/>
+                            <path d="M 60,110 Q 200,40 325,110" fill="none" stroke="#2196f3" stroke-width="2" marker-end="url(#blueArrow)"/>
+                            <path d="M 60,105 Q 250,20 425,105" fill="none" stroke="#2196f3" stroke-width="2" marker-end="url(#blueArrow)"/>
+                            
+                            <text x="92" y="110" font-size="9" fill="#1565c0" font-weight="bold">T(100)</text>
+                            <text x="155" y="75" font-size="9" fill="#1565c0" font-weight="bold">T(200)</text>
+                            <text x="210" y="45" font-size="9" fill="#1565c0" font-weight="bold">T(300)</text>
+                            <text x="270" y="25" font-size="9" fill="#1565c0" font-weight="bold">T(400)</text>
+                        </g>
+                        
+                        <rect x="30" y="250" width="540" height="40" fill="#bbdefb" rx="5"/>
+                        <text x="300" y="275" font-size="13" fill="#1565c0" text-anchor="middle" font-weight="bold">Each loop: M = Identity, then translate to absolute position</text>
+                    </g>
+                    
+                    <!-- Right: Incremental Approach -->
+                    <g transform="translate(700, 60)">
+                        <rect x="0" y="0" width="650" height="370" fill="#fff3e0" stroke="#ff9800" stroke-width="3" rx="10"/>
+                        <text x="325" y="30" font-size="18" font-weight="bold" fill="#e65100" text-anchor="middle">Incremental Transformations</text>
+                        <text x="325" y="50" font-size="12" fill="#666" text-anchor="middle">Each object adds to the PREVIOUS matrix (cumulative)</text>
+                        
+                        <g transform="translate(30, 70)">
+                            <!-- Origin -->
+                            <circle cx="50" cy="120" r="10" fill="#f44336"/>
+                            <text x="50" y="150" font-size="11" fill="#333" text-anchor="middle" font-weight="bold">Origin</text>
+                            
+                            <!-- Objects -->
+                            <rect x="130" y="100" width="40" height="40" fill="#4caf50" stroke="#2e7d32" stroke-width="2" rx="5"/>
+                            <text x="150" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">A</text>
+                            
+                            <rect x="230" y="100" width="40" height="40" fill="#ff9800" stroke="#e65100" stroke-width="2" rx="5"/>
+                            <text x="250" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">B</text>
+                            
+                            <rect x="330" y="100" width="40" height="40" fill="#9c27b0" stroke="#6a1b9a" stroke-width="2" rx="5"/>
+                            <text x="350" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">C</text>
+                            
+                            <rect x="430" y="100" width="40" height="40" fill="#00bcd4" stroke="#00838f" stroke-width="2" rx="5"/>
+                            <text x="450" y="125" font-size="14" fill="white" text-anchor="middle" font-weight="bold">D</text>
+                            
+                            <!-- Chained arrows -->
+                            <defs>
+                                <marker id="orangeArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#ff9800"/>
+                                </marker>
+                            </defs>
+                            <line x1="60" y1="120" x2="125" y2="120" stroke="#ff9800" stroke-width="3" marker-end="url(#orangeArrow)"/>
+                            <line x1="175" y1="120" x2="225" y2="120" stroke="#ff9800" stroke-width="3" marker-end="url(#orangeArrow)"/>
+                            <line x1="275" y1="120" x2="325" y2="120" stroke="#ff9800" stroke-width="3" marker-end="url(#orangeArrow)"/>
+                            <line x1="375" y1="120" x2="425" y2="120" stroke="#ff9800" stroke-width="3" marker-end="url(#orangeArrow)"/>
+                            
+                            <text x="92" y="110" font-size="9" fill="#e65100" font-weight="bold">+100</text>
+                            <text x="200" y="110" font-size="9" fill="#e65100" font-weight="bold">+100</text>
+                            <text x="300" y="110" font-size="9" fill="#e65100" font-weight="bold">+100</text>
+                            <text x="400" y="110" font-size="9" fill="#e65100" font-weight="bold">+100</text>
+                            
+                            <!-- Cumulative values -->
+                            <text x="150" y="160" font-size="9" fill="#666" text-anchor="middle">M = 100</text>
+                            <text x="250" y="160" font-size="9" fill="#666" text-anchor="middle">M = 200</text>
+                            <text x="350" y="160" font-size="9" fill="#666" text-anchor="middle">M = 300</text>
+                            <text x="450" y="160" font-size="9" fill="#666" text-anchor="middle">M = 400</text>
+                        </g>
+                        
+                        <rect x="30" y="250" width="590" height="40" fill="#ffe0b2" rx="5"/>
+                        <text x="325" y="275" font-size="13" fill="#e65100" text-anchor="middle" font-weight="bold">Identity ONCE before loop, then M = M × T(offset) each iteration</text>
+                    </g>
+                </svg>
+                
+                <h3>Code Comparison</h3>
+                
+                <div class="comparison-grid">
+                    <div class="comparison-box absolute">
+                        <h4>🎯 Absolute Transformations</h4>
+                        
+                        <div class="code-block"><pre><span class="comment">// Each object: fresh matrix from origin</span>
+<span class="keyword">const</span> positions = [<span class="number">100</span>, <span class="number">200</span>, <span class="number">300</span>, <span class="number">400</span>];
+
+<span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i &lt; objects.length; i++) {
+    <span class="comment">// Create NEW identity matrix each time</span>
+    <span class="keyword">let</span> M = mat4.<span class="function">create</span>();
+    
+    <span class="comment">// Translate to absolute position</span>
+    mat4.<span class="function">translate</span>(M, M, [positions[i], <span class="number">0</span>, <span class="number">0</span>]);
+    
+    <span class="comment">// Draw object</span>
+    <span class="function">drawObject</span>(objects[i], M);
+}</pre></div>
+                        
+                        <p style="margin-top: 15px;"><strong>Use when:</strong></p>
+                        <ul style="margin-left: 20px; line-height: 1.8;">
+                            <li>Objects have known world positions</li>
+                            <li>Objects are independent (not hierarchical)</li>
+                            <li>Planets in solar system</li>
+                            <li>Trees at specific map locations</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-box incremental">
+                        <h4>🔗 Incremental Transformations</h4>
+                        
+                        <div class="code-block"><pre><span class="comment">// Single matrix accumulates transforms</span>
+<span class="keyword">const</span> spacing = <span class="number">100</span>;
+
+<span class="comment">// Create identity ONCE before loop</span>
+<span class="keyword">let</span> M = mat4.<span class="function">create</span>();
+
+<span class="keyword">for</span> (<span class="keyword">let</span> i = <span class="number">0</span>; i &lt; objects.length; i++) {
+    <span class="comment">// Add to existing matrix (cumulative!)</span>
+    mat4.<span class="function">translate</span>(M, M, [spacing, <span class="number">0</span>, <span class="number">0</span>]);
+    
+    <span class="comment">// Draw object</span>
+    <span class="function">drawObject</span>(objects[i], M);
+}</pre></div>
+                        
+                        <p style="margin-top: 15px;"><strong>Use when:</strong></p>
+                        <ul style="margin-left: 20px; line-height: 1.8;">
+                            <li>Objects are evenly spaced</li>
+                            <li>Each object relative to previous</li>
+                            <li>Robot arm joints</li>
+                            <li>Fence posts in a row</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="note warning-note">
+                    <strong>⚠️ Common Mistake: Mixing the Two Approaches</strong>
+                    <p style="margin-top: 10px; line-height: 1.8;">
+                        A frequent bug occurs when you forget to reset the matrix in an absolute approach, or accidentally reset it in an incremental one:
+                    </p>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>Bug #1:</strong> Forgetting <code>M = mat4.create()</code> inside loop → positions accumulate, objects fly off!</li>
+                        <li><strong>Bug #2:</strong> Adding <code>M = mat4.create()</code> inside incremental loop → all objects draw at same place!</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Summary Table -->
+            <div class="section">
+                <h2>📋 Summary: When to Use Each Approach</h2>
+                
+                <div class="note key-fact">
+                    <strong>🎓 Quick Reference Table</strong>
+                    <table style="width: 100%; margin-top: 15px; border-collapse: collapse;">
+                        <tr style="background: #c8e6c9;">
+                            <th style="padding: 12px; text-align: left; border: 1px solid #81c784;">Scenario</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #81c784;">Approach</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #81c784;">Key Code Pattern</th>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Planets around Sun</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;"><strong>Absolute</strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9em;">M = Identity inside loop</td>
+                        </tr>
+                        <tr style="background: #f5f5f5;">
+                            <td style="padding: 10px; border: 1px solid #ddd;">Moons around Planet</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;"><strong>Relative + Push/Pop</strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9em;">moonM = planetM × T(offset)</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Fence posts in row</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;"><strong>Incremental</strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9em;">M = M × T(spacing)</td>
+                        </tr>
+                        <tr style="background: #f5f5f5;">
+                            <td style="padding: 10px; border: 1px solid #ddd;">Trees at map coords</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;"><strong>Absolute</strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9em;">M = T(worldPosition)</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Robot arm joints</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;"><strong>Incremental + Push/Pop</strong></td>
+                            <td style="padding: 10px; border: 1px solid #ddd; font-family: monospace; font-size: 0.9em;">push, M = M × R × T, pop</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Matrix Stack Class Reference -->
+            <div class="section">
+                <h2>📚 Matrix Stack Class Reference</h2>
+                
+                <div class="code-block"><pre><span class="comment">// Matrix stack implementation for WebGL</span>
+<span class="keyword">class</span> <span class="type">MatrixStack</span> {
+    <span class="function">constructor</span>() {
+        <span class="keyword">this</span>.stack = [];
+        <span class="keyword">this</span>.current = mat4.<span class="function">create</span>();  <span class="comment">// Start with identity</span>
+    }
+    
+    <span class="comment">// Save current matrix state</span>
+    <span class="function">push</span>() {
+        <span class="keyword">this</span>.stack.<span class="function">push</span>(mat4.<span class="function">clone</span>(<span class="keyword">this</span>.current));
+    }
+    
+    <span class="comment">// Restore previous matrix state</span>
+    <span class="function">pop</span>() {
+        <span class="keyword">if</span> (<span class="keyword">this</span>.stack.length === <span class="number">0</span>) {
+            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">Error</span>(<span class="string">"Matrix stack underflow!"</span>);
+        }
+        <span class="keyword">this</span>.current = <span class="keyword">this</span>.stack.<span class="function">pop</span>();
+    }
+    
+    <span class="comment">// Apply translation to current matrix</span>
+    <span class="function">translate</span>(x, y, z) {
+        mat4.<span class="function">translate</span>(<span class="keyword">this</span>.current, <span class="keyword">this</span>.current, [x, y, z]);
+    }
+    
+    <span class="comment">// Apply rotation to current matrix</span>
+    <span class="function">rotate</span>(angle, axis) {
+        mat4.<span class="function">rotate</span>(<span class="keyword">this</span>.current, <span class="keyword">this</span>.current, angle, axis);
+    }
+    
+    <span class="comment">// Apply scale to current matrix</span>
+    <span class="function">scale</span>(x, y, z) {
+        mat4.<span class="function">scale</span>(<span class="keyword">this</span>.current, <span class="keyword">this</span>.current, [x, y, z]);
+    }
+    
+    <span class="comment">// Reset to identity</span>
+    <span class="function">loadIdentity</span>() {
+        mat4.<span class="function">identity</span>(<span class="keyword">this</span>.current);
+    }
+    
+    <span class="comment">// Get current matrix for shader uniform</span>
+    <span class="function">getMatrix</span>() {
+        <span class="keyword">return</span> <span class="keyword">this</span>.current;
+    }
+}</pre></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

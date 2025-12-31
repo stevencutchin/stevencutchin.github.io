@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGBA Pixel Encoding Explained</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 40px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .info-box strong {
+            color: #1565c0;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .memory-block {
+            display: inline-block;
+            padding: 6px 10px;
+            margin: 2px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-weight: bold;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 RGBA Pixel Encoding</h1>
+            <p>Understanding How Digital Images Store Color Data</p>
+        </div>
+        
+        <div class="content">
+            <!-- What is RGBA -->
+            <div class="section">
+                <h2>What is RGBA?</h2>
+                
+                <svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Single Pixel -->
+                    <g transform="translate(50, 50)">
+                        <text x="100" y="-10" font-size="20" font-weight="bold" fill="#333">One Pixel</text>
+                        <rect x="0" y="0" width="200" height="200" fill="rgba(255, 100, 50, 0.8)" stroke="#333" stroke-width="3" rx="8"/>
+                        <text x="100" y="230" font-size="16" fill="#666" text-anchor="middle">RGBA(255, 100, 50, 204)</text>
+                    </g>
+                    
+                    <!-- Arrow -->
+                    <defs>
+                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <polygon points="0 0, 10 3, 0 6" fill="#333" />
+                        </marker>
+                    </defs>
+                    <line x1="270" y1="150" x2="330" y2="150" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+                    
+                    <!-- Four Channels -->
+                    <g transform="translate(350, 50)">
+                        <!-- Red -->
+                        <rect x="0" y="0" width="180" height="120" fill="#ffe0e0" stroke="#ff6b6b" stroke-width="3" rx="6"/>
+                        <text x="90" y="25" font-size="16" font-weight="bold" fill="#d63031" text-anchor="middle">Red (R)</text>
+                        <rect x="30" y="40" width="120" height="50" fill="rgb(255, 0, 0)" stroke="#333" stroke-width="2"/>
+                        <text x="90" y="105" font-size="14" fill="#333" text-anchor="middle">Value: 255</text>
+                        
+                        <!-- Green -->
+                        <rect x="200" y="0" width="180" height="120" fill="#e0ffe0" stroke="#51cf66" stroke-width="3" rx="6"/>
+                        <text x="290" y="25" font-size="16" font-weight="bold" fill="#2f9e44" text-anchor="middle">Green (G)</text>
+                        <rect x="230" y="40" width="120" height="50" fill="rgb(0, 100, 0)" stroke="#333" stroke-width="2"/>
+                        <text x="290" y="105" font-size="14" fill="#333" text-anchor="middle">Value: 100</text>
+                        
+                        <!-- Blue -->
+                        <rect x="400" y="0" width="180" height="120" fill="#e0e0ff" stroke="#339af0" stroke-width="3" rx="6"/>
+                        <text x="490" y="25" font-size="16" font-weight="bold" fill="#1864ab" text-anchor="middle">Blue (B)</text>
+                        <rect x="430" y="40" width="120" height="50" fill="rgb(0, 0, 50)" stroke="#333" stroke-width="2"/>
+                        <text x="490" y="105" font-size="14" fill="#333" text-anchor="middle">Value: 50</text>
+                        
+                        <!-- Alpha -->
+                        <rect x="600" y="0" width="180" height="120" fill="#f0f0f0" stroke="#868e96" stroke-width="3" rx="6"/>
+                        <text x="690" y="25" font-size="16" font-weight="bold" fill="#495057" text-anchor="middle">Alpha (A)</text>
+                        <rect x="630" y="40" width="120" height="50" fill="rgb(204, 204, 204)" stroke="#333" stroke-width="2"/>
+                        <text x="690" y="105" font-size="14" fill="#333" text-anchor="middle">Value: 204</text>
+                    </g>
+                    
+                    <!-- Descriptions -->
+                    <g transform="translate(50, 320)">
+                        <rect x="0" y="0" width="270" height="200" fill="white" stroke="#ff6b6b" stroke-width="2" rx="6"/>
+                        <text x="135" y="25" font-size="15" font-weight="bold" fill="#d63031" text-anchor="middle">Red Component</text>
+                        <text x="15" y="50" font-size="13" fill="#333">• Controls red intensity</text>
+                        <text x="15" y="75" font-size="13" fill="#333">• Range: 0-255</text>
+                        <text x="15" y="100" font-size="13" fill="#333">• 0 = No red</text>
+                        <text x="15" y="125" font-size="13" fill="#333">• 255 = Maximum red</text>
+                        <text x="15" y="155" font-size="12" fill="#666" font-style="italic">8 bits (1 byte) of data</text>
+                        
+                        <rect x="290" y="0" width="270" height="200" fill="white" stroke="#51cf66" stroke-width="2" rx="6"/>
+                        <text x="425" y="25" font-size="15" font-weight="bold" fill="#2f9e44" text-anchor="middle">Green Component</text>
+                        <text x="305" y="50" font-size="13" fill="#333">• Controls green intensity</text>
+                        <text x="305" y="75" font-size="13" fill="#333">• Range: 0-255</text>
+                        <text x="305" y="100" font-size="13" fill="#333">• 0 = No green</text>
+                        <text x="305" y="125" font-size="13" fill="#333">• 255 = Maximum green</text>
+                        <text x="305" y="155" font-size="12" fill="#666" font-style="italic">8 bits (1 byte) of data</text>
+                        
+                        <rect x="580" y="0" width="270" height="200" fill="white" stroke="#339af0" stroke-width="2" rx="6"/>
+                        <text x="715" y="25" font-size="15" font-weight="bold" fill="#1864ab" text-anchor="middle">Blue Component</text>
+                        <text x="595" y="50" font-size="13" fill="#333">• Controls blue intensity</text>
+                        <text x="595" y="75" font-size="13" fill="#333">• Range: 0-255</text>
+                        <text x="595" y="100" font-size="13" fill="#333">• 0 = No blue</text>
+                        <text x="595" y="125" font-size="13" fill="#333">• 255 = Maximum blue</text>
+                        <text x="595" y="155" font-size="12" fill="#666" font-style="italic">8 bits (1 byte) of data</text>
+                        
+                        <rect x="870" y="0" width="270" height="200" fill="white" stroke="#868e96" stroke-width="2" rx="6"/>
+                        <text x="1005" y="25" font-size="15" font-weight="bold" fill="#495057" text-anchor="middle">Alpha Component</text>
+                        <text x="885" y="50" font-size="13" fill="#333">• Controls transparency</text>
+                        <text x="885" y="75" font-size="13" fill="#333">• Range: 0-255</text>
+                        <text x="885" y="100" font-size="13" fill="#333">• 0 = Fully transparent</text>
+                        <text x="885" y="125" font-size="13" fill="#333">• 255 = Fully opaque</text>
+                        <text x="885" y="155" font-size="12" fill="#666" font-style="italic">8 bits (1 byte) of data</text>
+                    </g>
+                </svg>
+                
+                <div class="info-box">
+                    <strong>💡 Key Point:</strong>
+                    Each pixel uses 32 bits (4 bytes) total: 8 bits per channel. This gives us 256⁴ = 4,294,967,296 possible combinations of color and transparency!
+                </div>
+            </div>
+            
+            <!-- Memory Layout -->
+            <div class="section">
+                <h2>How Pixels Are Stored in Memory</h2>
+                
+                <svg viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 2x2 Image -->
+                    <g transform="translate(50, 50)">
+                        <text x="100" y="-10" font-size="18" font-weight="bold" fill="#667eea">2×2 Image (4 pixels)</text>
+                        
+                        <rect x="0" y="0" width="90" height="90" fill="rgb(255, 0, 0)" stroke="#333" stroke-width="2"/>
+                        <text x="45" y="50" font-size="16" fill="white" text-anchor="middle" font-weight="bold">P0</text>
+                        
+                        <rect x="95" y="0" width="90" height="90" fill="rgb(0, 255, 0)" stroke="#333" stroke-width="2"/>
+                        <text x="140" y="50" font-size="16" fill="white" text-anchor="middle" font-weight="bold">P1</text>
+                        
+                        <rect x="0" y="95" width="90" height="90" fill="rgb(0, 0, 255)" stroke="#333" stroke-width="2"/>
+                        <text x="45" y="145" font-size="16" fill="white" text-anchor="middle" font-weight="bold">P2</text>
+                        
+                        <rect x="95" y="95" width="90" height="90" fill="rgb(255, 255, 0)" stroke="#333" stroke-width="2"/>
+                        <text x="140" y="145" font-size="16" fill="black" text-anchor="middle" font-weight="bold">P3</text>
+                        
+                        <g transform="translate(220, 20)">
+                            <text x="0" y="0" font-size="13" fill="#666">P0: (255, 0, 0, 255)</text>
+                            <text x="0" y="25" font-size="13" fill="#666">P1: (0, 255, 0, 255)</text>
+                            <text x="0" y="50" font-size="13" fill="#666">P2: (0, 0, 255, 255)</text>
+                            <text x="0" y="75" font-size="13" fill="#666">P3: (255, 255, 0, 255)</text>
+                        </g>
+                    </g>
+                    
+                    <!-- Arrow down -->
+                    <line x1="200" y1="250" x2="200" y2="300" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+                    <text x="220" y="280" font-size="14" fill="#333">Stored as</text>
+                    
+                    <!-- Memory array -->
+                    <g transform="translate(50, 320)">
+                        <text x="0" y="-10" font-size="18" font-weight="bold" fill="#667eea">Memory Layout (Interleaved RGBA)</text>
+                        
+                        <!-- Pixel 0 -->
+                        <rect x="0" y="20" width="55" height="55" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="27" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="27" y="0" font-size="11" fill="#666" text-anchor="middle">R₀</text>
+                        
+                        <rect x="60" y="20" width="55" height="55" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+                        <text x="87" y="52" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">0</text>
+                        <text x="87" y="0" font-size="11" fill="#666" text-anchor="middle">G₀</text>
+                        
+                        <rect x="120" y="20" width="55" height="55" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+                        <text x="147" y="52" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">0</text>
+                        <text x="147" y="0" font-size="11" fill="#666" text-anchor="middle">B₀</text>
+                        
+                        <rect x="180" y="20" width="55" height="55" fill="#868e96" stroke="#333" stroke-width="2"/>
+                        <text x="207" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="207" y="0" font-size="11" fill="#666" text-anchor="middle">A₀</text>
+                        
+                        <!-- Pixel 1 -->
+                        <rect x="250" y="20" width="55" height="55" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+                        <text x="277" y="52" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">0</text>
+                        <text x="277" y="0" font-size="11" fill="#666" text-anchor="middle">R₁</text>
+                        
+                        <rect x="310" y="20" width="55" height="55" fill="#51cf66" stroke="#333" stroke-width="2"/>
+                        <text x="337" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="337" y="0" font-size="11" fill="#666" text-anchor="middle">G₁</text>
+                        
+                        <rect x="370" y="20" width="55" height="55" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+                        <text x="397" y="52" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">0</text>
+                        <text x="397" y="0" font-size="11" fill="#666" text-anchor="middle">B₁</text>
+                        
+                        <rect x="430" y="20" width="55" height="55" fill="#868e96" stroke="#333" stroke-width="2"/>
+                        <text x="457" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="457" y="0" font-size="11" fill="#666" text-anchor="middle">A₁</text>
+                        
+                        <!-- Pixel 2 -->
+                        <rect x="500" y="20" width="55" height="55" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+                        <text x="527" y="52" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">0</text>
+                        <text x="527" y="0" font-size="11" fill="#666" text-anchor="middle">R₂</text>
+                        
+                        <rect x="560" y="20" width="55" height="55" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+                        <text x="587" y="52" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">0</text>
+                        <text x="587" y="0" font-size="11" fill="#666" text-anchor="middle">G₂</text>
+                        
+                        <rect x="620" y="20" width="55" height="55" fill="#339af0" stroke="#333" stroke-width="2"/>
+                        <text x="647" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="647" y="0" font-size="11" fill="#666" text-anchor="middle">B₂</text>
+                        
+                        <rect x="680" y="20" width="55" height="55" fill="#868e96" stroke="#333" stroke-width="2"/>
+                        <text x="707" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="707" y="0" font-size="11" fill="#666" text-anchor="middle">A₂</text>
+                        
+                        <!-- Pixel 3 -->
+                        <rect x="750" y="20" width="55" height="55" fill="#ff6b6b" stroke="#333" stroke-width="2"/>
+                        <text x="777" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="777" y="0" font-size="11" fill="#666" text-anchor="middle">R₃</text>
+                        
+                        <rect x="810" y="20" width="55" height="55" fill="#51cf66" stroke="#333" stroke-width="2"/>
+                        <text x="837" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="837" y="0" font-size="11" fill="#666" text-anchor="middle">G₃</text>
+                        
+                        <rect x="870" y="20" width="55" height="55" fill="#e0e0e0" stroke="#333" stroke-width="2"/>
+                        <text x="897" y="52" font-size="14" fill="#333" text-anchor="middle" font-weight="bold">0</text>
+                        <text x="897" y="0" font-size="11" fill="#666" text-anchor="middle">B₃</text>
+                        
+                        <rect x="930" y="20" width="55" height="55" fill="#868e96" stroke="#333" stroke-width="2"/>
+                        <text x="957" y="52" font-size="14" fill="white" text-anchor="middle" font-weight="bold">255</text>
+                        <text x="957" y="0" font-size="11" fill="#666" text-anchor="middle">A₃</text>
+                        
+                        <!-- Brackets -->
+                        <path d="M -5,80 L -5,90 L 240,90 L 240,80" stroke="#2196f3" stroke-width="2" fill="none"/>
+                        <text x="117" y="105" font-size="13" fill="#2196f3" font-weight="bold" text-anchor="middle">Pixel 0</text>
+                        
+                        <path d="M 245,80 L 245,90 L 490,90 L 490,80" stroke="#2196f3" stroke-width="2" fill="none"/>
+                        <text x="367" y="105" font-size="13" fill="#2196f3" font-weight="bold" text-anchor="middle">Pixel 1</text>
+                        
+                        <path d="M 495,80 L 495,90 L 740,90 L 740,80" stroke="#2196f3" stroke-width="2" fill="none"/>
+                        <text x="617" y="105" font-size="13" fill="#2196f3" font-weight="bold" text-anchor="middle">Pixel 2</text>
+                        
+                        <path d="M 745,80 L 745,90 L 990,90 L 990,80" stroke="#2196f3" stroke-width="2" fill="none"/>
+                        <text x="867" y="105" font-size="13" fill="#2196f3" font-weight="bold" text-anchor="middle">Pixel 3</text>
+                    </g>
+                    
+                    <!-- Formula -->
+                    <g transform="translate(50, 480)">
+                        <rect x="0" y="0" width="1100" height="120" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="6"/>
+                        <text x="550" y="30" font-size="16" fill="#1565c0" font-weight="bold" text-anchor="middle">Accessing a Pixel in Memory</text>
+                        <text x="550" y="60" font-size="15" fill="#333" text-anchor="middle" font-family="monospace">offset = (y × width + x) × 4</text>
+                        <text x="550" y="85" font-size="13" fill="#666" text-anchor="middle">Then: R = data[offset], G = data[offset+1], B = data[offset+2], A = data[offset+3]</text>
+                        <text x="550" y="108" font-size="12" fill="#999" text-anchor="middle">Example: Pixel at (1,0) in 2×2 image → offset = (0×2 + 1)×4 = 4 → starts at index 4</text>
+                    </g>
+                </svg>
+                
+                <div class="info-box">
+                    <strong>🔑 Memory Layout:</strong>
+                    Images store pixels in a continuous array where all 4 channels of one pixel are grouped together. This is called "interleaved" format and is the standard for WebGL, Canvas, and most graphics APIs.
+                </div>
+            </div>
+            
+            <!-- Common Formats -->
+            <div class="section">
+                <h2>Common Pixel Formats</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Bytes/Pixel</th>
+                            <th>Memory Order</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>RGBA</strong></td>
+                            <td>4</td>
+                            <td>
+                                <span class="memory-block" style="background:#ff6b6b;color:white;">R</span>
+                                <span class="memory-block" style="background:#51cf66;color:white;">G</span>
+                                <span class="memory-block" style="background:#339af0;color:white;">B</span>
+                                <span class="memory-block" style="background:#868e96;color:white;">A</span>
+                            </td>
+                            <td>WebGL default, Canvas, PNG with alpha</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RGB</strong></td>
+                            <td>3</td>
+                            <td>
+                                <span class="memory-block" style="background:#ff6b6b;color:white;">R</span>
+                                <span class="memory-block" style="background:#51cf66;color:white;">G</span>
+                                <span class="memory-block" style="background:#339af0;color:white;">B</span>
+                            </td>
+                            <td>JPEGs, opaque images (no transparency)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>BGRA</strong></td>
+                            <td>4</td>
+                            <td>
+                                <span class="memory-block" style="background:#339af0;color:white;">B</span>
+                                <span class="memory-block" style="background:#51cf66;color:white;">G</span>
+                                <span class="memory-block" style="background:#ff6b6b;color:white;">R</span>
+                                <span class="memory-block" style="background:#868e96;color:white;">A</span>
+                            </td>
+                            <td>Windows bitmaps, some GPUs</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Grayscale</strong></td>
+                            <td>1</td>
+                            <td>
+                                <span class="memory-block" style="background:#999;color:white;">L</span>
+                            </td>
+                            <td>Black & white images, heightmaps</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RGB565</strong></td>
+                            <td>2</td>
+                            <td style="font-size:0.85em;">5 bits R, 6 bits G, 5 bits B</td>
+                            <td>Mobile devices, low memory</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Bit Depth Formats -->
+            <div class="section">
+                <h2>🎚️ Bit Depth & Precision Formats</h2>
+                
+                <p style="line-height: 1.8; margin-bottom: 25px;">
+                    While standard RGBA uses 8 bits per channel, professional graphics and HDR imaging require higher precision formats. Different bit depths offer trade-offs between memory usage, precision, and dynamic range.
+                </p>
+                
+                <svg viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
+                    <!-- 8-bit Standard -->
+                    <g transform="translate(50, 30)">
+                        <rect x="0" y="0" width="500" height="150" fill="#e3f2fd" stroke="#2196f3" stroke-width="3" rx="8"/>
+                        <text x="250" y="30" font-size="18" font-weight="bold" fill="#1565c0" text-anchor="middle">8-bit per Channel (Standard)</text>
+                        
+                        <text x="20" y="60" font-size="14" fill="#333">• 8 bits per channel = 1 byte</text>
+                        <text x="20" y="85" font-size="14" fill="#333">• Total: 32 bits (4 bytes) per pixel</text>
+                        <text x="20" y="110" font-size="14" fill="#333">• Range: 0-255 per channel</text>
+                        <text x="20" y="135" font-size="14" fill="#333">• Use: Standard web, games, displays</text>
+                    </g>
+                    
+                    <!-- Bit representation -->
+                    <g transform="translate(570, 30)">
+                        <text x="0" y="20" font-size="14" fill="#666" font-weight="bold">Example: Value 255</text>
+                        <rect x="0" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="12" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <rect x="27" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="39" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <rect x="54" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="66" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <rect x="81" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="93" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <rect x="108" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="120" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <rect x="135" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="147" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <rect x="162" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="174" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <rect x="189" y="30" width="25" height="30" fill="#2196f3" stroke="#333" stroke-width="1"/>
+                        <text x="201" y="50" font-size="12" fill="white" text-anchor="middle">1</text>
+                        <text x="107" y="80" font-size="12" fill="#666" text-anchor="middle">8 bits = 256 values</text>
+                    </g>
+                    
+                    <!-- 16-bit Integer -->
+                    <g transform="translate(50, 200)">
+                        <rect x="0" y="0" width="500" height="150" fill="#f3e5f5" stroke="#9c27b0" stroke-width="3" rx="8"/>
+                        <text x="250" y="30" font-size="18" font-weight="bold" fill="#6a1b9a" text-anchor="middle">16-bit Integer per Channel</text>
+                        
+                        <text x="20" y="60" font-size="14" fill="#333">• 16 bits per channel = 2 bytes</text>
+                        <text x="20" y="85" font-size="14" fill="#333">• Total: 64 bits (8 bytes) per pixel</text>
+                        <text x="20" y="110" font-size="14" fill="#333">• Range: 0-65,535 per channel</text>
+                        <text x="20" y="135" font-size="14" fill="#333">• Use: Medical imaging, RAW photos</text>
+                    </g>
+                    
+                    <g transform="translate(570, 200)">
+                        <text x="0" y="20" font-size="14" fill="#666" font-weight="bold">16 bits per channel</text>
+                        <rect x="0" y="30" width="300" height="40" fill="#9c27b0" stroke="#333" stroke-width="2" rx="4"/>
+                        <text x="150" y="55" font-size="13" fill="white" text-anchor="middle" font-weight="bold">16 bits = 65,536 values</text>
+                        <text x="150" y="90" font-size="12" fill="#666" text-anchor="middle">256× more precision than 8-bit</text>
+                        <text x="150" y="110" font-size="12" fill="#666" text-anchor="middle">Better gradients, no banding</text>
+                    </g>
+                    
+                    <!-- 16-bit Float (Half) -->
+                    <g transform="translate(50, 370)">
+                        <rect x="0" y="0" width="500" height="150" fill="#fff3e0" stroke="#ff9800" stroke-width="3" rx="8"/>
+                        <text x="250" y="30" font-size="18" font-weight="bold" fill="#e65100" text-anchor="middle">16-bit Float (Half Precision)</text>
+                        
+                        <text x="20" y="60" font-size="14" fill="#333">• 16 bits per channel = 2 bytes</text>
+                        <text x="20" y="85" font-size="14" fill="#333">• Total: 64 bits (8 bytes) per pixel</text>
+                        <text x="20" y="110" font-size="14" fill="#333">• Range: ~0.00006 to 65,504 (HDR!)</text>
+                        <text x="20" y="135" font-size="14" fill="#333">• Use: HDR rendering, GPU compute</text>
+                    </g>
+                    
+                    <g transform="translate(570, 370)">
+                        <text x="0" y="20" font-size="14" fill="#666" font-weight="bold">IEEE 754 Half Float</text>
+                        <rect x="0" y="30" width="50" height="35" fill="#ff5722" stroke="#333" stroke-width="1"/>
+                        <text x="25" y="52" font-size="11" fill="white" text-anchor="middle">Sign</text>
+                        <text x="25" y="75" font-size="10" fill="#666" text-anchor="middle">1 bit</text>
+                        
+                        <rect x="55" y="30" width="100" height="35" fill="#ff9800" stroke="#333" stroke-width="1"/>
+                        <text x="105" y="52" font-size="11" fill="white" text-anchor="middle">Exponent</text>
+                        <text x="105" y="75" font-size="10" fill="#666" text-anchor="middle">5 bits</text>
+                        
+                        <rect x="160" y="30" width="150" height="35" fill="#ffc107" stroke="#333" stroke-width="1"/>
+                        <text x="235" y="52" font-size="11" fill="black" text-anchor="middle">Mantissa</text>
+                        <text x="235" y="75" font-size="10" fill="#666" text-anchor="middle">10 bits</text>
+                        
+                        <text x="155" y="105" font-size="12" fill="#666" text-anchor="middle">Supports values > 1.0 (HDR)</text>
+                    </g>
+                    
+                    <!-- 32-bit Float -->
+                    <g transform="translate(50, 540)">
+                        <rect x="0" y="0" width="500" height="150" fill="#e8f5e9" stroke="#4caf50" stroke-width="3" rx="8"/>
+                        <text x="250" y="30" font-size="18" font-weight="bold" fill="#2e7d32" text-anchor="middle">32-bit Float (Full Precision)</text>
+                        
+                        <text x="20" y="60" font-size="14" fill="#333">• 32 bits per channel = 4 bytes</text>
+                        <text x="20" y="85" font-size="14" fill="#333">• Total: 128 bits (16 bytes) per pixel</text>
+                        <text x="20" y="110" font-size="14" fill="#333">• Range: ±3.4×10³⁸ (extreme HDR)</text>
+                        <text x="20" y="135" font-size="14" fill="#333">• Use: Scientific viz, compositing</text>
+                    </g>
+                    
+                    <g transform="translate(570, 540)">
+                        <text x="0" y="20" font-size="14" fill="#666" font-weight="bold">IEEE 754 Single Float</text>
+                        <rect x="0" y="30" width="40" height="35" fill="#4caf50" stroke="#333" stroke-width="1"/>
+                        <text x="20" y="52" font-size="11" fill="white" text-anchor="middle">Sign</text>
+                        <text x="20" y="75" font-size="10" fill="#666" text-anchor="middle">1 bit</text>
+                        
+                        <rect x="45" y="30" width="100" height="35" fill="#66bb6a" stroke="#333" stroke-width="1"/>
+                        <text x="95" y="52" font-size="11" fill="white" text-anchor="middle">Exponent</text>
+                        <text x="95" y="75" font-size="10" fill="#666" text-anchor="middle">8 bits</text>
+                        
+                        <rect x="150" y="30" width="180" height="35" fill="#81c784" stroke="#333" stroke-width="1"/>
+                        <text x="240" y="52" font-size="11" fill="white" text-anchor="middle">Mantissa</text>
+                        <text x="240" y="75" font-size="10" fill="#666" text-anchor="middle">23 bits</text>
+                        
+                        <text x="165" y="105" font-size="12" fill="#666" text-anchor="middle">Maximum precision & range</text>
+                    </g>
+                    
+                    <!-- HDR Note -->
+                    <g transform="translate(50, 710)">
+                        <rect x="0" y="0" width="1100" height="140" fill="#fff3cd" stroke="#ffc107" stroke-width="3" rx="8"/>
+                        <text x="550" y="35" font-size="18" fill="#856404" text-anchor="middle" font-weight="bold">🌟 What is HDR (High Dynamic Range)?</text>
+                        <text x="30" y="65" font-size="14" fill="#333">Standard 8-bit can only represent brightness from 0-255 (black to white). Real-world scenes have much wider range:</text>
+                        <text x="50" y="90" font-size="13" fill="#333">• Bright sunlight can be 100,000× brighter than shadows</text>
+                        <text x="50" y="110" font-size="13" fill="#333">• HDR formats (float/half) can represent values > 1.0, allowing overbright colors</text>
+                        <text x="50" y="130" font-size="13" fill="#333">• Essential for realistic lighting, bloom effects, and tone mapping</text>
+                    </g>
+                </svg>
+                
+                <table style="margin-top: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Format</th>
+                            <th>Bits/Channel</th>
+                            <th>Bytes/Pixel</th>
+                            <th>Range per Channel</th>
+                            <th>Best For</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: #e3f2fd;">
+                            <td><strong>RGBA8</strong></td>
+                            <td>8</td>
+                            <td>4</td>
+                            <td>0 to 255 (integers)</td>
+                            <td>Standard displays, web, most games</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RGBA16</strong></td>
+                            <td>16</td>
+                            <td>8</td>
+                            <td>0 to 65,535 (integers)</td>
+                            <td>Medical imaging, high-quality photos</td>
+                        </tr>
+                        <tr style="background: #fff3e0;">
+                            <td><strong>RGBA16F</strong></td>
+                            <td>16</td>
+                            <td>8</td>
+                            <td>~0.00006 to 65,504 (float)</td>
+                            <td>HDR rendering, real-time graphics</td>
+                        </tr>
+                        <tr style="background: #e8f5e9;">
+                            <td><strong>RGBA32F</strong></td>
+                            <td>32</td>
+                            <td>16</td>
+                            <td>±3.4×10³⁸ (float)</td>
+                            <td>Compositing, scientific visualization</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RGB10A2</strong></td>
+                            <td>10/10/10/2</td>
+                            <td>4</td>
+                            <td>0-1023 RGB, 0-3 Alpha</td>
+                            <td>HDR displays, modern monitors</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="info-box" style="margin-top: 20px;">
+                    <strong>💡 When to Use Each Format:</strong>
+                    <ul style="margin: 10px 0 0 20px; line-height: 1.8;">
+                        <li><strong>8-bit:</strong> Default choice for most applications. Compatible everywhere, small file sizes.</li>
+                        <li><strong>16-bit integer:</strong> When you need smooth gradients without banding, especially for editing/processing.</li>
+                        <li><strong>16-bit float (Half):</strong> HDR rendering where you need brightness > 1.0. Good balance of precision and memory.</li>
+                        <li><strong>32-bit float:</strong> Maximum precision for intermediate calculations, compositing multiple layers, or scientific data.</li>
+                        <li><strong>RGB10A2:</strong> Modern HDR displays. More colors than 8-bit but same memory footprint.</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Summary -->
+            <div class="section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                <h2 style="color: white;">📋 Quick Reference</h2>
+                
+                <div style="background: rgba(255,255,255,0.95); padding: 25px; border-radius: 8px;">
+                    <ul style="line-height: 2; font-size: 1.05em;">
+                        <li><strong>RGBA = Red + Green + Blue + Alpha</strong></li>
+                        <li>Each channel: 8 bits (0-255 range)</li>
+                        <li>Total per pixel: 32 bits = 4 bytes</li>
+                        <li>Memory formula: <code>offset = (y × width + x) × 4</code></li>
+                        <li>Standard format for web graphics (WebGL, Canvas)</li>
+                        <li>Alpha 0 = transparent, Alpha 255 = opaque</li>
+                        <li>Pixels stored sequentially: RGBARGBARGBA...</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

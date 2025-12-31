@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intensity vs Saturation - Human Visual Perception</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .section {
+            margin-bottom: 50px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 35px;
+            border-left: 6px solid #667eea;
+        }
+        
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+        
+        .section h3 {
+            color: #764ba2;
+            margin: 25px 0 15px 0;
+            font-size: 1.5em;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .comparison-box {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            border: 3px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-box h4 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            text-align: center;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .note {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            color: #0c5460;
+        }
+        
+        .note strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        
+        .warning-note {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+        }
+        
+        .key-fact {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .formula {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #ffc107;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.15em;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .stat-box .number {
+            font-size: 3.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .stat-box .label {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-size: 1.1em;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 1024px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Intensity vs Saturation</h1>
+            <p>Understanding Human Visual Perception in Computer Graphics</p>
+            <p style="font-size: 1em; margin-top: 10px;">How humans perceive brightness versus color purity</p>
+        </div>
+        
+        <div class="content">
+            <!-- Key Distinction Section -->
+            <div class="section">
+                <h2>🔑 The Fundamental Distinction</h2>
+                
+                <div class="comparison-grid">
+                    <div class="stat-box">
+                        <div class="label">Intensity Discrimination</div>
+                        <div class="number">~256</div>
+                        <div class="label">Distinct Levels</div>
+                        <p style="margin-top: 15px; font-size: 0.95em;">Humans can differentiate approximately 256 distinct intensity levels in optimal (bright) lighting conditions</p>
+                    </div>
+                    
+                    <div class="stat-box">
+                        <div class="label">Saturation Discrimination</div>
+                        <div class="number">~20-30</div>
+                        <div class="label">Distinct Levels</div>
+                        <p style="margin-top: 15px; font-size: 0.95em;">Humans can only reliably differentiate about 20-30 saturation levels for any given hue</p>
+                    </div>
+                </div>
+                
+                <div class="note key-fact">
+                    <strong>💡 Key Insight:</strong>
+                    The human visual system is far more sensitive to changes in brightness (intensity) than to changes in color purity (saturation/chroma). This fundamental limitation drives many decisions in color encoding for digital images, video compression, and computer graphics.
+                </div>
+            </div>
+
+            <!-- Visual Comparison Section -->
+            <div class="section">
+                <h2>👁️ Visual Comparison</h2>
+                
+                <div class="comparison-grid">
+                    <!-- Intensity Gradient -->
+                    <div class="comparison-box">
+                        <h4>Intensity Discrimination (Grayscale)</h4>
+                        <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Background -->
+                            <rect width="600" height="400" fill="#f8f9fa"/>
+                            
+                            <!-- Title -->
+                            <text x="300" y="35" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">256 Distinguishable Levels</text>
+                            
+                            <!-- Fine gradient bar (256 levels) -->
+                            <defs>
+                                <linearGradient id="intensity256" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:rgb(0,0,0);stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:rgb(255,255,255);stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <rect x="50" y="60" width="500" height="80" fill="url(#intensity256)" stroke="#333" stroke-width="2"/>
+                            
+                            <!-- Labels -->
+                            <text x="50" y="155" font-size="14" fill="#333">Black</text>
+                            <text x="520" y="155" font-size="14" fill="#333">White</text>
+                            <text x="300" y="155" font-size="14" fill="#333" text-anchor="middle">Smooth Gradient</text>
+                            
+                            <!-- Discrete steps visualization (32 steps to show concept) -->
+                            <text x="300" y="195" font-size="16" font-weight="bold" fill="#666" text-anchor="middle">32-Level Approximation (Visible Steps)</text>
+                            
+                            <!-- Create 32 discrete steps -->
+                            <g id="discrete-steps">
+                                <!-- We'll show 32 steps to make the concept visible -->
+                            </g>
+                            
+                            <script type="text/javascript">
+                                // Create 32 discrete gray levels
+                                const stepWidth = 500 / 32;
+                                for (let i = 0; i < 32; i++) {
+                                    const gray = Math.floor((i / 31) * 255);
+                                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                    rect.setAttribute("x", 50 + i * stepWidth);
+                                    rect.setAttribute("y", 210);
+                                    rect.setAttribute("width", stepWidth);
+                                    rect.setAttribute("height", 80);
+                                    rect.setAttribute("fill", `rgb(${gray},${gray},${gray})`);
+                                    rect.setAttribute("stroke", "#666");
+                                    rect.setAttribute("stroke-width", "0.5");
+                                    document.getElementById("discrete-steps").appendChild(rect);
+                                }
+                            </script>
+                            
+                            <text x="50" y="310" font-size="12" fill="#666">0</text>
+                            <text x="535" y="310" font-size="12" fill="#666">255</text>
+                            
+                            <!-- Annotation -->
+                            <rect x="80" y="330" width="440" height="50" fill="#e8f4f8" stroke="#4fc3f7" stroke-width="2" rx="5"/>
+                            <text x="300" y="355" font-size="13" fill="#0277bd" text-anchor="middle" font-weight="bold">Human Eye: Optimal sensitivity in bright light</text>
+                            <text x="300" y="372" font-size="11" fill="#0277bd" text-anchor="middle">Can distinguish ~256 gray levels (8 bits)</text>
+                        </svg>
+                    </div>
+                    
+                    <!-- Saturation Gradient -->
+                    <div class="comparison-box">
+                        <h4>Saturation Discrimination (Chroma)</h4>
+                        <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Background -->
+                            <rect width="600" height="400" fill="#f8f9fa"/>
+                            
+                            <!-- Title -->
+                            <text x="300" y="35" font-size="18" font-weight="bold" fill="#333" text-anchor="middle">~20-30 Distinguishable Levels</text>
+                            
+                            <!-- Saturation gradient (from gray to pure red) -->
+                            <defs>
+                                <linearGradient id="saturation" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:rgb(128,128,128);stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:rgb(255,0,0);stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <rect x="50" y="60" width="500" height="80" fill="url(#saturation)" stroke="#333" stroke-width="2"/>
+                            
+                            <!-- Labels -->
+                            <text x="50" y="155" font-size="14" fill="#333">Gray</text>
+                            <text x="490" y="155" font-size="14" fill="#333">Pure Red</text>
+                            <text x="300" y="155" font-size="14" fill="#333" text-anchor="middle">Saturation →</text>
+                            
+                            <!-- Discrete saturation steps (20 visible levels) -->
+                            <text x="300" y="195" font-size="16" font-weight="bold" fill="#666" text-anchor="middle">20-Level Representation (Human Limit)</text>
+                            
+                            <g id="saturation-steps"></g>
+                            
+                            <script type="text/javascript">
+                                // Create 20 discrete saturation levels
+                                const satStepWidth = 500 / 20;
+                                for (let i = 0; i < 20; i++) {
+                                    const t = i / 19;
+                                    const r = Math.floor(128 + t * 127);
+                                    const g = Math.floor(128 * (1 - t));
+                                    const b = Math.floor(128 * (1 - t));
+                                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                    rect.setAttribute("x", 50 + i * satStepWidth);
+                                    rect.setAttribute("y", 210);
+                                    rect.setAttribute("width", satStepWidth);
+                                    rect.setAttribute("height", 80);
+                                    rect.setAttribute("fill", `rgb(${r},${g},${b})`);
+                                    rect.setAttribute("stroke", "#666");
+                                    rect.setAttribute("stroke-width", "1");
+                                    document.getElementById("saturation-steps").appendChild(rect);
+                                }
+                            </script>
+                            
+                            <text x="70" y="310" font-size="12" fill="#666">Desaturated</text>
+                            <text x="490" y="310" font-size="12" fill="#666">Saturated</text>
+                            
+                            <!-- Annotation -->
+                            <rect x="80" y="330" width="440" height="50" fill="#fff3cd" stroke="#ffc107" stroke-width="2" rx="5"/>
+                            <text x="300" y="355" font-size="13" fill="#856404" text-anchor="middle" font-weight="bold">Human Eye: Limited saturation discrimination</text>
+                            <text x="300" y="372" font-size="11" fill="#856404" text-anchor="middle">Can distinguish ~20-30 saturation levels (4-5 bits)</text>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="note warning-note">
+                    <strong>⚠️ Important Note:</strong>
+                    The diagrams above show the concept with reduced steps for visibility. In reality, 256 intensity levels appear as a perfectly smooth gradient to human eyes, while even 20-30 saturation levels may be barely distinguishable for many observers, especially at low or high luminance.
+                </div>
+            </div>
+
+            <!-- Scientific Explanation Section -->
+            <div class="section">
+                <h2>🔬 Why This Difference Exists</h2>
+                
+                <h3>Biological Basis</h3>
+                <p style="line-height: 1.8; margin-bottom: 20px;">The human retina contains two types of photoreceptors:</p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Receptor Type</th>
+                            <th>Function</th>
+                            <th>Count</th>
+                            <th>Sensitivity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Rods</strong></td>
+                            <td>Detect intensity (brightness)</td>
+                            <td>~120 million per eye</td>
+                            <td>High sensitivity, wide dynamic range</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cones</strong></td>
+                            <td>Detect color (3 types: S, M, L)</td>
+                            <td>~6 million per eye</td>
+                            <td>Lower sensitivity, narrower range</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="note key-fact">
+                    <strong>🧬 Biological Advantage:</strong>
+                    Rods outnumber cones by approximately 20:1, and they are significantly more sensitive to light. This evolutionary adaptation allows humans to detect subtle brightness differences crucial for survival (detecting predators, navigating in low light), but provides less discrimination for color saturation.
+                </div>
+
+                <h3>Saturation Discrimination Across Different Hues</h3>
+                <svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="800" height="450" fill="white"/>
+                    
+                    <!-- Title -->
+                    <text x="400" y="30" font-size="20" font-weight="bold" fill="#333" text-anchor="middle">Saturation Perception at Constant Brightness</text>
+                    
+                    <!-- Red hue example -->
+                    <text x="150" y="70" font-size="16" font-weight="bold" fill="#d32f2f" text-anchor="middle">Red Hue</text>
+                    <g id="red-sat"></g>
+                    <script type="text/javascript">
+                        // Create 20 saturation steps for red
+                        for (let i = 0; i < 20; i++) {
+                            const t = i / 19;
+                            const base = 128;
+                            const r = Math.floor(base + t * 127);
+                            const g = Math.floor(base * (1 - t));
+                            const b = Math.floor(base * (1 - t));
+                            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                            rect.setAttribute("x", 50 + i * 10);
+                            rect.setAttribute("y", 80);
+                            rect.setAttribute("width", 10);
+                            rect.setAttribute("height", 80);
+                            rect.setAttribute("fill", `rgb(${r},${g},${b})`);
+                            rect.setAttribute("stroke", "#333");
+                            rect.setAttribute("stroke-width", "0.5");
+                            document.getElementById("red-sat").appendChild(rect);
+                        }
+                    </script>
+                    <text x="150" y="180" font-size="12" fill="#666" text-anchor="middle">~20 distinguishable steps</text>
+                    
+                    <!-- Green hue example -->
+                    <text x="400" y="70" font-size="16" font-weight="bold" fill="#388e3c" text-anchor="middle">Green Hue</text>
+                    <g id="green-sat"></g>
+                    <script type="text/javascript">
+                        for (let i = 0; i < 20; i++) {
+                            const t = i / 19;
+                            const base = 128;
+                            const r = Math.floor(base * (1 - t));
+                            const g = Math.floor(base + t * 127);
+                            const b = Math.floor(base * (1 - t));
+                            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                            rect.setAttribute("x", 300 + i * 10);
+                            rect.setAttribute("y", 80);
+                            rect.setAttribute("width", 10);
+                            rect.setAttribute("height", 80);
+                            rect.setAttribute("fill", `rgb(${r},${g},${b})`);
+                            rect.setAttribute("stroke", "#333");
+                            rect.setAttribute("stroke-width", "0.5");
+                            document.getElementById("green-sat").appendChild(rect);
+                        }
+                    </script>
+                    <text x="400" y="180" font-size="12" fill="#666" text-anchor="middle">~20 distinguishable steps</text>
+                    
+                    <!-- Blue hue example -->
+                    <text x="650" y="70" font-size="16" font-weight="bold" fill="#1976d2" text-anchor="middle">Blue Hue</text>
+                    <g id="blue-sat"></g>
+                    <script type="text/javascript">
+                        for (let i = 0; i < 20; i++) {
+                            const t = i / 19;
+                            const base = 128;
+                            const r = Math.floor(base * (1 - t));
+                            const g = Math.floor(base * (1 - t));
+                            const b = Math.floor(base + t * 127);
+                            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                            rect.setAttribute("x", 550 + i * 10);
+                            rect.setAttribute("y", 80);
+                            rect.setAttribute("width", 10);
+                            rect.setAttribute("height", 80);
+                            rect.setAttribute("fill", `rgb(${r},${g},${b})`);
+                            rect.setAttribute("stroke", "#333");
+                            rect.setAttribute("stroke-width", "0.5");
+                            document.getElementById("blue-sat").appendChild(rect);
+                        }
+                    </script>
+                    <text x="650" y="180" font-size="12" fill="#666" text-anchor="middle">~20 distinguishable steps</text>
+                    
+                    <!-- Cyan hue example -->
+                    <text x="150" y="240" font-size="16" font-weight="bold" fill="#00bcd4" text-anchor="middle">Cyan Hue</text>
+                    <g id="cyan-sat"></g>
+                    <script type="text/javascript">
+                        for (let i = 0; i < 20; i++) {
+                            const t = i / 19;
+                            const base = 128;
+                            const r = Math.floor(base * (1 - t));
+                            const g = Math.floor(base + t * 127);
+                            const b = Math.floor(base + t * 127);
+                            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                            rect.setAttribute("x", 50 + i * 10);
+                            rect.setAttribute("y", 250);
+                            rect.setAttribute("width", 10);
+                            rect.setAttribute("height", 80);
+                            rect.setAttribute("fill", `rgb(${r},${g},${b})`);
+                            rect.setAttribute("stroke", "#333");
+                            rect.setAttribute("stroke-width", "0.5");
+                            document.getElementById("cyan-sat").appendChild(rect);
+                        }
+                    </script>
+                    <text x="150" y="350" font-size="12" fill="#666" text-anchor="middle">~20 distinguishable steps</text>
+                    
+                    <!-- Yellow hue example -->
+                    <text x="400" y="240" font-size="16" font-weight="bold" fill="#fbc02d" text-anchor="middle">Yellow Hue</text>
+                    <g id="yellow-sat"></g>
+                    <script type="text/javascript">
+                        for (let i = 0; i < 20; i++) {
+                            const t = i / 19;
+                            const base = 128;
+                            const r = Math.floor(base + t * 127);
+                            const g = Math.floor(base + t * 127);
+                            const b = Math.floor(base * (1 - t));
+                            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                            rect.setAttribute("x", 300 + i * 10);
+                            rect.setAttribute("y", 250);
+                            rect.setAttribute("width", 10);
+                            rect.setAttribute("height", 80);
+                            rect.setAttribute("fill", `rgb(${r},${g},${b})`);
+                            rect.setAttribute("stroke", "#333");
+                            rect.setAttribute("stroke-width", "0.5");
+                            document.getElementById("yellow-sat").appendChild(rect);
+                        }
+                    </script>
+                    <text x="400" y="350" font-size="12" fill="#666" text-anchor="middle">~20 distinguishable steps</text>
+                    
+                    <!-- Magenta hue example -->
+                    <text x="650" y="240" font-size="16" font-weight="bold" fill="#e91e63" text-anchor="middle">Magenta Hue</text>
+                    <g id="magenta-sat"></g>
+                    <script type="text/javascript">
+                        for (let i = 0; i < 20; i++) {
+                            const t = i / 19;
+                            const base = 128;
+                            const r = Math.floor(base + t * 127);
+                            const g = Math.floor(base * (1 - t));
+                            const b = Math.floor(base + t * 127);
+                            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                            rect.setAttribute("x", 550 + i * 10);
+                            rect.setAttribute("y", 250);
+                            rect.setAttribute("width", 10);
+                            rect.setAttribute("height", 80);
+                            rect.setAttribute("fill", `rgb(${r},${g},${b})`);
+                            rect.setAttribute("stroke", "#333");
+                            rect.setAttribute("stroke-width", "0.5");
+                            document.getElementById("magenta-sat").appendChild(rect);
+                        }
+                    </script>
+                    <text x="650" y="350" font-size="12" fill="#666" text-anchor="middle">~20 distinguishable steps</text>
+                    
+                    <!-- Comparison annotation -->
+                    <rect x="50" y="370" width="700" height="70" fill="#fff3cd" stroke="#ffc107" stroke-width="3" rx="8"/>
+                    <text x="400" y="395" font-size="16" font-weight="bold" fill="#856404" text-anchor="middle">Key Limitation: Saturation Resolution</text>
+                    <text x="70" y="420" font-size="13" fill="#856404">• Humans perceive ~20-30 distinct saturation levels per hue (consistent across hues)</text>
+                    <text x="70" y="438" font-size="13" fill="#856404">• This is roughly 4-5 bits of saturation information vs 8 bits (256 levels) for intensity</text>
+                </svg>
+            </div>
+
+            <!-- Implications for Computer Graphics -->
+            <div class="section">
+                <h2>💻 Implications for Computer Graphics</h2>
+                
+                <h3>Color Space Design</h3>
+                <p style="line-height: 1.8; margin-bottom: 20px;">Understanding the difference between intensity and saturation perception has led to the design of efficient color encoding schemes:</p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Color Space</th>
+                            <th>Intensity Bits</th>
+                            <th>Saturation Bits</th>
+                            <th>Rationale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>RGB (Standard)</strong></td>
+                            <td>8 bits per channel</td>
+                            <td>Implicit in R,G,B</td>
+                            <td>Simple but inefficient - treats all channels equally</td>
+                        </tr>
+                        <tr>
+                            <td><strong>YCbCr (JPEG/Video)</strong></td>
+                            <td>8 bits (Y channel)</td>
+                            <td>4-6 bits (Cb, Cr)</td>
+                            <td>Exploits perceptual difference - chroma subsampling</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HSV/HSL</strong></td>
+                            <td>8 bits (V or L)</td>
+                            <td>6-8 bits (S)</td>
+                            <td>Separates brightness from color for intuitive editing</td>
+                        </tr>
+                        <tr>
+                            <td><strong>LAB</strong></td>
+                            <td>8 bits (L: 0-100)</td>
+                            <td>8 bits (a, b)</td>
+                            <td>Perceptually uniform, used in professional color work</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="note key-fact">
+                    <strong>🎯 Practical Application:</strong>
+                    Video compression (JPEG, MPEG, H.264, H.265) uses chroma subsampling (4:2:0, 4:2:2) where color information (which includes saturation) is stored at lower resolution than brightness. This can reduce file size by 50% with minimal perceptual loss!
+                </div>
+
+                <h3>Chroma Subsampling in Video Compression</h3>
+                <svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="1000" height="500" fill="white"/>
+                    
+                    <!-- Title -->
+                    <text x="500" y="35" font-size="22" font-weight="bold" fill="#333" text-anchor="middle">Chroma Subsampling Exploits Saturation Insensitivity</text>
+                    
+                    <!-- 4:4:4 (No subsampling) -->
+                    <rect x="50" y="70" width="280" height="380" fill="#f0f4f8" stroke="#667eea" stroke-width="3" rx="8"/>
+                    <text x="190" y="100" font-size="16" font-weight="bold" fill="#667eea" text-anchor="middle">4:4:4 (No Subsampling)</text>
+                    
+                    <!-- Full resolution grid -->
+                    <g id="grid-444">
+                        <text x="190" y="130" font-size="13" fill="#333" text-anchor="middle">Luma (Y) - Full Resolution</text>
+                        <!-- 8x8 grid for luma -->
+                    </g>
+                    <script type="text/javascript">
+                        const startX = 80;
+                        const startY = 140;
+                        const cellSize = 20;
+                        for (let row = 0; row < 8; row++) {
+                            for (let col = 0; col < 8; col++) {
+                                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                rect.setAttribute("x", startX + col * cellSize);
+                                rect.setAttribute("y", startY + row * cellSize);
+                                rect.setAttribute("width", cellSize - 1);
+                                rect.setAttribute("height", cellSize - 1);
+                                rect.setAttribute("fill", "#4fc3f7");
+                                rect.setAttribute("stroke", "#0288d1");
+                                rect.setAttribute("stroke-width", "1");
+                                document.getElementById("grid-444").appendChild(rect);
+                            }
+                        }
+                    </script>
+                    
+                    <g id="chroma-444">
+                        <text x="190" y="320" font-size="13" fill="#333" text-anchor="middle">Chroma (Cb, Cr) - Full Resolution</text>
+                    </g>
+                    <script type="text/javascript">
+                        const chromaY = 330;
+                        for (let row = 0; row < 8; row++) {
+                            for (let col = 0; col < 8; col++) {
+                                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                rect.setAttribute("x", startX + col * cellSize);
+                                rect.setAttribute("y", chromaY + row * cellSize);
+                                rect.setAttribute("width", cellSize - 1);
+                                rect.setAttribute("height", cellSize - 1);
+                                rect.setAttribute("fill", "#ff9800");
+                                rect.setAttribute("stroke", "#f57c00");
+                                rect.setAttribute("stroke-width", "1");
+                                document.getElementById("chroma-444").appendChild(rect);
+                            }
+                        }
+                    </script>
+                    <text x="190" y="470" font-size="12" fill="#666" text-anchor="middle">100% data size</text>
+                    
+                    <!-- 4:2:2 (Half horizontal chroma) -->
+                    <rect x="360" y="70" width="280" height="380" fill="#f0f4f8" stroke="#667eea" stroke-width="3" rx="8"/>
+                    <text x="500" y="100" font-size="16" font-weight="bold" fill="#667eea" text-anchor="middle">4:2:2 (Half Chroma Width)</text>
+                    
+                    <g id="grid-422">
+                        <text x="500" y="130" font-size="13" fill="#333" text-anchor="middle">Luma (Y) - Full Resolution</text>
+                    </g>
+                    <script type="text/javascript">
+                        const startX422 = 390;
+                        for (let row = 0; row < 8; row++) {
+                            for (let col = 0; col < 8; col++) {
+                                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                rect.setAttribute("x", startX422 + col * cellSize);
+                                rect.setAttribute("y", startY + row * cellSize);
+                                rect.setAttribute("width", cellSize - 1);
+                                rect.setAttribute("height", cellSize - 1);
+                                rect.setAttribute("fill", "#4fc3f7");
+                                rect.setAttribute("stroke", "#0288d1");
+                                rect.setAttribute("stroke-width", "1");
+                                document.getElementById("grid-422").appendChild(rect);
+                            }
+                        }
+                    </script>
+                    
+                    <g id="chroma-422">
+                        <text x="500" y="320" font-size="13" fill="#333" text-anchor="middle">Chroma - Half Horizontal Resolution</text>
+                    </g>
+                    <script type="text/javascript">
+                        for (let row = 0; row < 8; row++) {
+                            for (let col = 0; col < 4; col++) {
+                                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                rect.setAttribute("x", startX422 + col * cellSize * 2);
+                                rect.setAttribute("y", chromaY + row * cellSize);
+                                rect.setAttribute("width", cellSize * 2 - 1);
+                                rect.setAttribute("height", cellSize - 1);
+                                rect.setAttribute("fill", "#ff9800");
+                                rect.setAttribute("stroke", "#f57c00");
+                                rect.setAttribute("stroke-width", "1");
+                                document.getElementById("chroma-422").appendChild(rect);
+                            }
+                        }
+                    </script>
+                    <text x="500" y="470" font-size="12" fill="#666" text-anchor="middle">67% data size</text>
+                    
+                    <!-- 4:2:0 (Quarter chroma) -->
+                    <rect x="670" y="70" width="280" height="380" fill="#f0f4f8" stroke="#667eea" stroke-width="3" rx="8"/>
+                    <text x="810" y="100" font-size="16" font-weight="bold" fill="#667eea" text-anchor="middle">4:2:0 (Quarter Chroma)</text>
+                    
+                    <g id="grid-420">
+                        <text x="810" y="130" font-size="13" fill="#333" text-anchor="middle">Luma (Y) - Full Resolution</text>
+                    </g>
+                    <script type="text/javascript">
+                        const startX420 = 700;
+                        for (let row = 0; row < 8; row++) {
+                            for (let col = 0; col < 8; col++) {
+                                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                rect.setAttribute("x", startX420 + col * cellSize);
+                                rect.setAttribute("y", startY + row * cellSize);
+                                rect.setAttribute("width", cellSize - 1);
+                                rect.setAttribute("height", cellSize - 1);
+                                rect.setAttribute("fill", "#4fc3f7");
+                                rect.setAttribute("stroke", "#0288d1");
+                                rect.setAttribute("stroke-width", "1");
+                                document.getElementById("grid-420").appendChild(rect);
+                            }
+                        }
+                    </script>
+                    
+                    <g id="chroma-420">
+                        <text x="810" y="320" font-size="13" fill="#333" text-anchor="middle">Chroma - Quarter Resolution</text>
+                    </g>
+                    <script type="text/javascript">
+                        for (let row = 0; row < 4; row++) {
+                            for (let col = 0; col < 4; col++) {
+                                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                                rect.setAttribute("x", startX420 + col * cellSize * 2);
+                                rect.setAttribute("y", chromaY + row * cellSize * 2);
+                                rect.setAttribute("width", cellSize * 2 - 1);
+                                rect.setAttribute("height", cellSize * 2 - 1);
+                                rect.setAttribute("fill", "#ff9800");
+                                rect.setAttribute("stroke", "#f57c00");
+                                rect.setAttribute("stroke-width", "1");
+                                document.getElementById("chroma-420").appendChild(rect);
+                            }
+                        }
+                    </script>
+                    <text x="810" y="470" font-size="12" fill="#666" text-anchor="middle">50% data size</text>
+                </svg>
+                
+                <div class="note warning-note">
+                    <strong>📊 Real-World Impact:</strong>
+                    Most consumer video (YouTube, Netflix, Blu-ray) uses 4:2:0 chroma subsampling. This means color information (including saturation) is stored at 1/4 the resolution of brightness information, exploiting the fact that human vision is less sensitive to saturation and hue details than to intensity changes.
+                </div>
+
+                <h3>HSV Color Space Visualization</h3>
+                <svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="800" height="500" fill="white"/>
+                    
+                    <!-- Title -->
+                    <text x="400" y="35" font-size="22" font-weight="bold" fill="#333" text-anchor="middle">HSV: Separating Hue, Saturation, and Value (Intensity)</text>
+                    
+                    <!-- HSV Cylinder -->
+                    <g transform="translate(200, 100)">
+                        <!-- Cylinder - top ellipse (hue circle at full saturation and value) -->
+                        <ellipse cx="200" cy="50" rx="150" ry="50" fill="none" stroke="#333" stroke-width="3"/>
+                        
+                        <!-- Color wheel on top -->
+                        <g id="hsv-top-circle"></g>
+                        <script type="text/javascript">
+                            const hsvCx = 200;
+                            const hsvCy = 50;
+                            const hsvRx = 150;
+                            const hsvRy = 50;
+                            const hsvSteps = 60;
+                            
+                            for (let i = 0; i < hsvSteps; i++) {
+                                const angle1 = (i / hsvSteps) * 2 * Math.PI - Math.PI / 2;
+                                const angle2 = ((i + 1) / hsvSteps) * 2 * Math.PI - Math.PI / 2;
+                                const hue = (i / hsvSteps) * 360;
+                                
+                                const h = hue / 60;
+                                const c = 255;
+                                const x = c * (1 - Math.abs((h % 2) - 1));
+                                let r, g, b;
+                                if (h < 1) { r = c; g = x; b = 0; }
+                                else if (h < 2) { r = x; g = c; b = 0; }
+                                else if (h < 3) { r = 0; g = c; b = x; }
+                                else if (h < 4) { r = 0; g = x; b = c; }
+                                else if (h < 5) { r = x; g = 0; b = c; }
+                                else { r = c; g = 0; b = x; }
+                                
+                                const x1 = hsvCx + hsvRx * Math.cos(angle1);
+                                const y1 = hsvCy + hsvRy * Math.sin(angle1);
+                                const x2 = hsvCx + hsvRx * Math.cos(angle2);
+                                const y2 = hsvCy + hsvRy * Math.sin(angle2);
+                                
+                                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                                path.setAttribute("d", `M ${hsvCx},${hsvCy} L ${x1},${y1} A ${hsvRx},${hsvRy} 0 0,1 ${x2},${y2} Z`);
+                                path.setAttribute("fill", `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`);
+                                path.setAttribute("stroke", "none");
+                                document.getElementById("hsv-top-circle").appendChild(path);
+                            }
+                        </script>
+                        
+                        <!-- Center point (desaturated - gray) -->
+                        <circle cx="200" cy="50" r="30" fill="#808080" stroke="#333" stroke-width="2"/>
+                        
+                        <!-- Cylinder sides -->
+                        <line x1="50" y1="50" x2="50" y2="300" stroke="#333" stroke-width="3"/>
+                        <line x1="350" y1="50" x2="350" y2="300" stroke="#333" stroke-width="3"/>
+                        
+                        <!-- Gradient fill for value (brightness) -->
+                        <defs>
+                            <linearGradient id="value-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:0.8" />
+                                <stop offset="100%" style="stop-color:rgb(0,0,0);stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="50" y="50" width="300" height="250" fill="url(#value-gradient)"/>
+                        
+                        <!-- Bottom ellipse -->
+                        <ellipse cx="200" cy="300" rx="150" ry="50" fill="#000" stroke="#333" stroke-width="3"/>
+                        
+                        <!-- Labels and arrows -->
+                        <text x="380" y="50" font-size="16" fill="#333" font-weight="bold">Hue (H)</text>
+                        <text x="380" y="70" font-size="12" fill="#666">360° around circle</text>
+                        <text x="380" y="85" font-size="11" fill="#666">~100-150 distinct hues</text>
+                        
+                        <!-- Saturation arrow (radial) -->
+                        <defs>
+                            <marker id="sat-arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                <polygon points="0 0, 10 3, 0 6" fill="#e91e63" />
+                            </marker>
+                        </defs>
+                        <line x1="200" y1="50" x2="310" y2="50" stroke="#e91e63" stroke-width="3" marker-end="url(#sat-arrow)"/>
+                        <text x="255" y="40" font-size="14" fill="#e91e63" font-weight="bold">Saturation (S)</text>
+                        <text x="220" y="25" font-size="11" fill="#e91e63">~20-30 levels</text>
+                        
+                        <!-- Value arrow (vertical) -->
+                        <defs>
+                            <marker id="val-arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                <polygon points="0 0, 10 3, 0 6" fill="#2196f3" />
+                            </marker>
+                        </defs>
+                        <line x1="30" y1="50" x2="30" y2="280" stroke="#2196f3" stroke-width="3" marker-end="url(#val-arrow)"/>
+                        <text x="-50" y="175" font-size="14" fill="#2196f3" font-weight="bold" transform="rotate(-90 -50 175)">Value/Intensity (V)</text>
+                        <text x="-80" y="155" font-size="11" fill="#2196f3" transform="rotate(-90 -80 155)">~256 levels</text>
+                    </g>
+                    
+                    <rect x="50" y="420" width="700" height="60" fill="#d4edda" stroke="#c3e6cb" stroke-width="2" rx="5"/>
+                    <text x="400" y="445" font-size="14" fill="#155724" text-anchor="middle"><strong>Key Insight:</strong> HSV explicitly separates the three dimensions of color perception.</text>
+                    <text x="400" y="465" font-size="12" fill="#155724" text-anchor="middle">Humans have highest discrimination for Value (intensity), moderate for Hue, and lowest for Saturation.</text>
+                </svg>
+            </div>
+
+            <!-- Summary Section -->
+            <div class="section">
+                <h2>📋 Summary</h2>
+                
+                <div class="comparison-grid">
+                    <div class="comparison-box">
+                        <h4>Intensity (Brightness/Value)</h4>
+                        <ul style="line-height: 2; margin-left: 20px;">
+                            <li><strong>Discrimination:</strong> ~256 levels (8 bits)</li>
+                            <li><strong>Best conditions:</strong> Bright light</li>
+                            <li><strong>Receptors:</strong> Rods (120M) + Cones</li>
+                            <li><strong>Encoding:</strong> Full 8-bit resolution</li>
+                            <li><strong>Importance:</strong> Critical for detail perception</li>
+                            <li><strong>Evolution:</strong> Survival-critical (predator detection)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-box">
+                        <h4>Saturation (Color Purity/Chroma)</h4>
+                        <ul style="line-height: 2; margin-left: 20px;">
+                            <li><strong>Discrimination:</strong> ~20-30 levels (4-5 bits)</li>
+                            <li><strong>Best conditions:</strong> Any moderate lighting</li>
+                            <li><strong>Receptors:</strong> Cones only (6M)</li>
+                            <li><strong>Encoding:</strong> Can subsample to 4-6 bits</li>
+                            <li><strong>Importance:</strong> Secondary to intensity</li>
+                            <li><strong>Evolution:</strong> Less critical for survival</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="note key-fact">
+                    <strong>🎓 For Computer Graphics Students:</strong>
+                    When designing color systems, remember that human vision is asymmetric: we're much better at detecting brightness changes than saturation changes. This biological limitation can be exploited for efficient storage and transmission of images and video. The 8-bit per channel RGB standard gives equal weight to all channels, but perceptual color spaces like YCbCr leverage this asymmetry for better compression.
+                </div>
+                
+                <div class="formula">
+                    Key Ratio: Intensity/Saturation discrimination ≈ 256/25 ≈ 10:1
+                    <br><br>
+                    This 10x difference drives many optimization strategies in image processing and video compression.
+                </div>
+                
+                <h3>Practical Applications</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Application</th>
+                            <th>How It Uses This Knowledge</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Video Compression</strong></td>
+                            <td>Chroma subsampling (4:2:0) reduces color data while preserving perceived quality</td>
+                        </tr>
+                        <tr>
+                            <td><strong>JPEG Images</strong></td>
+                            <td>YCbCr color space allows higher compression of chroma channels</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Color Grading</strong></td>
+                            <td>HSV/HSL sliders separate saturation from brightness for intuitive control</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Display Calibration</strong></td>
+                            <td>Brightness (gamma) correction is more critical than saturation accuracy</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Image Quantization</strong></td>
+                            <td>When reducing colors (e.g., GIF), preserve intensity levels over saturation variety</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HDR Imaging</strong></td>
+                            <td>Focuses on expanding intensity range (10+ bits) rather than saturation range</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
