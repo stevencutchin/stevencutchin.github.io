@@ -437,11 +437,30 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .filename-display:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.3);
         }
 
         .filename-display.unsaved::after {
             content: ' •';
             color: #f39c12;
+        }
+
+        .filename-input {
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #333;
+            max-width: 200px;
+            border: 1px solid #007bff;
+            outline: none;
         }
 
         .btn-header:disabled {
@@ -600,7 +619,397 @@
             outline: none;
             border-color: #007bff;
         }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .import-dropzone {
+            border: 2px dashed #ccc;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .import-dropzone.dragover {
+            border-color: #007bff;
+            background: #f0f7ff;
+        }
+
+        .import-dropzone p {
+            margin: 0 0 10px 0;
+            color: #666;
+        }
+
+        .import-dropzone input[type="file"] {
+            display: none;
+        }
+
+        .import-dropzone label {
+            color: #007bff;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .import-dropzone label:hover {
+            color: #0056b3;
+        }
+
+        .import-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+
+        .import-textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .import-prompt-row {
+            margin-bottom: 16px;
+        }
+
+        .import-prompt-row label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .import-prompt-row textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .import-prompt-row textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .import-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .import-options label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .import-preview {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #f8f9fa;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .import-preview.active {
+            display: block;
+        }
+
+        .import-preview h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .import-preview-content {
+            max-height: 250px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        .preview-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .preview-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .preview-section-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #2c3e50;
+        }
+
+        .preview-section-entries {
+            color: #555;
+            font-size: 0.8rem;
+        }
+
+        .preview-section-entries li {
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* Export Modal Specific */
+        .export-modal {
+            max-width: 900px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .preset-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .preset-card:hover {
+            border-color: #007bff;
+            background: #f8f9ff;
+        }
+
+        .preset-card.selected {
+            border-color: #007bff;
+            background: #e8f0ff;
+        }
+
+        .preset-card-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .preset-card-desc {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .preset-card.custom {
+            border-style: dashed;
+        }
+
+        .preset-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .export-prompt-section {
+            margin-bottom: 16px;
+        }
+
+        .export-prompt-section label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .export-prompt-section textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+
+        .export-prompt-section textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .export-preview-tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 0;
+        }
+
+        .export-preview-tab {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: -1px;
+        }
+
+        .export-preview-tab:hover {
+            background: #eee;
+        }
+
+        .export-preview-tab.active {
+            background: white;
+            border-bottom-color: white;
+            font-weight: 500;
+        }
+
+        .export-preview-content {
+            border: 1px solid #ddd;
+            border-top: none;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .export-file-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .export-preview-area {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .export-preview-area.active {
+            display: block;
+        }
+
+        .save-preset-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .save-preset-row input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .custom-preset-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .delete-preset-btn {
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .preset-card:hover .delete-preset-btn {
+            opacity: 1;
+        }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <!-- Hidden file input for loading JSON -->
@@ -609,7 +1018,7 @@
     <header class="header-bar">
         <h1>📋 Portfolio Editor</h1>
         
-        <span class="filename-display" id="filename-display" title="Current file">Untitled</span>
+        <span class="filename-display" id="filename-display" title="Click to rename" onclick="startFilenameEdit()">Untitled</span>
         
         <div class="header-actions">
             <button class="btn-header btn-header-dark" id="undo-btn" onclick="undo()" title="Undo (Ctrl+Z)" disabled>
@@ -630,6 +1039,9 @@
             <button class="btn-header btn-header-success" onclick="savePortfolio()" title="Save as JSON">
                 💾 Save
             </button>
+            <button class="btn-header btn-header-primary" onclick="openImportModal()" title="Import files or text for AI parsing">
+                📥 Import
+            </button>
             
             <div class="header-divider"></div>
             
@@ -641,6 +1053,9 @@
             </button>
             <button class="btn-header btn-header-secondary" onclick="exportAs('latex')" title="Export as LaTeX">
                 📄 LaTeX
+            </button>
+            <button class="btn-header btn-header-info" onclick="openExportModal()" title="AI-powered export to any format">
+                🤖 AI Export
             </button>
             <button class="btn-header btn-header-secondary" onclick="printPortfolio()" title="Print">
                 🖨️ Print
@@ -716,6 +1131,134 @@
         </div>
     </div>
 
+    <!-- Import Text Modal -->
+    <div class="modal-overlay" id="import-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📥 Import Content</h2>
+                <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="import-dropzone" id="import-dropzone">
+                    <p>Drag and drop a file here, or</p>
+                    <label for="import-file-input">click to browse</label>
+                    <input type="file" id="import-file-input" accept=".txt,.md,.csv,.json,.xml,.html,.htm,.js,.py,.tex,.bib,.ris,.pdf,.png,.jpg,.jpeg,.gif,.webp" onchange="handleImportFile(event)">
+                    <p style="font-size: 0.75rem; color: #888; margin-top: 10px;">
+                        Supports: Text, Markdown, CSV, JSON, PDF, Images, and more
+                    </p>
+                </div>
+
+                <div id="file-preview-area" style="display: none; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                        <span id="file-preview-icon" style="font-size: 1.5rem;">📄</span>
+                        <div style="flex: 1;">
+                            <div id="file-preview-name" style="font-weight: 500;"></div>
+                            <div id="file-preview-info" style="font-size: 0.8rem; color: #666;"></div>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="clearImportFile()">✕ Clear</button>
+                    </div>
+                    <img id="file-preview-image" style="display: none; max-width: 100%; max-height: 200px; margin-top: 10px; border-radius: 4px;">
+                </div>
+
+                <textarea 
+                    class="import-textarea" 
+                    id="import-text" 
+                    placeholder="Or paste text here...&#10;&#10;For files, use the dropzone above. Text pasted here will be combined with any uploaded file."
+                    oninput="updateCharCount()"
+                ></textarea>
+                <div class="char-count" id="import-char-count">0 characters</div>
+
+                <div class="import-prompt-row">
+                    <label for="import-prompt">Instructions for AI:</label>
+                    <textarea id="import-prompt">Parse this text into appropriate portfolio sections. Identify categories like Education, Employment, Publications, Skills, Projects, etc. based on the content. Return a JSON object with a "sections" array where each section has a "name" and "entries" array.</textarea>
+                </div>
+
+                <div class="import-options">
+                    <label>
+                        <input type="radio" name="import-mode" value="merge" checked>
+                        Add to existing sections
+                    </label>
+                    <label>
+                        <input type="radio" name="import-mode" value="replace">
+                        Replace all sections
+                    </label>
+                </div>
+
+                <div class="import-preview" id="import-preview">
+                    <h4>Preview:</h4>
+                    <div class="import-preview-content" id="import-preview-content"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+                <button class="btn btn-primary" id="process-import-btn" onclick="processImport()">
+                    🤖 Process with AI
+                </button>
+                <button class="btn btn-success" id="apply-import-btn" onclick="applyImport()" style="display: none;">
+                    ✓ Apply to Portfolio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Export Modal -->
+    <div class="modal-overlay" id="export-modal">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2>🤖 AI Export</h2>
+                <button class="modal-close" onclick="closeExportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4 style="margin: 0 0 12px 0; font-size: 0.95rem;">Choose a format preset:</h4>
+                
+                <div class="preset-grid" id="preset-grid">
+                    <!-- Presets populated by JS -->
+                </div>
+
+                <div class="preset-actions">
+                    <button class="btn btn-secondary btn-small" onclick="toggleSavePreset()">💾 Save Current as Preset</button>
+                    <button class="btn btn-secondary btn-small" onclick="exportCustomPresets()">📤 Export Presets</button>
+                    <button class="btn btn-secondary btn-small" onclick="importCustomPresets()">📥 Import Presets</button>
+                </div>
+
+                <div class="save-preset-row" id="save-preset-row" style="display: none; margin-bottom: 16px;">
+                    <input type="text" id="new-preset-name" placeholder="Preset name...">
+                    <input type="text" id="new-preset-desc" placeholder="Short description..." style="max-width: 200px;">
+                    <button class="btn btn-primary btn-small" onclick="saveCurrentAsPreset()">Save</button>
+                    <button class="btn btn-secondary btn-small" onclick="toggleSavePreset()">Cancel</button>
+                </div>
+
+                <div class="export-prompt-section">
+                    <label for="export-prompt">Export instructions for AI:</label>
+                    <textarea id="export-prompt" placeholder="Describe how you want the data exported..."></textarea>
+                </div>
+
+                <div class="export-preview-area" id="export-preview-area">
+                    <div class="export-preview-tabs" id="export-preview-tabs">
+                        <!-- Tabs populated by JS -->
+                    </div>
+                    <div class="export-preview-content" id="export-preview-content">
+                        <!-- Content populated by JS -->
+                    </div>
+                    <div class="export-file-actions">
+                        <button class="btn btn-primary btn-small" id="download-current-btn" onclick="downloadCurrentFile()">
+                            ⬇️ Download This File
+                        </button>
+                        <button class="btn btn-success btn-small" id="download-all-btn" onclick="downloadAllAsZip()">
+                            📦 Download All as ZIP
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeExportModal()">Cancel</button>
+                <button class="btn btn-primary" id="generate-export-btn" onclick="generateExport()">
+                    🤖 Generate Export
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===========================================
         // DATA MODEL
@@ -764,53 +1307,239 @@
         let savedPrompts = [];
         const PROMPTS_STORAGE_KEY = 'portfolio_editor_prompts';
 
+        // Export presets
+        const EXPORT_PRESETS_STORAGE_KEY = 'portfolio_editor_export_presets';
+        let customExportPresets = [];
+
+        const builtInExportPresets = [
+            {
+                id: 'academic-latex-bib',
+                name: 'Academic CV (LaTeX + BibTeX)',
+                description: 'moderncv class with separate .bib file',
+                prompt: `Convert this portfolio to a professional academic CV. Generate TWO files:
+
+1. cv.tex - A LaTeX document using the moderncv class with:
+   - Professional formatting
+   - Sections for each category
+   - Use \\citep{} or \\fullcite{} for publication references
+   - Include \\bibliography{publications} at the end
+
+2. publications.bib - A proper BibTeX file with:
+   - Correct entry types (@article, @inproceedings, @book, etc.)
+   - Properly formatted author names
+   - All required fields for each entry type
+   - Citation keys based on author-year format
+
+Return JSON with format: { "files": [{ "filename": "cv.tex", "content": "..." }, { "filename": "publications.bib", "content": "..." }] }`
+            },
+            {
+                id: 'zotero-ris',
+                name: 'Zotero/RIS',
+                description: 'RIS format for Zotero import',
+                prompt: `Convert the publications/references in this portfolio to RIS format for import into Zotero or other reference managers.
+
+Each entry should have proper RIS tags:
+- TY (type): JOUR, CONF, BOOK, CHAP, THES, etc.
+- AU (author): One per line, "Last, First" format
+- TI (title)
+- JO/T2 (journal/conference name)
+- PY (publication year)
+- VL (volume), IS (issue), SP/EP (pages)
+- DO (DOI if detectable)
+- ER (end of record)
+
+Return JSON with format: { "files": [{ "filename": "references.ris", "content": "..." }] }`
+            },
+            {
+                id: 'bibtex',
+                name: 'BibTeX Only',
+                description: 'Pure .bib file for LaTeX',
+                prompt: `Convert all publications in this portfolio to a properly formatted BibTeX file.
+
+For each publication:
+- Determine the correct entry type (@article, @inproceedings, @book, @phdthesis, @mastersthesis, @techreport, @misc)
+- Generate a citation key in authorYear format (e.g., smith2023)
+- Include all standard fields: author, title, journal/booktitle, year, volume, number, pages, publisher, doi
+- Format author names as "Last, First and Last, First"
+- Escape special LaTeX characters
+
+Return JSON with format: { "files": [{ "filename": "publications.bib", "content": "..." }] }`
+            },
+            {
+                id: 'zotero-csl-json',
+                name: 'CSL-JSON (Zotero)',
+                description: 'JSON format for Zotero/citation tools',
+                prompt: `Convert the publications in this portfolio to CSL-JSON format (Citation Style Language JSON), which is the native format for Zotero and many citation tools.
+
+Follow the CSL-JSON schema:
+- "type": article-journal, paper-conference, book, chapter, thesis, etc.
+- "title": string
+- "author": [{"family": "Last", "given": "First"}, ...]
+- "issued": {"date-parts": [[year, month, day]]}
+- "container-title": journal/conference name
+- "volume", "issue", "page"
+- "DOI", "URL" if available
+
+Return JSON with format: { "files": [{ "filename": "references.json", "content": "..." }] }`
+            },
+            {
+                id: 'modern-html',
+                name: 'Modern HTML Resume',
+                description: 'Styled, responsive HTML page',
+                prompt: `Convert this portfolio to a beautiful, modern HTML resume with embedded CSS. Include:
+
+- Clean, professional design with good typography
+- Responsive layout (works on mobile)
+- Sections clearly delineated
+- Print-friendly styles
+- No external dependencies (all CSS inline or in <style>)
+- Professional color scheme
+
+Return JSON with format: { "files": [{ "filename": "resume.html", "content": "..." }] }`
+            },
+            {
+                id: 'json-resume',
+                name: 'JSON Resume Standard',
+                description: 'Interoperable JSON Resume format',
+                prompt: `Convert this portfolio to the JSON Resume standard format (https://jsonresume.org/schema/).
+
+Include all applicable sections:
+- basics (name, email, phone, url, summary, location, profiles)
+- work (company, position, startDate, endDate, summary, highlights)
+- education (institution, area, studyType, startDate, endDate, gpa, courses)
+- publications (name, publisher, releaseDate, url, summary)
+- skills, languages, interests, references, projects, awards, certificates
+
+Use ISO date formats (YYYY-MM-DD) where applicable.
+
+Return JSON with format: { "files": [{ "filename": "resume.json", "content": "..." }] }`
+            },
+            {
+                id: 'endnote-xml',
+                name: 'EndNote XML',
+                description: 'XML format for EndNote import',
+                prompt: `Convert the publications in this portfolio to EndNote XML format for import into EndNote reference manager.
+
+Use proper EndNote XML structure with:
+- <xml><records><record> hierarchy
+- <ref-type> with correct numeric codes
+- <contributors><authors><author> for author names
+- <titles><title>, <secondary-title>
+- <periodical><full-title>
+- <pages>, <volume>, <number>
+- <dates><year>
+- <electronic-resource-num> for DOI
+
+Return JSON with format: { "files": [{ "filename": "references.xml", "content": "..." }] }`
+            },
+            {
+                id: 'markdown-github',
+                name: 'GitHub Markdown',
+                description: 'Clean markdown for README/profile',
+                prompt: `Convert this portfolio to clean GitHub-flavored Markdown suitable for a README.md or GitHub profile.
+
+Include:
+- Clear section headers with ##
+- Bullet points for lists
+- Links where appropriate
+- Clean formatting without excessive decoration
+- Badges or shields.io badges if appropriate for skills
+
+Return JSON with format: { "files": [{ "filename": "README.md", "content": "..." }] }`
+            },
+            {
+                id: 'altacv-latex',
+                name: 'AltaCV (LaTeX)',
+                description: 'Modern two-column LaTeX CV',
+                prompt: `Convert this portfolio to LaTeX using the AltaCV class (a modern, two-column CV template).
+
+Generate files:
+1. cv.tex - Main document using AltaCV with:
+   - Two-column layout
+   - Proper use of \\cvsection, \\cvevent, \\cvachievement
+   - Skills with \\cvtag
+   - Publications with proper formatting or bibliography
+
+2. publications.bib - If there are publications, include a proper BibTeX file
+
+Return JSON with format: { "files": [{ "filename": "cv.tex", "content": "..." }, { "filename": "publications.bib", "content": "..." }] }`
+            },
+            {
+                id: 'word-compatible',
+                name: 'Word-Compatible HTML',
+                description: 'HTML that pastes well into Word',
+                prompt: `Convert this portfolio to HTML that will paste cleanly into Microsoft Word while maintaining formatting.
+
+Use:
+- Simple HTML tables for layout if needed
+- Inline styles (Word ignores CSS classes)
+- Standard fonts (Times New Roman, Arial)
+- Simple formatting: <b>, <i>, <u>
+- Clear section breaks
+- Avoid complex CSS
+
+Return JSON with format: { "files": [{ "filename": "resume_for_word.html", "content": "..." }] }`
+            }
+        ];
+
         // ===========================================
-        // API MODULE - Replace this for Cloudflare Worker
+        // API MODULE - Cloudflare Worker Integration
         // ===========================================
 
+        // ⚠️ CONFIGURE YOUR WORKER URL HERE
+        const API_WORKER_URL = 'https://portfolio-editor-api.portfolio-editor-api.workers.dev';
+
         /**
-         * Send a request to the AI API
+         * Send a request to the AI API via Cloudflare Worker
          * @param {Object} params - The request parameters
          * @param {string} params.prompt - The user's prompt
          * @param {Object} params.data - The portfolio data (or subset) to process
          * @param {string} params.targetSection - Which section(s) to target
+         * @param {Object} params.file - Optional file data { name, type, data (base64) }
          * @returns {Promise<Object>} - The API response
          */
-        async function callAI({ prompt, data, targetSection }) {
-            // ============================================
-            // REPLACE THIS FUNCTION FOR CLOUDFLARE WORKER
-            // ============================================
-            
-            // Example implementation for Cloudflare Worker:
-            //
-            // const response = await fetch('https://your-worker.your-subdomain.workers.dev/api/ai', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({
-            //         prompt: prompt,
-            //         data: data,
-            //         targetSection: targetSection
-            //     })
-            // });
-            //
-            // if (!response.ok) {
-            //     throw new Error(`API error: ${response.status}`);
-            // }
-            //
-            // return await response.json();
+        async function callAI({ prompt, data, targetSection, file }) {
+            // Check if worker URL is configured
+            if (API_WORKER_URL.includes('your-worker-name')) {
+                // Return mock response if not configured
+                console.warn('Worker URL not configured. Using mock response.');
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({
+                            success: true,
+                            message: `[Mock Response - Configure API_WORKER_URL to enable AI]\n\nPrompt received: "${prompt}"\n\nTarget: ${targetSection}\n${file ? `\nFile: ${file.name} (${file.type})` : ''}\n\nTo connect to Claude:\n1. Deploy the Cloudflare Worker\n2. Update API_WORKER_URL in this file\n\nData received:\n${JSON.stringify(data, null, 2)}`,
+                            updatedData: null
+                        });
+                    }, 500);
+                });
+            }
 
-            // MOCK IMPLEMENTATION - Remove when connecting to real API
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve({
-                        success: true,
-                        message: `[Mock Response]\n\nPrompt received: "${prompt}"\n\nTarget: ${targetSection}\n\nThis is a placeholder response. Connect to your Cloudflare Worker to get real AI responses.\n\nData received:\n${JSON.stringify(data, null, 2)}`,
-                        updatedData: null // The AI can return updated data structure here
-                    });
-                }, 1000);
+            // Make actual API call
+            const requestBody = {
+                prompt: prompt,
+                data: data,
+                targetSection: targetSection
+            };
+
+            // Add file if present
+            if (file) {
+                requestBody.file = file;
+            }
+
+            const response = await fetch(API_WORKER_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `API error: ${response.status}`);
+            }
+
+            return await response.json();
         }
 
         // ===========================================
@@ -941,14 +1670,64 @@
 
         function updateFilenameDisplay() {
             const display = document.getElementById('filename-display');
-            display.textContent = currentFilename;
-            display.title = currentFilename + (hasUnsavedChanges ? ' (unsaved changes)' : '');
-            
-            if (hasUnsavedChanges) {
-                display.classList.add('unsaved');
-            } else {
-                display.classList.remove('unsaved');
+            // Only update if not currently editing
+            if (display.tagName === 'SPAN') {
+                display.textContent = currentFilename;
+                display.title = 'Click to rename' + (hasUnsavedChanges ? ' (unsaved changes)' : '');
+                
+                if (hasUnsavedChanges) {
+                    display.classList.add('unsaved');
+                } else {
+                    display.classList.remove('unsaved');
+                }
             }
+        }
+
+        function startFilenameEdit() {
+            const display = document.getElementById('filename-display');
+            
+            // Create input element
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'filename-input';
+            input.id = 'filename-display';
+            input.value = currentFilename;
+            
+            // Handle saving
+            function saveFilename() {
+                const newName = input.value.trim() || 'Untitled';
+                
+                // Create span element
+                const span = document.createElement('span');
+                span.className = 'filename-display' + (hasUnsavedChanges ? ' unsaved' : '');
+                span.id = 'filename-display';
+                span.title = 'Click to rename' + (hasUnsavedChanges ? ' (unsaved changes)' : '');
+                span.textContent = newName;
+                span.onclick = startFilenameEdit;
+                
+                input.replaceWith(span);
+                
+                if (newName !== currentFilename) {
+                    currentFilename = newName;
+                    markUnsaved();
+                }
+            }
+            
+            input.addEventListener('blur', saveFilename);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    input.value = currentFilename; // Reset to original
+                    input.blur();
+                }
+            });
+            
+            // Replace span with input
+            display.replaceWith(input);
+            input.focus();
+            input.select();
         }
 
         // Warn before leaving with unsaved changes
@@ -1168,14 +1947,82 @@
             if (confirm('Apply the AI\'s suggested changes? This will modify your data.')) {
                 saveState();
                 
-                // Handle both full portfolio updates and single section updates
-                if (lastAIResponse.updatedData.sections) {
-                    portfolioData = lastAIResponse.updatedData;
+                // Normalize the data structure (add IDs, fix entry format)
+                function normalizeSection(section) {
+                    return {
+                        id: section.id || generateId(),
+                        name: section.name || 'Untitled Section',
+                        entries: (section.entries || []).map(entry => {
+                            if (typeof entry === 'string') {
+                                return { id: generateId(), content: entry };
+                            } else if (entry && entry.content) {
+                                return { id: entry.id || generateId(), content: entry.content };
+                            } else {
+                                return { id: generateId(), content: String(entry || '') };
+                            }
+                        })
+                    };
+                }
+
+                function normalizeData(data) {
+                    if (data.sections && Array.isArray(data.sections)) {
+                        return {
+                            sections: data.sections.map(normalizeSection)
+                        };
+                    } else if (data.name && data.entries) {
+                        // Single section
+                        return normalizeSection(data);
+                    }
+                    return data;
+                }
+
+                const normalized = normalizeData(lastAIResponse.updatedData);
+                
+                // Get the target section from the dropdown
+                const targetSection = document.getElementById('target-section').value;
+                
+                // If a specific section was targeted (not "all"), update only that section
+                if (targetSection !== 'all') {
+                    // Find the target section in current data
+                    const targetIdx = portfolioData.sections.findIndex(s => s.id === targetSection);
+                    
+                    if (targetIdx !== -1) {
+                        // Get the section data from the response
+                        let updatedSection = null;
+                        
+                        if (normalized.sections && normalized.sections.length > 0) {
+                            // Claude returned sections array - use the first one (or find matching name)
+                            const targetName = portfolioData.sections[targetIdx].name.toLowerCase();
+                            updatedSection = normalized.sections.find(s => 
+                                s.name.toLowerCase() === targetName
+                            ) || normalized.sections[0];
+                        } else if (normalized.name) {
+                            // Claude returned a single section
+                            updatedSection = normalized;
+                        }
+                        
+                        if (updatedSection) {
+                            // Preserve the original ID
+                            updatedSection.id = portfolioData.sections[targetIdx].id;
+                            portfolioData.sections[targetIdx] = updatedSection;
+                        }
+                    }
                 } else {
-                    // Single section update
-                    const idx = portfolioData.sections.findIndex(s => s.id === lastAIResponse.updatedData.id);
-                    if (idx !== -1) {
-                        portfolioData.sections[idx] = lastAIResponse.updatedData;
+                    // "All" was selected - replace everything
+                    if (normalized.sections) {
+                        portfolioData = normalized;
+                    } else if (normalized.name) {
+                        // Single section returned but "all" was selected - just add/update it
+                        const idx = portfolioData.sections.findIndex(s => 
+                            s.name.toLowerCase() === normalized.name.toLowerCase()
+                        );
+                        
+                        if (idx !== -1) {
+                            normalized.id = portfolioData.sections[idx].id;
+                            portfolioData.sections[idx] = normalized;
+                        } else {
+                            portfolioData.sections.push(normalized);
+                        }
                     }
                 }
                 render();
@@ -1391,6 +2238,675 @@
         }
 
         // ===========================================
+        // IMPORT TEXT MODAL
+        // ===========================================
+
+        let pendingImportData = null;
+        let importedFile = null; // Stores { name, type, data, isBase64 }
+
+        function openImportModal() {
+            document.getElementById('import-modal').classList.add('active');
+            document.getElementById('import-text').value = '';
+            document.getElementById('import-preview').classList.remove('active');
+            document.getElementById('apply-import-btn').style.display = 'none';
+            document.getElementById('process-import-btn').style.display = '';
+            document.getElementById('file-preview-area').style.display = 'none';
+            document.getElementById('file-preview-image').style.display = 'none';
+            pendingImportData = null;
+            importedFile = null;
+            updateCharCount();
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal').classList.remove('active');
+            pendingImportData = null;
+        }
+
+        // Close modal on escape key - initialized after DOM ready
+        function initModalListeners() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeImportModal();
+                    closeExportModal();
+                }
+            });
+
+            // Close modal on overlay click
+            document.getElementById('import-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'import-modal') {
+                    closeImportModal();
+                }
+            });
+
+            document.getElementById('export-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'export-modal') {
+                    closeExportModal();
+                }
+            });
+        }
+
+        function updateCharCount() {
+            const text = document.getElementById('import-text').value;
+            document.getElementById('import-char-count').textContent = 
+                `${text.length.toLocaleString()} characters`;
+        }
+
+        // Drag and drop handling - initialized after DOM ready
+        function initDropzone() {
+            const dropzone = document.getElementById('import-dropzone');
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    readImportFile(file);
+                }
+            });
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (file) {
+                readImportFile(file);
+            }
+            event.target.value = '';
+        }
+
+        function readImportFile(file) {
+            const textTypes = [
+                'text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml',
+                'application/json', 'application/xml', 'text/javascript',
+                'application/x-tex', 'application/x-bibtex'
+            ];
+            const textExtensions = [
+                '.txt', '.md', '.csv', '.json', '.xml', '.html', '.htm', 
+                '.js', '.py', '.tex', '.bib', '.ris', '.yaml', '.yml'
+            ];
+            const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            const pdfType = 'application/pdf';
+
+            const isTextFile = textTypes.includes(file.type) || 
+                               textExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            const isImage = imageTypes.includes(file.type);
+            const isPDF = file.type === pdfType || file.name.toLowerCase().endsWith('.pdf');
+
+            if (isTextFile) {
+                // Read as text
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('import-text').value = e.target.result;
+                    updateCharCount();
+                    showFilePreview(file, 'text');
+                    importedFile = {
+                        name: file.name,
+                        type: file.type || 'text/plain',
+                        data: e.target.result,
+                        isBase64: false
+                    };
+                };
+                reader.onerror = () => alert('Failed to read file.');
+                reader.readAsText(file);
+            } else if (isImage || isPDF) {
+                // Read as base64
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64Data = e.target.result.split(',')[1]; // Remove data URL prefix
+                    const mediaType = isPDF ? 'application/pdf' : file.type;
+                    
+                    showFilePreview(file, isPDF ? 'pdf' : 'image', e.target.result);
+                    
+                    importedFile = {
+                        name: file.name,
+                        type: mediaType,
+                        data: base64Data,
+                        isBase64: true
+                    };
+                };
+                reader.onerror = () => alert('Failed to read file.');
+                reader.readAsDataURL(file);
+            } else {
+                alert(`Unsupported file type: ${file.type || file.name}`);
+            }
+        }
+
+        function showFilePreview(file, type, dataUrl = null) {
+            const previewArea = document.getElementById('file-preview-area');
+            const previewIcon = document.getElementById('file-preview-icon');
+            const previewName = document.getElementById('file-preview-name');
+            const previewInfo = document.getElementById('file-preview-info');
+            const previewImage = document.getElementById('file-preview-image');
+
+            // Set icon based on type
+            const icons = {
+                'text': '📄',
+                'pdf': '📕',
+                'image': '🖼️'
+            };
+            previewIcon.textContent = icons[type] || '📄';
+
+            previewName.textContent = file.name;
+            previewInfo.textContent = `${(file.size / 1024).toFixed(1)} KB • ${type.toUpperCase()}`;
+
+            // Show image preview for images
+            if (type === 'image' && dataUrl) {
+                previewImage.src = dataUrl;
+                previewImage.style.display = 'block';
+            } else {
+                previewImage.style.display = 'none';
+            }
+
+            previewArea.style.display = 'block';
+        }
+
+        function clearImportFile() {
+            importedFile = null;
+            document.getElementById('file-preview-area').style.display = 'none';
+            document.getElementById('file-preview-image').style.display = 'none';
+            document.getElementById('import-text').value = '';
+            updateCharCount();
+        }
+
+        async function processImport() {
+            const text = document.getElementById('import-text').value.trim();
+            const prompt = document.getElementById('import-prompt').value.trim();
+
+            if (!text && !importedFile) {
+                alert('Please enter text or upload a file to import.');
+                return;
+            }
+
+            if (!prompt) {
+                alert('Please provide instructions for the AI.');
+                return;
+            }
+
+            const processBtn = document.getElementById('process-import-btn');
+            const preview = document.getElementById('import-preview');
+            const previewContent = document.getElementById('import-preview-content');
+
+            // Show loading state
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<span class="spinner"></span>Processing...';
+
+            try {
+                // Build the request
+                const requestData = {
+                    prompt: prompt,
+                    data: null,
+                    targetSection: 'import'
+                };
+
+                // Add file data if present
+                if (importedFile && importedFile.isBase64) {
+                    requestData.file = {
+                        name: importedFile.name,
+                        type: importedFile.type,
+                        data: importedFile.data
+                    };
+                    // Add any additional text
+                    if (text) {
+                        requestData.prompt += '\n\nAdditional context:\n' + text;
+                    }
+                } else {
+                    // Text-only import
+                    requestData.prompt += '\n\nText to parse:\n\n' + text;
+                }
+
+                const response = await callAI(requestData);
+
+                // Try to extract JSON from the response
+                let parsedData = null;
+                
+                if (response.updatedData) {
+                    parsedData = response.updatedData;
+                } else if (response.message) {
+                    // Try to find JSON in the message
+                    const jsonMatch = response.message.match(/\{[\s\S]*"sections"[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            parsedData = JSON.parse(jsonMatch[0]);
+                        } catch (e) {
+                            // JSON parse failed
+                        }
+                    }
+                }
+
+                if (parsedData && parsedData.sections && Array.isArray(parsedData.sections)) {
+                    pendingImportData = parsedData;
+                    
+                    // Render preview
+                    previewContent.innerHTML = parsedData.sections.map(section => `
+                        <div class="preview-section">
+                            <div class="preview-section-name">${escapeHtml(section.name)} (${section.entries?.length || 0} entries)</div>
+                            <ul class="preview-section-entries">
+                                ${(section.entries || []).slice(0, 3).map(entry => `
+                                    <li>${escapeHtml(typeof entry === 'string' ? entry : entry.content || '')}</li>
+                                `).join('')}
+                                ${(section.entries?.length || 0) > 3 ? `<li><em>...and ${section.entries.length - 3} more</em></li>` : ''}
+                            </ul>
+                        </div>
+                    `).join('');
+
+                    preview.classList.add('active');
+                    document.getElementById('apply-import-btn').style.display = '';
+                } else {
+                    // Couldn't parse - show raw response
+                    previewContent.innerHTML = `
+                        <div class="preview-section">
+                            <div class="preview-section-name">⚠️ Could not parse response</div>
+                            <pre style="white-space: pre-wrap; font-size: 0.8rem; max-height: 150px; overflow: auto;">${escapeHtml(response.message || JSON.stringify(response, null, 2))}</pre>
+                            <p style="margin-top: 10px; font-size: 0.85rem; color: #666;">
+                                The AI response couldn't be parsed as portfolio data. Try adjusting your prompt to ask for a specific JSON format.
+                            </p>
+                        </div>
+                    `;
+                    preview.classList.add('active');
+                }
+
+            } catch (error) {
+                alert('Error processing import: ' + error.message);
+            } finally {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '🤖 Process with AI';
+            }
+        }
+
+        function applyImport() {
+            if (!pendingImportData || !pendingImportData.sections) {
+                alert('No valid data to import.');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="import-mode"]:checked').value;
+
+            saveState();
+
+            // Normalize entries (handle both string arrays and object arrays)
+            const normalizedSections = pendingImportData.sections.map(section => ({
+                id: section.id || generateId(),
+                name: section.name,
+                entries: (section.entries || []).map(entry => {
+                    if (typeof entry === 'string') {
+                        return { id: generateId(), content: entry };
+                    } else if (entry.content) {
+                        return { id: entry.id || generateId(), content: entry.content };
+                    } else {
+                        return { id: generateId(), content: String(entry) };
+                    }
+                })
+            }));
+
+            if (mode === 'replace') {
+                portfolioData.sections = normalizedSections;
+            } else {
+                // Merge mode - add new sections, or append to existing sections with same name
+                normalizedSections.forEach(newSection => {
+                    const existing = portfolioData.sections.find(
+                        s => s.name.toLowerCase() === newSection.name.toLowerCase()
+                    );
+                    
+                    if (existing) {
+                        existing.entries = [...existing.entries, ...newSection.entries];
+                    } else {
+                        portfolioData.sections.push(newSection);
+                    }
+                });
+            }
+
+            render();
+            closeImportModal();
+        }
+
+        // ===========================================
+        // AI EXPORT MODAL
+        // ===========================================
+
+        let selectedPresetId = null;
+        let exportedFiles = [];
+        let currentFileIndex = 0;
+
+        function loadCustomExportPresets() {
+            try {
+                const stored = localStorage.getItem(EXPORT_PRESETS_STORAGE_KEY);
+                if (stored) {
+                    customExportPresets = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to load custom export presets:', e);
+                customExportPresets = [];
+            }
+        }
+
+        function persistExportPresets() {
+            try {
+                localStorage.setItem(EXPORT_PRESETS_STORAGE_KEY, JSON.stringify(customExportPresets));
+            } catch (e) {
+                console.error('Failed to save export presets:', e);
+            }
+        }
+
+        function openExportModal() {
+            document.getElementById('export-modal').classList.add('active');
+            selectedPresetId = null;
+            exportedFiles = [];
+            document.getElementById('export-preview-area').classList.remove('active');
+            document.getElementById('save-preset-row').style.display = 'none';
+            renderExportPresets();
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.remove('active');
+        }
+
+        function renderExportPresets() {
+            const grid = document.getElementById('preset-grid');
+            const allPresets = [...builtInExportPresets, ...customExportPresets];
+
+            grid.innerHTML = allPresets.map(preset => `
+                <div class="preset-card ${preset.custom ? 'custom' : ''} ${selectedPresetId === preset.id ? 'selected' : ''}" 
+                     onclick="selectPreset('${preset.id}')">
+                    <div class="preset-card-title">
+                        ${escapeHtml(preset.name)}
+                        ${preset.custom ? `
+                            <button class="btn-icon btn-small delete-preset-btn" 
+                                    onclick="event.stopPropagation(); deleteCustomPreset('${preset.id}')"
+                                    title="Delete preset">🗑️</button>
+                        ` : ''}
+                    </div>
+                    <div class="preset-card-desc">${escapeHtml(preset.description)}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectPreset(presetId) {
+            selectedPresetId = presetId;
+            const allPresets = [...builtInExportPresets, ...customExportPresets];
+            const preset = allPresets.find(p => p.id === presetId);
+            
+            if (preset) {
+                document.getElementById('export-prompt').value = preset.prompt;
+            }
+            
+            renderExportPresets();
+        }
+
+        function toggleSavePreset() {
+            const row = document.getElementById('save-preset-row');
+            row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+            if (row.style.display === 'flex') {
+                document.getElementById('new-preset-name').focus();
+            }
+        }
+
+        function saveCurrentAsPreset() {
+            const name = document.getElementById('new-preset-name').value.trim();
+            const desc = document.getElementById('new-preset-desc').value.trim();
+            const prompt = document.getElementById('export-prompt').value.trim();
+
+            if (!name) {
+                alert('Please enter a preset name.');
+                return;
+            }
+            if (!prompt) {
+                alert('Please enter export instructions first.');
+                return;
+            }
+
+            const newPreset = {
+                id: 'custom_' + generateId(),
+                name: name,
+                description: desc || 'Custom preset',
+                prompt: prompt,
+                custom: true
+            };
+
+            customExportPresets.push(newPreset);
+            persistExportPresets();
+            renderExportPresets();
+
+            document.getElementById('new-preset-name').value = '';
+            document.getElementById('new-preset-desc').value = '';
+            document.getElementById('save-preset-row').style.display = 'none';
+
+            selectedPresetId = newPreset.id;
+            renderExportPresets();
+        }
+
+        function deleteCustomPreset(presetId) {
+            if (!confirm('Delete this custom preset?')) return;
+            
+            customExportPresets = customExportPresets.filter(p => p.id !== presetId);
+            persistExportPresets();
+            
+            if (selectedPresetId === presetId) {
+                selectedPresetId = null;
+                document.getElementById('export-prompt').value = '';
+            }
+            
+            renderExportPresets();
+        }
+
+        function exportCustomPresets() {
+            if (customExportPresets.length === 0) {
+                alert('No custom presets to export.');
+                return;
+            }
+
+            const dataStr = JSON.stringify(customExportPresets, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'export-presets.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function importCustomPresets() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        
+                        if (!Array.isArray(imported)) {
+                            throw new Error('Invalid format: expected an array');
+                        }
+
+                        const valid = imported.every(p => 
+                            typeof p === 'object' && 
+                            typeof p.name === 'string' && 
+                            typeof p.prompt === 'string'
+                        );
+
+                        if (!valid) {
+                            throw new Error('Invalid format: each preset must have name and prompt');
+                        }
+
+                        if (!confirm(`Import ${imported.length} preset(s)?`)) return;
+
+                        imported.forEach(p => {
+                            p.id = p.id || 'custom_' + generateId();
+                            p.custom = true;
+                        });
+
+                        customExportPresets = [...customExportPresets, ...imported];
+                        persistExportPresets();
+                        renderExportPresets();
+                        
+                        alert(`Successfully imported ${imported.length} preset(s).`);
+
+                    } catch (err) {
+                        alert('Failed to import presets: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        async function generateExport() {
+            const prompt = document.getElementById('export-prompt').value.trim();
+
+            if (!prompt) {
+                alert('Please enter export instructions or select a preset.');
+                return;
+            }
+
+            const generateBtn = document.getElementById('generate-export-btn');
+            const previewArea = document.getElementById('export-preview-area');
+
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="spinner"></span>Generating...';
+
+            try {
+                const response = await callAI({
+                    prompt: prompt + '\n\nPortfolio data:\n\n' + JSON.stringify(portfolioData, null, 2),
+                    data: portfolioData,
+                    targetSection: 'export'
+                });
+
+                // Try to parse files from response
+                let files = null;
+
+                if (response.files && Array.isArray(response.files)) {
+                    files = response.files;
+                } else if (response.updatedData && response.updatedData.files) {
+                    files = response.updatedData.files;
+                } else if (response.message) {
+                    // Try to extract JSON from message
+                    const jsonMatch = response.message.match(/\{[\s\S]*"files"[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            const parsed = JSON.parse(jsonMatch[0]);
+                            if (parsed.files) files = parsed.files;
+                        } catch (e) {}
+                    }
+                    
+                    // If no files array found, treat the whole response as a single file
+                    if (!files) {
+                        // Try to detect file type from content
+                        let filename = 'export.txt';
+                        const content = response.message;
+                        
+                        if (content.includes('\\documentclass')) filename = 'document.tex';
+                        else if (content.includes('@article') || content.includes('@book')) filename = 'references.bib';
+                        else if (content.startsWith('TY  -')) filename = 'references.ris';
+                        else if (content.startsWith('<?xml') || content.startsWith('<xml>')) filename = 'export.xml';
+                        else if (content.startsWith('{') || content.startsWith('[')) filename = 'export.json';
+                        else if (content.startsWith('<!DOCTYPE') || content.startsWith('<html')) filename = 'export.html';
+                        else if (content.startsWith('#')) filename = 'export.md';
+                        
+                        files = [{ filename, content }];
+                    }
+                }
+
+                if (files && files.length > 0) {
+                    exportedFiles = files;
+                    currentFileIndex = 0;
+                    renderExportPreview();
+                    previewArea.classList.add('active');
+                } else {
+                    alert('Could not parse export output. The AI response format was unexpected.');
+                }
+
+            } catch (error) {
+                alert('Error generating export: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '🤖 Generate Export';
+            }
+        }
+
+        function renderExportPreview() {
+            const tabs = document.getElementById('export-preview-tabs');
+            const content = document.getElementById('export-preview-content');
+            const downloadAllBtn = document.getElementById('download-all-btn');
+
+            // Render tabs
+            tabs.innerHTML = exportedFiles.map((file, index) => `
+                <div class="export-preview-tab ${index === currentFileIndex ? 'active' : ''}"
+                     onclick="showExportFile(${index})">
+                    ${escapeHtml(file.filename)}
+                </div>
+            `).join('');
+
+            // Render current file content
+            if (exportedFiles[currentFileIndex]) {
+                content.textContent = exportedFiles[currentFileIndex].content;
+            }
+
+            // Show/hide download all button
+            downloadAllBtn.style.display = exportedFiles.length > 1 ? '' : 'none';
+        }
+
+        function showExportFile(index) {
+            currentFileIndex = index;
+            renderExportPreview();
+        }
+
+        function downloadCurrentFile() {
+            if (!exportedFiles[currentFileIndex]) return;
+
+            const file = exportedFiles[currentFileIndex];
+            const blob = new Blob([file.content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.filename;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAllAsZip() {
+            if (exportedFiles.length === 0) return;
+
+            try {
+                const zip = new JSZip();
+                
+                exportedFiles.forEach(file => {
+                    zip.file(file.filename, file.content);
+                });
+
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                
+                const baseName = currentFilename === 'Untitled' ? 'portfolio' : currentFilename;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = baseName + '_export.zip';
+                a.click();
+                
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Failed to create ZIP file: ' + e.message);
+            }
+        }
+
+        // ===========================================
         // FILE OPERATIONS (Header Actions)
         // ===========================================
 
@@ -1601,6 +3117,7 @@ KEYBOARD SHORTCUTS:
 • Ctrl+Z / Cmd+Z: Undo
 • Ctrl+Y / Cmd+Y: Redo  
 • Ctrl+S / Cmd+S: Save
+• Escape: Close modal dialogs
 
 SECTIONS:
 • Click "+ Add Section" to create a new section
@@ -1618,11 +3135,29 @@ FILE OPERATIONS:
 • Load: Import a previously saved .json file
 • Save: Download your portfolio as .json
 
+IMPORT TEXT/FILES:
+• Click "Import Text" to open the import dialog
+• Drag-and-drop or browse for files
+• Supports: Text, Markdown, CSV, JSON, PDF, Images
+• PDFs and images are processed by Claude's vision
+• The AI will parse content into portfolio sections
+• Preview the result before applying
+
 EXPORT OPTIONS:
 • HTML: Generate a formatted web page
 • MD: Generate a Markdown document
 • LaTeX: Generate a .tex file for academic documents
 • Print: Print directly from browser
+
+AI EXPORT (Advanced):
+• Click "AI Export" for sophisticated export options
+• Choose from presets: Academic CV, BibTeX, Zotero/RIS, 
+  CSL-JSON, EndNote XML, JSON Resume, and more
+• AI generates multiple files (e.g., .tex + .bib)
+• Preview all files before downloading
+• Download individually or as a ZIP package
+• Save your own custom export presets
+• Import/export presets to share with others
 
 AI ASSISTANT:
 • Select which section(s) to target
@@ -1656,6 +3191,9 @@ TIPS:
         updateFilenameDisplay();
         updateUndoRedoButtons();
         loadSavedPrompts();
+        loadCustomExportPresets();
+        initDropzone();
+        initModalListeners();
     </script>
 </body>
 </html>
