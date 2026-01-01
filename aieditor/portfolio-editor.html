@@ -1057,6 +1057,9 @@
             <button class="btn-header btn-header-info" onclick="openExportModal()" title="AI-powered export to any format">
                 🤖 AI Export
             </button>
+            <button class="btn-header btn-header-success" onclick="openTailorModal()" title="Tailor CV to a job description">
+                🎯 Tailor CV
+            </button>
             <button class="btn-header btn-header-secondary" onclick="printPortfolio()" title="Print">
                 🖨️ Print
             </button>
@@ -1254,6 +1257,78 @@
                 <button class="btn btn-secondary" onclick="closeExportModal()">Cancel</button>
                 <button class="btn btn-primary" id="generate-export-btn" onclick="generateExport()">
                     🤖 Generate Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tailor CV Modal -->
+    <div class="modal-overlay" id="tailor-modal">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2>🎯 Tailor CV to Job</h2>
+                <button class="modal-close" onclick="closeTailorModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin: 0 0 16px 0; color: #666; font-size: 0.9rem;">
+                    Upload or paste a job description. The AI will analyze it and create a tailored version of your portfolio that highlights relevant experience and skills.
+                </p>
+
+                <div class="import-dropzone" id="tailor-dropzone">
+                    <p>Drag and drop a job description file, or</p>
+                    <label for="tailor-file-input">click to browse</label>
+                    <input type="file" id="tailor-file-input" accept=".txt,.md,.pdf,.png,.jpg,.jpeg,.html,.doc,.docx" onchange="handleTailorFile(event)">
+                    <p style="font-size: 0.75rem; color: #888; margin-top: 10px;">
+                        Supports: Text, PDF, Images, HTML
+                    </p>
+                </div>
+
+                <div id="tailor-file-preview" style="display: none; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                        <span id="tailor-file-icon" style="font-size: 1.5rem;">📄</span>
+                        <div style="flex: 1;">
+                            <div id="tailor-file-name" style="font-weight: 500;"></div>
+                            <div id="tailor-file-info" style="font-size: 0.8rem; color: #666;"></div>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="clearTailorFile()">✕ Clear</button>
+                    </div>
+                </div>
+
+                <textarea 
+                    class="import-textarea" 
+                    id="tailor-job-text" 
+                    placeholder="Or paste the job description here..."
+                    style="min-height: 150px;"
+                ></textarea>
+
+                <div class="import-prompt-row" style="margin-top: 16px;">
+                    <label for="tailor-prompt">Additional instructions (optional):</label>
+                    <textarea id="tailor-prompt" style="min-height: 60px;">Analyze this job description and tailor my portfolio to highlight the most relevant experience, skills, and accomplishments. Reorganize and rephrase entries to align with the job requirements. Remove or de-emphasize less relevant items. Keep all the important details but make them more relevant to this specific role.</textarea>
+                </div>
+
+                <div class="import-options" style="margin-top: 16px;">
+                    <label>
+                        <input type="radio" name="tailor-mode" value="new" checked>
+                        Create tailored copy (keep original)
+                    </label>
+                    <label>
+                        <input type="radio" name="tailor-mode" value="replace">
+                        Replace current portfolio
+                    </label>
+                </div>
+
+                <div class="export-preview-area" id="tailor-preview-area">
+                    <h4 style="margin: 0 0 12px 0;">Tailored Portfolio Preview:</h4>
+                    <div class="import-preview-content" id="tailor-preview-content" style="max-height: 250px; overflow-y: auto;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTailorModal()">Cancel</button>
+                <button class="btn btn-primary" id="tailor-generate-btn" onclick="generateTailoredCV()">
+                    🎯 Generate Tailored CV
+                </button>
+                <button class="btn btn-success" id="tailor-apply-btn" onclick="applyTailoredCV()" style="display: none;">
+                    ✓ Apply Tailored CV
                 </button>
             </div>
         </div>
@@ -2268,6 +2343,7 @@ Return JSON with format: { "files": [{ "filename": "resume_for_word.html", "cont
                 if (e.key === 'Escape') {
                     closeImportModal();
                     closeExportModal();
+                    closeTailorModal();
                 }
             });
 
@@ -2281,6 +2357,12 @@ Return JSON with format: { "files": [{ "filename": "resume_for_word.html", "cont
             document.getElementById('export-modal').addEventListener('click', (e) => {
                 if (e.target.id === 'export-modal') {
                     closeExportModal();
+                }
+            });
+
+            document.getElementById('tailor-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'tailor-modal') {
+                    closeTailorModal();
                 }
             });
         }
@@ -2907,6 +2989,240 @@ Return JSON with format: { "files": [{ "filename": "resume_for_word.html", "cont
         }
 
         // ===========================================
+        // TAILOR CV MODAL
+        // ===========================================
+
+        let tailorFile = null;
+        let tailoredPortfolioData = null;
+
+        function openTailorModal() {
+            document.getElementById('tailor-modal').classList.add('active');
+            document.getElementById('tailor-job-text').value = '';
+            document.getElementById('tailor-file-preview').style.display = 'none';
+            document.getElementById('tailor-preview-area').classList.remove('active');
+            document.getElementById('tailor-apply-btn').style.display = 'none';
+            document.getElementById('tailor-generate-btn').style.display = '';
+            tailorFile = null;
+            tailoredPortfolioData = null;
+            initTailorDropzone();
+        }
+
+        function closeTailorModal() {
+            document.getElementById('tailor-modal').classList.remove('active');
+            tailorFile = null;
+            tailoredPortfolioData = null;
+        }
+
+        function initTailorDropzone() {
+            const dropzone = document.getElementById('tailor-dropzone');
+            
+            // Remove old listeners by cloning
+            const newDropzone = dropzone.cloneNode(true);
+            dropzone.parentNode.replaceChild(newDropzone, dropzone);
+            
+            // Re-attach file input handler
+            newDropzone.querySelector('input').onchange = handleTailorFile;
+
+            newDropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                newDropzone.classList.add('dragover');
+            });
+
+            newDropzone.addEventListener('dragleave', () => {
+                newDropzone.classList.remove('dragover');
+            });
+
+            newDropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                newDropzone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) readTailorFile(file);
+            });
+        }
+
+        function handleTailorFile(event) {
+            const file = event.target.files[0];
+            if (file) readTailorFile(file);
+            event.target.value = '';
+        }
+
+        function readTailorFile(file) {
+            const textExtensions = ['.txt', '.md', '.html', '.htm'];
+            const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+            const isImage = imageTypes.includes(file.type);
+            const isText = textExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+            if (isText) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('tailor-job-text').value = e.target.result;
+                    showTailorFilePreview(file, 'text');
+                    tailorFile = null; // Text goes in textarea, no need to send as file
+                };
+                reader.readAsText(file);
+            } else if (isImage || isPDF) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64Data = e.target.result.split(',')[1];
+                    showTailorFilePreview(file, isPDF ? 'pdf' : 'image');
+                    tailorFile = {
+                        name: file.name,
+                        type: isPDF ? 'application/pdf' : file.type,
+                        data: base64Data,
+                        isBase64: true
+                    };
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('Unsupported file type. Please use text, PDF, or image files.');
+            }
+        }
+
+        function showTailorFilePreview(file, type) {
+            const icons = { 'text': '📄', 'pdf': '📕', 'image': '🖼️' };
+            document.getElementById('tailor-file-icon').textContent = icons[type] || '📄';
+            document.getElementById('tailor-file-name').textContent = file.name;
+            document.getElementById('tailor-file-info').textContent = `${(file.size / 1024).toFixed(1)} KB`;
+            document.getElementById('tailor-file-preview').style.display = 'block';
+        }
+
+        function clearTailorFile() {
+            tailorFile = null;
+            document.getElementById('tailor-file-preview').style.display = 'none';
+            document.getElementById('tailor-job-text').value = '';
+        }
+
+        async function generateTailoredCV() {
+            const jobText = document.getElementById('tailor-job-text').value.trim();
+            const instructions = document.getElementById('tailor-prompt').value.trim();
+
+            if (!jobText && !tailorFile) {
+                alert('Please provide a job description (paste text or upload a file).');
+                return;
+            }
+
+            const generateBtn = document.getElementById('tailor-generate-btn');
+            const previewArea = document.getElementById('tailor-preview-area');
+            const previewContent = document.getElementById('tailor-preview-content');
+
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="spinner"></span>Analyzing & Tailoring...';
+
+            try {
+                // Build the request
+                const requestData = {
+                    prompt: `${instructions}
+
+Job Description:
+${jobText || '[See attached file]'}
+
+Current Portfolio:
+${JSON.stringify(portfolioData, null, 2)}
+
+Return a JSON object with the tailored portfolio in this exact format:
+{
+  "sections": [
+    { "name": "Section Name", "entries": ["Entry 1", "Entry 2", ...] }
+  ]
+}`,
+                    data: portfolioData,
+                    targetSection: 'tailor'
+                };
+
+                if (tailorFile) {
+                    requestData.file = tailorFile;
+                }
+
+                const response = await callAI(requestData);
+
+                // Parse the response
+                let parsedData = null;
+                if (response.updatedData) {
+                    parsedData = response.updatedData;
+                } else if (response.message) {
+                    const jsonMatch = response.message.match(/\{[\s\S]*"sections"[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            parsedData = JSON.parse(jsonMatch[0]);
+                        } catch (e) {}
+                    }
+                }
+
+                if (parsedData && parsedData.sections) {
+                    tailoredPortfolioData = parsedData;
+
+                    // Render preview
+                    previewContent.innerHTML = parsedData.sections.map(section => `
+                        <div class="preview-section">
+                            <div class="preview-section-name">${escapeHtml(section.name)} (${section.entries?.length || 0} entries)</div>
+                            <ul class="preview-section-entries">
+                                ${(section.entries || []).slice(0, 3).map(entry => `
+                                    <li>${escapeHtml(typeof entry === 'string' ? entry : entry.content || '')}</li>
+                                `).join('')}
+                                ${(section.entries?.length || 0) > 3 ? `<li><em>...and ${section.entries.length - 3} more</em></li>` : ''}
+                            </ul>
+                        </div>
+                    `).join('');
+
+                    previewArea.classList.add('active');
+                    document.getElementById('tailor-apply-btn').style.display = '';
+                } else {
+                    previewContent.innerHTML = `
+                        <div class="preview-section">
+                            <div class="preview-section-name">⚠️ Could not parse response</div>
+                            <pre style="white-space: pre-wrap; font-size: 0.8rem;">${escapeHtml(response.message || JSON.stringify(response, null, 2))}</pre>
+                        </div>
+                    `;
+                    previewArea.classList.add('active');
+                }
+
+            } catch (error) {
+                alert('Error generating tailored CV: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '🎯 Generate Tailored CV';
+            }
+        }
+
+        function applyTailoredCV() {
+            if (!tailoredPortfolioData) {
+                alert('No tailored data to apply.');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="tailor-mode"]:checked').value;
+
+            saveState();
+
+            // Normalize the data
+            const normalized = {
+                sections: tailoredPortfolioData.sections.map(section => ({
+                    id: generateId(),
+                    name: section.name,
+                    entries: (section.entries || []).map(entry => ({
+                        id: generateId(),
+                        content: typeof entry === 'string' ? entry : entry.content || String(entry)
+                    }))
+                }))
+            };
+
+            if (mode === 'replace') {
+                portfolioData = normalized;
+                setFilename(currentFilename + '_tailored');
+            } else {
+                // Create new - save current, then apply tailored
+                const originalName = currentFilename;
+                portfolioData = normalized;
+                setFilename(originalName + '_tailored');
+            }
+
+            markUnsaved();
+            render();
+            closeTailorModal();
+        }
+
+        // ===========================================
         // FILE OPERATIONS (Header Actions)
         // ===========================================
 
@@ -3158,6 +3474,14 @@ AI EXPORT (Advanced):
 • Download individually or as a ZIP package
 • Save your own custom export presets
 • Import/export presets to share with others
+
+TAILOR CV:
+• Click "Tailor CV" to customize for a job
+• Upload or paste a job description
+• AI analyzes the job requirements
+• Creates a tailored version highlighting relevant experience
+• Choose to keep original or replace
+• Tailored version saved with "_tailored" suffix
 
 AI ASSISTANT:
 • Select which section(s) to target
