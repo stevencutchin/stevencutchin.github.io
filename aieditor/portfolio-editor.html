@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Editor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .right-panel {
+            width: 350px;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 1.5rem;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Sections */
+        .section {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: #fafafa;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-header:hover {
+            background: #f0f0f0;
+        }
+
+        .collapse-icon {
+            transition: transform 0.2s;
+            font-size: 12px;
+        }
+
+        .section.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-name {
+            flex: 1;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .section-name-input {
+            flex: 1;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .entry-count {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .section-content {
+            padding: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .section.collapsed .section-content {
+            display: none;
+        }
+
+        /* Entries */
+        .entry {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .entry textarea {
+            flex: 1;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .entry textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-icon {
+            padding: 4px 8px;
+            background: transparent;
+            color: #666;
+        }
+
+        .btn-icon:hover {
+            background: #eee;
+        }
+
+        .add-section-btn {
+            margin-top: 12px;
+        }
+
+        .add-entry-btn {
+            margin-top: 8px;
+        }
+
+        /* Right Panel */
+        .right-panel h2 {
+            margin: 0 0 12px 0;
+            font-size: 1.1rem;
+        }
+
+        .prompt-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+
+        .prompt-area:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .section-select {
+            margin-bottom: 12px;
+        }
+
+        .section-select label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .section-select select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .send-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+        }
+
+        .response-area {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .response-area h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .response-content {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* JSON Preview */
+        .json-toggle {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .json-preview {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        /* Header Bar */
+        .header-bar {
+            background: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            margin: -20px -20px 20px -20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-bar h1 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-right: auto;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255,255,255,0.3);
+            margin: 0 8px;
+        }
+
+        .btn-header {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-header:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-header:active {
+            transform: translateY(0);
+        }
+
+        .btn-header-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-header-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-header-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-header-success:hover {
+            background: #1e8449;
+        }
+
+        .btn-header-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-header-warning:hover {
+            background: #d68910;
+        }
+
+        .btn-header-info {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-header-info:hover {
+            background: #7d3c98;
+        }
+
+        .btn-header-secondary {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+
+        .btn-header-secondary:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .file-input-hidden {
+            display: none;
+        }
+
+        .filename-display {
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.9);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .filename-display.unsaved::after {
+            content: ' •';
+            color: #f39c12;
+        }
+
+        .btn-header:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-header-dark {
+            background: rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        .btn-header-dark:hover:not(:disabled) {
+            background: rgba(0,0,0,0.5);
+        }
+
+        @media print {
+            .header-bar, .right-panel, .btn, .section-actions, .add-section-btn, .add-entry-btn {
+                display: none !important;
+            }
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                display: block;
+            }
+            .panel {
+                box-shadow: none;
+            }
+            .section {
+                break-inside: avoid;
+            }
+            .section-header {
+                background: none;
+                border-bottom: 2px solid #333;
+            }
+            .section-content {
+                border: none;
+            }
+            .entry textarea {
+                border: none;
+                resize: none;
+                min-height: auto;
+                padding: 4px 0;
+            }
+        }
+
+        /* Prompt Library */
+        .prompt-library {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .prompt-library-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .prompt-library-header h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #333;
+        }
+
+        .prompt-library-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .prompt-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .prompt-list:empty::after {
+            content: 'No saved prompts yet';
+            display: block;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .prompt-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .prompt-item:last-child {
+            border-bottom: none;
+        }
+
+        .prompt-item:hover {
+            background: #f0f0f0;
+        }
+
+        .prompt-item-name {
+            flex: 1;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .prompt-item-actions {
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .prompt-item:hover .prompt-item-actions {
+            opacity: 1;
+        }
+
+        .prompt-item-btn {
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .prompt-item-btn:hover {
+            background: #ddd;
+        }
+
+        .save-prompt-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .save-prompt-row input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .save-prompt-row input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hidden file input for loading JSON -->
+    <input type="file" id="file-input" class="file-input-hidden" accept=".json" onchange="handleFileLoad(event)">
+
+    <header class="header-bar">
+        <h1>📋 Portfolio Editor</h1>
+        
+        <span class="filename-display" id="filename-display" title="Current file">Untitled</span>
+        
+        <div class="header-actions">
+            <button class="btn-header btn-header-dark" id="undo-btn" onclick="undo()" title="Undo (Ctrl+Z)" disabled>
+                ↩️ Undo
+            </button>
+            <button class="btn-header btn-header-dark" id="redo-btn" onclick="redo()" title="Redo (Ctrl+Y)" disabled>
+                ↪️ Redo
+            </button>
+            
+            <div class="header-divider"></div>
+            
+            <button class="btn-header btn-header-secondary" onclick="newPortfolio()" title="Start fresh">
+                📄 New
+            </button>
+            <button class="btn-header btn-header-primary" onclick="document.getElementById('file-input').click()" title="Load JSON file">
+                📂 Load
+            </button>
+            <button class="btn-header btn-header-success" onclick="savePortfolio()" title="Save as JSON">
+                💾 Save
+            </button>
+            
+            <div class="header-divider"></div>
+            
+            <button class="btn-header btn-header-warning" onclick="exportAs('html')" title="Export as HTML">
+                🌐 HTML
+            </button>
+            <button class="btn-header btn-header-info" onclick="exportAs('markdown')" title="Export as Markdown">
+                📝 MD
+            </button>
+            <button class="btn-header btn-header-secondary" onclick="exportAs('latex')" title="Export as LaTeX">
+                📄 LaTeX
+            </button>
+            <button class="btn-header btn-header-secondary" onclick="printPortfolio()" title="Print">
+                🖨️ Print
+            </button>
+            
+            <div class="header-divider"></div>
+            
+            <button class="btn-header btn-header-secondary" onclick="showHelp()" title="Help & keyboard shortcuts">
+                ❓ Help
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="left-panel">
+            <div class="panel">
+                <div id="sections-container"></div>
+                <button class="btn btn-success add-section-btn" onclick="addSection()">+ Add Section</button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel">
+                <h2>🤖 AI Assistant</h2>
+                
+                <div class="section-select">
+                    <label>Apply to:</label>
+                    <select id="target-section">
+                        <option value="all">All Sections</option>
+                    </select>
+                </div>
+
+                <textarea 
+                    class="prompt-area" 
+                    id="prompt-input"
+                    placeholder="Enter your prompt here...&#10;&#10;Examples:&#10;• Convert all entries to APA format&#10;• Check dates for consistency&#10;• Summarize each entry&#10;• Convert to LaTeX format"
+                ></textarea>
+
+                <button class="btn btn-primary send-btn" id="send-btn" onclick="sendToAI()">
+                    Send to Claude
+                </button>
+
+                <div class="response-area" id="response-area" style="display: none;">
+                    <h3>Response:</h3>
+                    <div class="response-content" id="response-content"></div>
+                    <button class="btn btn-secondary btn-small" style="margin-top: 8px;" onclick="applyResponse()">
+                        Apply Changes
+                    </button>
+                </div>
+
+                <div class="prompt-library">
+                    <div class="prompt-library-header">
+                        <h3>📚 Saved Prompts</h3>
+                        <div class="prompt-library-actions">
+                            <button class="btn btn-secondary btn-small" onclick="importPrompts()" title="Import prompts">Import</button>
+                            <button class="btn btn-secondary btn-small" onclick="exportPrompts()" title="Export prompts">Export</button>
+                        </div>
+                    </div>
+                    <div class="save-prompt-row">
+                        <input type="text" id="prompt-name-input" placeholder="Prompt name..." onkeydown="if(event.key==='Enter')saveCurrentPrompt()">
+                        <button class="btn btn-primary btn-small" onclick="saveCurrentPrompt()">Save</button>
+                    </div>
+                    <div class="prompt-list" id="prompt-list"></div>
+                </div>
+
+                <div class="json-toggle">
+                    <button class="btn btn-secondary btn-small" onclick="toggleJsonPreview()">
+                        Toggle JSON Preview
+                    </button>
+                    <div class="json-preview" id="json-preview" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // DATA MODEL
+        // ===========================================
+        
+        let portfolioData = {
+            sections: [
+                {
+                    id: generateId(),
+                    name: "Education",
+                    entries: [
+                        { id: generateId(), content: "Ph.D. in Computer Science, Example University, 2020" },
+                        { id: generateId(), content: "B.S. in Mathematics, Another University, 2015" }
+                    ]
+                },
+                {
+                    id: generateId(),
+                    name: "Publications",
+                    entries: [
+                        { id: generateId(), content: "Smith, J. (2023). \"An Example Paper Title.\" Journal of Examples, 15(2), 100-115." }
+                    ]
+                },
+                {
+                    id: generateId(),
+                    name: "Employment",
+                    entries: [
+                        { id: generateId(), content: "Senior Engineer at Tech Company (2020-Present)" }
+                    ]
+                }
+            ]
+        };
+
+        let lastAIResponse = null;
+        
+        // Filename tracking
+        let currentFilename = "Untitled";
+        let hasUnsavedChanges = false;
+
+        // Undo/Redo history
+        const MAX_HISTORY = 50;
+        let undoStack = [];
+        let redoStack = [];
+        let isUndoRedo = false;
+
+        // Saved prompts
+        let savedPrompts = [];
+        const PROMPTS_STORAGE_KEY = 'portfolio_editor_prompts';
+
+        // ===========================================
+        // API MODULE - Replace this for Cloudflare Worker
+        // ===========================================
+
+        /**
+         * Send a request to the AI API
+         * @param {Object} params - The request parameters
+         * @param {string} params.prompt - The user's prompt
+         * @param {Object} params.data - The portfolio data (or subset) to process
+         * @param {string} params.targetSection - Which section(s) to target
+         * @returns {Promise<Object>} - The API response
+         */
+        async function callAI({ prompt, data, targetSection }) {
+            // ============================================
+            // REPLACE THIS FUNCTION FOR CLOUDFLARE WORKER
+            // ============================================
+            
+            // Example implementation for Cloudflare Worker:
+            //
+            // const response = await fetch('https://your-worker.your-subdomain.workers.dev/api/ai', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         prompt: prompt,
+            //         data: data,
+            //         targetSection: targetSection
+            //     })
+            // });
+            //
+            // if (!response.ok) {
+            //     throw new Error(`API error: ${response.status}`);
+            // }
+            //
+            // return await response.json();
+
+            // MOCK IMPLEMENTATION - Remove when connecting to real API
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        success: true,
+                        message: `[Mock Response]\n\nPrompt received: "${prompt}"\n\nTarget: ${targetSection}\n\nThis is a placeholder response. Connect to your Cloudflare Worker to get real AI responses.\n\nData received:\n${JSON.stringify(data, null, 2)}`,
+                        updatedData: null // The AI can return updated data structure here
+                    });
+                }, 1000);
+            });
+        }
+
+        // ===========================================
+        // UTILITY FUNCTIONS
+        // ===========================================
+
+        function generateId() {
+            return 'id_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function getPortfolioJSON() {
+            return JSON.stringify(portfolioData, null, 2);
+        }
+
+        function updateSectionDropdown() {
+            const select = document.getElementById('target-section');
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="all">All Sections</option>';
+            
+            portfolioData.sections.forEach(section => {
+                const option = document.createElement('option');
+                option.value = section.id;
+                option.textContent = section.name;
+                select.appendChild(option);
+            });
+
+            // Restore selection if still valid
+            if ([...select.options].some(opt => opt.value === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // ===========================================
+        // UNDO/REDO SYSTEM
+        // ===========================================
+
+        function saveState() {
+            if (isUndoRedo) return;
+            
+            // Deep clone current state
+            const state = JSON.stringify(portfolioData);
+            undoStack.push(state);
+            
+            // Limit history size
+            if (undoStack.length > MAX_HISTORY) {
+                undoStack.shift();
+            }
+            
+            // Clear redo stack when new action is taken
+            redoStack = [];
+            
+            updateUndoRedoButtons();
+            markUnsaved();
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            
+            // Save current state to redo stack
+            redoStack.push(JSON.stringify(portfolioData));
+            
+            // Restore previous state
+            const previousState = undoStack.pop();
+            isUndoRedo = true;
+            portfolioData = JSON.parse(previousState);
+            render();
+            isUndoRedo = false;
+            
+            updateUndoRedoButtons();
+            markUnsaved();
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            
+            // Save current state to undo stack
+            undoStack.push(JSON.stringify(portfolioData));
+            
+            // Restore next state
+            const nextState = redoStack.pop();
+            isUndoRedo = true;
+            portfolioData = JSON.parse(nextState);
+            render();
+            isUndoRedo = false;
+            
+            updateUndoRedoButtons();
+            markUnsaved();
+        }
+
+        function updateUndoRedoButtons() {
+            document.getElementById('undo-btn').disabled = undoStack.length === 0;
+            document.getElementById('redo-btn').disabled = redoStack.length === 0;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                e.preventDefault();
+                redo();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                savePortfolio();
+            }
+        });
+
+        // ===========================================
+        // FILENAME TRACKING
+        // ===========================================
+
+        function setFilename(name) {
+            currentFilename = name;
+            updateFilenameDisplay();
+        }
+
+        function markUnsaved() {
+            hasUnsavedChanges = true;
+            updateFilenameDisplay();
+        }
+
+        function markSaved() {
+            hasUnsavedChanges = false;
+            updateFilenameDisplay();
+        }
+
+        function updateFilenameDisplay() {
+            const display = document.getElementById('filename-display');
+            display.textContent = currentFilename;
+            display.title = currentFilename + (hasUnsavedChanges ? ' (unsaved changes)' : '');
+            
+            if (hasUnsavedChanges) {
+                display.classList.add('unsaved');
+            } else {
+                display.classList.remove('unsaved');
+            }
+        }
+
+        // Warn before leaving with unsaved changes
+        window.addEventListener('beforeunload', (e) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // ===========================================
+        // RENDER FUNCTIONS
+        // ===========================================
+
+        function render() {
+            const container = document.getElementById('sections-container');
+            
+            if (portfolioData.sections.length === 0) {
+                container.innerHTML = '<div class="empty-state">No sections yet. Click "Add Section" to get started.</div>';
+                updateSectionDropdown();
+                return;
+            }
+
+            container.innerHTML = portfolioData.sections.map(section => `
+                <div class="section" id="section-${section.id}">
+                    <div class="section-header" onclick="toggleSection('${section.id}')">
+                        <span class="collapse-icon">▼</span>
+                        <span class="section-name">${escapeHtml(section.name)}</span>
+                        <span class="entry-count">(${section.entries.length} entries)</span>
+                        <div class="section-actions" onclick="event.stopPropagation()">
+                            <button class="btn btn-icon btn-small" onclick="editSectionName('${section.id}')" title="Edit name">✏️</button>
+                            <button class="btn btn-icon btn-small" onclick="deleteSection('${section.id}')" title="Delete section">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        ${section.entries.map(entry => `
+                            <div class="entry" id="entry-${entry.id}">
+                                <textarea 
+                                    onchange="updateEntry('${section.id}', '${entry.id}', this.value)"
+                                >${escapeHtml(entry.content)}</textarea>
+                                <button class="btn btn-danger btn-small" onclick="deleteEntry('${section.id}', '${entry.id}')">×</button>
+                            </div>
+                        `).join('')}
+                        <button class="btn btn-primary btn-small add-entry-btn" onclick="addEntry('${section.id}')">+ Add Entry</button>
+                    </div>
+                </div>
+            `).join('');
+
+            updateSectionDropdown();
+            updateJsonPreview();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===========================================
+        // SECTION OPERATIONS
+        // ===========================================
+
+        function addSection() {
+            const name = prompt('Enter section name:', 'New Section');
+            if (name === null) return;
+            
+            saveState();
+            portfolioData.sections.push({
+                id: generateId(),
+                name: name || 'New Section',
+                entries: []
+            });
+            render();
+        }
+
+        function deleteSection(sectionId) {
+            if (!confirm('Delete this section and all its entries?')) return;
+            
+            saveState();
+            portfolioData.sections = portfolioData.sections.filter(s => s.id !== sectionId);
+            render();
+        }
+
+        function editSectionName(sectionId) {
+            const section = portfolioData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            const newName = prompt('Enter new section name:', section.name);
+            if (newName === null) return;
+
+            saveState();
+            section.name = newName || section.name;
+            render();
+        }
+
+        function toggleSection(sectionId) {
+            const sectionEl = document.getElementById(`section-${sectionId}`);
+            if (sectionEl) {
+                sectionEl.classList.toggle('collapsed');
+            }
+        }
+
+        // ===========================================
+        // ENTRY OPERATIONS
+        // ===========================================
+
+        function addEntry(sectionId) {
+            const section = portfolioData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            saveState();
+            section.entries.push({
+                id: generateId(),
+                content: ''
+            });
+            render();
+
+            // Focus the new textarea
+            setTimeout(() => {
+                const newEntry = section.entries[section.entries.length - 1];
+                const textarea = document.querySelector(`#entry-${newEntry.id} textarea`);
+                if (textarea) textarea.focus();
+            }, 0);
+        }
+
+        // Debounce for entry updates to avoid saving state on every keystroke
+        let updateTimeout = null;
+        let pendingUpdate = null;
+
+        function updateEntry(sectionId, entryId, content) {
+            const section = portfolioData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            const entry = section.entries.find(e => e.id === entryId);
+            if (!entry) return;
+
+            // Save state on first change, then debounce
+            if (pendingUpdate === null) {
+                saveState();
+            }
+            
+            clearTimeout(updateTimeout);
+            pendingUpdate = { sectionId, entryId, content };
+            
+            entry.content = content;
+            markUnsaved();
+            
+            updateTimeout = setTimeout(() => {
+                pendingUpdate = null;
+                updateJsonPreview();
+            }, 500);
+        }
+
+        function deleteEntry(sectionId, entryId) {
+            const section = portfolioData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            saveState();
+            section.entries = section.entries.filter(e => e.id !== entryId);
+            render();
+        }
+
+        // ===========================================
+        // AI INTEGRATION
+        // ===========================================
+
+        async function sendToAI() {
+            const prompt = document.getElementById('prompt-input').value.trim();
+            if (!prompt) {
+                alert('Please enter a prompt');
+                return;
+            }
+
+            const targetSection = document.getElementById('target-section').value;
+            const sendBtn = document.getElementById('send-btn');
+            const responseArea = document.getElementById('response-area');
+            const responseContent = document.getElementById('response-content');
+
+            // Prepare data based on target
+            let dataToSend;
+            if (targetSection === 'all') {
+                dataToSend = portfolioData;
+            } else {
+                dataToSend = portfolioData.sections.find(s => s.id === targetSection);
+            }
+
+            // Show loading state
+            sendBtn.classList.add('loading');
+            sendBtn.innerHTML = '<span class="spinner"></span>Processing...';
+
+            try {
+                const response = await callAI({
+                    prompt: prompt,
+                    data: dataToSend,
+                    targetSection: targetSection
+                });
+
+                lastAIResponse = response;
+                responseContent.textContent = response.message || JSON.stringify(response, null, 2);
+                responseArea.style.display = 'block';
+
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+                responseArea.style.display = 'block';
+            } finally {
+                sendBtn.classList.remove('loading');
+                sendBtn.innerHTML = 'Send to Claude';
+            }
+        }
+
+        function applyResponse() {
+            if (!lastAIResponse || !lastAIResponse.updatedData) {
+                alert('No applicable changes in the response. The AI needs to return an updatedData field.');
+                return;
+            }
+
+            if (confirm('Apply the AI\'s suggested changes? This will modify your data.')) {
+                saveState();
+                
+                // Handle both full portfolio updates and single section updates
+                if (lastAIResponse.updatedData.sections) {
+                    portfolioData = lastAIResponse.updatedData;
+                } else {
+                    // Single section update
+                    const idx = portfolioData.sections.findIndex(s => s.id === lastAIResponse.updatedData.id);
+                    if (idx !== -1) {
+                        portfolioData.sections[idx] = lastAIResponse.updatedData;
+                    }
+                }
+                render();
+            }
+        }
+
+        // ===========================================
+        // JSON PREVIEW
+        // ===========================================
+
+        function toggleJsonPreview() {
+            const preview = document.getElementById('json-preview');
+            if (preview.style.display === 'none') {
+                preview.style.display = 'block';
+                updateJsonPreview();
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function updateJsonPreview() {
+            const preview = document.getElementById('json-preview');
+            if (preview.style.display !== 'none') {
+                preview.textContent = getPortfolioJSON();
+            }
+        }
+
+        // ===========================================
+        // PROMPT LIBRARY
+        // ===========================================
+
+        function loadSavedPrompts() {
+            try {
+                const stored = localStorage.getItem(PROMPTS_STORAGE_KEY);
+                if (stored) {
+                    savedPrompts = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to load saved prompts:', e);
+                savedPrompts = [];
+            }
+            renderPromptList();
+        }
+
+        function persistPrompts() {
+            try {
+                localStorage.setItem(PROMPTS_STORAGE_KEY, JSON.stringify(savedPrompts));
+            } catch (e) {
+                console.error('Failed to save prompts:', e);
+                alert('Failed to save prompts to local storage.');
+            }
+        }
+
+        function renderPromptList() {
+            const list = document.getElementById('prompt-list');
+            
+            if (savedPrompts.length === 0) {
+                list.innerHTML = '';
+                return;
+            }
+
+            list.innerHTML = savedPrompts.map((prompt, index) => `
+                <div class="prompt-item" onclick="loadPrompt(${index})" title="${escapeHtml(prompt.text.substring(0, 200))}">
+                    <span class="prompt-item-name">${escapeHtml(prompt.name)}</span>
+                    <div class="prompt-item-actions" onclick="event.stopPropagation()">
+                        <button class="prompt-item-btn" onclick="editPromptName(${index})" title="Rename">✏️</button>
+                        <button class="prompt-item-btn" onclick="deletePrompt(${index})" title="Delete">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveCurrentPrompt() {
+            const promptText = document.getElementById('prompt-input').value.trim();
+            const nameInput = document.getElementById('prompt-name-input');
+            let promptName = nameInput.value.trim();
+
+            if (!promptText) {
+                alert('Please enter a prompt first.');
+                return;
+            }
+
+            if (!promptName) {
+                // Generate a default name from the first few words
+                promptName = promptText.split(/\s+/).slice(0, 5).join(' ');
+                if (promptName.length > 30) {
+                    promptName = promptName.substring(0, 30) + '...';
+                }
+            }
+
+            savedPrompts.push({
+                id: generateId(),
+                name: promptName,
+                text: promptText,
+                created: new Date().toISOString()
+            });
+
+            persistPrompts();
+            renderPromptList();
+            nameInput.value = '';
+        }
+
+        function loadPrompt(index) {
+            if (index < 0 || index >= savedPrompts.length) return;
+            
+            const prompt = savedPrompts[index];
+            document.getElementById('prompt-input').value = prompt.text;
+        }
+
+        function editPromptName(index) {
+            if (index < 0 || index >= savedPrompts.length) return;
+            
+            const prompt = savedPrompts[index];
+            const newName = window.prompt('Enter new name:', prompt.name);
+            
+            if (newName === null) return;
+            if (!newName.trim()) {
+                alert('Name cannot be empty.');
+                return;
+            }
+
+            savedPrompts[index].name = newName.trim();
+            persistPrompts();
+            renderPromptList();
+        }
+
+        function deletePrompt(index) {
+            if (index < 0 || index >= savedPrompts.length) return;
+            
+            if (!confirm(`Delete prompt "${savedPrompts[index].name}"?`)) return;
+            
+            savedPrompts.splice(index, 1);
+            persistPrompts();
+            renderPromptList();
+        }
+
+        function exportPrompts() {
+            if (savedPrompts.length === 0) {
+                alert('No prompts to export.');
+                return;
+            }
+
+            const dataStr = JSON.stringify(savedPrompts, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'portfolio-prompts.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function importPrompts() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        
+                        if (!Array.isArray(imported)) {
+                            throw new Error('Invalid format: expected an array');
+                        }
+
+                        // Validate structure
+                        const valid = imported.every(p => 
+                            typeof p === 'object' && 
+                            typeof p.name === 'string' && 
+                            typeof p.text === 'string'
+                        );
+
+                        if (!valid) {
+                            throw new Error('Invalid format: each prompt must have name and text');
+                        }
+
+                        // Ask user how to handle import
+                        const action = confirm(
+                            `Import ${imported.length} prompt(s)?\n\n` +
+                            `OK = Add to existing prompts\n` +
+                            `Cancel = Abort import`
+                        );
+
+                        if (!action) return;
+
+                        // Add IDs if missing
+                        imported.forEach(p => {
+                            if (!p.id) p.id = generateId();
+                            if (!p.created) p.created = new Date().toISOString();
+                        });
+
+                        savedPrompts = [...savedPrompts, ...imported];
+                        persistPrompts();
+                        renderPromptList();
+                        
+                        alert(`Successfully imported ${imported.length} prompt(s).`);
+
+                    } catch (err) {
+                        alert('Failed to import prompts: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // ===========================================
+        // FILE OPERATIONS (Header Actions)
+        // ===========================================
+
+        function newPortfolio() {
+            if (hasUnsavedChanges && !confirm('Start a new portfolio? Any unsaved changes will be lost.')) return;
+            
+            portfolioData = {
+                sections: []
+            };
+            undoStack = [];
+            redoStack = [];
+            setFilename('Untitled');
+            hasUnsavedChanges = false;
+            updateFilenameDisplay();
+            updateUndoRedoButtons();
+            render();
+        }
+
+        function handleFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.sections && Array.isArray(imported.sections)) {
+                        portfolioData = imported;
+                        undoStack = [];
+                        redoStack = [];
+                        setFilename(file.name.replace('.json', ''));
+                        hasUnsavedChanges = false;
+                        updateFilenameDisplay();
+                        updateUndoRedoButtons();
+                        render();
+                    } else {
+                        alert('Invalid portfolio format. Expected a JSON file with a "sections" array.');
+                    }
+                } catch (err) {
+                    alert('Failed to parse JSON file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset input so same file can be loaded again
+            event.target.value = '';
+        }
+
+        function savePortfolio() {
+            const filename = currentFilename === 'Untitled' ? 'portfolio' : currentFilename;
+            const dataStr = getPortfolioJSON();
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename + '.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            
+            setFilename(filename);
+            markSaved();
+        }
+
+        function exportAs(format) {
+            let content, filename, mimeType;
+            const baseName = currentFilename === 'Untitled' ? 'portfolio' : currentFilename;
+
+            if (format === 'html') {
+                content = generateHTML();
+                filename = baseName + '.html';
+                mimeType = 'text/html';
+            } else if (format === 'markdown') {
+                content = generateMarkdown();
+                filename = baseName + '.md';
+                mimeType = 'text/markdown';
+            } else if (format === 'latex') {
+                content = generateLaTeX();
+                filename = baseName + '.tex';
+                mimeType = 'application/x-tex';
+            } else {
+                alert('Unknown format: ' + format);
+                return;
+            }
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function generateHTML() {
+            let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio</title>
+    <style>
+        body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
+        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h2 { color: #2c3e50; margin-top: 30px; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Portfolio</h1>
+`;
+            portfolioData.sections.forEach(section => {
+                html += `    <h2>${escapeHtml(section.name)}</h2>\n`;
+                if (section.entries.length > 0) {
+                    html += `    <ul>\n`;
+                    section.entries.forEach(entry => {
+                        html += `        <li>${escapeHtml(entry.content)}</li>\n`;
+                    });
+                    html += `    </ul>\n`;
+                }
+            });
+
+            html += `</body>\n</html>`;
+            return html;
+        }
+
+        function generateMarkdown() {
+            let md = `# Portfolio\n\n`;
+            
+            portfolioData.sections.forEach(section => {
+                md += `## ${section.name}\n\n`;
+                section.entries.forEach(entry => {
+                    md += `- ${entry.content}\n`;
+                });
+                md += `\n`;
+            });
+
+            return md;
+        }
+
+        function generateLaTeX() {
+            // Escape special LaTeX characters
+            function escapeLatex(text) {
+                return text
+                    .replace(/\\/g, '\\textbackslash{}')
+                    .replace(/&/g, '\\&')
+                    .replace(/%/g, '\\%')
+                    .replace(/\$/g, '\\$')
+                    .replace(/#/g, '\\#')
+                    .replace(/_/g, '\\_')
+                    .replace(/\{/g, '\\{')
+                    .replace(/\}/g, '\\}')
+                    .replace(/~/g, '\\textasciitilde{}')
+                    .replace(/\^/g, '\\textasciicircum{}');
+            }
+
+            let latex = `\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage{geometry}
+\\usepackage{enumitem}
+\\usepackage{titlesec}
+
+\\geometry{margin=1in}
+\\setlist[itemize]{leftmargin=*, itemsep=0.5em}
+\\titleformat{\\section}{\\Large\\bfseries}{}{0em}{}[\\titlerule]
+\\titlespacing{\\section}{0pt}{1.5em}{0.5em}
+
+\\begin{document}
+
+\\begin{center}
+{\\LARGE\\bfseries Portfolio}
+\\end{center}
+
+\\vspace{1em}
+
+`;
+            portfolioData.sections.forEach(section => {
+                latex += `\\section*{${escapeLatex(section.name)}}\n`;
+                if (section.entries.length > 0) {
+                    latex += `\\begin{itemize}\n`;
+                    section.entries.forEach(entry => {
+                        latex += `    \\item ${escapeLatex(entry.content)}\n`;
+                    });
+                    latex += `\\end{itemize}\n`;
+                }
+                latex += `\n`;
+            });
+
+            latex += `\\end{document}`;
+            return latex;
+        }
+
+        function printPortfolio() {
+            window.print();
+        }
+
+        function showHelp() {
+            const helpText = `
+Portfolio Editor Help
+=====================
+
+KEYBOARD SHORTCUTS:
+• Ctrl+Z / Cmd+Z: Undo
+• Ctrl+Y / Cmd+Y: Redo  
+• Ctrl+S / Cmd+S: Save
+
+SECTIONS:
+• Click "+ Add Section" to create a new section
+• Click the section header to collapse/expand
+• Use ✏️ to rename a section
+• Use 🗑️ to delete a section
+
+ENTRIES:
+• Click "+ Add Entry" within a section to add items
+• Each entry is a text box - paste or type your content
+• Click × to remove an entry
+
+FILE OPERATIONS:
+• New: Start with a blank portfolio
+• Load: Import a previously saved .json file
+• Save: Download your portfolio as .json
+
+EXPORT OPTIONS:
+• HTML: Generate a formatted web page
+• MD: Generate a Markdown document
+• LaTeX: Generate a .tex file for academic documents
+• Print: Print directly from browser
+
+AI ASSISTANT:
+• Select which section(s) to target
+• Enter a prompt describing what you want
+• Click "Send to Claude" to process
+• Use "Apply Changes" if the AI returns modified data
+
+SAVED PROMPTS:
+• Type a prompt name and click Save to store it
+• Click a saved prompt to load it into the prompt box
+• Use Export to save prompts as a JSON file
+• Use Import to load prompts from a file
+• Share exported prompt files with other users
+• Prompts are stored in your browser's local storage
+
+TIPS:
+• The dot (•) next to the filename means unsaved changes
+• Save frequently to avoid losing work
+• Use the JSON Preview to see the raw data structure
+• The AI can help format, check, or convert your entries
+            `.trim();
+
+            alert(helpText);
+        }
+
+        // ===========================================
+        // INITIALIZE
+        // ===========================================
+
+        render();
+        updateFilenameDisplay();
+        updateUndoRedoButtons();
+        loadSavedPrompts();
+    </script>
+</body>
+</html>
