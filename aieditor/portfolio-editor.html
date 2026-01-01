@@ -1042,6 +1042,9 @@
             <button class="btn-header btn-header-primary" onclick="openImportModal()" title="Import files or text for AI parsing">
                 📥 Import
             </button>
+            <button class="btn-header btn-header-primary" onclick="openPublicationSearchModal()" title="Search academic databases for publications">
+                🔍 Find Pubs
+            </button>
             
             <div class="header-divider"></div>
             
@@ -1329,6 +1332,87 @@
                 </button>
                 <button class="btn btn-success" id="tailor-apply-btn" onclick="applyTailoredCV()" style="display: none;">
                     ✓ Apply Tailored CV
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publication Search Modal -->
+    <div class="modal-overlay" id="pubsearch-modal">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2>🔍 Publication Search</h2>
+                <button class="modal-close" onclick="closePublicationSearchModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin: 0 0 16px 0; color: #666; font-size: 0.9rem;">
+                    Search academic databases by author name, ORCID, DOI, arXiv ID, or PubMed ID. Results can be added to your portfolio or used to verify existing entries.
+                </p>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                    <input type="text" id="pubsearch-query" class="import-textarea" 
+                        style="min-height: auto; padding: 10px; flex: 1;"
+                        placeholder="Enter author name, ORCID (0000-0002-...), DOI (10.1234/...), arXiv ID, or PMID..."
+                        onkeydown="if(event.key==='Enter') searchPublications()">
+                    <button class="btn btn-primary" onclick="searchPublications()" id="pubsearch-btn">
+                        🔍 Search
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 8px;">Search sources:</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="pubsearch-source" value="semantic_scholar" checked> Semantic Scholar
+                        </label>
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="pubsearch-source" value="openalex" checked> OpenAlex
+                        </label>
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="pubsearch-source" value="dblp" checked> DBLP
+                        </label>
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="pubsearch-source" value="crossref" checked> CrossRef
+                        </label>
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="pubsearch-source" value="pubmed" checked> PubMed
+                        </label>
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="pubsearch-source" value="arxiv" checked> arXiv
+                        </label>
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="pubsearch-source" value="orcid" checked> ORCID
+                        </label>
+                    </div>
+                </div>
+
+                <div id="pubsearch-results-area" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; font-size: 0.95rem;">
+                            Results: <span id="pubsearch-count">0</span> publications found
+                        </h4>
+                        <div>
+                            <button class="btn btn-secondary btn-small" onclick="selectAllPubs(true)">Select All</button>
+                            <button class="btn btn-secondary btn-small" onclick="selectAllPubs(false)">Deselect All</button>
+                        </div>
+                    </div>
+                    <div id="pubsearch-results" style="max-height: 350px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;"></div>
+                </div>
+
+                <div id="pubsearch-verify-area" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 0.95rem;">Verify Existing Publications</h4>
+                    <p style="font-size: 0.85rem; color: #666; margin: 0 0 12px 0;">
+                        Check your existing publications against databases to find missing DOIs, citation counts, and updates.
+                    </p>
+                    <button class="btn btn-secondary" onclick="verifyExistingPublications()" id="verify-pubs-btn">
+                        ✓ Verify My Publications
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePublicationSearchModal()">Cancel</button>
+                <button class="btn btn-success" id="add-pubs-btn" onclick="addSelectedPublications()" style="display: none;">
+                    ➕ Add Selected to Portfolio
                 </button>
             </div>
         </div>
@@ -2344,6 +2428,7 @@ Return JSON with format: { "files": [{ "filename": "resume_for_word.html", "cont
                     closeImportModal();
                     closeExportModal();
                     closeTailorModal();
+                    closePublicationSearchModal();
                 }
             });
 
@@ -2363,6 +2448,12 @@ Return JSON with format: { "files": [{ "filename": "resume_for_word.html", "cont
             document.getElementById('tailor-modal').addEventListener('click', (e) => {
                 if (e.target.id === 'tailor-modal') {
                     closeTailorModal();
+                }
+            });
+
+            document.getElementById('pubsearch-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'pubsearch-modal') {
+                    closePublicationSearchModal();
                 }
             });
         }
@@ -3223,6 +3314,235 @@ Return a JSON object with the tailored portfolio in this exact format:
         }
 
         // ===========================================
+        // PUBLICATION SEARCH MODAL
+        // ===========================================
+
+        let publicationSearchResults = [];
+
+        function openPublicationSearchModal() {
+            document.getElementById('pubsearch-modal').classList.add('active');
+            document.getElementById('pubsearch-query').value = '';
+            document.getElementById('pubsearch-results-area').style.display = 'none';
+            document.getElementById('add-pubs-btn').style.display = 'none';
+            publicationSearchResults = [];
+            
+            // Show verify option if there's a Publications section
+            const hasPubs = portfolioData.sections.some(s => 
+                s.name.toLowerCase().includes('publication')
+            );
+            document.getElementById('pubsearch-verify-area').style.display = hasPubs ? 'block' : 'none';
+        }
+
+        function closePublicationSearchModal() {
+            document.getElementById('pubsearch-modal').classList.remove('active');
+        }
+
+        async function searchPublications() {
+            const query = document.getElementById('pubsearch-query').value.trim();
+            if (!query) {
+                alert('Please enter a search query.');
+                return;
+            }
+
+            const sources = [...document.querySelectorAll('.pubsearch-source:checked')].map(cb => cb.value);
+            if (sources.length === 0) {
+                alert('Please select at least one source to search.');
+                return;
+            }
+
+            const searchBtn = document.getElementById('pubsearch-btn');
+            const resultsArea = document.getElementById('pubsearch-results-area');
+            const resultsContainer = document.getElementById('pubsearch-results');
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<span class="spinner"></span>';
+
+            try {
+                const response = await fetch(API_WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'search_publications',
+                        query: query,
+                        sources: sources
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Search failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                publicationSearchResults = data.combined || [];
+
+                document.getElementById('pubsearch-count').textContent = publicationSearchResults.length;
+
+                if (publicationSearchResults.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            No publications found. Try a different search query or sources.
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = publicationSearchResults.map((pub, idx) => `
+                        <div class="pub-result" style="padding: 10px; border-bottom: 1px solid #eee; display: flex; gap: 10px;">
+                            <input type="checkbox" class="pub-checkbox" data-index="${idx}" checked>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-weight: 500; font-size: 0.9rem;">${escapeHtml(pub.title || 'Untitled')}</div>
+                                <div style="font-size: 0.8rem; color: #666;">
+                                    ${escapeHtml(pub.authors || 'Unknown authors')}
+                                </div>
+                                <div style="font-size: 0.75rem; color: #888; margin-top: 4px;">
+                                    ${pub.year ? `<span>${pub.year}</span>` : ''}
+                                    ${pub.venue ? `<span> • ${escapeHtml(pub.venue)}</span>` : ''}
+                                    ${pub.doi ? `<span> • DOI: ${escapeHtml(pub.doi)}</span>` : ''}
+                                    ${pub.citations ? `<span> • ${pub.citations} citations</span>` : ''}
+                                    <span style="background: #e0e0e0; padding: 1px 6px; border-radius: 3px; margin-left: 4px;">${pub.source}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                resultsArea.style.display = 'block';
+                document.getElementById('add-pubs-btn').style.display = publicationSearchResults.length > 0 ? '' : 'none';
+
+            } catch (error) {
+                alert('Search error: ' + error.message);
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '🔍 Search';
+            }
+        }
+
+        function selectAllPubs(select) {
+            document.querySelectorAll('.pub-checkbox').forEach(cb => cb.checked = select);
+        }
+
+        function addSelectedPublications() {
+            const selectedIndices = [...document.querySelectorAll('.pub-checkbox:checked')]
+                .map(cb => parseInt(cb.dataset.index));
+
+            if (selectedIndices.length === 0) {
+                alert('Please select at least one publication to add.');
+                return;
+            }
+
+            saveState();
+
+            // Find or create Publications section
+            let pubSection = portfolioData.sections.find(s => 
+                s.name.toLowerCase().includes('publication')
+            );
+
+            if (!pubSection) {
+                pubSection = {
+                    id: generateId(),
+                    name: 'Publications',
+                    entries: []
+                };
+                portfolioData.sections.push(pubSection);
+            }
+
+            // Add selected publications
+            const newEntries = selectedIndices.map(idx => {
+                const pub = publicationSearchResults[idx];
+                let entry = '';
+                
+                if (pub.authors) entry += pub.authors;
+                if (pub.year) entry += ` (${pub.year})`;
+                entry += '. ';
+                if (pub.title) entry += `"${pub.title}." `;
+                if (pub.venue) entry += pub.venue + '. ';
+                if (pub.doi) entry += `DOI: ${pub.doi}`;
+                
+                return {
+                    id: generateId(),
+                    content: entry.trim()
+                };
+            });
+
+            pubSection.entries = [...pubSection.entries, ...newEntries];
+
+            render();
+            closePublicationSearchModal();
+            
+            alert(`Added ${newEntries.length} publication(s) to your portfolio.`);
+        }
+
+        async function verifyExistingPublications() {
+            const pubSection = portfolioData.sections.find(s => 
+                s.name.toLowerCase().includes('publication')
+            );
+
+            if (!pubSection || pubSection.entries.length === 0) {
+                alert('No publications found in your portfolio to verify.');
+                return;
+            }
+
+            const verifyBtn = document.getElementById('verify-pubs-btn');
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<span class="spinner"></span>Verifying...';
+
+            try {
+                const publications = pubSection.entries.map(e => e.content);
+
+                const response = await fetch(API_WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'verify_publications',
+                        publications: publications
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Verification failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const verified = data.verified || [];
+
+                // Count results
+                const foundCount = verified.filter(v => v.found).length;
+                const notFoundCount = verified.filter(v => !v.found).length;
+
+                // Show results in the results area
+                const resultsArea = document.getElementById('pubsearch-results-area');
+                const resultsContainer = document.getElementById('pubsearch-results');
+                
+                document.getElementById('pubsearch-count').textContent = `${foundCount} verified, ${notFoundCount} not found`;
+
+                resultsContainer.innerHTML = verified.map((v, idx) => `
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; background: ${v.found ? '#f0fff0' : '#fff5f5'};">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">${v.found ? '✅' : '❓'}</span>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.85rem; ${v.found ? '' : 'color: #666;'}">${escapeHtml(v.original.substring(0, 150))}${v.original.length > 150 ? '...' : ''}</div>
+                                ${v.found && v.matches[0]?.data ? `
+                                    <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">
+                                        Found in: ${v.matches[0].source}
+                                        ${v.matches[0].data.doi ? ` • DOI: ${v.matches[0].data.doi}` : ''}
+                                        ${v.matches[0].data.citations ? ` • ${v.matches[0].data.citations} citations` : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                resultsArea.style.display = 'block';
+                document.getElementById('add-pubs-btn').style.display = 'none';
+
+            } catch (error) {
+                alert('Verification error: ' + error.message);
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '✓ Verify My Publications';
+            }
+        }
+
+        // ===========================================
         // FILE OPERATIONS (Header Actions)
         // ===========================================
 
@@ -3452,12 +3772,21 @@ FILE OPERATIONS:
 • Save: Download your portfolio as .json
 
 IMPORT TEXT/FILES:
-• Click "Import Text" to open the import dialog
+• Click "Import" to open the import dialog
 • Drag-and-drop or browse for files
 • Supports: Text, Markdown, CSV, JSON, PDF, Images
 • PDFs and images are processed by Claude's vision
 • The AI will parse content into portfolio sections
 • Preview the result before applying
+
+PUBLICATION SEARCH:
+• Click "Find Pubs" to search academic databases
+• Search by author name, ORCID, DOI, arXiv ID, or PMID
+• Sources: Semantic Scholar, OpenAlex, DBLP, CrossRef, 
+  PubMed, arXiv, ORCID
+• Select publications to add to your portfolio
+• Verify existing publications against databases
+• Finds DOIs, citation counts, and metadata
 
 EXPORT OPTIONS:
 • HTML: Generate a formatted web page
