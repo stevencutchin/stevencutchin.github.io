@@ -1,0 +1,3676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Complaint Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .right-panel {
+            width: 350px;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            font-size: 1.5rem;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Sections */
+        .section {
+            border: 1px solid #d4af37;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            background: white;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .section-header:hover {
+            background: linear-gradient(135deg, #234876 0%, #3a6499 100%);
+        }
+
+        .collapse-icon {
+            transition: transform 0.2s;
+            font-size: 12px;
+        }
+
+        .section.collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-name {
+            flex: 1;
+            font-weight: 600;
+            font-size: 0.95rem;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            letter-spacing: 0.5px;
+        }
+
+        .section-name-input {
+            flex: 1;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .entry-count {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.85rem;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .section-content {
+            padding: 12px;
+            border-top: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .section.collapsed .section-content {
+            display: none;
+        }
+
+        /* Entries with paragraph numbering */
+        .entry {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+
+        .entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .paragraph-number {
+            min-width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a365d;
+            color: white;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+
+        .entry textarea {
+            flex: 1;
+            min-height: 60px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .entry textarea:focus {
+            outline: none;
+            border-color: #1a365d;
+            box-shadow: 0 0 0 2px rgba(26, 54, 93, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            font-family: 'Source Sans Pro', sans-serif;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+
+        .btn-primary {
+            background: #1a365d;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #234876;
+        }
+
+        .btn-success {
+            background: #276749;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2f855a;
+        }
+
+        .btn-danger {
+            background: #c53030;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+        }
+
+        .btn-icon {
+            padding: 4px 8px;
+            background: transparent;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .btn-icon:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .add-section-btn {
+            margin-top: 12px;
+        }
+
+        .add-entry-btn {
+            margin-top: 8px;
+        }
+
+        /* Right Panel */
+        .right-panel h2 {
+            margin: 0 0 12px 0;
+            font-size: 1.1rem;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            color: #1a365d;
+        }
+
+        .prompt-area {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+
+        .prompt-area:focus {
+            outline: none;
+            border-color: #1a365d;
+        }
+
+        .section-select {
+            margin-bottom: 12px;
+        }
+
+        .section-select label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .section-select select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .send-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+        }
+
+        .response-area {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .response-area h3 {
+            margin: 0 0 8px 0;
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .response-content {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* JSON Preview */
+        .json-toggle {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .json-preview {
+            background: #1a365d;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        /* Header Bar */
+        .header-bar {
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            padding: 12px 20px;
+            margin: -20px -20px 20px -20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            border-bottom: 3px solid #d4af37;
+        }
+
+        .header-bar h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-right: auto;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            letter-spacing: 1px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255,255,255,0.3);
+            margin: 0 8px;
+        }
+
+        .btn-header {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Source Sans Pro', sans-serif;
+        }
+
+        .btn-header:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-header:active {
+            transform: translateY(0);
+        }
+
+        .btn-header-primary {
+            background: #d4af37;
+            color: #1a365d;
+        }
+
+        .btn-header-primary:hover {
+            background: #e0c04a;
+        }
+
+        .btn-header-success {
+            background: #276749;
+            color: white;
+        }
+
+        .btn-header-success:hover {
+            background: #2f855a;
+        }
+
+        .btn-header-warning {
+            background: #c05621;
+            color: white;
+        }
+
+        .btn-header-warning:hover {
+            background: #dd6b20;
+        }
+
+        .btn-header-info {
+            background: #5a67d8;
+            color: white;
+        }
+
+        .btn-header-info:hover {
+            background: #667eea;
+        }
+
+        .btn-header-secondary {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+
+        .btn-header-secondary:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .file-input-hidden {
+            display: none;
+        }
+
+        .filename-display {
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.9);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+        }
+
+        .filename-display:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.3);
+        }
+
+        .filename-display.unsaved::after {
+            content: ' •';
+            color: #d4af37;
+        }
+
+        .filename-input {
+            background: rgba(255,255,255,0.9);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #333;
+            max-width: 200px;
+            border: 1px solid #d4af37;
+            outline: none;
+        }
+
+        .btn-header:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-header-dark {
+            background: rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        .btn-header-dark:hover:not(:disabled) {
+            background: rgba(0,0,0,0.5);
+        }
+
+        /* Legal disclaimer banner */
+        .disclaimer-banner {
+            background: #fef3c7;
+            border: 1px solid #d97706;
+            color: #92400e;
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            text-align: center;
+            margin: -20px -20px 20px -20px;
+        }
+
+        @media print {
+            .header-bar, .right-panel, .btn, .section-actions, .add-section-btn, .add-entry-btn, .disclaimer-banner {
+                display: none !important;
+            }
+            body {
+                background: white;
+                padding: 0;
+                font-family: 'Times New Roman', Times, serif;
+                font-size: 12pt;
+                line-height: 2;
+            }
+            .container {
+                display: block;
+            }
+            .panel {
+                box-shadow: none;
+                border: none;
+            }
+            .section {
+                break-inside: avoid;
+                border: none;
+            }
+            .section-header {
+                background: none !important;
+                color: black;
+                border-bottom: 1px solid black;
+                padding: 8px 0;
+            }
+            .section-content {
+                border: none;
+                background: none;
+            }
+            .entry textarea {
+                border: none;
+                resize: none;
+                min-height: auto;
+                padding: 4px 0;
+                background: none;
+            }
+            .paragraph-number {
+                background: none;
+                color: black;
+                font-size: 12pt;
+            }
+        }
+
+        /* Prompt Library */
+        .prompt-library {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .prompt-library-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .prompt-library-header h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #1a365d;
+        }
+
+        .prompt-library-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .prompt-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+
+        .prompt-list:empty::after {
+            content: 'No saved prompts yet';
+            display: block;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .prompt-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .prompt-item:last-child {
+            border-bottom: none;
+        }
+
+        .prompt-item:hover {
+            background: #f0f0f0;
+        }
+
+        .prompt-item-name {
+            flex: 1;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .prompt-item-actions {
+            display: flex;
+            gap: 2px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .prompt-item:hover .prompt-item-actions {
+            opacity: 1;
+        }
+
+        .prompt-item-btn {
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .prompt-item-btn:hover {
+            background: #ddd;
+        }
+
+        .save-prompt-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .save-prompt-row input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .save-prompt-row input:focus {
+            outline: none;
+            border-color: #1a365d;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: white;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #d4af37;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .import-dropzone {
+            border: 2px dashed #1a365d;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+            background: #f8f9fa;
+        }
+
+        .import-dropzone.dragover {
+            border-color: #d4af37;
+            background: #fef9e7;
+        }
+
+        .import-dropzone p {
+            margin: 0 0 10px 0;
+            color: #666;
+        }
+
+        .import-dropzone input[type="file"] {
+            display: none;
+        }
+
+        .import-dropzone label {
+            color: #1a365d;
+            cursor: pointer;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .import-dropzone label:hover {
+            color: #d4af37;
+        }
+
+        .import-textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+
+        .import-textarea:focus {
+            outline: none;
+            border-color: #1a365d;
+        }
+
+        .import-prompt-row {
+            margin-bottom: 16px;
+        }
+
+        .import-prompt-row label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .import-prompt-row textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .import-prompt-row textarea:focus {
+            outline: none;
+            border-color: #1a365d;
+        }
+
+        .import-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .import-options label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .import-preview {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #f8f9fa;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .import-preview.active {
+            display: block;
+        }
+
+        .import-preview h4 {
+            margin: 0 0 12px 0;
+            font-size: 0.95rem;
+            color: #1a365d;
+        }
+
+        .import-preview-content {
+            max-height: 250px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+        }
+
+        .preview-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .preview-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .preview-section-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #1a365d;
+        }
+
+        .preview-section-entries {
+            color: #555;
+            font-size: 0.8rem;
+        }
+
+        .preview-section-entries li {
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* Export Modal Specific */
+        .export-modal {
+            max-width: 900px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .preset-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-card:hover {
+            border-color: #1a365d;
+            background: #f8f9fa;
+        }
+
+        .preset-card.selected {
+            border-color: #1a365d;
+            background: #e8f0ff;
+        }
+
+        .preset-card-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            color: #1a365d;
+        }
+
+        .preset-card-desc {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .preset-card.custom {
+            border-style: dashed;
+        }
+
+        .preset-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .export-prompt-section {
+            margin-bottom: 16px;
+        }
+
+        .export-prompt-section label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .export-prompt-section textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+
+        .export-prompt-section textarea:focus {
+            outline: none;
+            border-color: #1a365d;
+        }
+
+        .export-preview-tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 0;
+        }
+
+        .export-preview-tab {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: -1px;
+        }
+
+        .export-preview-tab:hover {
+            background: #eee;
+        }
+
+        .export-preview-tab.active {
+            background: white;
+            border-bottom-color: white;
+            font-weight: 500;
+        }
+
+        .export-preview-content {
+            border: 1px solid #ddd;
+            border-top: none;
+            background: #1a365d;
+            color: #e2e8f0;
+            padding: 12px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 0 0 4px 4px;
+        }
+
+        .export-file-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .export-preview-area {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .export-preview-area.active {
+            display: block;
+        }
+
+        .save-preset-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .save-preset-row input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .custom-preset-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .delete-preset-btn {
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .preset-card:hover .delete-preset-btn {
+            opacity: 1;
+        }
+
+        /* Legal Review specific styles */
+        .review-focus-areas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .review-focus-areas label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .review-focus-areas label:hover {
+            background: #f8f9fa;
+            border-color: #1a365d;
+        }
+
+        .review-focus-areas input:checked + span {
+            font-weight: 600;
+            color: #1a365d;
+        }
+
+        /* Case search styles */
+        .case-result {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .case-result:hover {
+            background: #f8f9fa;
+        }
+
+        .case-result:last-child {
+            border-bottom: none;
+        }
+
+        .case-result-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1a365d;
+            margin-bottom: 4px;
+        }
+
+        .case-result-meta {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .case-result-snippet {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 6px;
+            font-style: italic;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+    <!-- Hidden file input for loading JSON -->
+    <input type="file" id="file-input" class="file-input-hidden" accept=".json" onchange="handleFileLoad(event)">
+
+    <header class="header-bar">
+        <h1>⚖️ Legal Complaint Editor</h1>
+        
+        <span class="filename-display" id="filename-display" title="Click to rename" onclick="startFilenameEdit()">Untitled Complaint</span>
+        
+        <div class="header-actions">
+            <button class="btn-header btn-header-dark" id="undo-btn" onclick="undo()" title="Undo (Ctrl+Z)" disabled>
+                ↩️ Undo
+            </button>
+            <button class="btn-header btn-header-dark" id="redo-btn" onclick="redo()" title="Redo (Ctrl+Y)" disabled>
+                ↪️ Redo
+            </button>
+            
+            <div class="header-divider"></div>
+            
+            <button class="btn-header btn-header-secondary" onclick="newComplaint()" title="Start fresh">
+                📄 New
+            </button>
+            <button class="btn-header btn-header-primary" onclick="document.getElementById('file-input').click()" title="Load JSON file">
+                📂 Load
+            </button>
+            <button class="btn-header btn-header-success" onclick="saveComplaint()" title="Save as JSON">
+                💾 Save
+            </button>
+            <button class="btn-header btn-header-primary" onclick="openImportModal()" title="Import files or text for AI parsing">
+                📥 Import
+            </button>
+            <button class="btn-header btn-header-info" onclick="openCaseSearchModal()" title="Search case law and statutes">
+                🔍 Find Cases
+            </button>
+            
+            <div class="header-divider"></div>
+            
+            <button class="btn-header btn-header-warning" onclick="exportAs('word')" title="Export as Word-compatible HTML">
+                📝 Word
+            </button>
+            <button class="btn-header btn-header-secondary" onclick="exportAs('pdf')" title="Export as print-ready PDF format">
+                📄 PDF
+            </button>
+            <button class="btn-header btn-header-secondary" onclick="exportAs('pleading')" title="Export as pleading paper">
+                📋 Pleading
+            </button>
+            <button class="btn-header btn-header-info" onclick="openExportModal()" title="AI-powered export to any format">
+                🤖 AI Export
+            </button>
+            <button class="btn-header btn-header-success" onclick="openReviewModal()" title="AI legal review of complaint">
+                ✓ Review
+            </button>
+            <button class="btn-header btn-header-secondary" onclick="printComplaint()" title="Print">
+                🖨️ Print
+            </button>
+            
+            <div class="header-divider"></div>
+            
+            <button class="btn-header btn-header-secondary" onclick="showHelp()" title="Help & keyboard shortcuts">
+                ❓ Help
+            </button>
+        </div>
+    </header>
+
+    <div class="disclaimer-banner">
+        ⚠️ <strong>Disclaimer:</strong> This tool is for educational and drafting assistance purposes only. It does not provide legal advice. Consult a licensed attorney for legal matters.
+    </div>
+
+    <div class="container">
+        <div class="left-panel">
+            <div class="panel">
+                <div id="sections-container"></div>
+                <button class="btn btn-success add-section-btn" onclick="addSection()">+ Add Section</button>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel">
+                <h2>🤖 AI Legal Assistant</h2>
+                
+                <div class="section-select">
+                    <label>Apply to:</label>
+                    <select id="target-section">
+                        <option value="all">Entire Complaint</option>
+                    </select>
+                </div>
+
+                <textarea 
+                    class="prompt-area" 
+                    id="prompt-input"
+                    placeholder="Enter your prompt here...&#10;&#10;Examples:&#10;• Check for missing elements in causes of action&#10;• Format all citations in Bluebook style&#10;• Expand factual allegations&#10;• Draft a negligence cause of action"
+                ></textarea>
+
+                <button class="btn btn-primary send-btn" id="send-btn" onclick="sendToAI()">
+                    Send to Claude
+                </button>
+
+                <div class="response-area" id="response-area" style="display: none;">
+                    <h3>Response:</h3>
+                    <div class="response-content" id="response-content"></div>
+                    <button class="btn btn-secondary btn-small" style="margin-top: 8px;" onclick="applyResponse()">
+                        Apply Changes
+                    </button>
+                </div>
+
+                <div class="prompt-library">
+                    <div class="prompt-library-header">
+                        <h3>📚 Saved Prompts</h3>
+                        <div class="prompt-library-actions">
+                            <button class="btn btn-secondary btn-small" onclick="importPrompts()" title="Import prompts">Import</button>
+                            <button class="btn btn-secondary btn-small" onclick="exportPrompts()" title="Export prompts">Export</button>
+                        </div>
+                    </div>
+                    <div class="save-prompt-row">
+                        <input type="text" id="prompt-name-input" placeholder="Prompt name..." onkeydown="if(event.key==='Enter')saveCurrentPrompt()">
+                        <button class="btn btn-primary btn-small" onclick="saveCurrentPrompt()">Save</button>
+                    </div>
+                    <div class="prompt-list" id="prompt-list"></div>
+                </div>
+
+                <div class="json-toggle">
+                    <button class="btn btn-secondary btn-small" onclick="toggleJsonPreview()">
+                        Toggle JSON Preview
+                    </button>
+                    <div class="json-preview" id="json-preview" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Text Modal -->
+    <div class="modal-overlay" id="import-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📥 Import Document</h2>
+                <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="import-dropzone" id="import-dropzone">
+                    <p>Drag and drop a file here, or</p>
+                    <label for="import-file-input">click to browse</label>
+                    <input type="file" id="import-file-input" accept=".txt,.md,.csv,.json,.xml,.html,.htm,.pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx" onchange="handleImportFile(event)">
+                    <p style="font-size: 0.75rem; color: #888; margin-top: 10px;">
+                        Supports: Text, Markdown, PDF, Images, and more
+                    </p>
+                </div>
+
+                <div id="file-preview-area" style="display: none; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                        <span id="file-preview-icon" style="font-size: 1.5rem;">📄</span>
+                        <div style="flex: 1;">
+                            <div id="file-preview-name" style="font-weight: 500;"></div>
+                            <div id="file-preview-info" style="font-size: 0.8rem; color: #666;"></div>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="clearImportFile()">✕ Clear</button>
+                    </div>
+                    <img id="file-preview-image" style="display: none; max-width: 100%; max-height: 200px; margin-top: 10px; border-radius: 4px;">
+                </div>
+
+                <textarea 
+                    class="import-textarea" 
+                    id="import-text" 
+                    placeholder="Or paste text here...&#10;&#10;For files, use the dropzone above. Text pasted here will be combined with any uploaded file."
+                    oninput="updateCharCount()"
+                ></textarea>
+                <div class="char-count" id="import-char-count">0 characters</div>
+
+                <div class="import-prompt-row">
+                    <label for="import-prompt">Instructions for AI:</label>
+                    <textarea id="import-prompt">Parse this document into a legal complaint structure. Extract ALL content completely - do not summarize or truncate. Organize into sections: Caption, Jurisdiction and Venue, Parties, Factual Allegations, Causes of Action (separate section for each claim), and Prayer for Relief. Return a JSON object with a "sections" array where each section has a "name" and "entries" array.</textarea>
+                </div>
+
+                <div class="import-options">
+                    <label>
+                        <input type="radio" name="import-mode" value="merge" checked>
+                        Add to existing sections
+                    </label>
+                    <label>
+                        <input type="radio" name="import-mode" value="replace">
+                        Replace all sections
+                    </label>
+                </div>
+
+                <div class="import-preview" id="import-preview">
+                    <h4>Preview:</h4>
+                    <div class="import-preview-content" id="import-preview-content"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+                <button class="btn btn-primary" id="process-import-btn" onclick="processImport()">
+                    🤖 Process with AI
+                </button>
+                <button class="btn btn-success" id="apply-import-btn" onclick="applyImport()" style="display: none;">
+                    ✓ Apply to Complaint
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Export Modal -->
+    <div class="modal-overlay" id="export-modal">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2>🤖 AI Export</h2>
+                <button class="modal-close" onclick="closeExportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4 style="margin: 0 0 12px 0; font-size: 0.95rem;">Choose a format preset:</h4>
+                
+                <div class="preset-grid" id="preset-grid">
+                    <!-- Presets populated by JS -->
+                </div>
+
+                <div class="preset-actions">
+                    <button class="btn btn-secondary btn-small" onclick="toggleSavePreset()">💾 Save Current as Preset</button>
+                    <button class="btn btn-secondary btn-small" onclick="exportCustomPresets()">📤 Export Presets</button>
+                    <button class="btn btn-secondary btn-small" onclick="importCustomPresets()">📥 Import Presets</button>
+                </div>
+
+                <div class="save-preset-row" id="save-preset-row" style="display: none; margin-bottom: 16px;">
+                    <input type="text" id="new-preset-name" placeholder="Preset name...">
+                    <input type="text" id="new-preset-desc" placeholder="Short description..." style="max-width: 200px;">
+                    <button class="btn btn-primary btn-small" onclick="saveCurrentAsPreset()">Save</button>
+                    <button class="btn btn-secondary btn-small" onclick="toggleSavePreset()">Cancel</button>
+                </div>
+
+                <div class="export-prompt-section">
+                    <label for="export-prompt">Export instructions for AI:</label>
+                    <textarea id="export-prompt" placeholder="Describe how you want the complaint exported..."></textarea>
+                </div>
+
+                <div class="export-preview-area" id="export-preview-area">
+                    <div class="export-preview-tabs" id="export-preview-tabs">
+                        <!-- Tabs populated by JS -->
+                    </div>
+                    <div class="export-preview-content" id="export-preview-content">
+                        <!-- Content populated by JS -->
+                    </div>
+                    <div class="export-file-actions">
+                        <button class="btn btn-primary btn-small" id="download-current-btn" onclick="downloadCurrentFile()">
+                            ⬇️ Download This File
+                        </button>
+                        <button class="btn btn-success btn-small" id="download-all-btn" onclick="downloadAllAsZip()">
+                            📦 Download All as ZIP
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeExportModal()">Cancel</button>
+                <button class="btn btn-primary" id="generate-export-btn" onclick="generateExport()">
+                    🤖 Generate Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legal Review Modal -->
+    <div class="modal-overlay" id="review-modal">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2>✓ Legal Review</h2>
+                <button class="modal-close" onclick="closeReviewModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin: 0 0 16px 0; color: #666; font-size: 0.9rem;">
+                    The AI will review your complaint for legal sufficiency, missing elements, and potential improvements.
+                </p>
+
+                <h4 style="margin: 0 0 12px 0; font-size: 0.95rem;">Focus areas:</h4>
+                <div class="review-focus-areas">
+                    <label><input type="checkbox" class="review-focus" value="elements" checked> <span>Required Elements</span></label>
+                    <label><input type="checkbox" class="review-focus" value="jurisdiction" checked> <span>Jurisdiction & Venue</span></label>
+                    <label><input type="checkbox" class="review-focus" value="facts" checked> <span>Factual Sufficiency</span></label>
+                    <label><input type="checkbox" class="review-focus" value="citations" checked> <span>Citation Format</span></label>
+                    <label><input type="checkbox" class="review-focus" value="relief" checked> <span>Prayer for Relief</span></label>
+                    <label><input type="checkbox" class="review-focus" value="procedural"> <span>Procedural Issues</span></label>
+                </div>
+
+                <div class="import-prompt-row">
+                    <label for="review-prompt">Additional review instructions (optional):</label>
+                    <textarea id="review-prompt" style="min-height: 60px;" placeholder="E.g., Focus on California state law requirements, check for statute of limitations issues..."></textarea>
+                </div>
+
+                <div class="import-preview" id="review-results" style="display: none;">
+                    <h4>Review Results:</h4>
+                    <div class="import-preview-content" id="review-results-content" style="max-height: 350px;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeReviewModal()">Cancel</button>
+                <button class="btn btn-primary" id="run-review-btn" onclick="runLegalReview()">
+                    ✓ Run Review
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Case Search Modal -->
+    <div class="modal-overlay" id="case-search-modal">
+        <div class="modal export-modal">
+            <div class="modal-header">
+                <h2>🔍 Case Law Search</h2>
+                <button class="modal-close" onclick="closeCaseSearchModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin: 0 0 16px 0; color: #666; font-size: 0.9rem;">
+                    Search for relevant case law, statutes, and regulations to cite in your complaint.
+                </p>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                    <input type="text" id="case-search-query" class="import-textarea" 
+                        style="min-height: auto; padding: 10px; flex: 1; margin-bottom: 0;"
+                        placeholder="Enter case name, legal issue, statute citation..."
+                        onkeydown="if(event.key==='Enter') searchCaseLaw()">
+                    <button class="btn btn-primary" onclick="searchCaseLaw()" id="case-search-btn">
+                        🔍 Search
+                    </button>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 8px;">Search sources:</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="case-search-source" value="courtlistener" checked> CourtListener
+                        </label>
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" class="case-search-source" value="cfr"> Federal Regulations (CFR)
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 8px;">Jurisdiction filter:</label>
+                    <select id="case-jurisdiction" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                        <option value="">All Jurisdictions</option>
+                        <option value="scotus">U.S. Supreme Court</option>
+                        <option value="ca1">1st Circuit</option>
+                        <option value="ca2">2nd Circuit</option>
+                        <option value="ca3">3rd Circuit</option>
+                        <option value="ca4">4th Circuit</option>
+                        <option value="ca5">5th Circuit</option>
+                        <option value="ca6">6th Circuit</option>
+                        <option value="ca7">7th Circuit</option>
+                        <option value="ca8">8th Circuit</option>
+                        <option value="ca9">9th Circuit</option>
+                        <option value="ca10">10th Circuit</option>
+                        <option value="ca11">11th Circuit</option>
+                        <option value="cadc">D.C. Circuit</option>
+                        <option value="cafc">Federal Circuit</option>
+                    </select>
+                </div>
+
+                <div id="case-results-area" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; font-size: 0.95rem;">
+                            Results: <span id="case-search-count">0</span> found
+                        </h4>
+                        <div>
+                            <button class="btn btn-secondary btn-small" onclick="selectAllCases(true)">Select All</button>
+                            <button class="btn btn-secondary btn-small" onclick="selectAllCases(false)">Deselect All</button>
+                        </div>
+                    </div>
+                    <div id="case-search-results" style="max-height: 350px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCaseSearchModal()">Cancel</button>
+                <button class="btn btn-success" id="add-cases-btn" onclick="addSelectedCases()" style="display: none;">
+                    ➕ Add Selected Citations
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===========================================
+        // DATA MODEL
+        // ===========================================
+        
+        let complaintData = {
+            sections: [
+                {
+                    id: generateId(),
+                    name: "Caption",
+                    entries: [
+                        { id: generateId(), content: "IN THE [COURT NAME]\n[COUNTY/DISTRICT], [STATE]\n\n[PLAINTIFF NAME],\n    Plaintiff,\n\nv.\n\n[DEFENDANT NAME],\n    Defendant.\n\nCase No. ____________" }
+                    ]
+                },
+                {
+                    id: generateId(),
+                    name: "Jurisdiction and Venue",
+                    entries: [
+                        { id: generateId(), content: "This Court has jurisdiction over this action pursuant to [statute/constitutional provision]." },
+                        { id: generateId(), content: "Venue is proper in this Court pursuant to [statute] because [reasons]." }
+                    ]
+                },
+                {
+                    id: generateId(),
+                    name: "Parties",
+                    entries: [
+                        { id: generateId(), content: "Plaintiff [NAME] is [an individual/a corporation] residing/located at [address]." },
+                        { id: generateId(), content: "Defendant [NAME] is [an individual/a corporation] residing/located at [address]." }
+                    ]
+                },
+                {
+                    id: generateId(),
+                    name: "Factual Allegations",
+                    entries: [
+                        { id: generateId(), content: "On or about [DATE], [describe relevant facts]." },
+                        { id: generateId(), content: "As a result of Defendant's actions, Plaintiff suffered [damages]." }
+                    ]
+                },
+                {
+                    id: generateId(),
+                    name: "First Cause of Action: [CLAIM TYPE]",
+                    entries: [
+                        { id: generateId(), content: "Plaintiff realleges and incorporates by reference all preceding paragraphs." },
+                        { id: generateId(), content: "[State the elements of the cause of action and how facts support each element]." }
+                    ]
+                },
+                {
+                    id: generateId(),
+                    name: "Prayer for Relief",
+                    entries: [
+                        { id: generateId(), content: "WHEREFORE, Plaintiff respectfully requests that this Court:\n\na) Award compensatory damages in an amount to be proven at trial;\n\nb) Award punitive damages;\n\nc) Award costs of suit and reasonable attorney's fees;\n\nd) Grant such other and further relief as the Court deems just and proper." }
+                    ]
+                }
+            ]
+        };
+
+        let lastAIResponse = null;
+        
+        // Filename tracking
+        let currentFilename = "Untitled Complaint";
+        let hasUnsavedChanges = false;
+
+        // Undo/Redo history
+        const MAX_HISTORY = 50;
+        let undoStack = [];
+        let redoStack = [];
+        let isUndoRedo = false;
+
+        // Saved prompts
+        let savedPrompts = [];
+        const PROMPTS_STORAGE_KEY = 'legal_complaint_editor_prompts';
+
+        // Export presets
+        const EXPORT_PRESETS_STORAGE_KEY = 'legal_complaint_editor_export_presets';
+        let customExportPresets = [];
+
+        const builtInExportPresets = [
+            {
+                id: 'federal-complaint',
+                name: 'Federal Court Complaint',
+                description: 'Standard federal civil complaint',
+                prompt: `Convert this complaint to a properly formatted federal court complaint. Generate a Word-compatible HTML file with:
+
+- Times New Roman, 12pt font
+- Double-spaced
+- 1-inch margins
+- Numbered paragraphs in factual allegations and causes of action
+- Proper caption format
+- Signature block at the end
+
+Return JSON with format: { "files": [{ "filename": "complaint.html", "content": "..." }] }`
+            },
+            {
+                id: 'state-complaint',
+                name: 'State Court Complaint',
+                description: 'General state court civil complaint',
+                prompt: `Convert this complaint to a properly formatted state court complaint. Generate a Word-compatible HTML file with:
+
+- Times New Roman, 12pt font
+- Double-spaced
+- 1-inch margins
+- Numbered paragraphs
+- State court caption format
+- Verification if required
+- Signature block
+
+Return JSON with format: { "files": [{ "filename": "complaint.html", "content": "..." }] }`
+            },
+            {
+                id: 'california-pleading',
+                name: 'California Pleading Paper',
+                description: '28-line numbered pleading format',
+                prompt: `Convert this complaint to California pleading paper format. Generate an HTML file with:
+
+- Courier New, 12pt font
+- 28 lines per page
+- Line numbers in left margin (1-28)
+- Double vertical line in left margin
+- Proper California caption format
+- Numbered paragraphs
+
+Return JSON with format: { "files": [{ "filename": "complaint_pleading.html", "content": "..." }] }`
+            },
+            {
+                id: 'memorandum',
+                name: 'Memorandum of Law',
+                description: 'Supporting legal memorandum',
+                prompt: `Convert this complaint into a Memorandum of Points and Authorities in support of the claims. Include:
+
+- Introduction
+- Statement of Facts
+- Legal Standard
+- Argument (organized by cause of action)
+- Conclusion
+
+Use proper legal citation format (Bluebook). Generate HTML suitable for Word.
+
+Return JSON with format: { "files": [{ "filename": "memorandum.html", "content": "..." }] }`
+            },
+            {
+                id: 'demand-letter',
+                name: 'Demand Letter',
+                description: 'Pre-litigation demand letter',
+                prompt: `Convert this complaint into a professional demand letter. Include:
+
+- Professional letterhead format
+- Clear statement of claims
+- Specific damages sought
+- Deadline for response
+- Consequences of non-response
+
+Maintain professional but firm tone.
+
+Return JSON with format: { "files": [{ "filename": "demand_letter.html", "content": "..." }] }`
+            },
+            {
+                id: 'case-summary',
+                name: 'Case Summary',
+                description: 'Internal case summary memo',
+                prompt: `Create an internal case summary memo from this complaint. Include:
+
+- Case caption and parties
+- Summary of claims
+- Key facts
+- Potential damages
+- Strengths and weaknesses
+- Recommended next steps
+
+Return JSON with format: { "files": [{ "filename": "case_summary.html", "content": "..." }] }`
+            },
+            {
+                id: 'discovery-requests',
+                name: 'Initial Discovery',
+                description: 'Interrogatories and document requests',
+                prompt: `Based on this complaint, generate initial written discovery including:
+
+1. Interrogatories (Form and Special)
+2. Requests for Production of Documents
+3. Requests for Admission
+
+Tailor requests to the specific causes of action and facts alleged.
+
+Return JSON with format: { "files": [{ "filename": "interrogatories.html", "content": "..." }, { "filename": "rfp.html", "content": "..." }, { "filename": "rfa.html", "content": "..." }] }`
+            },
+            {
+                id: 'plain-english',
+                name: 'Plain English Summary',
+                description: 'Client-friendly explanation',
+                prompt: `Create a plain English summary of this complaint for the client. Avoid legal jargon. Explain:
+
+- What the lawsuit is about
+- Who is being sued and why
+- What damages are being sought
+- What happens next
+
+Write in clear, accessible language.
+
+Return JSON with format: { "files": [{ "filename": "client_summary.html", "content": "..." }] }`
+            },
+            {
+                id: 'markdown',
+                name: 'Markdown Document',
+                description: 'Clean markdown format',
+                prompt: `Convert this complaint to clean Markdown format with:
+
+- Clear section headers
+- Numbered paragraphs using markdown lists
+- Clean formatting
+
+Return JSON with format: { "files": [{ "filename": "complaint.md", "content": "..." }] }`
+            },
+            {
+                id: 'json-structured',
+                name: 'Structured JSON',
+                description: 'Machine-readable complaint data',
+                prompt: `Convert this complaint to a structured JSON format suitable for case management systems. Include:
+
+{
+  "caption": { "court": "", "plaintiff": "", "defendant": "", "caseNumber": "" },
+  "jurisdiction": { "basis": "", "venue": "" },
+  "parties": [{ "name": "", "type": "", "role": "" }],
+  "factualAllegations": [{ "number": 1, "text": "" }],
+  "causesOfAction": [{ "name": "", "elements": [], "allegations": [] }],
+  "relief": []
+}
+
+Return JSON with format: { "files": [{ "filename": "complaint.json", "content": "..." }] }`
+            }
+        ];
+
+        // Case search results
+        let caseSearchResults = [];
+
+        // ===========================================
+        // API MODULE - Cloudflare Worker Integration
+        // ===========================================
+
+        // ⚠️ CONFIGURE YOUR WORKER URL HERE
+        const API_WORKER_URL = 'https://legal-complaint-api.aicomplaint.workers.dev';
+
+        /**
+         * Send a request to the AI API via Cloudflare Worker
+         */
+        async function callAI({ prompt, data, targetSection, file }) {
+            if (API_WORKER_URL.includes('your-subdomain')) {
+                console.warn('Worker URL not configured. Using mock response.');
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        resolve({
+                            success: true,
+                            message: `[Mock Response - Configure API_WORKER_URL to enable AI]\n\nPrompt received: "${prompt}"\n\nTarget: ${targetSection}\n${file ? `\nFile: ${file.name} (${file.type})` : ''}\n\nTo connect to Claude:\n1. Deploy the Cloudflare Worker\n2. Update API_WORKER_URL in this file\n\nData received:\n${JSON.stringify(data, null, 2)}`,
+                            updatedData: null
+                        });
+                    }, 500);
+                });
+            }
+
+            const requestBody = {
+                prompt: prompt,
+                data: data,
+                targetSection: targetSection
+            };
+
+            if (file) {
+                requestBody.file = file;
+            }
+
+            const response = await fetch(API_WORKER_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `API error: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        // ===========================================
+        // UTILITY FUNCTIONS
+        // ===========================================
+
+        function generateId() {
+            return 'id_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function getComplaintJSON() {
+            return JSON.stringify(complaintData, null, 2);
+        }
+
+        function updateSectionDropdown() {
+            const select = document.getElementById('target-section');
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="all">Entire Complaint</option>';
+            
+            complaintData.sections.forEach(section => {
+                const option = document.createElement('option');
+                option.value = section.id;
+                option.textContent = section.name;
+                select.appendChild(option);
+            });
+
+            if ([...select.options].some(opt => opt.value === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // Get paragraph number for numbered sections
+        function getParagraphNumber(sectionId, entryIndex) {
+            const numberedSections = ['Factual Allegations', 'First Cause of Action', 'Second Cause of Action', 
+                'Third Cause of Action', 'Fourth Cause of Action', 'Fifth Cause of Action'];
+            
+            let paragraphNum = 0;
+            
+            for (const section of complaintData.sections) {
+                const shouldNumber = numberedSections.some(n => section.name.includes(n)) || 
+                                    section.name.includes('Cause of Action');
+                
+                if (section.id === sectionId) {
+                    if (shouldNumber) {
+                        return paragraphNum + entryIndex + 1;
+                    }
+                    return null;
+                }
+                
+                if (shouldNumber) {
+                    paragraphNum += section.entries.length;
+                }
+            }
+            return null;
+        }
+
+        // ===========================================
+        // UNDO/REDO SYSTEM
+        // ===========================================
+
+        function saveState() {
+            if (isUndoRedo) return;
+            
+            const state = JSON.stringify(complaintData);
+            undoStack.push(state);
+            
+            if (undoStack.length > MAX_HISTORY) {
+                undoStack.shift();
+            }
+            
+            redoStack = [];
+            updateUndoRedoButtons();
+            markUnsaved();
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            
+            redoStack.push(JSON.stringify(complaintData));
+            const previousState = undoStack.pop();
+            isUndoRedo = true;
+            complaintData = JSON.parse(previousState);
+            render();
+            isUndoRedo = false;
+            
+            updateUndoRedoButtons();
+            markUnsaved();
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            
+            undoStack.push(JSON.stringify(complaintData));
+            const nextState = redoStack.pop();
+            isUndoRedo = true;
+            complaintData = JSON.parse(nextState);
+            render();
+            isUndoRedo = false;
+            
+            updateUndoRedoButtons();
+            markUnsaved();
+        }
+
+        function updateUndoRedoButtons() {
+            document.getElementById('undo-btn').disabled = undoStack.length === 0;
+            document.getElementById('redo-btn').disabled = redoStack.length === 0;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                e.preventDefault();
+                redo();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveComplaint();
+            }
+        });
+
+        // ===========================================
+        // FILENAME TRACKING
+        // ===========================================
+
+        function setFilename(name) {
+            currentFilename = name;
+            updateFilenameDisplay();
+        }
+
+        function markUnsaved() {
+            hasUnsavedChanges = true;
+            updateFilenameDisplay();
+        }
+
+        function markSaved() {
+            hasUnsavedChanges = false;
+            updateFilenameDisplay();
+        }
+
+        function updateFilenameDisplay() {
+            const display = document.getElementById('filename-display');
+            if (display.tagName === 'SPAN') {
+                display.textContent = currentFilename;
+                display.title = 'Click to rename' + (hasUnsavedChanges ? ' (unsaved changes)' : '');
+                
+                if (hasUnsavedChanges) {
+                    display.classList.add('unsaved');
+                } else {
+                    display.classList.remove('unsaved');
+                }
+            }
+        }
+
+        function startFilenameEdit() {
+            const display = document.getElementById('filename-display');
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'filename-input';
+            input.id = 'filename-display';
+            input.value = currentFilename;
+            
+            function saveFilename() {
+                const newName = input.value.trim() || 'Untitled Complaint';
+                
+                const span = document.createElement('span');
+                span.className = 'filename-display' + (hasUnsavedChanges ? ' unsaved' : '');
+                span.id = 'filename-display';
+                span.title = 'Click to rename' + (hasUnsavedChanges ? ' (unsaved changes)' : '');
+                span.textContent = newName;
+                span.onclick = startFilenameEdit;
+                
+                input.replaceWith(span);
+                
+                if (newName !== currentFilename) {
+                    currentFilename = newName;
+                    markUnsaved();
+                }
+            }
+            
+            input.addEventListener('blur', saveFilename);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    input.value = currentFilename;
+                    input.blur();
+                }
+            });
+            
+            display.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        // ===========================================
+        // RENDER FUNCTIONS
+        // ===========================================
+
+        function render() {
+            const container = document.getElementById('sections-container');
+            
+            if (complaintData.sections.length === 0) {
+                container.innerHTML = '<div class="empty-state">No sections yet. Click "Add Section" to get started.</div>';
+                updateSectionDropdown();
+                return;
+            }
+
+            container.innerHTML = complaintData.sections.map(section => `
+                <div class="section" id="section-${section.id}">
+                    <div class="section-header" onclick="toggleSection('${section.id}')">
+                        <span class="collapse-icon">▼</span>
+                        <span class="section-name">${escapeHtml(section.name)}</span>
+                        <span class="entry-count">(${section.entries.length} ${section.entries.length === 1 ? 'paragraph' : 'paragraphs'})</span>
+                        <div class="section-actions" onclick="event.stopPropagation()">
+                            <button class="btn btn-icon btn-small" onclick="editSectionName('${section.id}')" title="Edit name">✏️</button>
+                            <button class="btn btn-icon btn-small" onclick="deleteSection('${section.id}')" title="Delete section">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="section-content">
+                        ${section.entries.map((entry, idx) => {
+                            const paraNum = getParagraphNumber(section.id, idx);
+                            return `
+                                <div class="entry" id="entry-${entry.id}">
+                                    ${paraNum !== null ? `<div class="paragraph-number">${paraNum}</div>` : ''}
+                                    <textarea 
+                                        onchange="updateEntry('${section.id}', '${entry.id}', this.value)"
+                                    >${escapeHtml(entry.content)}</textarea>
+                                    <button class="btn btn-danger btn-small" onclick="deleteEntry('${section.id}', '${entry.id}')">×</button>
+                                </div>
+                            `;
+                        }).join('')}
+                        <button class="btn btn-primary btn-small add-entry-btn" onclick="addEntry('${section.id}')">+ Add Paragraph</button>
+                    </div>
+                </div>
+            `).join('');
+
+            updateSectionDropdown();
+            updateJsonPreview();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ===========================================
+        // SECTION OPERATIONS
+        // ===========================================
+
+        function addSection() {
+            const name = prompt('Enter section name:', 'New Section');
+            if (name === null) return;
+            
+            saveState();
+            complaintData.sections.push({
+                id: generateId(),
+                name: name || 'New Section',
+                entries: []
+            });
+            render();
+        }
+
+        function deleteSection(sectionId) {
+            if (!confirm('Delete this section and all its paragraphs?')) return;
+            
+            saveState();
+            complaintData.sections = complaintData.sections.filter(s => s.id !== sectionId);
+            render();
+        }
+
+        function editSectionName(sectionId) {
+            const section = complaintData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            const newName = prompt('Enter new section name:', section.name);
+            if (newName === null) return;
+
+            saveState();
+            section.name = newName || section.name;
+            render();
+        }
+
+        function toggleSection(sectionId) {
+            const sectionEl = document.getElementById(`section-${sectionId}`);
+            if (sectionEl) {
+                sectionEl.classList.toggle('collapsed');
+            }
+        }
+
+        // ===========================================
+        // ENTRY OPERATIONS
+        // ===========================================
+
+        function addEntry(sectionId) {
+            const section = complaintData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            saveState();
+            section.entries.push({
+                id: generateId(),
+                content: ''
+            });
+            render();
+
+            setTimeout(() => {
+                const newEntry = section.entries[section.entries.length - 1];
+                const textarea = document.querySelector(`#entry-${newEntry.id} textarea`);
+                if (textarea) textarea.focus();
+            }, 0);
+        }
+
+        let updateTimeout = null;
+        let pendingUpdate = null;
+
+        function updateEntry(sectionId, entryId, content) {
+            const section = complaintData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            const entry = section.entries.find(e => e.id === entryId);
+            if (!entry) return;
+
+            if (pendingUpdate === null) {
+                saveState();
+            }
+            
+            clearTimeout(updateTimeout);
+            pendingUpdate = { sectionId, entryId, content };
+            
+            entry.content = content;
+            markUnsaved();
+            
+            updateTimeout = setTimeout(() => {
+                pendingUpdate = null;
+                updateJsonPreview();
+            }, 500);
+        }
+
+        function deleteEntry(sectionId, entryId) {
+            const section = complaintData.sections.find(s => s.id === sectionId);
+            if (!section) return;
+
+            saveState();
+            section.entries = section.entries.filter(e => e.id !== entryId);
+            render();
+        }
+
+        // ===========================================
+        // AI INTEGRATION
+        // ===========================================
+
+        async function sendToAI() {
+            const prompt = document.getElementById('prompt-input').value.trim();
+            if (!prompt) {
+                alert('Please enter a prompt');
+                return;
+            }
+
+            const targetSection = document.getElementById('target-section').value;
+            const sendBtn = document.getElementById('send-btn');
+            const responseArea = document.getElementById('response-area');
+            const responseContent = document.getElementById('response-content');
+
+            let dataToSend;
+            if (targetSection === 'all') {
+                dataToSend = complaintData;
+            } else {
+                dataToSend = complaintData.sections.find(s => s.id === targetSection);
+            }
+
+            sendBtn.classList.add('loading');
+            sendBtn.innerHTML = '<span class="spinner"></span>Processing...';
+
+            try {
+                const response = await callAI({
+                    prompt: prompt,
+                    data: dataToSend,
+                    targetSection: targetSection
+                });
+
+                lastAIResponse = response;
+                responseContent.textContent = response.message || JSON.stringify(response, null, 2);
+                responseArea.style.display = 'block';
+
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+                responseArea.style.display = 'block';
+            } finally {
+                sendBtn.classList.remove('loading');
+                sendBtn.innerHTML = 'Send to Claude';
+            }
+        }
+
+        function applyResponse() {
+            if (!lastAIResponse || !lastAIResponse.updatedData) {
+                alert('No applicable changes in the response. The AI needs to return an updatedData field.');
+                return;
+            }
+
+            if (confirm('Apply the AI\'s suggested changes? This will modify your complaint.')) {
+                saveState();
+                
+                function normalizeSection(section) {
+                    return {
+                        id: section.id || generateId(),
+                        name: section.name || 'Untitled Section',
+                        entries: (section.entries || []).map(entry => {
+                            if (typeof entry === 'string') {
+                                return { id: generateId(), content: entry };
+                            } else if (entry && entry.content) {
+                                return { id: entry.id || generateId(), content: entry.content };
+                            } else {
+                                return { id: generateId(), content: String(entry || '') };
+                            }
+                        })
+                    };
+                }
+
+                function normalizeData(data) {
+                    if (data.sections && Array.isArray(data.sections)) {
+                        return {
+                            sections: data.sections.map(normalizeSection)
+                        };
+                    } else if (data.name && data.entries) {
+                        return normalizeSection(data);
+                    }
+                    return data;
+                }
+
+                const normalized = normalizeData(lastAIResponse.updatedData);
+                const targetSection = document.getElementById('target-section').value;
+                
+                if (targetSection !== 'all') {
+                    const targetIdx = complaintData.sections.findIndex(s => s.id === targetSection);
+                    
+                    if (targetIdx !== -1) {
+                        let updatedSection = null;
+                        
+                        if (normalized.sections && normalized.sections.length > 0) {
+                            const targetName = complaintData.sections[targetIdx].name.toLowerCase();
+                            updatedSection = normalized.sections.find(s => 
+                                s.name.toLowerCase() === targetName
+                            ) || normalized.sections[0];
+                        } else if (normalized.name) {
+                            updatedSection = normalized;
+                        }
+                        
+                        if (updatedSection) {
+                            updatedSection.id = complaintData.sections[targetIdx].id;
+                            complaintData.sections[targetIdx] = updatedSection;
+                        }
+                    }
+                } else {
+                    if (normalized.sections) {
+                        complaintData = normalized;
+                    } else if (normalized.name) {
+                        const idx = complaintData.sections.findIndex(s => 
+                            s.name.toLowerCase() === normalized.name.toLowerCase()
+                        );
+                        
+                        if (idx !== -1) {
+                            normalized.id = complaintData.sections[idx].id;
+                            complaintData.sections[idx] = normalized;
+                        } else {
+                            complaintData.sections.push(normalized);
+                        }
+                    }
+                }
+                render();
+            }
+        }
+
+        // ===========================================
+        // JSON PREVIEW
+        // ===========================================
+
+        function toggleJsonPreview() {
+            const preview = document.getElementById('json-preview');
+            if (preview.style.display === 'none') {
+                preview.style.display = 'block';
+                updateJsonPreview();
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function updateJsonPreview() {
+            const preview = document.getElementById('json-preview');
+            if (preview.style.display !== 'none') {
+                preview.textContent = getComplaintJSON();
+            }
+        }
+
+        // ===========================================
+        // PROMPT LIBRARY
+        // ===========================================
+
+        function loadSavedPrompts() {
+            try {
+                const stored = localStorage.getItem(PROMPTS_STORAGE_KEY);
+                if (stored) {
+                    savedPrompts = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to load saved prompts:', e);
+                savedPrompts = [];
+            }
+            renderPromptList();
+        }
+
+        function persistPrompts() {
+            try {
+                localStorage.setItem(PROMPTS_STORAGE_KEY, JSON.stringify(savedPrompts));
+            } catch (e) {
+                console.error('Failed to save prompts:', e);
+                alert('Failed to save prompts to local storage.');
+            }
+        }
+
+        function renderPromptList() {
+            const list = document.getElementById('prompt-list');
+            
+            if (savedPrompts.length === 0) {
+                list.innerHTML = '';
+                return;
+            }
+
+            list.innerHTML = savedPrompts.map((prompt, index) => `
+                <div class="prompt-item" onclick="loadPrompt(${index})" title="${escapeHtml(prompt.text.substring(0, 200))}">
+                    <span class="prompt-item-name">${escapeHtml(prompt.name)}</span>
+                    <div class="prompt-item-actions" onclick="event.stopPropagation()">
+                        <button class="prompt-item-btn" onclick="editPromptName(${index})" title="Rename">✏️</button>
+                        <button class="prompt-item-btn" onclick="deletePrompt(${index})" title="Delete">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function saveCurrentPrompt() {
+            const promptText = document.getElementById('prompt-input').value.trim();
+            const nameInput = document.getElementById('prompt-name-input');
+            let promptName = nameInput.value.trim();
+
+            if (!promptText) {
+                alert('Please enter a prompt first.');
+                return;
+            }
+
+            if (!promptName) {
+                promptName = promptText.split(/\s+/).slice(0, 5).join(' ');
+                if (promptName.length > 30) {
+                    promptName = promptName.substring(0, 30) + '...';
+                }
+            }
+
+            savedPrompts.push({
+                id: generateId(),
+                name: promptName,
+                text: promptText,
+                created: new Date().toISOString()
+            });
+
+            persistPrompts();
+            renderPromptList();
+            nameInput.value = '';
+        }
+
+        function loadPrompt(index) {
+            if (index < 0 || index >= savedPrompts.length) return;
+            document.getElementById('prompt-input').value = savedPrompts[index].text;
+        }
+
+        function editPromptName(index) {
+            if (index < 0 || index >= savedPrompts.length) return;
+            
+            const newName = window.prompt('Enter new name:', savedPrompts[index].name);
+            if (newName === null || !newName.trim()) return;
+
+            savedPrompts[index].name = newName.trim();
+            persistPrompts();
+            renderPromptList();
+        }
+
+        function deletePrompt(index) {
+            if (index < 0 || index >= savedPrompts.length) return;
+            if (!confirm(`Delete prompt "${savedPrompts[index].name}"?`)) return;
+            
+            savedPrompts.splice(index, 1);
+            persistPrompts();
+            renderPromptList();
+        }
+
+        function exportPrompts() {
+            if (savedPrompts.length === 0) {
+                alert('No prompts to export.');
+                return;
+            }
+
+            const dataStr = JSON.stringify(savedPrompts, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'legal-prompts.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function importPrompts() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        
+                        if (!Array.isArray(imported)) {
+                            throw new Error('Invalid format: expected an array');
+                        }
+
+                        const valid = imported.every(p => 
+                            typeof p === 'object' && 
+                            typeof p.name === 'string' && 
+                            typeof p.text === 'string'
+                        );
+
+                        if (!valid) {
+                            throw new Error('Invalid format: each prompt must have name and text');
+                        }
+
+                        if (!confirm(`Import ${imported.length} prompt(s)?`)) return;
+
+                        imported.forEach(p => {
+                            if (!p.id) p.id = generateId();
+                            if (!p.created) p.created = new Date().toISOString();
+                        });
+
+                        savedPrompts = [...savedPrompts, ...imported];
+                        persistPrompts();
+                        renderPromptList();
+                        
+                        alert(`Successfully imported ${imported.length} prompt(s).`);
+
+                    } catch (err) {
+                        alert('Failed to import prompts: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        // ===========================================
+        // IMPORT TEXT MODAL
+        // ===========================================
+
+        let pendingImportData = null;
+        let importedFile = null;
+
+        function openImportModal() {
+            document.getElementById('import-modal').classList.add('active');
+            document.getElementById('import-text').value = '';
+            document.getElementById('import-preview').classList.remove('active');
+            document.getElementById('apply-import-btn').style.display = 'none';
+            document.getElementById('process-import-btn').style.display = '';
+            document.getElementById('file-preview-area').style.display = 'none';
+            document.getElementById('file-preview-image').style.display = 'none';
+            pendingImportData = null;
+            importedFile = null;
+            updateCharCount();
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal').classList.remove('active');
+            pendingImportData = null;
+        }
+
+        function initModalListeners() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeImportModal();
+                    closeExportModal();
+                    closeReviewModal();
+                    closeCaseSearchModal();
+                }
+            });
+
+            document.getElementById('import-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'import-modal') closeImportModal();
+            });
+
+            document.getElementById('export-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'export-modal') closeExportModal();
+            });
+
+            document.getElementById('review-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'review-modal') closeReviewModal();
+            });
+
+            document.getElementById('case-search-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'case-search-modal') closeCaseSearchModal();
+            });
+        }
+
+        function updateCharCount() {
+            const text = document.getElementById('import-text').value;
+            document.getElementById('import-char-count').textContent = 
+                `${text.length.toLocaleString()} characters`;
+        }
+
+        function initDropzone() {
+            const dropzone = document.getElementById('import-dropzone');
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                
+                const file = e.dataTransfer.files[0];
+                if (file) readImportFile(file);
+            });
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (file) readImportFile(file);
+            event.target.value = '';
+        }
+
+        function readImportFile(file) {
+            const textTypes = ['text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml', 'application/json', 'application/xml'];
+            const textExtensions = ['.txt', '.md', '.csv', '.json', '.xml', '.html', '.htm'];
+            const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            const pdfType = 'application/pdf';
+
+            const isTextFile = textTypes.includes(file.type) || 
+                               textExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            const isImage = imageTypes.includes(file.type);
+            const isPDF = file.type === pdfType || file.name.toLowerCase().endsWith('.pdf');
+
+            if (isTextFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('import-text').value = e.target.result;
+                    updateCharCount();
+                    showFilePreview(file, 'text');
+                    importedFile = {
+                        name: file.name,
+                        type: file.type || 'text/plain',
+                        data: e.target.result,
+                        isBase64: false
+                    };
+                };
+                reader.readAsText(file);
+            } else if (isImage || isPDF) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const base64Data = e.target.result.split(',')[1];
+                    const mediaType = isPDF ? 'application/pdf' : file.type;
+                    
+                    showFilePreview(file, isPDF ? 'pdf' : 'image', e.target.result);
+                    
+                    importedFile = {
+                        name: file.name,
+                        type: mediaType,
+                        data: base64Data,
+                        isBase64: true
+                    };
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert(`Unsupported file type: ${file.type || file.name}`);
+            }
+        }
+
+        function showFilePreview(file, type, dataUrl = null) {
+            const previewArea = document.getElementById('file-preview-area');
+            const previewIcon = document.getElementById('file-preview-icon');
+            const previewName = document.getElementById('file-preview-name');
+            const previewInfo = document.getElementById('file-preview-info');
+            const previewImage = document.getElementById('file-preview-image');
+
+            const icons = { 'text': '📄', 'pdf': '📕', 'image': '🖼️' };
+            previewIcon.textContent = icons[type] || '📄';
+            previewName.textContent = file.name;
+            previewInfo.textContent = `${(file.size / 1024).toFixed(1)} KB • ${type.toUpperCase()}`;
+
+            if (type === 'image' && dataUrl) {
+                previewImage.src = dataUrl;
+                previewImage.style.display = 'block';
+            } else {
+                previewImage.style.display = 'none';
+            }
+
+            previewArea.style.display = 'block';
+        }
+
+        function clearImportFile() {
+            importedFile = null;
+            document.getElementById('file-preview-area').style.display = 'none';
+            document.getElementById('file-preview-image').style.display = 'none';
+            document.getElementById('import-text').value = '';
+            updateCharCount();
+        }
+
+        async function processImport() {
+            const text = document.getElementById('import-text').value.trim();
+            const prompt = document.getElementById('import-prompt').value.trim();
+
+            if (!text && !importedFile) {
+                alert('Please enter text or upload a file to import.');
+                return;
+            }
+
+            if (!prompt) {
+                alert('Please provide instructions for the AI.');
+                return;
+            }
+
+            const processBtn = document.getElementById('process-import-btn');
+            const preview = document.getElementById('import-preview');
+            const previewContent = document.getElementById('import-preview-content');
+
+            processBtn.disabled = true;
+            processBtn.innerHTML = '<span class="spinner"></span>Processing...';
+
+            try {
+                const requestData = {
+                    prompt: prompt,
+                    data: null,
+                    targetSection: 'import'
+                };
+
+                if (importedFile && importedFile.isBase64) {
+                    requestData.file = {
+                        name: importedFile.name,
+                        type: importedFile.type,
+                        data: importedFile.data
+                    };
+                    if (text) {
+                        requestData.prompt += '\n\nAdditional context:\n' + text;
+                    }
+                } else {
+                    requestData.prompt += '\n\nText to parse:\n\n' + text;
+                }
+
+                const response = await callAI(requestData);
+
+                let parsedData = null;
+                
+                if (response.updatedData) {
+                    parsedData = response.updatedData;
+                } else if (response.message) {
+                    const jsonMatch = response.message.match(/\{[\s\S]*"sections"[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            parsedData = JSON.parse(jsonMatch[0]);
+                        } catch (e) {}
+                    }
+                }
+
+                if (parsedData && parsedData.sections && Array.isArray(parsedData.sections)) {
+                    pendingImportData = parsedData;
+                    
+                    previewContent.innerHTML = parsedData.sections.map(section => `
+                        <div class="preview-section">
+                            <div class="preview-section-name">${escapeHtml(section.name)} (${section.entries?.length || 0} paragraphs)</div>
+                            <ul class="preview-section-entries">
+                                ${(section.entries || []).slice(0, 3).map(entry => `
+                                    <li>${escapeHtml(typeof entry === 'string' ? entry : entry.content || '')}</li>
+                                `).join('')}
+                                ${(section.entries?.length || 0) > 3 ? `<li><em>...and ${section.entries.length - 3} more</em></li>` : ''}
+                            </ul>
+                        </div>
+                    `).join('');
+
+                    preview.classList.add('active');
+                    document.getElementById('apply-import-btn').style.display = '';
+                } else {
+                    previewContent.innerHTML = `
+                        <div class="preview-section">
+                            <div class="preview-section-name">⚠️ Could not parse response</div>
+                            <pre style="white-space: pre-wrap; font-size: 0.8rem; max-height: 150px; overflow: auto;">${escapeHtml(response.message || JSON.stringify(response, null, 2))}</pre>
+                        </div>
+                    `;
+                    preview.classList.add('active');
+                }
+
+            } catch (error) {
+                alert('Error processing import: ' + error.message);
+            } finally {
+                processBtn.disabled = false;
+                processBtn.innerHTML = '🤖 Process with AI';
+            }
+        }
+
+        function applyImport() {
+            if (!pendingImportData || !pendingImportData.sections) {
+                alert('No valid data to import.');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="import-mode"]:checked').value;
+
+            saveState();
+
+            const normalizedSections = pendingImportData.sections.map(section => ({
+                id: section.id || generateId(),
+                name: section.name,
+                entries: (section.entries || []).map(entry => {
+                    if (typeof entry === 'string') {
+                        return { id: generateId(), content: entry };
+                    } else if (entry.content) {
+                        return { id: entry.id || generateId(), content: entry.content };
+                    } else {
+                        return { id: generateId(), content: String(entry) };
+                    }
+                })
+            }));
+
+            if (mode === 'replace') {
+                complaintData.sections = normalizedSections;
+            } else {
+                normalizedSections.forEach(newSection => {
+                    const existing = complaintData.sections.find(
+                        s => s.name.toLowerCase() === newSection.name.toLowerCase()
+                    );
+                    
+                    if (existing) {
+                        existing.entries = [...existing.entries, ...newSection.entries];
+                    } else {
+                        complaintData.sections.push(newSection);
+                    }
+                });
+            }
+
+            render();
+            closeImportModal();
+        }
+
+        // ===========================================
+        // AI EXPORT MODAL
+        // ===========================================
+
+        let selectedPresetId = null;
+        let exportedFiles = [];
+        let currentFileIndex = 0;
+
+        function loadCustomExportPresets() {
+            try {
+                const stored = localStorage.getItem(EXPORT_PRESETS_STORAGE_KEY);
+                if (stored) {
+                    customExportPresets = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Failed to load custom export presets:', e);
+                customExportPresets = [];
+            }
+        }
+
+        function persistExportPresets() {
+            try {
+                localStorage.setItem(EXPORT_PRESETS_STORAGE_KEY, JSON.stringify(customExportPresets));
+            } catch (e) {
+                console.error('Failed to save export presets:', e);
+            }
+        }
+
+        function openExportModal() {
+            document.getElementById('export-modal').classList.add('active');
+            selectedPresetId = null;
+            exportedFiles = [];
+            document.getElementById('export-preview-area').classList.remove('active');
+            document.getElementById('save-preset-row').style.display = 'none';
+            renderExportPresets();
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').classList.remove('active');
+        }
+
+        function renderExportPresets() {
+            const grid = document.getElementById('preset-grid');
+            const allPresets = [...builtInExportPresets, ...customExportPresets];
+
+            grid.innerHTML = allPresets.map(preset => `
+                <div class="preset-card ${preset.custom ? 'custom' : ''} ${selectedPresetId === preset.id ? 'selected' : ''}" 
+                     onclick="selectPreset('${preset.id}')">
+                    <div class="preset-card-title">
+                        ${escapeHtml(preset.name)}
+                        ${preset.custom ? `
+                            <button class="btn-icon btn-small delete-preset-btn" 
+                                    onclick="event.stopPropagation(); deleteCustomPreset('${preset.id}')"
+                                    title="Delete preset">🗑️</button>
+                        ` : ''}
+                    </div>
+                    <div class="preset-card-desc">${escapeHtml(preset.description)}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectPreset(presetId) {
+            selectedPresetId = presetId;
+            const allPresets = [...builtInExportPresets, ...customExportPresets];
+            const preset = allPresets.find(p => p.id === presetId);
+            
+            if (preset) {
+                document.getElementById('export-prompt').value = preset.prompt;
+            }
+            
+            renderExportPresets();
+        }
+
+        function toggleSavePreset() {
+            const row = document.getElementById('save-preset-row');
+            row.style.display = row.style.display === 'none' ? 'flex' : 'none';
+            if (row.style.display === 'flex') {
+                document.getElementById('new-preset-name').focus();
+            }
+        }
+
+        function saveCurrentAsPreset() {
+            const name = document.getElementById('new-preset-name').value.trim();
+            const desc = document.getElementById('new-preset-desc').value.trim();
+            const prompt = document.getElementById('export-prompt').value.trim();
+
+            if (!name) {
+                alert('Please enter a preset name.');
+                return;
+            }
+            if (!prompt) {
+                alert('Please enter export instructions first.');
+                return;
+            }
+
+            const newPreset = {
+                id: 'custom_' + generateId(),
+                name: name,
+                description: desc || 'Custom preset',
+                prompt: prompt,
+                custom: true
+            };
+
+            customExportPresets.push(newPreset);
+            persistExportPresets();
+            renderExportPresets();
+
+            document.getElementById('new-preset-name').value = '';
+            document.getElementById('new-preset-desc').value = '';
+            document.getElementById('save-preset-row').style.display = 'none';
+
+            selectedPresetId = newPreset.id;
+            renderExportPresets();
+        }
+
+        function deleteCustomPreset(presetId) {
+            if (!confirm('Delete this custom preset?')) return;
+            
+            customExportPresets = customExportPresets.filter(p => p.id !== presetId);
+            persistExportPresets();
+            
+            if (selectedPresetId === presetId) {
+                selectedPresetId = null;
+                document.getElementById('export-prompt').value = '';
+            }
+            
+            renderExportPresets();
+        }
+
+        function exportCustomPresets() {
+            if (customExportPresets.length === 0) {
+                alert('No custom presets to export.');
+                return;
+            }
+
+            const dataStr = JSON.stringify(customExportPresets, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'legal-export-presets.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function importCustomPresets() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        
+                        if (!Array.isArray(imported)) {
+                            throw new Error('Invalid format: expected an array');
+                        }
+
+                        const valid = imported.every(p => 
+                            typeof p === 'object' && 
+                            typeof p.name === 'string' && 
+                            typeof p.prompt === 'string'
+                        );
+
+                        if (!valid) {
+                            throw new Error('Invalid format: each preset must have name and prompt');
+                        }
+
+                        if (!confirm(`Import ${imported.length} preset(s)?`)) return;
+
+                        imported.forEach(p => {
+                            p.id = p.id || 'custom_' + generateId();
+                            p.custom = true;
+                        });
+
+                        customExportPresets = [...customExportPresets, ...imported];
+                        persistExportPresets();
+                        renderExportPresets();
+                        
+                        alert(`Successfully imported ${imported.length} preset(s).`);
+
+                    } catch (err) {
+                        alert('Failed to import presets: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            input.click();
+        }
+
+        async function generateExport() {
+            const prompt = document.getElementById('export-prompt').value.trim();
+
+            if (!prompt) {
+                alert('Please enter export instructions or select a preset.');
+                return;
+            }
+
+            const generateBtn = document.getElementById('generate-export-btn');
+            const previewArea = document.getElementById('export-preview-area');
+
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="spinner"></span>Generating...';
+
+            try {
+                const response = await callAI({
+                    prompt: prompt + '\n\nComplaint data:\n\n' + JSON.stringify(complaintData, null, 2),
+                    data: complaintData,
+                    targetSection: 'export'
+                });
+
+                let files = null;
+
+                if (response.files && Array.isArray(response.files)) {
+                    files = response.files;
+                } else if (response.updatedData && response.updatedData.files) {
+                    files = response.updatedData.files;
+                } else if (response.message) {
+                    const jsonMatch = response.message.match(/\{[\s\S]*"files"[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            const parsed = JSON.parse(jsonMatch[0]);
+                            if (parsed.files) files = parsed.files;
+                        } catch (e) {}
+                    }
+                    
+                    if (!files) {
+                        let filename = 'export.txt';
+                        const content = response.message;
+                        
+                        if (content.includes('\\documentclass')) filename = 'document.tex';
+                        else if (content.startsWith('<?xml') || content.startsWith('<xml>')) filename = 'export.xml';
+                        else if (content.startsWith('{') || content.startsWith('[')) filename = 'export.json';
+                        else if (content.startsWith('<!DOCTYPE') || content.startsWith('<html')) filename = 'export.html';
+                        else if (content.startsWith('#')) filename = 'export.md';
+                        
+                        files = [{ filename, content }];
+                    }
+                }
+
+                if (files && files.length > 0) {
+                    exportedFiles = files;
+                    currentFileIndex = 0;
+                    renderExportPreview();
+                    previewArea.classList.add('active');
+                } else {
+                    alert('Could not parse export output. The AI response format was unexpected.');
+                }
+
+            } catch (error) {
+                alert('Error generating export: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '🤖 Generate Export';
+            }
+        }
+
+        function renderExportPreview() {
+            const tabs = document.getElementById('export-preview-tabs');
+            const content = document.getElementById('export-preview-content');
+            const downloadAllBtn = document.getElementById('download-all-btn');
+
+            tabs.innerHTML = exportedFiles.map((file, index) => `
+                <div class="export-preview-tab ${index === currentFileIndex ? 'active' : ''}"
+                     onclick="showExportFile(${index})">
+                    ${escapeHtml(file.filename)}
+                </div>
+            `).join('');
+
+            if (exportedFiles[currentFileIndex]) {
+                content.textContent = exportedFiles[currentFileIndex].content;
+            }
+
+            downloadAllBtn.style.display = exportedFiles.length > 1 ? '' : 'none';
+        }
+
+        function showExportFile(index) {
+            currentFileIndex = index;
+            renderExportPreview();
+        }
+
+        function downloadCurrentFile() {
+            if (!exportedFiles[currentFileIndex]) return;
+
+            const file = exportedFiles[currentFileIndex];
+            const blob = new Blob([file.content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.filename;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAllAsZip() {
+            if (exportedFiles.length === 0) return;
+
+            try {
+                const zip = new JSZip();
+                
+                exportedFiles.forEach(file => {
+                    zip.file(file.filename, file.content);
+                });
+
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                
+                const baseName = currentFilename === 'Untitled Complaint' ? 'complaint' : currentFilename;
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = baseName + '_export.zip';
+                a.click();
+                
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Failed to create ZIP file: ' + e.message);
+            }
+        }
+
+        // ===========================================
+        // LEGAL REVIEW MODAL
+        // ===========================================
+
+        function openReviewModal() {
+            document.getElementById('review-modal').classList.add('active');
+            document.getElementById('review-results').style.display = 'none';
+            document.getElementById('review-prompt').value = '';
+        }
+
+        function closeReviewModal() {
+            document.getElementById('review-modal').classList.remove('active');
+        }
+
+        async function runLegalReview() {
+            const focusAreas = [...document.querySelectorAll('.review-focus:checked')].map(cb => cb.value);
+            const additionalInstructions = document.getElementById('review-prompt').value.trim();
+
+            if (focusAreas.length === 0) {
+                alert('Please select at least one focus area.');
+                return;
+            }
+
+            const reviewBtn = document.getElementById('run-review-btn');
+            const resultsArea = document.getElementById('review-results');
+            const resultsContent = document.getElementById('review-results-content');
+
+            reviewBtn.disabled = true;
+            reviewBtn.innerHTML = '<span class="spinner"></span>Reviewing...';
+
+            const focusDescriptions = {
+                elements: 'Check that each cause of action contains all required legal elements',
+                jurisdiction: 'Verify jurisdiction and venue allegations are properly stated',
+                facts: 'Assess whether factual allegations are sufficient to support each claim',
+                citations: 'Review legal citations for proper Bluebook format',
+                relief: 'Ensure prayer for relief requests appropriate remedies',
+                procedural: 'Identify potential procedural issues (statute of limitations, standing, etc.)'
+            };
+
+            const focusPrompt = focusAreas.map(area => focusDescriptions[area]).join('\n- ');
+
+            const prompt = `Please review this legal complaint for the following:
+- ${focusPrompt}
+
+${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
+
+Provide a detailed review with:
+1. Issues identified (organized by section)
+2. Specific recommendations for improvement
+3. Missing elements or allegations
+4. Overall assessment
+
+Be thorough but constructive. Note both strengths and weaknesses.`;
+
+            try {
+                const response = await callAI({
+                    prompt: prompt,
+                    data: complaintData,
+                    targetSection: 'review'
+                });
+
+                resultsContent.innerHTML = `<pre style="white-space: pre-wrap; font-family: 'Source Sans Pro', sans-serif; font-size: 0.9rem; line-height: 1.5;">${escapeHtml(response.message || JSON.stringify(response, null, 2))}</pre>`;
+                resultsArea.style.display = 'block';
+
+            } catch (error) {
+                resultsContent.innerHTML = `<div style="color: #c53030;">Error: ${escapeHtml(error.message)}</div>`;
+                resultsArea.style.display = 'block';
+            } finally {
+                reviewBtn.disabled = false;
+                reviewBtn.innerHTML = '✓ Run Review';
+            }
+        }
+
+        // ===========================================
+        // CASE LAW SEARCH MODAL
+        // ===========================================
+
+        function openCaseSearchModal() {
+            document.getElementById('case-search-modal').classList.add('active');
+            document.getElementById('case-search-query').value = '';
+            document.getElementById('case-results-area').style.display = 'none';
+            document.getElementById('add-cases-btn').style.display = 'none';
+            caseSearchResults = [];
+        }
+
+        function closeCaseSearchModal() {
+            document.getElementById('case-search-modal').classList.remove('active');
+        }
+
+        async function searchCaseLaw() {
+            const query = document.getElementById('case-search-query').value.trim();
+            if (!query) {
+                alert('Please enter a search query.');
+                return;
+            }
+
+            const sources = [...document.querySelectorAll('.case-search-source:checked')].map(cb => cb.value);
+            if (sources.length === 0) {
+                alert('Please select at least one source to search.');
+                return;
+            }
+
+            const jurisdiction = document.getElementById('case-jurisdiction').value;
+
+            const searchBtn = document.getElementById('case-search-btn');
+            const resultsArea = document.getElementById('case-results-area');
+            const resultsContainer = document.getElementById('case-search-results');
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<span class="spinner"></span>';
+
+            try {
+                const response = await fetch(API_WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'search_caselaw',
+                        query: query,
+                        sources: sources,
+                        jurisdiction: jurisdiction
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Search failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                caseSearchResults = data.combined || [];
+
+                document.getElementById('case-search-count').textContent = caseSearchResults.length;
+
+                if (caseSearchResults.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div style="padding: 20px; text-align: center; color: #666;">
+                            No cases found. Try a different search query or sources.
+                        </div>
+                    `;
+                } else {
+                    resultsContainer.innerHTML = caseSearchResults.map((item, idx) => `
+                        <div class="case-result" onclick="toggleCaseSelection(${idx})">
+                            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                <input type="checkbox" class="case-checkbox" data-index="${idx}" onclick="event.stopPropagation()">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div class="case-result-title">${escapeHtml(item.title || 'Untitled')}</div>
+                                    <div class="case-result-meta">
+                                        ${item.citation ? `<span>${escapeHtml(item.citation)}</span>` : ''}
+                                        ${item.court ? `<span> • ${escapeHtml(item.court)}</span>` : ''}
+                                        ${item.date ? `<span> • ${item.date}</span>` : ''}
+                                        <span style="background: #e0e0e0; padding: 1px 6px; border-radius: 3px; margin-left: 4px;">${item.source}</span>
+                                    </div>
+                                    ${item.snippet ? `<div class="case-result-snippet">${escapeHtml(item.snippet.substring(0, 200))}...</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                resultsArea.style.display = 'block';
+                document.getElementById('add-cases-btn').style.display = caseSearchResults.length > 0 ? '' : 'none';
+
+            } catch (error) {
+                alert('Search error: ' + error.message);
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '🔍 Search';
+            }
+        }
+
+        function toggleCaseSelection(idx) {
+            const checkbox = document.querySelector(`.case-checkbox[data-index="${idx}"]`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+            }
+        }
+
+        function selectAllCases(select) {
+            document.querySelectorAll('.case-checkbox').forEach(cb => cb.checked = select);
+        }
+
+        function addSelectedCases() {
+            const selectedIndices = [...document.querySelectorAll('.case-checkbox:checked')]
+                .map(cb => parseInt(cb.dataset.index));
+
+            if (selectedIndices.length === 0) {
+                alert('Please select at least one case to add.');
+                return;
+            }
+
+            saveState();
+
+            // Find or create Legal Authorities section
+            let authSection = complaintData.sections.find(s => 
+                s.name.toLowerCase().includes('authorities') || s.name.toLowerCase().includes('citations')
+            );
+
+            if (!authSection) {
+                authSection = {
+                    id: generateId(),
+                    name: 'Legal Authorities',
+                    entries: []
+                };
+                // Insert before Prayer for Relief if exists
+                const reliefIdx = complaintData.sections.findIndex(s => 
+                    s.name.toLowerCase().includes('relief')
+                );
+                if (reliefIdx !== -1) {
+                    complaintData.sections.splice(reliefIdx, 0, authSection);
+                } else {
+                    complaintData.sections.push(authSection);
+                }
+            }
+
+            const newEntries = selectedIndices.map(idx => {
+                const item = caseSearchResults[idx];
+                let entry = '';
+                
+                if (item.title) entry += item.title;
+                if (item.citation) entry += `, ${item.citation}`;
+                if (item.court) entry += ` (${item.court}`;
+                if (item.date) entry += item.court ? ` ${item.date})` : ` (${item.date})`;
+                else if (item.court) entry += ')';
+                
+                return {
+                    id: generateId(),
+                    content: entry.trim()
+                };
+            });
+
+            authSection.entries = [...authSection.entries, ...newEntries];
+
+            render();
+            closeCaseSearchModal();
+            
+            alert(`Added ${newEntries.length} citation(s) to your complaint.`);
+        }
+
+        // ===========================================
+        // FILE OPERATIONS (Header Actions)
+        // ===========================================
+
+        function newComplaint() {
+            if (hasUnsavedChanges && !confirm('Start a new complaint? Any unsaved changes will be lost.')) return;
+            
+            complaintData = {
+                sections: [
+                    {
+                        id: generateId(),
+                        name: "Caption",
+                        entries: [
+                            { id: generateId(), content: "IN THE [COURT NAME]\n[COUNTY/DISTRICT], [STATE]\n\n[PLAINTIFF NAME],\n    Plaintiff,\n\nv.\n\n[DEFENDANT NAME],\n    Defendant.\n\nCase No. ____________" }
+                        ]
+                    },
+                    {
+                        id: generateId(),
+                        name: "Jurisdiction and Venue",
+                        entries: []
+                    },
+                    {
+                        id: generateId(),
+                        name: "Parties",
+                        entries: []
+                    },
+                    {
+                        id: generateId(),
+                        name: "Factual Allegations",
+                        entries: []
+                    },
+                    {
+                        id: generateId(),
+                        name: "First Cause of Action",
+                        entries: []
+                    },
+                    {
+                        id: generateId(),
+                        name: "Prayer for Relief",
+                        entries: []
+                    }
+                ]
+            };
+            undoStack = [];
+            redoStack = [];
+            setFilename('Untitled Complaint');
+            hasUnsavedChanges = false;
+            updateFilenameDisplay();
+            updateUndoRedoButtons();
+            render();
+        }
+
+        function handleFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.sections && Array.isArray(imported.sections)) {
+                        complaintData = imported;
+                        undoStack = [];
+                        redoStack = [];
+                        setFilename(file.name.replace('.json', ''));
+                        hasUnsavedChanges = false;
+                        updateFilenameDisplay();
+                        updateUndoRedoButtons();
+                        render();
+                    } else {
+                        alert('Invalid complaint format. Expected a JSON file with a "sections" array.');
+                    }
+                } catch (err) {
+                    alert('Failed to parse JSON file: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function saveComplaint() {
+            const filename = currentFilename === 'Untitled Complaint' ? 'complaint' : currentFilename;
+            const dataStr = getComplaintJSON();
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename + '.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            
+            setFilename(filename);
+            markSaved();
+        }
+
+        function exportAs(format) {
+            let content, filename, mimeType;
+            const baseName = currentFilename === 'Untitled Complaint' ? 'complaint' : currentFilename;
+
+            if (format === 'word') {
+                content = generateWordHTML();
+                filename = baseName + '.html';
+                mimeType = 'text/html';
+            } else if (format === 'pdf') {
+                content = generatePDFHTML();
+                filename = baseName + '_print.html';
+                mimeType = 'text/html';
+            } else if (format === 'pleading') {
+                content = generatePleadingPaper();
+                filename = baseName + '_pleading.html';
+                mimeType = 'text/html';
+            } else {
+                alert('Unknown format: ' + format);
+                return;
+            }
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        function generateWordHTML() {
+            let paraNum = 0;
+            const numberedSections = ['Factual Allegations', 'First Cause of Action', 'Second Cause of Action', 
+                'Third Cause of Action', 'Fourth Cause of Action', 'Fifth Cause of Action'];
+            
+            let html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${escapeHtml(currentFilename)}</title>
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 2; max-width: 6.5in; margin: 1in auto; }
+        h1 { text-align: center; font-size: 14pt; margin-bottom: 24pt; }
+        h2 { font-size: 12pt; text-transform: uppercase; margin-top: 24pt; margin-bottom: 12pt; }
+        p { text-indent: 0.5in; margin: 0 0 12pt 0; }
+        .caption { text-align: center; white-space: pre-line; margin-bottom: 24pt; font-family: 'Courier New', monospace; }
+        .numbered { text-indent: 0; }
+        .para-num { display: inline-block; width: 0.5in; }
+    </style>
+</head>
+<body>
+`;
+            complaintData.sections.forEach(section => {
+                const isCaption = section.name.toLowerCase().includes('caption');
+                const shouldNumber = numberedSections.some(n => section.name.includes(n)) || 
+                                    section.name.includes('Cause of Action');
+
+                if (!isCaption) {
+                    html += `<h2>${escapeHtml(section.name)}</h2>\n`;
+                }
+
+                section.entries.forEach(entry => {
+                    if (isCaption) {
+                        html += `<div class="caption">${escapeHtml(entry.content)}</div>\n`;
+                    } else if (shouldNumber) {
+                        paraNum++;
+                        html += `<p class="numbered"><span class="para-num">${paraNum}.</span>${escapeHtml(entry.content)}</p>\n`;
+                    } else {
+                        html += `<p>${escapeHtml(entry.content)}</p>\n`;
+                    }
+                });
+            });
+
+            html += `
+<div style="margin-top: 48pt;">
+<p style="text-indent: 0;">Dated: _______________</p>
+<p style="text-indent: 0; margin-top: 36pt;">Respectfully submitted,</p>
+<p style="text-indent: 0; margin-top: 48pt;">_________________________________</p>
+<p style="text-indent: 0;">[Attorney Name]</p>
+<p style="text-indent: 0;">Attorney for Plaintiff</p>
+</div>
+</body>
+</html>`;
+            return html;
+        }
+
+        function generatePDFHTML() {
+            // Same as Word but optimized for print
+            return generateWordHTML().replace('<body>', '<body onload="window.print()">');
+        }
+
+        function generatePleadingPaper() {
+            let html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${escapeHtml(currentFilename)}</title>
+    <style>
+        @page { size: 8.5in 11in; margin: 0; }
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 12pt; 
+            line-height: 24pt; 
+            margin: 0;
+            padding: 0.5in 0.5in 0.5in 1.5in;
+        }
+        .page { 
+            position: relative; 
+            min-height: 10in;
+            padding-left: 0.5in;
+        }
+        .line-numbers {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0.5in;
+            text-align: right;
+            padding-right: 0.25in;
+            border-right: 2px solid black;
+            margin-right: 2px;
+            border-left: 1px solid black;
+        }
+        .line-numbers span {
+            display: block;
+            line-height: 24pt;
+        }
+        .content { margin-left: 0.25in; }
+        h2 { font-size: 12pt; margin: 0; line-height: 24pt; }
+        p { margin: 0; line-height: 24pt; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="line-numbers">
+`;
+            // Add line numbers 1-28
+            for (let i = 1; i <= 28; i++) {
+                html += `        <span>${i}</span>\n`;
+            }
+            
+            html += `    </div>
+    <div class="content">
+`;
+            complaintData.sections.forEach(section => {
+                html += `<h2>${escapeHtml(section.name)}</h2>\n`;
+                section.entries.forEach(entry => {
+                    html += `<p>${escapeHtml(entry.content)}</p>\n`;
+                });
+            });
+
+            html += `    </div>
+</div>
+</body>
+</html>`;
+            return html;
+        }
+
+        function printComplaint() {
+            window.print();
+        }
+
+        function showHelp() {
+            const helpText = `
+Legal Complaint Editor Help
+===========================
+
+KEYBOARD SHORTCUTS:
+• Ctrl+Z / Cmd+Z: Undo
+• Ctrl+Y / Cmd+Y: Redo  
+• Ctrl+S / Cmd+S: Save
+• Escape: Close modal dialogs
+
+SECTIONS:
+• Click "+ Add Section" to create a new section
+• Click the section header to collapse/expand
+• Use ✏️ to rename a section
+• Use 🗑️ to delete a section
+• Paragraphs in Factual Allegations and Causes of Action
+  are automatically numbered
+
+DOCUMENT IMPORT:
+• Click "Import" to open the import dialog
+• Drag-and-drop or browse for files
+• Supports: Text, PDF, Images
+• AI will parse content into complaint structure
+
+CASE LAW SEARCH:
+• Click "Find Cases" to search legal databases
+• Search CourtListener for case law
+• Search CFR for federal regulations
+• Filter by jurisdiction
+• Add citations directly to your complaint
+
+LEGAL REVIEW:
+• Click "Review" for AI legal analysis
+• Select focus areas (elements, jurisdiction, etc.)
+• Get feedback on sufficiency and improvements
+
+EXPORT OPTIONS:
+• Word: HTML that pastes into Microsoft Word
+• PDF: Print-ready HTML (use Print to PDF)
+• Pleading: California 28-line pleading paper format
+• AI Export: Custom formats and document types
+
+AI EXPORT PRESETS:
+• Federal/State Complaint: Court-ready formats
+• Memorandum of Law: Supporting legal brief
+• Demand Letter: Pre-litigation correspondence
+• Discovery Requests: Interrogatories and RFPs
+• Case Summary: Internal memo format
+
+DISCLAIMER:
+This tool is for educational and drafting assistance 
+purposes only. It does not provide legal advice. 
+Consult a licensed attorney for legal matters.
+
+TIPS:
+• Save frequently (Ctrl+S)
+• Use AI Review before finalizing
+• Export to Word for final formatting
+• Paragraph numbers update automatically
+            `.trim();
+
+            alert(helpText);
+        }
+
+        // ===========================================
+        // INITIALIZE
+        // ===========================================
+
+        render();
+        updateFilenameDisplay();
+        updateUndoRedoButtons();
+        loadSavedPrompts();
+        loadCustomExportPresets();
+        initDropzone();
+        initModalListeners();
+    </script>
+</body>
+</html>
