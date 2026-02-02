@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 — Theme 1: Foundations</title>
+<style>
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #2c2c2c;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    background: #fff;
+  }
+  .doc-header {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #1B3A5C;
+  }
+  .doc-header h1 { font-size: 26px; color: #1B3A5C; margin-bottom: 4px; font-weight: 700; }
+  .doc-header .semester { font-size: 16px; color: #666; margin-bottom: 8px; }
+  .doc-header .subtitle { font-size: 18px; color: #2E5D8A; font-weight: 600; }
+  h2 {
+    font-size: 20px; color: #1B3A5C; margin: 36px 0 14px;
+    padding-bottom: 6px; border-bottom: 1px solid #d0dce6; font-weight: 700;
+  }
+  h3 { font-size: 17px; color: #2E5D8A; margin: 24px 0 10px; font-weight: 600; }
+  p { margin-bottom: 14px; color: #333; }
+  .callout {
+    margin: 20px 0; padding: 16px 20px; background: #f0f6fb;
+    border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .callout strong { color: #1B3A5C; }
+  ul, ol { margin: 10px 0 16px 24px; color: #333; }
+  li { margin-bottom: 6px; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 14px;
+  }
+  th {
+    background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace; background: #f0f0f0;
+    padding: 2px 6px; border-radius: 3px; font-size: 14px;
+  }
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 20px; }
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .callout { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="semester">Spring 2026</div>
+  <div class="subtitle">Theme 1: Foundations — Mobile Platforms &amp; What Makes Them Unique</div>
+</div>
+
+<p class="section-intro">
+  Before you can build great mobile apps, you need to understand the platform you're building on. This theme answers the question: what makes a phone different from a laptop, and why does that matter for the software you write?
+</p>
+
+
+<h2>1. What Is a Mobile Device?</h2>
+
+<p>
+  The word "mobile" is deceptively simple. We tend to think of phones and tablets, but the category is broader than that — and the boundaries are blurry. A useful working definition: a mobile device is a computing device designed to be used away from a fixed location, typically battery-powered, with constrained resources relative to desktop computers.
+</p>
+
+<p>
+  That definition immediately raises edge cases. A laptop is portable but we don't typically call it "mobile" in the app-development sense. A smart TV is stationary but runs the same operating systems (Android TV, tvOS) and app models as phones. An embedded device in a car dashboard shares many constraints with a phone — limited screen, touch input, intermittent connectivity — but lives in a fundamentally different context. These edge cases aren't distractions; they reveal the real design pressures that shape mobile software.
+</p>
+
+<h3>1.1 The Core Constraints</h3>
+
+<p>
+  Every mobile platform shares a set of constraints that desktop platforms either don't have or experience much less severely. Understanding these constraints is the foundation of everything else in this course.
+</p>
+
+<table>
+  <tr>
+    <th>Constraint</th>
+    <th>Mobile Reality</th>
+    <th>Desktop Comparison</th>
+  </tr>
+  <tr>
+    <td><strong>Battery</strong></td>
+    <td>Every CPU cycle, every network request, every screen pixel costs milliamp-hours. The OS aggressively kills background work to preserve battery.</td>
+    <td>Plugged in most of the time. Background processes run freely.</td>
+  </tr>
+  <tr>
+    <td><strong>Memory</strong></td>
+    <td>Typically 4–8 GB shared across all running apps. No swap file on most mobile OSes — when memory is full, the OS kills apps.</td>
+    <td>8–64 GB with virtual memory / swap. Apps rarely get killed for memory pressure.</td>
+  </tr>
+  <tr>
+    <td><strong>Screen Size</strong></td>
+    <td>Small, variable, and the <em>primary</em> interaction surface. Every pixel matters.</td>
+    <td>Large, relatively standardized. Users can resize windows.</td>
+  </tr>
+  <tr>
+    <td><strong>Input</strong></td>
+    <td>Touch (imprecise), gestures, voice. No persistent cursor. No physical keyboard by default.</td>
+    <td>Mouse (precise), keyboard always available, multiple monitors.</td>
+  </tr>
+  <tr>
+    <td><strong>Connectivity</strong></td>
+    <td>Intermittent and variable — WiFi, LTE, 5G, dead zones. Apps must handle offline gracefully.</td>
+    <td>Generally stable wired or WiFi connections.</td>
+  </tr>
+  <tr>
+    <td><strong>Sensors</strong></td>
+    <td>GPS, accelerometer, gyroscope, camera, proximity, ambient light, barometer. Rich environmental awareness.</td>
+    <td>Webcam and microphone. Limited environmental sensing.</td>
+  </tr>
+</table>
+
+<div class="callout">
+  <strong>Key Insight:</strong> Mobile development isn't "desktop development on a smaller screen." The constraints above fundamentally change how you architect, design, and test your software. An app that ignores battery impact or assumes constant connectivity will fail in the real world regardless of how clean the code is.
+</div>
+
+<h3>1.2 Alternative Form Factors</h3>
+
+<p>
+  The principles of mobile development extend beyond phones and tablets. Consider these form factors:
+</p>
+
+<p>
+  <strong>Smart TVs and Streaming Devices</strong> — Android TV, Apple TV, Roku, and Fire TV all use app models derived from mobile platforms. But the interaction model is completely different: users navigate with a remote control (directional pad, not touch), view from 10 feet away (not 10 inches), and expect a lean-back entertainment experience. The app lifecycle is similar to mobile — apps get suspended and killed — but the UI paradigm shifts from tap-and-scroll to focus-and-select.
+</p>
+
+<p>
+  <strong>Wearables</strong> — Smartwatches take every mobile constraint and amplify it. Screens are tiny (1–2 inches), battery life is measured in hours, input is limited to taps and a crown/bezel, and interactions should last seconds, not minutes. The design philosophy shifts from "full app" to "glanceable information and quick actions."
+</p>
+
+<p>
+  <strong>Embedded and Automotive</strong> — Car dashboards, kiosks, and IoT devices share mobile's constrained resources but add unique requirements: they must be operable without looking (voice, large touch targets), they have safety implications (driver distraction), and they may run for years without updates. Android Automotive and embedded Linux are increasingly common platforms here.
+</p>
+
+<p>
+  The takeaway isn't that you need to master every form factor — it's that the <em>thinking</em> you develop for mobile (constrained resources, variable input, lifecycle management) applies far more broadly than just phones.
+</p>
+
+
+<h2>2. Mobile Device Architectures</h2>
+
+<h3>2.1 Hardware Architecture</h3>
+
+<p>
+  Modern mobile devices are built around a System-on-Chip (SoC) — a single piece of silicon that integrates the CPU, GPU, memory controller, modem, and often the neural processing unit (NPU) for machine learning tasks. This is fundamentally different from a desktop or laptop, where the CPU, GPU, and memory are separate components connected by buses.
+</p>
+
+<p>
+  The SoC design has important consequences for developers. Thermal throttling is a constant concern: the SoC sits in a thin, fanless enclosure, so sustained heavy computation causes the chip to slow itself down to avoid overheating. This means that performance benchmarks measured in short bursts can be misleading — what matters is sustained performance, which is often significantly lower.
+</p>
+
+<p>
+  ARM-based processors dominate mobile (Apple's A-series and M-series, Qualcomm Snapdragon, Google Tensor). These use a big.LITTLE or similar heterogeneous architecture: a mix of high-performance cores for demanding tasks and high-efficiency cores for background work. The OS scheduler decides which cores to use based on workload, which is one of the ways mobile platforms manage battery life at the hardware level.
+</p>
+
+<h3>2.2 Software Architecture</h3>
+
+<p>
+  Both iOS and Android use a layered software architecture, though the specifics differ. The general pattern from bottom to top is:
+</p>
+
+<ol>
+  <li><strong>Kernel</strong> — Android uses a modified Linux kernel; iOS uses XNU (a hybrid Mach/BSD kernel). The kernel handles hardware abstraction, process management, and security enforcement.</li>
+  <li><strong>System Services</strong> — Location services, notification systems, inter-process communication, and background task scheduling. These are the OS-level services that apps request access to through permissions.</li>
+  <li><strong>Application Frameworks</strong> — The APIs developers actually use. On Android, this includes the Android SDK and Jetpack libraries. On iOS, it's UIKit/SwiftUI and the associated frameworks. React Native (our platform for this course) sits on top of these, providing a cross-platform abstraction.</li>
+  <li><strong>Applications</strong> — Both the built-in apps and third-party apps like the ones you'll build. Each app runs in its own sandboxed process with its own allocated memory.</li>
+</ol>
+
+<h3>2.3 The App Lifecycle</h3>
+
+<p>
+  One of the most important architectural concepts in mobile development is the <strong>app lifecycle</strong> — the series of states an app transitions through from launch to termination. Desktop apps are simple by comparison: they start, they run, the user quits them. Mobile apps live in a much more dynamic environment.
+</p>
+
+<p>
+  The typical lifecycle states are:
+</p>
+
+<ul>
+  <li><strong>Not Running</strong> — The app has not been launched or was terminated by the system.</li>
+  <li><strong>Foreground (Active)</strong> — The app is on screen and receiving user input. This is the only state where your app has the user's full attention.</li>
+  <li><strong>Foreground (Inactive)</strong> — The app is visible but not receiving events (e.g., an incoming call overlay, or during a transition).</li>
+  <li><strong>Background</strong> — The app is no longer visible but is still executing code. The OS gives you a limited window (typically seconds) to complete work before suspending you.</li>
+  <li><strong>Suspended</strong> — The app is in memory but not executing any code. The OS can kill it at any time without notice to reclaim memory.</li>
+</ul>
+
+<div class="callout">
+  <strong>Why This Matters:</strong> Your app can be killed at any moment when it's in the background. If the user was filling out a form, editing a photo, or in the middle of a game, that state needs to be preserved. The app lifecycle isn't an academic concept — it's the reason mobile apps need to save state aggressively and restore it seamlessly.
+</div>
+
+<p>
+  React Native provides hooks into these lifecycle events through the <code>AppState</code> API, which we'll use throughout the course. The key transitions to handle are moving to background (save state, cancel unnecessary network requests, release resources) and returning to foreground (refresh data, reconnect, restore UI state).
+</p>
+
+
+<h2>3. The Software Development Environment</h2>
+
+<h3>3.1 The Traditional Approach: Native Development</h3>
+
+<p>
+  Historically, building for mobile meant building separately for each platform. Android development uses Kotlin or Java with Android Studio. iOS development uses Swift or Objective-C with Xcode. Each platform has its own UI framework, its own set of APIs, its own build system, and its own deployment pipeline.
+</p>
+
+<p>
+  The advantage of native development is direct access to every platform capability and the best possible performance. The disadvantage is maintaining two separate codebases that do the same thing, doubling the development and testing effort.
+</p>
+
+<h3>3.2 Cross-Platform Development and React Native</h3>
+
+<p>
+  Cross-platform frameworks attempt to solve the two-codebase problem by letting you write one codebase that runs on both iOS and Android. React Native, created by Meta (Facebook), is one of the most widely adopted solutions. Others include Flutter (Google, using Dart) and .NET MAUI (Microsoft, using C#).
+</p>
+
+<p>
+  React Native works by letting you write your application logic and UI in JavaScript (or TypeScript) using React — the same component-based framework used for web development. At runtime, React Native translates your component tree into native platform views. A <code>&lt;View&gt;</code> in React Native becomes a <code>UIView</code> on iOS and an <code>android.view.View</code> on Android. Your JavaScript code runs in a JavaScript engine (Hermes, by default) and communicates with the native side through a bridge.
+</p>
+
+<p>
+  This architecture means React Native apps are not web apps running in a browser — they render real native components. But there is a performance cost to the bridge between JavaScript and native code, which is why understanding the underlying platform (this theme) matters even when you're working at the React Native level.
+</p>
+
+<h3>3.3 Expo: The Development Toolchain</h3>
+
+<p>
+  Expo is a set of tools and services built around React Native that dramatically simplify the development workflow. In this course, we use Expo as our primary development environment.
+</p>
+
+<p>
+  Without Expo, setting up a React Native project requires installing Android Studio, Xcode (on macOS only), configuring SDKs, managing native dependencies, and dealing with platform-specific build configurations. Expo abstracts most of this away. Here's what Expo provides:
+</p>
+
+<ul>
+  <li><strong>Expo CLI</strong> — A command-line tool that creates, builds, and serves your project. <code>npx create-expo-app</code> gives you a working project in under a minute.</li>
+  <li><strong>Expo Go</strong> — A pre-built app you install on your physical phone or emulator. During development, your app runs inside Expo Go, which means you don't need to compile native code — changes appear on your device in seconds via hot reload.</li>
+  <li><strong>Expo SDK</strong> — A curated set of libraries for common mobile features: camera, location, notifications, file system, sensors, and more. These wrap the native APIs so you don't have to write platform-specific code.</li>
+  <li><strong>EAS (Expo Application Services)</strong> — Cloud-based build and submission services. When you're ready to publish, EAS compiles your app into native binaries and can submit them to the App Store and Google Play.</li>
+</ul>
+
+<div class="callout">
+  <strong>The Development Loop:</strong> Write code in your editor → save → Expo hot-reloads the app on your phone in seconds → test → iterate. This tight feedback loop is one of the reasons we use Expo: it keeps you building rather than waiting for compiles.
+</div>
+
+<p>
+  Expo does have limitations. If you need a native module that Expo doesn't support, you'll need to "eject" to a bare React Native project and manage native code yourself. For this course, the Expo SDK covers everything we need.
+</p>
+
+
+<h2>4. Bringing It Together</h2>
+
+<p>
+  This theme isn't a one-time lecture — it's a lens you'll apply throughout the semester. When you're building a list view (Theme 2), the question of memory constraints matters. When you're designing a UI (Theme 3), touch input and screen size are the driving factors. When you're thinking about architecture (Theme 4), the app lifecycle and intermittent connectivity shape your decisions.
+</p>
+
+<p>
+  The foundation is this: mobile is a different computing environment with different rules. Code that works perfectly in a browser or on a desktop may fail on mobile — not because it's buggy, but because the assumptions are wrong. Understanding the platform is what lets you write code with the right assumptions from the start.
+</p>
+
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 — Theme 4: Architecture &amp; Engineering at Scale</title>
+<style>
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #2c2c2c;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    background: #fff;
+  }
+  .doc-header {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #1B3A5C;
+  }
+  .doc-header h1 { font-size: 26px; color: #1B3A5C; margin-bottom: 4px; font-weight: 700; }
+  .doc-header .semester { font-size: 16px; color: #666; margin-bottom: 8px; }
+  .doc-header .subtitle { font-size: 18px; color: #2E5D8A; font-weight: 600; }
+  h2 {
+    font-size: 20px; color: #1B3A5C; margin: 36px 0 14px;
+    padding-bottom: 6px; border-bottom: 1px solid #d0dce6; font-weight: 700;
+  }
+  h3 { font-size: 17px; color: #2E5D8A; margin: 24px 0 10px; font-weight: 600; }
+  p { margin-bottom: 14px; color: #333; }
+  .callout {
+    margin: 20px 0; padding: 16px 20px; background: #f0f6fb;
+    border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .callout strong { color: #1B3A5C; }
+  .case-study {
+    margin: 20px 0; padding: 20px 24px; background: #f5f0fa;
+    border-left: 4px solid #7c5cbf; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .case-study strong { color: #4a3580; }
+  .magic {
+    margin: 20px 0; padding: 20px 24px; background: #fdf6ec;
+    border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .magic strong { color: #8a5d0a; }
+  ul, ol { margin: 10px 0 16px 24px; color: #333; }
+  li { margin-bottom: 6px; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 14px;
+  }
+  th {
+    background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace; background: #f0f0f0;
+    padding: 2px 6px; border-radius: 3px; font-size: 14px;
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 6px;
+    overflow-x: auto; margin: 12px 0 18px; font-size: 13.5px; line-height: 1.5;
+  }
+  pre .kw { color: #cba6f7; }
+  pre .fn { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm { color: #6c7086; font-style: italic; }
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 20px; }
+  .diagram {
+    text-align: center; margin: 20px 0; padding: 24px; background: #fafafa;
+    border: 1px solid #ddd; border-radius: 6px; font-family: 'Consolas', monospace;
+    font-size: 14px; line-height: 1.8; color: #333;
+  }
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .callout, .case-study, .magic, pre { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="semester">Spring 2026</div>
+  <div class="subtitle">Theme 4: Architecture &amp; Engineering at Scale — From Prototype to Product</div>
+</div>
+
+<p class="section-intro">
+  There's a difference between a class project and a real product. This theme is about the systems thinking that bridges that gap — the architecture, infrastructure, and design patterns that let software work in the real world with real users at real scale.
+</p>
+
+
+<h2>1. The 3-Tiered Architecture</h2>
+
+<p>
+  Most non-trivial applications — mobile or otherwise — are organized into three logical tiers. This is one of the most enduring patterns in software engineering, and understanding it is essential for building anything beyond a standalone toy app.
+</p>
+
+<h3>1.1 The Three Tiers</h3>
+
+<div class="diagram">
+  ┌─────────────────────────────────┐<br>
+  │ <strong>Presentation Tier</strong> (Client)       │<br>
+  │ What the user sees and touches  │<br>
+  │ React Native app on the phone   │<br>
+  └──────────────┬──────────────────┘<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│ HTTP / REST / GraphQL<br>
+  ┌──────────────┴──────────────────┐<br>
+  │ <strong>Logic Tier</strong> (Server / API)       │<br>
+  │ Business rules, authentication  │<br>
+  │ Node.js, Python, Go, etc.       │<br>
+  └──────────────┬──────────────────┘<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│ SQL / ORM / API calls<br>
+  ┌──────────────┴──────────────────┐<br>
+  │ <strong>Data Tier</strong> (Storage)             │<br>
+  │ Databases, file storage, cache  │<br>
+  │ PostgreSQL, Firebase, S3, etc.  │<br>
+  └─────────────────────────────────┘
+</div>
+
+<p>
+  <strong>The Presentation Tier</strong> is your React Native app — the components, layout, state management, and event handling from Theme 2. Its job is to present data to the user and capture user input. It should contain as little business logic as possible.
+</p>
+
+<p>
+  <strong>The Logic Tier</strong> is the server-side application that enforces business rules, handles authentication, processes data, and mediates between the client and the database. When your app makes an HTTP request to an API endpoint, it's talking to this tier. This tier answers questions like: is this user authorized to see this data? What's the result of this calculation? Should this transaction be allowed?
+</p>
+
+<p>
+  <strong>The Data Tier</strong> is where persistent state lives — databases (relational like PostgreSQL, document-based like MongoDB, real-time like Firebase), file storage (S3, cloud storage), and caching layers (Redis, in-memory caches). This tier is responsible for storing data reliably and retrieving it efficiently.
+</p>
+
+<h3>1.2 Why Separate Tiers?</h3>
+
+<p>
+  You could build an app that stores everything locally on the device and has no server. For simple tools (a calculator, a single-player game), that's fine. But the moment you need any of the following, you need a server:
+</p>
+
+<ul>
+  <li><strong>Shared data</strong> — If two users need to see the same data (social media, collaborative tools, marketplace), that data must live somewhere both can access it.</li>
+  <li><strong>Authentication and authorization</strong> — You cannot trust the client. A phone is a device the user fully controls. Any logic that decides who can do what must run on the server.</li>
+  <li><strong>Heavy computation</strong> — Tasks that would drain the battery or exceed the phone's memory (image processing, ML inference, complex queries) can be offloaded to the server.</li>
+  <li><strong>Data integrity</strong> — If the user's phone is lost, broken, or reset, cloud-stored data survives. Local-only data does not.</li>
+</ul>
+
+<div class="callout">
+  <strong>The Cardinal Rule of Client-Server Architecture:</strong> Never trust the client. The phone is the user's device — they can modify it, intercept network traffic, and send fabricated requests. Every security check, every business rule, every authorization decision must be enforced server-side. The client is for <em>display and input</em>; the server is for <em>truth and enforcement</em>.
+</div>
+
+<h3>1.3 HTTP: The Glue Between Tiers</h3>
+
+<p>
+  The presentation tier and logic tier communicate over HTTP (or HTTPS, which is HTTP with encryption — always use HTTPS in production). The standard pattern is a REST API, where the client makes HTTP requests to specific endpoints:
+</p>
+
+<table>
+  <tr>
+    <th>HTTP Method</th>
+    <th>Purpose</th>
+    <th>Example</th>
+  </tr>
+  <tr>
+    <td><code>GET</code></td>
+    <td>Retrieve data (read-only, no side effects)</td>
+    <td><code>GET /api/users/42</code> — fetch user #42</td>
+  </tr>
+  <tr>
+    <td><code>POST</code></td>
+    <td>Create a new resource</td>
+    <td><code>POST /api/users</code> — create a new user</td>
+  </tr>
+  <tr>
+    <td><code>PUT</code></td>
+    <td>Replace an existing resource entirely</td>
+    <td><code>PUT /api/users/42</code> — update user #42</td>
+  </tr>
+  <tr>
+    <td><code>PATCH</code></td>
+    <td>Partially update an existing resource</td>
+    <td><code>PATCH /api/users/42</code> — update one field</td>
+  </tr>
+  <tr>
+    <td><code>DELETE</code></td>
+    <td>Remove a resource</td>
+    <td><code>DELETE /api/users/42</code> — delete user #42</td>
+  </tr>
+</table>
+
+<p>
+  Data is typically exchanged as JSON. In React Native, the built-in <code>fetch()</code> API handles HTTP requests. A typical pattern looks like this:
+</p>
+
+<pre><span class="cm">// Pull: GET request to retrieve data</span>
+<span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.example.com/tasks'</span>);
+<span class="kw">const</span> tasks = <span class="kw">await</span> response.<span class="fn">json</span>();
+
+<span class="cm">// Push: POST request to send data</span>
+<span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.example.com/tasks'</span>, {
+  method: <span class="str">'POST'</span>,
+  headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
+  body: JSON.<span class="fn">stringify</span>({ title: <span class="str">'New task'</span>, completed: <span class="kw">false</span> }),
+});</pre>
+
+<p>
+  The challenge on mobile is that these requests can fail — the network can drop, the server can be slow, the user can switch to another app mid-request. Robust mobile apps handle all of these gracefully: retry failed requests, show meaningful error messages, cache data locally so the app works offline, and sync when connectivity returns.
+</p>
+
+
+<h2>2. Continuous Integration and Continuous Deployment</h2>
+
+<p>
+  In professional software development, code doesn't go directly from a developer's laptop to users' phones. It passes through an automated pipeline that builds, tests, and deploys it — a process called CI/CD (Continuous Integration / Continuous Deployment).
+</p>
+
+<h3>2.1 Continuous Integration (CI)</h3>
+
+<p>
+  CI is the practice of frequently merging code changes into a shared repository, where automated processes verify each change. When a developer pushes code:
+</p>
+
+<ol>
+  <li>The CI server detects the change and checks out the new code.</li>
+  <li>It installs dependencies and builds the project.</li>
+  <li>It runs the full test suite — unit tests, integration tests, and any static analysis (linting, type checking).</li>
+  <li>It reports the results: pass or fail.</li>
+</ol>
+
+<p>
+  The key principle is that the main branch should always be in a working state. If a change breaks tests, it's caught immediately — not days or weeks later when someone tries to release. CI transforms testing from a manual chore into an automated safety net that runs on every commit.
+</p>
+
+<h3>2.2 Continuous Deployment (CD)</h3>
+
+<p>
+  CD extends CI by automatically deploying validated code to production (or to a staging environment for final review). For mobile apps, "deployment" means building native binaries and submitting them to app stores. This is where services like Expo's EAS Build and EAS Submit come in:
+</p>
+
+<ol>
+  <li>Code passes CI (all tests green).</li>
+  <li>EAS Build compiles the React Native code into iOS (.ipa) and Android (.apk/.aab) binaries in the cloud.</li>
+  <li>EAS Submit uploads the binaries to the App Store and Google Play.</li>
+  <li>After store review, the update becomes available to users.</li>
+</ol>
+
+<p>
+  For smaller updates that don't change native code, Expo supports <strong>over-the-air (OTA) updates</strong> — pushing JavaScript bundle updates directly to users' devices without going through the app store review process. This is a significant advantage for iteration speed.
+</p>
+
+<div class="callout">
+  <strong>The CI/CD Mindset:</strong> CI/CD isn't just tooling — it's a discipline. It means writing tests for every feature, keeping builds fast, fixing broken builds immediately, and never deploying code that hasn't been through the pipeline. The pipeline is your quality gate, and it's only as strong as the tests you put in it (connecting back to Theme 3).
+</div>
+
+<h3>2.3 A Typical Mobile CI/CD Pipeline</h3>
+
+<table>
+  <tr>
+    <th>Stage</th>
+    <th>What Happens</th>
+    <th>Tools</th>
+  </tr>
+  <tr>
+    <td><strong>Lint &amp; Format</strong></td>
+    <td>Code style and syntax checks</td>
+    <td>ESLint, Prettier</td>
+  </tr>
+  <tr>
+    <td><strong>Type Check</strong></td>
+    <td>Static type verification (if using TypeScript)</td>
+    <td>TypeScript compiler</td>
+  </tr>
+  <tr>
+    <td><strong>Unit Tests</strong></td>
+    <td>Test individual functions and components</td>
+    <td>Jest, React Native Testing Library</td>
+  </tr>
+  <tr>
+    <td><strong>Integration Tests</strong></td>
+    <td>Test component interactions and data flows</td>
+    <td>Jest, RNTL</td>
+  </tr>
+  <tr>
+    <td><strong>Build</strong></td>
+    <td>Compile native binaries for iOS and Android</td>
+    <td>EAS Build, Xcode, Gradle</td>
+  </tr>
+  <tr>
+    <td><strong>E2E Tests</strong></td>
+    <td>Full app tests on simulators/devices</td>
+    <td>Detox, Maestro</td>
+  </tr>
+  <tr>
+    <td><strong>Deploy</strong></td>
+    <td>Submit to app stores or push OTA update</td>
+    <td>EAS Submit, Fastlane</td>
+  </tr>
+</table>
+
+
+<h2>3. Case Study: How Does Waze Really Work?</h2>
+
+<p>
+  Waze is a GPS navigation app with real-time traffic data, used by over 150 million people. On the surface it seems straightforward — it's a map with directions. But the engineering behind it reveals the full scope of what "architecture at scale" means.
+</p>
+
+<div class="case-study">
+  <strong>The Core Problem:</strong> Waze doesn't just show you a route — it shows you the <em>fastest</em> route right now, updated continuously based on real-time traffic. How does it know about traffic? From its users. Every phone running Waze is a sensor, reporting speed and location back to Waze's servers. The system processes data from millions of simultaneous users to compute real-time traffic conditions for every road segment.
+</div>
+
+<h3>3.1 The Architecture</h3>
+
+<p>
+  Waze's architecture maps directly to the 3-tiered model, but at enormous scale:
+</p>
+
+<p>
+  <strong>Presentation Tier:</strong> The mobile app displays maps, routes, and alerts. It collects GPS data and user reports (accidents, police, hazards) and sends them to the server. The app must work smoothly even on low-end devices and poor network conditions — it uses aggressive caching, offline map tiles, and incremental updates.
+</p>
+
+<p>
+  <strong>Logic Tier:</strong> Waze's backend ingests location data from millions of devices, aggregates it into traffic flow models, runs routing algorithms that account for real-time conditions, and pushes updates back to clients. The routing algorithm doesn't just find the shortest path — it predicts future traffic based on current trends and historical patterns.
+</p>
+
+<p>
+  <strong>Data Tier:</strong> Map data, traffic history, user profiles, and real-time sensor data. The map itself is partially crowdsourced — Waze's map editor community contributes road data and corrections. The data tier must handle massive write throughput (millions of location reports per second) and fast reads (routing queries must return in milliseconds).
+</p>
+
+<h3>3.2 Engineering Insights</h3>
+
+<p>
+  Several aspects of Waze's engineering are instructive for thinking about mobile architecture:
+</p>
+
+<ul>
+  <li><strong>The phone as a sensor:</strong> Waze turned every user's phone into a traffic sensor. The app doesn't just consume data — it produces data. This is a paradigm shift from traditional client-server thinking, where clients only read.</li>
+  <li><strong>Crowdsourced correctness:</strong> Rather than relying on a single authoritative data source for maps, Waze lets users report and correct map data. This distributes the maintenance burden and catches changes (new roads, closures) faster than any centralized team could.</li>
+  <li><strong>Graceful degradation:</strong> When the server is unreachable, Waze doesn't stop working — it falls back to cached map data and offline routing. The experience degrades gracefully rather than failing completely.</li>
+  <li><strong>Battery and bandwidth awareness:</strong> GPS is one of the most power-hungry sensors on a phone. Waze manages location polling frequency based on context — high frequency during active navigation, reduced frequency when stationary, and off when the app is backgrounded.</li>
+</ul>
+
+
+<h2>4. Magical Tricks: Solving the Seemingly Unsolvable</h2>
+
+<p>
+  Some engineering problems seem impossible at first glance. The "trick" is usually a reframing — looking at the problem from a different angle that makes the solution obvious in retrospect. These are not algorithms or design patterns in the traditional sense; they're ways of thinking.
+</p>
+
+<div class="magic">
+  <strong>Magical Trick #1: Identifying Anonymous Users</strong><br><br>
+  <em>The Problem:</em> You have a mobile app and you want to track user behavior for analytics — which features they use, where they drop off, how they navigate. But the user hasn't signed up yet. They're anonymous. How do you identify an anonymous user?<br><br>
+  <em>The Naive Approach:</em> Try to identify them through device fingerprinting, IP addresses, or other indirect signals. These are unreliable, brittle, and raise privacy concerns.<br><br>
+  <em>The Trick:</em> <strong>You don't identify them. You name them first.</strong><br><br>
+  When the app first launches — before the user has done anything — generate a unique identifier (a UUID) and store it on the device. This ID doesn't correspond to a real identity; it's just a label. From that moment on, all analytics events are tagged with this ID. If the user later creates an account, you merge the anonymous ID with their real account. If they never sign up, you still have a consistent anonymous profile.<br><br>
+  <em>Why It Works:</em> The problem was framed as "how do I figure out who this person is?" The reframing is "I don't need to know who they are — I just need a consistent handle." Naming comes before identification. Identity is assigned, not discovered.
+</div>
+
+<p>
+  This pattern shows up in many domains. Session cookies on the web work the same way — the server assigns an identifier to the browser before it knows anything about the user. Database primary keys work this way — you generate the ID before you have the data to fill in the row. The principle is: <strong>when you need to track something before you understand it, give it a name first.</strong>
+</p>
+
+<h3>4.1 More Reframings</h3>
+
+<p>
+  The anonymous user example is one instance of a broader class of problem-solving strategies. Here are a few more patterns of productive reframing:
+</p>
+
+<ul>
+  <li><strong>"How do I sync data in real-time?"</strong> → Don't sync in real-time. Sync frequently enough that the user <em>perceives</em> it as real-time. Most "real-time" systems are actually near-real-time with clever UI that hides latency.</li>
+  <li><strong>"How do I search millions of records instantly?"</strong> → Don't search at query time. Build an index ahead of time so "searching" is actually just looking up a pre-computed result. Search engines don't search the web when you type a query — they search an index they built earlier.</li>
+  <li><strong>"How do I handle the app being killed mid-operation?"</strong> → Don't try to prevent it. Design every operation to be <em>resumable</em>. Save state incrementally, use idempotent operations, and assume your app can be killed at any point.</li>
+</ul>
+
+<p>
+  These tricks share a common thread: the elegant solution often comes not from building more sophisticated machinery, but from stepping back and questioning the assumptions that made the problem hard in the first place.
+</p>
+
+
+<h2>5. The Architecture Mindset</h2>
+
+<p>
+  Theme 4 asks you to think beyond the code on your screen. How does your app fit into a larger system? Where does the data live? Who is responsible for what? What happens when things go wrong? How does your code get from your laptop to the user's phone?
+</p>
+
+<p>
+  These aren't theoretical questions — they're the questions every professional mobile developer answers daily. The class projects you build in this course are deliberately scoped to focus on learning, but the architecture patterns you learn here are the same ones used by apps with millions of users. The scale changes; the thinking doesn't.
+</p>
+
+</body>
+</html>

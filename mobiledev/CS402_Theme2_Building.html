@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 — Theme 2: Building</title>
+<style>
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #2c2c2c;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    background: #fff;
+  }
+  .doc-header {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #1B3A5C;
+  }
+  .doc-header h1 { font-size: 26px; color: #1B3A5C; margin-bottom: 4px; font-weight: 700; }
+  .doc-header .semester { font-size: 16px; color: #666; margin-bottom: 8px; }
+  .doc-header .subtitle { font-size: 18px; color: #2E5D8A; font-weight: 600; }
+  h2 {
+    font-size: 20px; color: #1B3A5C; margin: 36px 0 14px;
+    padding-bottom: 6px; border-bottom: 1px solid #d0dce6; font-weight: 700;
+  }
+  h3 { font-size: 17px; color: #2E5D8A; margin: 24px 0 10px; font-weight: 600; }
+  p { margin-bottom: 14px; color: #333; }
+  .callout {
+    margin: 20px 0; padding: 16px 20px; background: #f0f6fb;
+    border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .callout strong { color: #1B3A5C; }
+  ul, ol { margin: 10px 0 16px 24px; color: #333; }
+  li { margin-bottom: 6px; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 14px;
+  }
+  th {
+    background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace; background: #f0f0f0;
+    padding: 2px 6px; border-radius: 3px; font-size: 14px;
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 6px;
+    overflow-x: auto; margin: 12px 0 18px; font-size: 13.5px; line-height: 1.5;
+  }
+  pre .kw { color: #cba6f7; }
+  pre .fn { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm { color: #6c7086; font-style: italic; }
+  pre .tag { color: #f38ba8; }
+  pre .attr { color: #fab387; }
+  pre .num { color: #fab387; }
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 20px; }
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .callout, pre { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="semester">Spring 2026</div>
+  <div class="subtitle">Theme 2: Building — React Native from the Ground Up</div>
+</div>
+
+<p class="section-intro">
+  This is where you build. Theme 2 takes you from reading your first line of React Native to constructing interactive, data-driven applications. It's the practical backbone of the course — everything starts here.
+</p>
+
+
+<h2>1. JavaScript Essentials for React Native</h2>
+
+<p>
+  React Native uses JavaScript (and optionally TypeScript) as its programming language. If you're coming from Java or C++, JavaScript will feel familiar in some ways and alien in others. This section covers the features of the language you'll use constantly in React Native development.
+</p>
+
+<h3>1.1 Variables and Scoping</h3>
+
+<p>
+  JavaScript has three ways to declare variables: <code>var</code>, <code>let</code>, and <code>const</code>. In modern JavaScript — and in all the code you write for this course — you should use <code>const</code> by default and <code>let</code> when you need to reassign. Avoid <code>var</code> entirely; its function-level scoping leads to subtle bugs.
+</p>
+
+<pre><span class="kw">const</span> courseName = <span class="str">"CS 402"</span>;       <span class="cm">// Cannot be reassigned</span>
+<span class="kw">let</span> lectureCount = 0;               <span class="cm">// Can be reassigned</span>
+lectureCount = lectureCount + 1;    <span class="cm">// Fine</span>
+<span class="cm">// courseName = "CS 301";           // Error: Assignment to constant variable</span></pre>
+
+<p>
+  <code>const</code> does not mean the value is immutable — it means the <em>binding</em> cannot change. A <code>const</code> array can still be modified with <code>push()</code>; what you can't do is point the variable at a different array.
+</p>
+
+<h3>1.2 Functions and Arrow Functions</h3>
+
+<p>
+  Functions in JavaScript can be declared in several ways. React Native code overwhelmingly uses arrow function syntax:
+</p>
+
+<pre><span class="cm">// Traditional function</span>
+<span class="kw">function</span> <span class="fn">greet</span>(name) {
+  <span class="kw">return</span> <span class="str">`Hello, ${name}!`</span>;
+}
+
+<span class="cm">// Arrow function (equivalent)</span>
+<span class="kw">const</span> <span class="fn">greet</span> = (name) => {
+  <span class="kw">return</span> <span class="str">`Hello, ${name}!`</span>;
+};
+
+<span class="cm">// Arrow function with implicit return (single expression)</span>
+<span class="kw">const</span> <span class="fn">greet</span> = (name) => <span class="str">`Hello, ${name}!`</span>;</pre>
+
+<p>
+  Arrow functions also handle the <code>this</code> keyword differently — they inherit <code>this</code> from the surrounding scope rather than defining their own. In React components, this behavior is almost always what you want.
+</p>
+
+<h3>1.3 Destructuring and Spread</h3>
+
+<p>
+  Destructuring lets you extract values from objects and arrays concisely. You'll see this on virtually every line of React Native code:
+</p>
+
+<pre><span class="cm">// Object destructuring</span>
+<span class="kw">const</span> user = { name: <span class="str">"Alice"</span>, age: <span class="num">22</span>, major: <span class="str">"CS"</span> };
+<span class="kw">const</span> { name, age } = user;  <span class="cm">// name = "Alice", age = 22</span>
+
+<span class="cm">// Array destructuring</span>
+<span class="kw">const</span> colors = [<span class="str">"red"</span>, <span class="str">"green"</span>, <span class="str">"blue"</span>];
+<span class="kw">const</span> [first, second] = colors;  <span class="cm">// first = "red", second = "green"</span>
+
+<span class="cm">// Spread operator — copies and merges</span>
+<span class="kw">const</span> updated = { ...user, age: <span class="num">23</span> };  <span class="cm">// New object with age changed</span>
+<span class="kw">const</span> moreColors = [...colors, <span class="str">"yellow"</span>];  <span class="cm">// New array with item added</span></pre>
+
+<p>
+  Destructuring is especially important in React because it's how you read <strong>props</strong> passed into components and how the <code>useState</code> hook returns its values.
+</p>
+
+<h3>1.4 Array Methods: map, filter, find</h3>
+
+<p>
+  React Native renders lists by transforming arrays of data into arrays of components. This relies heavily on JavaScript's functional array methods:
+</p>
+
+<pre><span class="kw">const</span> numbers = [<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>];
+
+<span class="cm">// map: transform each element</span>
+<span class="kw">const</span> doubled = numbers.<span class="fn">map</span>(n => n * <span class="num">2</span>);  <span class="cm">// [2, 4, 6, 8, 10]</span>
+
+<span class="cm">// filter: keep elements that pass a test</span>
+<span class="kw">const</span> evens = numbers.<span class="fn">filter</span>(n => n % <span class="num">2</span> === <span class="num">0</span>);  <span class="cm">// [2, 4]</span>
+
+<span class="cm">// find: get the first element that passes a test</span>
+<span class="kw">const</span> firstBig = numbers.<span class="fn">find</span>(n => n > <span class="num">3</span>);  <span class="cm">// 4</span></pre>
+
+<p>
+  You'll use <code>map()</code> constantly — it's the primary mechanism for rendering lists in React. If you have an array of data, you <code>map</code> it into an array of <code>&lt;View&gt;</code> or <code>&lt;Text&gt;</code> components.
+</p>
+
+
+<h2>2. Components: The Building Blocks</h2>
+
+<p>
+  Everything you see in a React Native app is a <strong>component</strong>. A component is a JavaScript function that returns a description of what should appear on screen. Components are composable — you build complex UIs by combining simple components, just as you build complex programs by combining simple functions.
+</p>
+
+<h3>2.1 Your First Component</h3>
+
+<pre><span class="kw">import</span> { Text, View } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">export default function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View&gt;</span>
+      <span class="tag">&lt;Text&gt;</span>Hello, CS 402!<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}</pre>
+
+<p>
+  This is a complete React Native component. Let's break down what's happening:
+</p>
+
+<ul>
+  <li><code>View</code> is the fundamental container component — the equivalent of a <code>&lt;div&gt;</code> in web HTML. It doesn't display anything itself; it holds and positions other components.</li>
+  <li><code>Text</code> displays text. In React Native, all text must be inside a <code>&lt;Text&gt;</code> component — you can't just write a string inside a <code>&lt;View&gt;</code>.</li>
+  <li>The function returns <strong>JSX</strong> — a syntax extension that lets you write component trees using an HTML-like notation. JSX is compiled into regular JavaScript function calls.</li>
+</ul>
+
+<h3>2.2 Props: Configuring Components</h3>
+
+<p>
+  Components become reusable through <strong>props</strong> (short for properties). Props are the inputs to a component — data passed from a parent to a child:
+</p>
+
+<pre><span class="kw">function</span> <span class="fn">Greeting</span>({ name, course }) {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;Text&gt;</span>Welcome to {course}, {name}!<span class="tag">&lt;/Text&gt;</span>
+  );
+}
+
+<span class="cm">// Used like this:</span>
+<span class="tag">&lt;Greeting</span> <span class="attr">name</span>=<span class="str">"Alice"</span> <span class="attr">course</span>=<span class="str">"CS 402"</span> <span class="tag">/&gt;</span></pre>
+
+<p>
+  The <code>{ name, course }</code> in the function signature is destructuring — it pulls those specific props out of the props object. Curly braces inside JSX (<code>{course}</code>) are JavaScript expressions — they let you embed dynamic values in your component tree.
+</p>
+
+<div class="callout">
+  <strong>One-Way Data Flow:</strong> Props flow <em>down</em> from parent to child, never the other way. A child cannot modify its own props. This is a fundamental principle of React's architecture — it makes data flow predictable and components easier to reason about.
+</div>
+
+<h3>2.3 Component Composition</h3>
+
+<p>
+  Real apps are built by composing components together. A <code>ContactCard</code> might contain an <code>Avatar</code>, a <code>Name</code>, and a <code>PhoneNumber</code>. Each is its own component, responsible for its own rendering. The parent orchestrates them:
+</p>
+
+<pre><span class="kw">function</span> <span class="fn">ContactCard</span>({ contact }) {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View</span> <span class="attr">style</span>={styles.card}<span class="tag">&gt;</span>
+      <span class="tag">&lt;Avatar</span> <span class="attr">uri</span>={contact.photo} <span class="tag">/&gt;</span>
+      <span class="tag">&lt;View&gt;</span>
+        <span class="tag">&lt;Text</span> <span class="attr">style</span>={styles.name}<span class="tag">&gt;</span>{contact.name}<span class="tag">&lt;/Text&gt;</span>
+        <span class="tag">&lt;Text</span> <span class="attr">style</span>={styles.phone}<span class="tag">&gt;</span>{contact.phone}<span class="tag">&lt;/Text&gt;</span>
+      <span class="tag">&lt;/View&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}</pre>
+
+<p>
+  This compositional model is one of React's greatest strengths. Each component is small, focused, and testable. When something breaks, you know exactly which component to look at.
+</p>
+
+
+<h2>3. Layout and Structure</h2>
+
+<p>
+  React Native uses <strong>Flexbox</strong> for layout — the same model used in modern CSS, but with some mobile-specific defaults. Every <code>View</code> is a flex container by default, and the default flex direction is <code>column</code> (top to bottom), not <code>row</code> as in CSS. This reflects the natural scrolling direction of mobile interfaces.
+</p>
+
+<h3>3.1 Core Flexbox Properties</h3>
+
+<table>
+  <tr>
+    <th>Property</th>
+    <th>What It Controls</th>
+    <th>Common Values</th>
+  </tr>
+  <tr>
+    <td><code>flexDirection</code></td>
+    <td>Main axis — which direction children are laid out</td>
+    <td><code>'column'</code> (default), <code>'row'</code></td>
+  </tr>
+  <tr>
+    <td><code>justifyContent</code></td>
+    <td>Distribution along the main axis</td>
+    <td><code>'flex-start'</code>, <code>'center'</code>, <code>'space-between'</code>, <code>'space-around'</code></td>
+  </tr>
+  <tr>
+    <td><code>alignItems</code></td>
+    <td>Alignment along the cross axis</td>
+    <td><code>'flex-start'</code>, <code>'center'</code>, <code>'stretch'</code> (default)</td>
+  </tr>
+  <tr>
+    <td><code>flex</code></td>
+    <td>How much space a child takes relative to siblings</td>
+    <td><code>1</code>, <code>2</code>, <code>0</code></td>
+  </tr>
+  <tr>
+    <td><code>padding</code> / <code>margin</code></td>
+    <td>Internal spacing / external spacing</td>
+    <td>Numeric values (in density-independent pixels)</td>
+  </tr>
+</table>
+
+<h3>3.2 Styling in React Native</h3>
+
+<p>
+  React Native does not use CSS files. Instead, styles are JavaScript objects created with <code>StyleSheet.create()</code>:
+</p>
+
+<pre><span class="kw">import</span> { StyleSheet, View, Text } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">const</span> styles = StyleSheet.<span class="fn">create</span>({
+  container: {
+    flex: <span class="num">1</span>,
+    justifyContent: <span class="str">'center'</span>,
+    alignItems: <span class="str">'center'</span>,
+    backgroundColor: <span class="str">'#f5f5f5'</span>,
+  },
+  title: {
+    fontSize: <span class="num">24</span>,
+    fontWeight: <span class="str">'bold'</span>,
+    color: <span class="str">'#333'</span>,
+  },
+});
+
+<span class="kw">export default function</span> <span class="fn">App</span>() {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View</span> <span class="attr">style</span>={styles.container}<span class="tag">&gt;</span>
+      <span class="tag">&lt;Text</span> <span class="attr">style</span>={styles.title}<span class="tag">&gt;</span>Centered Title<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}</pre>
+
+<p>
+  Notice that property names are camelCase (<code>fontSize</code>, not <code>font-size</code>) and values are either numbers (for dimensions, in density-independent pixels) or strings (for colors, font weights, etc.). There are no units like <code>px</code>, <code>em</code>, or <code>%</code> in most cases — React Native uses a unit system that adapts to screen density automatically.
+</p>
+
+
+<h2>4. State Variables and Hooks</h2>
+
+<p>
+  Props let you pass data <em>into</em> a component. But what about data that changes over time — a counter incrementing, a text field being edited, a list of items growing? That's <strong>state</strong>.
+</p>
+
+<h3>4.1 useState</h3>
+
+<p>
+  The <code>useState</code> hook is how you add state to a component. It returns a pair: the current value and a function to update it.
+</p>
+
+<pre><span class="kw">import</span> { useState } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { View, Text, Button } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">export default function</span> <span class="fn">Counter</span>() {
+  <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View&gt;</span>
+      <span class="tag">&lt;Text&gt;</span>Count: {count}<span class="tag">&lt;/Text&gt;</span>
+      <span class="tag">&lt;Button</span> <span class="attr">title</span>=<span class="str">"Increment"</span> <span class="attr">onPress</span>={() => <span class="fn">setCount</span>(count + <span class="num">1</span>)} <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}</pre>
+
+<p>
+  The <code>[count, setCount]</code> is array destructuring — <code>useState(0)</code> returns an array of two elements. When you call <code>setCount</code>, React re-renders the component with the new value. This is the core mechanism that makes React UIs dynamic: state changes trigger re-renders.
+</p>
+
+<div class="callout">
+  <strong>The Re-Render Cycle:</strong> When state changes, React doesn't rebuild the entire screen. It re-runs your component function, compares the new output to the previous output, and updates only what changed. This "diffing" process is what makes React efficient enough for mobile.
+</div>
+
+<h3>4.2 useEffect</h3>
+
+<p>
+  Some operations don't belong in the render cycle — fetching data from an API, setting up a subscription, or writing to a database. The <code>useEffect</code> hook lets you perform these "side effects" in response to state or prop changes:
+</p>
+
+<pre><span class="kw">import</span> { useState, useEffect } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">export default function</span> <span class="fn">UserProfile</span>({ userId }) {
+  <span class="kw">const</span> [user, setUser] = <span class="fn">useState</span>(<span class="kw">null</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    <span class="fn">fetch</span>(<span class="str">`https://api.example.com/users/${userId}`</span>)
+      .<span class="fn">then</span>(res => res.<span class="fn">json</span>())
+      .<span class="fn">then</span>(data => <span class="fn">setUser</span>(data));
+  }, [userId]);  <span class="cm">// Re-run only when userId changes</span>
+
+  <span class="kw">if</span> (!user) <span class="kw">return</span> <span class="tag">&lt;Text&gt;</span>Loading...<span class="tag">&lt;/Text&gt;</span>;
+  <span class="kw">return</span> <span class="tag">&lt;Text&gt;</span>{user.name}<span class="tag">&lt;/Text&gt;</span>;
+}</pre>
+
+<p>
+  The second argument — the <strong>dependency array</strong> (<code>[userId]</code>) — controls when the effect runs. An empty array (<code>[]</code>) means "run once on mount." Omitting it means "run after every render." Listing specific values means "run when any of these change." Getting this right is critical for performance and correctness.
+</p>
+
+<h3>4.3 Other Hooks</h3>
+
+<p>
+  React provides several other hooks that we'll encounter during the course. <code>useRef</code> lets you hold a mutable value that doesn't trigger re-renders (useful for timers, direct DOM references, or tracking previous values). <code>useCallback</code> and <code>useMemo</code> are optimization hooks that prevent unnecessary recomputations. <code>useContext</code> lets you share data across components without passing props through every level of the tree.
+</p>
+
+
+<h2>5. The Event-Driven Model</h2>
+
+<p>
+  Mobile apps are fundamentally <strong>event-driven</strong>: nothing happens until the user taps, swipes, types, or the system fires a notification. Your code doesn't execute in a linear sequence — instead, you register handlers for events, and React calls those handlers when events occur.
+</p>
+
+<h3>5.1 Common Events</h3>
+
+<table>
+  <tr>
+    <th>Component</th>
+    <th>Event Prop</th>
+    <th>When It Fires</th>
+  </tr>
+  <tr>
+    <td><code>Button</code></td>
+    <td><code>onPress</code></td>
+    <td>User taps the button</td>
+  </tr>
+  <tr>
+    <td><code>TextInput</code></td>
+    <td><code>onChangeText</code></td>
+    <td>User types or deletes text</td>
+  </tr>
+  <tr>
+    <td><code>TextInput</code></td>
+    <td><code>onSubmitEditing</code></td>
+    <td>User presses return/submit</td>
+  </tr>
+  <tr>
+    <td><code>TouchableOpacity</code></td>
+    <td><code>onPress</code>, <code>onLongPress</code></td>
+    <td>User taps or long-presses</td>
+  </tr>
+  <tr>
+    <td><code>ScrollView</code></td>
+    <td><code>onScroll</code></td>
+    <td>User scrolls the content</td>
+  </tr>
+  <tr>
+    <td><code>FlatList</code></td>
+    <td><code>onEndReached</code></td>
+    <td>User scrolls near the bottom (for infinite scroll)</td>
+  </tr>
+</table>
+
+<h3>5.2 Putting It Together: An Interactive App</h3>
+
+<pre><span class="kw">import</span> { useState } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { View, Text, TextInput, FlatList, StyleSheet } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">export default function</span> <span class="fn">TodoApp</span>() {
+  <span class="kw">const</span> [text, setText] = <span class="fn">useState</span>(<span class="str">''</span>);
+  <span class="kw">const</span> [items, setItems] = <span class="fn">useState</span>([]);
+
+  <span class="kw">const</span> <span class="fn">addItem</span> = () => {
+    <span class="kw">if</span> (text.trim()) {
+      <span class="fn">setItems</span>([...items, { id: Date.<span class="fn">now</span>().<span class="fn">toString</span>(), text }]);
+      <span class="fn">setText</span>(<span class="str">''</span>);
+    }
+  };
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View</span> <span class="attr">style</span>={styles.container}<span class="tag">&gt;</span>
+      <span class="tag">&lt;TextInput</span>
+        <span class="attr">style</span>={styles.input}
+        <span class="attr">value</span>={text}
+        <span class="attr">onChangeText</span>={setText}
+        <span class="attr">onSubmitEditing</span>={addItem}
+        <span class="attr">placeholder</span>=<span class="str">"Add a task..."</span>
+      <span class="tag">/&gt;</span>
+      <span class="tag">&lt;FlatList</span>
+        <span class="attr">data</span>={items}
+        <span class="attr">keyExtractor</span>={item => item.id}
+        <span class="attr">renderItem</span>={({ item }) => (
+          <span class="tag">&lt;Text</span> <span class="attr">style</span>={styles.item}<span class="tag">&gt;</span>{item.text}<span class="tag">&lt;/Text&gt;</span>
+        )}
+      <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}</pre>
+
+<p>
+  This small example demonstrates nearly everything from this theme working together: components (<code>View</code>, <code>TextInput</code>, <code>FlatList</code>), state (<code>useState</code> for both the input text and the list), event handling (<code>onChangeText</code>, <code>onSubmitEditing</code>), array transformation (<code>renderItem</code>), and JSX composition. It's a working app in about 25 lines.
+</p>
+
+
+<h2>6. The Learning Arc</h2>
+
+<p>
+  This theme is deliberately sequenced to build on itself. You start by understanding the language (JavaScript), then learn the basic building block (components), then how to arrange them on screen (layout), then how to make them dynamic (state and hooks), and finally how to make them respond to the user (events). Each concept depends on the ones before it.
+</p>
+
+<p>
+  But this isn't a linear path you complete once and leave behind. Every lecture in the course — whether it's about databases, cameras, or architecture — involves building with these tools. Theme 2 is the toolkit you'll use for everything else.
+</p>
+
+</body>
+</html>
