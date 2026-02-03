@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Simple List App - CS 402</title>
+<link rel="stylesheet" href="codesnips.css">
+</head>
+<body>
+<p class="site-links"><a href="../CS402_Snack_Resources.html">← Snack Resources</a> | <a href="../index.html">← Mobile Development</a> | <a href="mailto:stevencutchin@boisestate.edu">Reach out</a></p>
+<main class="codesnips-main">
+<h1>Building a Simple List App</h1>
+<div class="steps">
+<ol>
+
+<li>Android Studio is Installed and configured</li>
+
+<br />
+
+<li>Create an Empty Activity</li>
+
+<br />
+<li>Add RecyclerView dependency to Gradle Build file</li>
+<pre>
+(app/build.gradle) dependencies {
+    ...
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    ...
+}
+
+</pre>
+<br />
+<li>Add a RecyclerView to the activity_main.xml file</li>
+
+RecyclerView to a layout file (layout/fragment_crime_list.xml)
+
+<pre>
+   &ltandroidx.recyclerview.widget.RecyclerView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/coffee_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="vertical"/>
+</pre>
+
+
+<br />
+<li>Add RecyclerView Code into the Main Activity Source Code</li>
+
+<br />
+
+<pre>
+   private lateinit var kRecyclerView: RecyclerView
+
+....In onCreate(....
+
+       kRecyclerView =
+            findViewById(R.id.coffee_recycler_view) as RecyclerView
+        kRecyclerView.layoutManager = LinearLayoutManager(this)
+
+      // insert adapter here
+      ......
+</pre>
+<hr />
+<li>App should run here </li>
+
+You should be able to build and run the application here.
+
+<hr />
+
+<li>Create the ItemView XML File</li>
+
+<br />
+
+This XML file controls the layout and appearance of each individual displayed item.
+
+<pre>
+&lt?xml version="1.0" encoding="utf-8"?>
+
+&ltLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="8dp">
+
+    &ltTextView
+        android:id="@+id/coffee_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Koffee Title"/>
+
+&lt/LinearLayout>
+</pre>
+
+<li>Create the Adapter Class file in the Source Code</li>
+
+<br />
+Intially hard code a set of Strings in an array for the list.
+Put this in your main Activity Class object:
+<pre>
+    val koffeeList = arrayListOf&ltString>("Arabic", "Robusta","Sumatra","Kona")
+</pre>
+
+This is its own separate kotlin file
+<pre>
+public class KAdapter(context: Context, var coffee: ArrayList&ltString>)
+        : RecyclerView.Adapter&ltKAdapter.KoffeeHolder>() {
+
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
+                : KAdapter.KoffeeHolder {
+            val view = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_coffee, parent, false)
+            return KoffeeHolder(view)
+        }
+
+        override fun getItemCount() = coffee.size
+
+        override fun onBindViewHolder(holder: KoffeeHolder, position: Int) {
+            val acoffee = coffee[position]
+            holder.apply {
+                titleTextView.text = acoffee
+            }
+        }
+
+}
+</pre>
+
+
+<li>Create The View Holder </li>
+<br />
+
+Inside of your KAdapter class you need this inner ViewHolder object
+<pre>
+
+    class KoffeeHolder(view: View) : RecyclerView.ViewHolder(view) {
+
+        val titleTextView: TextView = view.findViewById(R.id.coffee_name)
+    }
+
+</pre>
+
+<li>Finalize the KAdapter connection in the Activity File</li>
+
+<pre>
+        val kadapter: KAdapter  = KAdapter(this, koffeeList)
+
+        kRecyclerView.setAdapter(kadapter)
+</pre>
+
+
+
+<hr />
+<br />
+<li> The App should run and display a List of objects at this point</li>
+
+<hr />
+<br />
+<li><h2>Handle Select Item</h2></li>
+<br />
+All the remaining features require you to be able to select items in the list.
+Lets implement Select first and then the various list changing functions.
+
+<br />
+<li>ClickListener</li>
+Modify the KoffeeHolder class to also be a ClickListener Object.
+
+<pre>
+//Change KoffeeHolder declaration:
+inner class KoffeeHolder(view: View)
+    : RecyclerView.ViewHolder(view), View.OnClickListener {
+
+....
+// add init into the class object
+init {
+        itemView.setOnClickListener(this)
+    }
+
+</pre>
+
+If you build the project at this point AndroidStudio will complain.
+This is because you have not defined the needed onClick function for a ClickListener.
+<li>Now add code to toggle an item as selected or not selected.</li>
+<pre>
+override fun onClick(v: View) {
+        //we need to add code to mark this item as selected.
+   }
+</pre>
+<li>Now you need to add the code to toggle that the item is in fact 'selected'.
+First we need to add an variable that holds the status of every item.
+<pre>
+    var kSelect: Boolean = false
+</pre>
+
+Now we need to modify onClick to modify that array.
+<pre>
+     override fun onClick(v: View) {
+            //toggle selection
+            kSelect = !kSelect
+            var sscolor = "#000000"
+            if (kSelect) {
+                sscolor = "#000022"
+            }
+            titleTextView.setBackgroundColor(Color.parseColor(sscolor))
+</pre>
+At this point if you compile and run your app Select will work and be visible.
+
+But this implementation is incomplete at this point.  Why?
+
+<li>Tie Select Into the Data Model</li>
+
+At this point select with highlight is working but it is not tied properly into the data model.
+We need to store the select value with the itemString so that when we scroll all items appear correct.
+
+First we need to create an array to store the selection info in.
+Easiest way to do this is in MainActivity
+<pre>
+    val scoffee = arrayListOf&ltBoolean>(false,false,false,false,false,false,// same length as cofee list
+</pre>
+Modify array adapter to take the select list:
+<pre>
+public class KAdapter(context: Context, var coffee: ArrayList<String>, var scoffee: ArrayList<Boolean>)
+</pre>
+Change bindViewHolder to set the background color based on Data Item selection status
+<pre>
+   override fun onBindViewHolder(holder: KoffeeHolder, position: Int) {
+        val acoffee = coffee[position]
+      
+        holder.apply {
+            titleTextView.text = acoffee
+            var sscolor = "#000000"
+            kSelect = scoffee[position]
+            if (kSelect) {
+                sscolor = "#000022"
+            }
+            titleTextView.setBackgroundColor(Color.parseColor(sscolor))
+</pre>
+
+Also, now we need to udpate scoffee in the onClick function
+<pre>
+     var apos = getBindingAdapterPosition()
+     kSelect = scoffee[apos]
+     kSelect = !kSelect
+     scoffee[apos] = kSelect
+</pre>
+<hr />
+<li> At this point if you run the App Select should work.</li>
+<hr />
+<hr />
+<li>Next we can do 'Add Item' and 'Delete Item</li>
+<br />
+
+<p>
+Now we modify the layout to leave space for buttons over the List View
+
+We can just drag a Button into the Layout Tool and connect the Button to the RecyclerView
+And then edit the xml file.
+
+</p>
+<li>Code for Button to Add Items</li>
+Insert and correct this code in MainActivity
+<pre>
+        val button: Button = findViewById(R.id.addbutton)
+        // set on-click listener
+        button.setOnClickListener {
+            skoffeeList.add(false)
+            koffeeList.add("NewKoffee")
+            kadapter.notifyDataSetChanged()
+</pre>
+</ol>
+</div>
+</main>
+</body>
+</html>

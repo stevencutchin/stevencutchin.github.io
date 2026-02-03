@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Simple List App (Tabs) - CS 402</title>
+<link rel="stylesheet" href="codesnips.css">
+</head>
+<body>
+<p class="site-links"><a href="../CS402_Snack_Resources.html">← Snack Resources</a> | <a href="../index.html">← Mobile Development</a> | <a href="mailto:stevencutchin@boisestate.edu">Reach out</a></p>
+<main class="codesnips-main">
+<h1>Building a Simple List App</h1>
+<div class="steps">
+<ol>
+
+<li>Android Studio is Installed and configured</li>
+
+<br />
+
+<li>Create an Empty Activity</li>
+
+<br />
+<li>Add RecyclerView dependency to Gradle Build file</li>
+<pre>
+(app/build.gradle) dependencies {
+    ...
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0'
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
+    ...
+}
+
+</pre>
+<br />
+<li>Add a RecyclerView to the activity_main.xml file</li>
+
+RecyclerView to a layout file (layout/fragment_crime_list.xml)
+
+<pre>
+   &ltandroidx.recyclerview.widget.RecyclerView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/coffee_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="vertical"/>
+</pre>
+
+
+<br />
+<li>Add RecyclerView Code into the Main Activity Source Code</li>
+
+<br />
+
+<pre>
+   private lateinit var kRecyclerView: RecyclerView
+
+....In onCreate(....
+
+       kRecyclerView =
+            findViewById(R.id.coffee_recycler_view) as RecyclerView
+        kRecyclerView.layoutManager = LinearLayoutManager(this)
+
+      // insert adapter here
+      ......
+</pre>
+<hr />
+<li>App should run here </li>
+
+You should be able to build and run the application here.
+
+<hr />
+
+<li>Create the ItemView XML File</li>
+
+<br />
+
+This XML file controls the layout and appearance of each individual displayed item.
+
+<pre>
+&lt?xml version="1.0" encoding="utf-8"?>
+
+&ltLinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="8dp">
+
+    &ltTextView
+        android:id="@+id/coffee_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Koffee Title"/>
+
+&lt/LinearLayout>
+</pre>
+
+<li>Create the Adapter Class file in the Source Code</li>
+
+<br />
+Intially hard code a set of Strings in an array for the list.
+Put this in your main Activity Class object:
+<pre>
+    val koffeeList = arrayListOf&ltString>("Arabic", "Robusta","Sumatra","Kona")
+</pre>
+
+This is its own separate kotlin file
+<pre>
+public class KAdapter(context: Context, var coffee: ArrayList&ltString>)
+        : RecyclerView.Adapter&ltKAdapter.KoffeeHolder>() {
+
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int)
+                : KAdapter.KoffeeHolder {
+            val view = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_coffee, parent, false)
+            return KoffeeHolder(view)
+        }
+
+        override fun getItemCount() = coffee.size
+
+        override fun onBindViewHolder(holder: KoffeeHolder, position: Int) {
+            val acoffee = coffee[position]
+            holder.apply {
+                titleTextView.text = acoffee
+            }
+        }
+
+}
+</pre>
+
+
+<li>Create The View Holder </li>
+<br />
+
+Inside of your KAdapter class you need this inner ViewHolder object
+<pre>
+
+    class KoffeeHolder(view: View) : RecyclerView.ViewHolder(view) {
+
+        val titleTextView: TextView = view.findViewById(R.id.coffee_name)
+    }
+
+</pre>
+
+<li>Finalize the KAdapter connection in the Activity File</li>
+
+<pre>
+        val kadapter: KAdapter  = KAdapter(this, koffeeList)
+
+        kRecyclerView.setAdapter(kadapter)
+</pre>
+
+
+
+<hr />
+<br />
+<li> The App should run and display a List of objects at this point</li>
+
+<hr />
+
+<li>Next we can do 'Add Item' and 'Delete Item</li>
+<br />
+
+<p>
+Here you could add a row above with Icons for the features or
+you could have a dialogue pop-up when the user touchs a list item.
+</p>
+
+</ol>
+</div>
+<hr>
+<div>
+<h2>
+Now let's build left/right swiping with Tabs to our app.
+</h2>
+<p>
+We will need to use a ViewPager2 and Fragments that will hold our RecycleViews.
+The ViewPager2 is an Android UI Wdiget and will need a XML layout file to with it.
+It handles swiping between Fragments.
+</p>
+<p>
+We will need to add a Fragment object that instantiated for each Tabbed List presented to the User.
+Inside of the Fragment we will instantiate seperate RecycleViews for each list we are going to create.
+</p>
+
+<p>
+We will also need to modify our RecycleView code to make certain that it is completely modular as well.
+</p>
+
+<ol>
+<li>Add implementation code to build.gradle</li>
+<pre>
+implementation 'androidx.viewpager2:viewpager2:1.0.0'
+</pre>
+<li>Modify the main activity layout and insert a ViewPager2 XML </li>
+<pre>
+&ltandroidx.viewpager2.widget.ViewPager2
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/koffee_pager"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+</pre>
+<li>Instantiate a viewPager2 object inside of mainActivity<li>
+Replace the RecyclerView object inside of MainActivity.
+That code will be moved into its own totally self contained Fragment object.
+<pre>
+   private lateinit var kRecyclerView: ViewPager2
+
+....In onCreate(....
+
+       kPageView =
+            findViewById(R.id.koffee_pager) as ViewPager2
+        kPageView.layoutManager = LinearLayoutManager(this)
+
+      // insert adapter here
+      ......
+</pre>
+<li>Create a KoffeeStateAdapter to implement a FragmentStateAdapter</li>
+<pre>
+import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.viewpager2.adapter.FragmentStateAdapter
+
+class KoffeeStateAdapter(activity: AppCompatActivity, val itemsCount: Int) :
+    FragmentStateAdapter(activity) {
+
+  override fun getItemCount(): Int {
+    return itemsCount
+  }
+
+  override fun createFragment(position: Int): Fragment {
+    return KoffeeFragment.getInstance(position)
+  }
+}
+</pre>
+<li>In MainActivity.kt do the following</li>
+Add this import
+<pre>
+import kotlinx.android.synthetic.main.activity_main.*
+</pre>
+Now add in code to instantiate the adapter
+<pre>
+val koffeeAdapter = KoffeeStateAdapter(this, tabArray.size)
+kPageView.adapter = koffeeAdapter
+<li>Now lets convert our RecycleView into a Fragment Collection</li>
+First We need to create a KoffeeFragment class object.
+The KoffeeFragment will hold a RecyclerView.
+
+
+<li>Finally we can Use a TabLayout to show the available Pages</li>
+</ol>
+</div>
+</main>
+</body>
+</html>

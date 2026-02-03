@@ -1,0 +1,235 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+<title>CS 402: Mobile App Development</title>
+<meta name="keywords" content="" />
+<meta name="description" content="" />
+<link rel="stylesheet" type="text/css" href="../default.css" />
+</head>
+<body>
+
+<div id="upbg"></div>
+
+<div id="outer">
+
+
+	<div id="header">
+		<div id="headercontent">
+			<h1>CS 402: Mobile App Development </h1>
+			<li>Tuesday, Thursday 06:00-07:15pm CCP 221/Hybrid</li>
+		</div>
+	</div>
+
+
+
+	<!--<div id="headerpic"></div>-->
+
+
+<div id="menu">
+<!-- HINT: Set the class of any menu link below to "active" to make it appear active -->
+	<ul>
+		<li><a href="../index.html" class="active">Home</a></li>
+		<li><a href="../schedule.html">Schedule</a></li>
+		<li><a href="../assignments.html">Assignments</a></li>
+		<li><a href="../resources.html">Resources</a></li>
+	</ul>
+</div>
+<div id="menubottom"></div>
+
+<div id="content">
+
+ <!-- Normal content: Stuff that's not going to be put in the left or right column. -->
+ <div id="normalcontent">
+
+<h2>Extending List App to Load Remote Data</h2>
+
+<br />
+<div id="content">
+<ol>
+
+<li>Start with Complete List App</li>
+
+This app will extend your List viewing app to load and display data from a remote data service.
+
+You should begin the project by extending your assignment 2 app.
+
+You will need to add:
+<ul>
+<li> Connecting and reading data from a remote URI.</li>
+<li> Converting Data into an accessible JSON object.</li>
+<li> Triggering an update of your List UI based on a Data Model Change.</li>
+<li> Reading the Data Progressively </li>
+</ul>
+
+<br />
+
+<li>Add a complete Data Model object</li>
+
+Introduce a kotlin data object into our code.
+
+In the prior version of our app we used to ArrayLists to store our Data Model.
+This solution, while functional, is inelegant and doesn't support expansion.
+
+We can declare a data class in our main activity and combine
+our two ArrayList objects into a single arraylist.
+
+<pre>
+public data class KoffeCup(var name: String, var selected: Boolean)
+
+...
+
+val koffeeList = arrayListOf<KoffeeCup>()
+</pre>
+
+Now in the code wherever you accessed skoffeeList you can just access the members of the data class object.
+
+What other parts of the code will you need to change?
+
+<li>Test the App</li>
+Test to confirm the app works properly with the new Data Model.
+
+<li>Create a Data Model Class object</li>
+
+To add in modular support for a remote Data Model we create a new
+class object that implements our Data Model.
+
+Create a new kotlin file called KoffeeModel that is going to hold all of our data:
+
+KoffeeModel.kt
+<pre>
+public data class KoffeeCup(var name: String, var Selected: Boolean)
+
+public class KoffeeModel: ArrayList<KoffeeCup>()
+{
+}
+
+</pre>
+
+Remeber to replace the type of KoffeeList in MainActivity.
+You should be able to run and test your code now.
+
+
+<li>Reading from a Remote URL object</li>
+
+Now we can add the code to read from a remote URL.
+
+This code should go into the DataModel code.
+In our first version we will put it into the constructor of the Data Model class
+Later we will modify the code to load the data progressively.
+
+
+<pre>
+
+   init
+   {
+        Executors.newSingleThreadExecutor().execute{
+            val json = URL("http://mec402.boisestate.edu/onestring")
+            val jstext = json.readText()
+            add(KoffeeCup(jstext, false))
+
+        }
+   }
+</pre>
+
+This code returns a string with all of the data in it.
+
+there will be a complaint the first you run this code.
+
+Why is that?
+
+You need to get permission to access the Internet for you App.
+In your AndroidManifest.xml file add the following:
+
+<pre>
+<uses-permission android:name="android.permission.INTERNET" />
+</pre>
+
+<br />
+<li>Convert Data into an accessible JSON object</li>
+
+Now we can convert the data string into a JSON object.
+
+The URL: http://mec402.boisestate.edu/onejson
+
+Has this JSON object in it:
+<pre>
+{
+  "coffee": [
+      {"name": "Arabic", "selected": false},
+      {"name": "Sumatra", "selected": false},
+      {"name": "Brut", "selected": true},
+      {"name": "Kona", "selected": false}
+  ]
+}
+</pre>
+
+To conver the URL into a JSON object we just pass the string
+to the JSON class object:
+<pre>
+   JSONObject jObject = JSONObject(jstext)
+
+</pre>
+<br />
+<li>Update the Data Model with JSON data.</li>
+With a complete data object we copy the information into the Data Model.
+
+After we have retrieved our JSONObject we can traverse it and create our data model:
+
+<pre>
+   init
+    {
+        val nst = Executors.newSingleThreadExecutor()
+            nst.execute {
+            val json = URL("http://mec402.boisestate.edu/onejson")
+            val jstext = json.readText()
+            val jobject: JSONObject = JSONObject(jstext)
+
+            val jArray = jobject.getJSONArray("coffee")
+            for (i in 0 until jArray.length()) {
+                val item = jArray.getJSONObject(i)
+                add(KoffeeCup(item.getString("name"),item.getBoolean("selected")))
+            }
+
+            // wait for load to complete to avoid any race conditions.
+            nst.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
+
+        }
+</pre> 
+
+<br />
+
+<li>App should run here </li>
+Now you should be able to build and run the app and see all the data.
+
+<hr />
+<br />
+<li>Convert Data Loading to Progressive Loading.</li>
+Now we need to convert the Data Model Loading to load data progressively.
+
+<li>First get number of entries.<li>
+
+<li>Fill in Data Model with Temporary Data.</li>
+
+<li>Load the full data in Blocks.</li>
+
+<hr />
+
+<li>URLs for use</li>
+
+<ul>
+<li> http://mec402.boisestate.edu/cgi-bin/cs402/onejson </li>
+<li> http://mec402.boisestate.edu/cgi-bin/cs402/shortjson </li>
+<li> http://mec402.boisestate.edu/cgi-bin/cs402/lenjson get the number of JSON objects</li>
+<li> http://mec402.boisestate.edu/cgi-bin/cs402/pagejson?start={index}&stop={index} Get individual items</li>
+
+</ul>
+
+</ol>
+</div>
+
+</div>
+
+</body>
+</html>
