@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 — Load Remote List: App Architecture</title>
+<style>
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #2c2c2c;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    background: #fff;
+  }
+  .doc-header {
+    text-align: center;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid #1B3A5C;
+  }
+  .doc-header h1 { font-size: 26px; color: #1B3A5C; margin-bottom: 4px; font-weight: 700; }
+  .doc-header .semester { font-size: 16px; color: #666; margin-bottom: 8px; }
+  .doc-header .subtitle { font-size: 18px; color: #2E5D8A; font-weight: 600; }
+  h2 {
+    font-size: 20px; color: #1B3A5C; margin: 40px 0 14px;
+    padding-bottom: 6px; border-bottom: 1px solid #d0dce6; font-weight: 700;
+  }
+  h3 { font-size: 17px; color: #2E5D8A; margin: 28px 0 10px; font-weight: 600; }
+  p { margin-bottom: 14px; color: #333; }
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 20px; }
+  .callout {
+    margin: 20px 0; padding: 16px 20px; background: #f0f6fb;
+    border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .callout strong { color: #1B3A5C; }
+  .callout-warn {
+    margin: 20px 0; padding: 16px 20px; background: #fef9f0;
+    border-left: 4px solid #d4880f; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .callout-warn strong { color: #8a5a0a; }
+  .callout-arch {
+    margin: 20px 0; padding: 16px 20px; background: #f5f0fa;
+    border-left: 4px solid #7c5cbf; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .callout-arch strong { color: #4a3580; }
+  ul, ol { margin: 10px 0 16px 24px; color: #333; }
+  li { margin-bottom: 6px; }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace; background: #f0f0f0;
+    padding: 2px 6px; border-radius: 3px; font-size: 14px;
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 6px;
+    overflow-x: auto; margin: 12px 0 18px; font-size: 13.5px; line-height: 1.5;
+  }
+  pre .kw { color: #cba6f7; }
+  pre .fn { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm { color: #6c7086; font-style: italic; }
+  pre .tag { color: #f38ba8; }
+  pre .attr { color: #fab387; }
+  pre .num { color: #fab387; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 14px;
+  }
+  th {
+    background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+  .diagram-container {
+    margin: 24px 0;
+    text-align: center;
+  }
+  .diagram-container svg {
+    max-width: 100%;
+    height: auto;
+  }
+  .diagram-caption {
+    font-size: 13px;
+    color: #666;
+    margin-top: 8px;
+    font-style: italic;
+  }
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .callout, .callout-warn, .callout-arch, pre, .diagram-container { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="semester">Spring 2026</div>
+  <div class="subtitle">Load Remote List — App Architecture Guide</div>
+</div>
+
+<p class="section-intro">
+  This guide deconstructs the "Load Remote List" app — a React Native application that manages a selectable list with remote persistence. We'll trace every communication path: between components, between the app and the server, between user actions and state changes, and between React's rendering engine and VirtualizedList's virtualization layer.
+</p>
+
+
+<!-- ============================================================ -->
+<h2>1. High-Level Architecture: The Big Picture</h2>
+
+<p>
+  This app is a two-tier system: a React Native client that manages the UI and local state, and a remote PHP server that provides persistent storage. The client can operate independently (adding, removing, toggling items), but relies on the server for loading saved data and persisting changes across sessions.
+</p>
+
+<!-- === DIAGRAM 1: Two-Tier Architecture === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Two-tier architecture: React Native client on the left connected to the PHP server on the right via HTTP GET and POST">
+  <defs>
+    <marker id="ar1" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#2E5D8A"/></marker>
+    <marker id="ar2" markerWidth="8" markerHeight="6" refX="0" refY="3" orient="auto"><polygon points="8 0,0 3,8 6" fill="#2E7D5A"/></marker>
+    <marker id="ard" markerWidth="6" markerHeight="8" refX="3" refY="8" orient="auto"><polygon points="0 0,3 8,6 0" fill="#2E5D8A"/></marker>
+    <filter id="ds"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000010"/></filter>
+  </defs>
+
+  <!-- CLIENT BOX -->
+  <rect x="18" y="12" width="395" height="410" rx="14" fill="#f7fafc" stroke="#2E5D8A" stroke-width="2"/>
+  <text x="215" y="38" text-anchor="middle" font-family="Segoe UI,Arial" font-size="14" font-weight="bold" fill="#1B3A5C">📱  React Native Client</text>
+
+  <!-- VirtualList (App.js) -->
+  <rect x="40" y="54" width="350" height="58" rx="10" fill="#1B3A5C" filter="url(#ds)"/>
+  <text x="215" y="76" text-anchor="middle" font-family="Consolas,monospace" font-size="13" font-weight="bold" fill="#fff">VirtualList  (App.js)</text>
+  <text x="215" y="96" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#a0c4e8">State: list · autosave · firsttime</text>
+
+  <!-- Arrows to children -->
+  <line x1="130" y1="112" x2="130" y2="140" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#ard)"/>
+  <line x1="305" y1="112" x2="305" y2="140" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#ard)"/>
+
+  <!-- Button Row -->
+  <rect x="40" y="146" width="165" height="46" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="122" y="166" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#1B3A5C">Button Row (6 buttons)</text>
+  <text x="122" y="183" text-anchor="middle" font-family="Consolas,monospace" font-size="9.5" fill="#888">+ − Explode Load Save Auto</text>
+
+  <!-- VirtualizedList -->
+  <rect x="228" y="146" width="162" height="46" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="309" y="166" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#1B3A5C">VirtualizedList</text>
+  <text x="309" y="183" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#888">renders visible rows only</text>
+
+  <!-- Arrow to Item -->
+  <line x1="309" y1="192" x2="309" y2="218" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#ard)"/>
+
+  <!-- Item (ListItem.js) -->
+  <rect x="240" y="224" width="140" height="42" rx="8" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="310" y="240" text-anchor="middle" font-family="Consolas,monospace" font-size="12" font-weight="bold" fill="#2E7D5A">&lt;Item /&gt;</text>
+  <text x="310" y="257" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#666">ListItem.js</text>
+
+  <!-- Callback arrow from Item back up -->
+  <line x1="250" y1="224" x2="250" y2="112" stroke="#d4880f" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <text x="232" y="170" font-family="Segoe UI,Arial" font-size="9" fill="#d4880f" transform="rotate(-90,232,170)">onPress callback</text>
+
+  <!-- remoteAccess.js -->
+  <rect x="55" y="310" width="320" height="52" rx="8" fill="#f5f0fa" stroke="#7c5cbf" stroke-width="1.5"/>
+  <text x="215" y="332" text-anchor="middle" font-family="Consolas,monospace" font-size="12" font-weight="bold" fill="#4a3580">remoteAccess.js</text>
+  <text x="215" y="350" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#666">loadList()  ·  saveList()</text>
+
+  <!-- Arrow from VirtualList to remoteAccess -->
+  <line x1="100" y1="192" x2="100" y2="304" stroke="#7c5cbf" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ard)"/>
+  <text x="84" y="256" font-family="Segoe UI,Arial" font-size="9" fill="#7c5cbf" transform="rotate(-90,84,256)">calls helpers</text>
+
+  <!-- SERVER BOX -->
+  <rect x="500" y="90" width="260" height="260" rx="14" fill="#fdf6ec" stroke="#c8890f" stroke-width="2"/>
+  <text x="630" y="118" text-anchor="middle" font-family="Segoe UI,Arial" font-size="14" font-weight="bold" fill="#7a5a0a">🌐  Remote Server</text>
+  <text x="630" y="137" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">mec402.boisestate.edu</text>
+
+  <!-- loadjson endpoint -->
+  <rect x="520" y="155" width="210" height="42" rx="6" fill="#fff" stroke="#c8890f" stroke-width="1"/>
+  <text x="625" y="173" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#7a5a0a">loadjson.php</text>
+  <text x="625" y="190" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#999">?user=cutchinsw</text>
+
+  <!-- savejson endpoint -->
+  <rect x="520" y="212" width="210" height="42" rx="6" fill="#fff" stroke="#c8890f" stroke-width="1"/>
+  <text x="625" y="230" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#7a5a0a">savejson.php</text>
+  <text x="625" y="247" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#999">?user=cutchinsw</text>
+
+  <!-- Data store -->
+  <rect x="550" y="275" width="160" height="42" rx="6" fill="#fef3e0" stroke="#c8890f" stroke-width="1.5"/>
+  <text x="630" y="301" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#7a5a0a">💾 Stored JSON</text>
+
+  <line x1="625" y1="254" x2="625" y2="272" stroke="#c8890f" stroke-width="1" marker-end="url(#ard)"/>
+
+  <!-- HTTP GET arrow -->
+  <line x1="415" y1="176" x2="514" y2="176" stroke="#2E5D8A" stroke-width="2.5" marker-end="url(#ar1)"/>
+  <rect x="425" y="160" width="75" height="17" rx="3" fill="#e8f0f7"/>
+  <text x="462" y="173" text-anchor="middle" font-family="Consolas,monospace" font-size="10" font-weight="bold" fill="#1B3A5C">GET</text>
+
+  <!-- JSON response arrow -->
+  <line x1="516" y1="193" x2="415" y2="193" stroke="#2E7D5A" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#ar2)"/>
+  <rect x="425" y="196" width="75" height="17" rx="3" fill="#e8f5e9"/>
+  <text x="462" y="209" text-anchor="middle" font-family="Consolas,monospace" font-size="10" font-weight="bold" fill="#2E7D5A">JSON [ ]</text>
+
+  <!-- HTTP POST arrow -->
+  <line x1="415" y1="233" x2="514" y2="233" stroke="#d4880f" stroke-width="2.5" marker-end="url(#ar1)"/>
+  <rect x="425" y="237" width="75" height="17" rx="3" fill="#fef3e0"/>
+  <text x="462" y="250" text-anchor="middle" font-family="Consolas,monospace" font-size="10" font-weight="bold" fill="#8a5a0a">POST JSON</text>
+</svg>
+<div class="diagram-caption">Figure 1 — Two-tier architecture: the React Native client manages UI and state; the PHP server provides persistent JSON storage via GET (load) and POST (save).</div>
+</div>
+
+<div class="callout-arch">
+  <strong>Where This Fits in the 3-Tiered Model (Theme 4):</strong> This app collapses the logic tier into the client — all business rules (adding, deleting, toggling, deduplication) run in JavaScript on the phone. The server is purely a storage layer. In a production app, you'd move rules like deduplication and access control to the server so they can't be bypassed by a modified client.
+</div>
+
+
+<!-- ============================================================ -->
+<h2>2. File Structure and Responsibilities</h2>
+
+<p>
+  The app is split across three files. Each has a single, clear responsibility — a basic application of separation of concerns. This mirrors the container/presentational/service pattern from the React Native Components guide.
+</p>
+
+<!-- === DIAGRAM 2: Three Files === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three files: App.js (container/state), ListItem.js (presentational), remoteAccess.js (service layer)">
+  <!-- App.js -->
+  <rect x="15" y="15" width="235" height="230" rx="10" fill="#fff" stroke="#1B3A5C" stroke-width="2" filter="url(#ds)"/>
+  <rect x="15" y="15" width="235" height="36" rx="10" fill="#1B3A5C"/>
+  <rect x="15" y="45" width="235" height="1" fill="#1B3A5C"/>
+  <text x="132" y="39" text-anchor="middle" font-family="Consolas,monospace" font-size="13" font-weight="bold" fill="#fff">App.js</text>
+  <text font-family="Segoe UI,Arial" font-size="11.5" fill="#555">
+    <tspan x="30" y="66" font-weight="bold" fill="#1B3A5C">Role:</tspan><tspan> Container component</tspan>
+    <tspan x="30" y="86">• Owns all state (list, autosave)</tspan>
+    <tspan x="30" y="104">• Defines all event handlers</tspan>
+    <tspan x="30" y="122">• Composes the UI layout</tspan>
+    <tspan x="30" y="140">• Calls remoteAccess helpers</tspan>
+    <tspan x="30" y="158">• Configures VirtualizedList</tspan>
+    <tspan x="30" y="176">• Passes props/callbacks down</tspan>
+  </text>
+  <rect x="30" y="196" width="80" height="20" rx="4" fill="#e8f0f7"/>
+  <text x="70" y="210" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" font-weight="600" fill="#1B3A5C">Container</text>
+  <rect x="118" y="196" width="90" height="20" rx="4" fill="#e8f0f7"/>
+  <text x="163" y="210" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" font-weight="600" fill="#1B3A5C">State Owner</text>
+
+  <!-- ListItem.js -->
+  <rect x="275" y="15" width="235" height="230" rx="10" fill="#fff" stroke="#2E7D5A" stroke-width="2" filter="url(#ds)"/>
+  <rect x="275" y="15" width="235" height="36" rx="10" fill="#2E7D5A"/>
+  <rect x="275" y="45" width="235" height="1" fill="#2E7D5A"/>
+  <text x="392" y="39" text-anchor="middle" font-family="Consolas,monospace" font-size="13" font-weight="bold" fill="#fff">ListItem.js</text>
+  <text font-family="Segoe UI,Arial" font-size="11.5" fill="#555">
+    <tspan x="290" y="66" font-weight="bold" fill="#2E7D5A">Role:</tspan><tspan> Presentational component</tspan>
+    <tspan x="290" y="86">• Exports the &lt;Item /&gt; component</tspan>
+    <tspan x="290" y="104">• Renders item.key as text</tspan>
+    <tspan x="290" y="122">• Applies background/text color</tspan>
+    <tspan x="290" y="140">• TouchableOpacity for taps</tspan>
+    <tspan x="290" y="158">• Delegates onPress to parent</tspan>
+    <tspan x="290" y="176">• No state of its own</tspan>
+  </text>
+  <rect x="290" y="196" width="100" height="20" rx="4" fill="#e8f5e9"/>
+  <text x="340" y="210" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" font-weight="600" fill="#2E7D5A">Presentational</text>
+
+  <!-- remoteAccess.js -->
+  <rect x="535" y="15" width="235" height="230" rx="10" fill="#fff" stroke="#7c5cbf" stroke-width="2" filter="url(#ds)"/>
+  <rect x="535" y="15" width="235" height="36" rx="10" fill="#7c5cbf"/>
+  <rect x="535" y="45" width="235" height="1" fill="#7c5cbf"/>
+  <text x="652" y="39" text-anchor="middle" font-family="Consolas,monospace" font-size="13" font-weight="bold" fill="#fff">remoteAccess.js</text>
+  <text font-family="Segoe UI,Arial" font-size="11.5" fill="#555">
+    <tspan x="550" y="66" font-weight="bold" fill="#4a3580">Role:</tspan><tspan> Network I/O module</tspan>
+    <tspan x="550" y="86">• loadList() → GET + dedupe</tspan>
+    <tspan x="550" y="104">• saveList() → POST JSON body</tspan>
+    <tspan x="550" y="122">• Async/await over fetch()</tspan>
+    <tspan x="550" y="140">• No UI, no components</tspan>
+    <tspan x="550" y="158">• Pure data functions</tspan>
+    <tspan x="550" y="176">• Receives setList as argument</tspan>
+  </text>
+  <rect x="550" y="196" width="95" height="20" rx="4" fill="#f5f0fa"/>
+  <text x="597" y="210" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" font-weight="600" fill="#4a3580">Service Layer</text>
+</svg>
+<div class="diagram-caption">Figure 2 — Three files, three roles: container component (App.js), presentational component (ListItem.js), and service module (remoteAccess.js).</div>
+</div>
+
+
+<!-- ============================================================ -->
+<h2>3. Component Tree and Data Flow</h2>
+
+<p>
+  React apps form a tree of components. In this app, <code>VirtualList</code> is the root. It renders a button row and a <code>VirtualizedList</code>, which in turn renders many <code>&lt;Item /&gt;</code> components. Data flows <em>down</em> through props; user actions flow <em>up</em> through callback functions.
+</p>
+
+<!-- === DIAGRAM 3: Component Tree with Data Flow === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Component tree showing VirtualList at the top, branching to Button Row and VirtualizedList, with Item components at the leaves">
+  <!-- VirtualList root -->
+  <rect x="268" y="15" width="244" height="56" rx="12" fill="#1B3A5C" filter="url(#ds)"/>
+  <text x="390" y="38" text-anchor="middle" font-family="Consolas,monospace" font-size="14" font-weight="bold" fill="#fff">VirtualList</text>
+  <text x="390" y="56" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#a0c4e8">owns: list, autosave, firsttime</text>
+
+  <!-- Branch lines -->
+  <line x1="330" y1="71" x2="150" y2="115" stroke="#bbb" stroke-width="1.5"/>
+  <line x1="450" y1="71" x2="580" y2="115" stroke="#bbb" stroke-width="1.5"/>
+
+  <!-- Button Row -->
+  <rect x="45" y="115" width="210" height="50" rx="10" fill="#fff" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="150" y="138" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#1B3A5C">Button Row  (6 × &lt;Button /&gt;)</text>
+  <text x="150" y="155" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#888">each onPress → handler in VirtualList</text>
+
+  <!-- VirtualizedList -->
+  <rect x="475" y="115" width="210" height="50" rx="10" fill="#fff" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="580" y="138" text-anchor="middle" font-family="Consolas,monospace" font-size="12" font-weight="bold" fill="#1B3A5C">VirtualizedList</text>
+  <text x="580" y="155" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#888">calls getItemCount + getItem</text>
+
+  <!-- Branch from VList to Items -->
+  <line x1="520" y1="165" x2="440" y2="205" stroke="#bbb" stroke-width="1.5"/>
+  <line x1="580" y1="165" x2="580" y2="205" stroke="#bbb" stroke-width="1.5"/>
+  <line x1="640" y1="165" x2="720" y2="205" stroke="#bbb" stroke-width="1.5"/>
+
+  <!-- Item 0 -->
+  <rect x="370" y="205" width="140" height="44" rx="8" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="440" y="223" text-anchor="middle" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#2E7D5A">&lt;Item /&gt;</text>
+  <text x="440" y="240" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#666">index 0</text>
+
+  <!-- Item 1 -->
+  <rect x="520" y="205" width="120" height="44" rx="8" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="580" y="223" text-anchor="middle" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#2E7D5A">&lt;Item /&gt;</text>
+  <text x="580" y="240" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#666">index 1</text>
+
+  <!-- Item … -->
+  <rect x="660" y="205" width="120" height="44" rx="8" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="720" y="223" text-anchor="middle" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#2E7D5A">&lt;Item /&gt;</text>
+  <text x="720" y="240" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#666">index n</text>
+
+  <!-- PROPS DOWN label -->
+  <text x="555" y="86" font-family="Segoe UI,Arial" font-size="10" font-weight="bold" fill="#2E5D8A">props ↓</text>
+
+  <!-- CALLBACK UP arrow (gold) -->
+  <line x1="440" y1="205" x2="440" y2="71" stroke="#d4880f" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="425" y="145" font-family="Segoe UI,Arial" font-size="10" font-weight="bold" fill="#d4880f" transform="rotate(-90,425,145)">callback ↑ toggleItem(i)</text>
+
+  <!-- Legend box -->
+  <rect x="30" y="285" width="720" height="130" rx="10" fill="#f7fafc" stroke="#d0dce6" stroke-width="1"/>
+  <text x="390" y="310" text-anchor="middle" font-family="Segoe UI,Arial" font-size="13" font-weight="bold" fill="#1B3A5C">Props Passed to Each &lt;Item /&gt;</text>
+
+  <text font-family="Consolas,monospace" font-size="12" fill="#555">
+    <tspan x="55" y="337" fill="#2E5D8A" font-weight="bold">item</tspan><tspan>          = { key: "obo 0.3a7f", selected: false }</tspan>
+    <tspan x="55" y="358" fill="#2E5D8A" font-weight="bold">onPress</tspan><tspan>       = () =&gt; toggleItem(index)     </tspan><tspan fill="#d4880f">← callback</tspan>
+    <tspan x="55" y="379" fill="#2E5D8A" font-weight="bold">backgroundColor</tspan><tspan> = { backgroundColor: "white" | "black" }</tspan>
+    <tspan x="55" y="400" fill="#2E5D8A" font-weight="bold">textColor</tspan><tspan>     = { color: "black" | "white" }</tspan>
+  </text>
+</svg>
+<div class="diagram-caption">Figure 3 — Component tree: data flows down via props (blue), user taps flow back up via callback functions (gold).</div>
+</div>
+
+<div class="callout">
+  <strong>One-Way Data Flow in Action:</strong> The <code>&lt;Item /&gt;</code> component doesn't know <em>how</em> to toggle selection — it just calls the <code>onPress</code> callback it received as a prop. The parent (<code>VirtualList</code>) owns the state and the logic. This keeps the Item component simple, reusable, and easy to test.
+</div>
+
+
+<!-- ============================================================ -->
+<h2>4. State: The Single Source of Truth</h2>
+
+<p>
+  All application data lives in three <code>useState</code> calls owned by the <code>VirtualList</code> component. No child component holds state — everything flows down from here. The <code>list</code> array is the primary state that drives the entire UI.
+</p>
+
+<!-- === DIAGRAM 4: State Variables === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three state variables: list (primary array), autosave (boolean toggle), firsttime (boolean guard)">
+  <rect x="15" y="10" width="750" height="220" rx="12" fill="#f7fafc" stroke="#d0dce6" stroke-width="1.5"/>
+  <text x="390" y="37" text-anchor="middle" font-family="Segoe UI,Arial" font-size="14" font-weight="bold" fill="#1B3A5C">Component State — VirtualList</text>
+
+  <!-- list -->
+  <rect x="35" y="52" width="235" height="160" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="2"/>
+  <rect x="35" y="52" width="235" height="30" rx="8" fill="#1B3A5C"/>
+  <text x="152" y="73" text-anchor="middle" font-family="Consolas,monospace" font-size="13" font-weight="bold" fill="#fff">list</text>
+  <text font-family="Segoe UI,Arial" font-size="11.5" fill="#555">
+    <tspan x="50" y="98" font-weight="bold" fill="#1B3A5C">Type:</tspan><tspan> Array of { key, selected }</tspan>
+    <tspan x="50" y="120" font-weight="bold" fill="#1B3A5C">Drives:</tspan>
+    <tspan x="50" y="137">• VirtualizedList content</tspan>
+    <tspan x="50" y="153">• Item rendering + colors</tspan>
+    <tspan x="50" y="169">• Save payload to server</tspan>
+    <tspan x="50" y="185">• Load merges into this</tspan>
+  </text>
+  <rect x="50" y="195" width="60" height="14" rx="3" fill="#fce8e8"/>
+  <text x="80" y="206" text-anchor="middle" font-family="Segoe UI,Arial" font-size="9" font-weight="600" fill="#8b2020">PRIMARY</text>
+
+  <!-- autosave -->
+  <rect x="290" y="52" width="220" height="160" rx="8" fill="#fff" stroke="#d4880f" stroke-width="2"/>
+  <rect x="290" y="52" width="220" height="30" rx="8" fill="#d4880f"/>
+  <text x="400" y="73" text-anchor="middle" font-family="Consolas,monospace" font-size="13" font-weight="bold" fill="#fff">autosave</text>
+  <text font-family="Segoe UI,Arial" font-size="11.5" fill="#555">
+    <tspan x="305" y="98" font-weight="bold" fill="#8a5a0a">Type:</tspan><tspan> Boolean</tspan>
+    <tspan x="305" y="120">Toggled by "Auto" button</tspan>
+    <tspan x="305" y="148" font-weight="bold" fill="#8a5a0a">Intent:</tspan>
+    <tspan x="305" y="166">Controls whether changes</tspan>
+    <tspan x="305" y="182">auto-sync to the server</tspan>
+  </text>
+
+  <!-- firsttime -->
+  <rect x="530" y="52" width="220" height="160" rx="8" fill="#fff" stroke="#999" stroke-width="2"/>
+  <rect x="530" y="52" width="220" height="30" rx="8" fill="#999"/>
+  <text x="640" y="73" text-anchor="middle" font-family="Consolas,monospace" font-size="13" font-weight="bold" fill="#fff">firsttime</text>
+  <text font-family="Segoe UI,Arial" font-size="11.5" fill="#555">
+    <tspan x="545" y="98" font-weight="bold" fill="#666">Type:</tspan><tspan> Boolean (init: true)</tspan>
+    <tspan x="545" y="120">Guards one-time init logic</tspan>
+    <tspan x="545" y="148" font-weight="bold" fill="#666">Intent:</tspan>
+    <tspan x="545" y="166">Prevents double-loading</tspan>
+    <tspan x="545" y="182">on first render</tspan>
+  </text>
+</svg>
+<div class="diagram-caption">Figure 4 — Three state variables. The <code>list</code> array is the primary state — every UI element and server interaction reads from or writes to it.</div>
+</div>
+
+<div class="callout">
+  <strong>Immutable Updates:</strong> State is never modified in place. Every handler creates a <em>new</em> array — using <code>[newItem, ...list]</code> (spread), <code>list.filter()</code>, or <code>list.map()</code> — and passes it to <code>setList()</code>. This is how React detects changes and triggers a re-render.
+</div>
+
+
+<!-- ============================================================ -->
+<h2>5. User Actions → Handlers → State → Re-Render</h2>
+
+<p>
+  Every button and every row tap maps to a handler function. Each handler creates a new <code>list</code> array and calls <code>setList()</code>, which triggers React to re-render the component. VirtualizedList then queries the new state to display the updated list.
+</p>
+
+<!-- === DIAGRAM 5: Action → Handler → State === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 490" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Six user actions mapped to handler functions and their state mutations">
+  <text x="390" y="20" text-anchor="middle" font-family="Segoe UI,Arial" font-size="14" font-weight="bold" fill="#1B3A5C">Button → Handler → State Update → Re-Render</text>
+
+  <!-- Column headers -->
+  <text x="78" y="48" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" font-weight="bold" fill="#999">USER ACTION</text>
+  <text x="268" y="48" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" font-weight="bold" fill="#999">HANDLER</text>
+  <text x="565" y="48" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" font-weight="bold" fill="#999">STATE MUTATION (IMMUTABLE)</text>
+
+  <!-- Row 1: Add -->
+  <rect x="18" y="60" width="120" height="32" rx="6" fill="#007AFF"/>
+  <text x="78" y="81" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#fff">+  Add</text>
+  <line x1="142" y1="76" x2="172" y2="76" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="178" y="60" width="180" height="32" rx="6" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="268" y="81" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#1B3A5C">handleAdd()</text>
+  <line x1="362" y1="76" x2="385" y2="76" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="392" y="60" width="370" height="32" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="577" y="80" text-anchor="middle" font-family="Consolas,monospace" font-size="10.5" fill="#555">setList( [newItem, ...list] )</text>
+
+  <!-- Row 2: Delete -->
+  <rect x="18" y="104" width="120" height="32" rx="6" fill="#FF3B30"/>
+  <text x="78" y="125" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#fff">−  Delete</text>
+  <line x1="142" y1="120" x2="172" y2="120" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="178" y="104" width="180" height="32" rx="6" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="268" y="125" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#1B3A5C">handleDeleteSelected()</text>
+  <line x1="362" y1="120" x2="385" y2="120" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="392" y="104" width="370" height="32" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="577" y="124" text-anchor="middle" font-family="Consolas,monospace" font-size="10.5" fill="#555">setList( list.filter(i =&gt; !i.selected) )</text>
+
+  <!-- Row 3: Explode -->
+  <rect x="18" y="148" width="120" height="32" rx="6" fill="#FF9500"/>
+  <text x="78" y="169" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#fff">Explode</text>
+  <line x1="142" y1="164" x2="172" y2="164" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="178" y="148" width="180" height="32" rx="6" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="268" y="169" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#1B3A5C">handleExplode()</text>
+  <line x1="362" y1="164" x2="385" y2="164" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="392" y="148" width="370" height="32" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="577" y="168" text-anchor="middle" font-family="Consolas,monospace" font-size="10.5" fill="#555">setList( [...list, ...10000 new items] )</text>
+
+  <!-- Row 4: Tap Row -->
+  <rect x="18" y="192" width="120" height="32" rx="6" fill="#5856D6"/>
+  <text x="78" y="213" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#fff">Tap Row</text>
+  <line x1="142" y1="208" x2="172" y2="208" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="178" y="192" width="180" height="32" rx="6" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="268" y="213" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#1B3A5C">toggleItem(index)</text>
+  <line x1="362" y1="208" x2="385" y2="208" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="392" y="192" width="370" height="32" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="577" y="212" text-anchor="middle" font-family="Consolas,monospace" font-size="10.5" fill="#555">setList( list.map(flip selected at i) )</text>
+
+  <!-- Row 5: Load -->
+  <rect x="18" y="236" width="120" height="32" rx="6" fill="#2E7D5A"/>
+  <text x="78" y="257" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#fff">Load</text>
+  <line x1="142" y1="252" x2="172" y2="252" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="178" y="236" width="180" height="32" rx="6" fill="#f5f0fa" stroke="#7c5cbf" stroke-width="1.5"/>
+  <text x="268" y="257" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#4a3580">loadList() → GET</text>
+  <line x1="362" y1="252" x2="385" y2="252" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="392" y="236" width="370" height="32" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="577" y="256" text-anchor="middle" font-family="Consolas,monospace" font-size="10.5" fill="#555">setList( [...current, ...uniqueNew] )</text>
+
+  <!-- Row 6: Save -->
+  <rect x="18" y="280" width="120" height="32" rx="6" fill="#8a5a0a"/>
+  <text x="78" y="301" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#fff">Save</text>
+  <line x1="142" y1="296" x2="172" y2="296" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="178" y="280" width="180" height="32" rx="6" fill="#f5f0fa" stroke="#7c5cbf" stroke-width="1.5"/>
+  <text x="268" y="301" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#4a3580">saveList() → POST</text>
+  <line x1="362" y1="296" x2="385" y2="296" stroke="#bbb" stroke-width="1.5" marker-end="url(#ar1)"/>
+  <rect x="392" y="280" width="370" height="32" rx="6" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="577" y="300" text-anchor="middle" font-family="Consolas,monospace" font-size="10.5" fill="#555">No state change — sends list to server</text>
+
+  <!-- Re-render box -->
+  <rect x="165" y="345" width="450" height="48" rx="8" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="2"/>
+  <text x="390" y="365" text-anchor="middle" font-family="Segoe UI,Arial" font-size="13" font-weight="bold" fill="#2E7D5A">setList() triggers re-render →</text>
+  <text x="390" y="384" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11.5" fill="#555">VirtualizedList calls getItemCount() + getItem() on new state</text>
+
+  <line x1="268" y1="314" x2="268" y2="340" stroke="#2E7D5A" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <line x1="577" y1="314" x2="577" y2="340" stroke="#2E7D5A" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- Footer note -->
+  <text x="390" y="425" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">All five setList() calls create new arrays — none mutate the existing list</text>
+
+  <!-- useEffect auto-load -->
+  <rect x="18" y="445" width="744" height="30" rx="6" fill="#fef9f0" stroke="#d4880f" stroke-width="1"/>
+  <text x="390" y="465" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11.5" fill="#8a5a0a">⏱  useEffect(loadFromServer, []) — the Load action also runs automatically once on mount (app startup)</text>
+</svg>
+<div class="diagram-caption">Figure 5 — Every user action maps to a handler → state update → re-render cycle. Save is the only action that doesn't change local state.</div>
+</div>
+
+
+<!-- ============================================================ -->
+<h2>6. Network Communication: Load and Save Flows</h2>
+
+<p>
+  The <code>remoteAccess.js</code> module encapsulates all network I/O. Both functions use the Fetch API with <code>async/await</code>.
+</p>
+
+<h3>6.1 Load Flow: GET → Deduplicate → Merge → setState</h3>
+
+<!-- === DIAGRAM 6: Load Flow === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Load flow: GET from server, parse JSON, deduplicate using Set, merge into list, call setList">
+  <!-- Step 1 -->
+  <rect x="15" y="15" width="148" height="52" rx="8" fill="#1B3A5C"/>
+  <text x="89" y="35" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#a0c4e8">App.js calls</text>
+  <text x="89" y="53" text-anchor="middle" font-family="Consolas,monospace" font-size="11.5" font-weight="bold" fill="#fff">loadFromServer()</text>
+  <line x1="167" y1="41" x2="193" y2="41" stroke="#999" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <!-- Step 2 -->
+  <rect x="198" y="15" width="170" height="52" rx="8" fill="#7c5cbf"/>
+  <text x="283" y="35" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#d8cce8">remoteAccess.js</text>
+  <text x="283" y="53" text-anchor="middle" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#fff">loadList(url, list, set)</text>
+  <line x1="372" y1="41" x2="408" y2="41" stroke="#999" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <!-- Step 3 -->
+  <rect x="413" y="15" width="155" height="52" rx="8" fill="#2E5D8A"/>
+  <text x="490" y="35" text-anchor="middle" font-family="Consolas,monospace" font-size="11.5" font-weight="bold" fill="#fff">await fetch(url)</text>
+  <text x="490" y="53" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#a0c4e8">HTTP GET request</text>
+  <line x1="572" y1="41" x2="608" y2="41" stroke="#999" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <!-- Step 4: Server -->
+  <rect x="613" y="10" width="150" height="62" rx="8" fill="#fef3e0" stroke="#c8890f" stroke-width="1.5"/>
+  <text x="688" y="32" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#7a5a0a">🌐 Server returns</text>
+  <text x="688" y="52" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#7a5a0a">[{key, selected}, …]</text>
+
+  <!-- Arrow down from server -->
+  <path d="M 688 75 L 688 105 L 500 105" fill="none" stroke="#2E7D5A" stroke-width="2" marker-end="url(#ar2)"/>
+  <text x="610" y="95" font-family="Segoe UI,Arial" font-size="10" fill="#2E7D5A">JSON response</text>
+
+  <!-- Step 5: Parse -->
+  <rect x="290" y="90" width="205" height="40" rx="8" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="392" y="107" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#2E7D5A">response.json()</text>
+  <text x="392" y="123" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#666">Parse JSON → JS array</text>
+  <line x1="392" y1="133" x2="392" y2="155" stroke="#999" stroke-width="1.5" marker-end="url(#ard)"/>
+
+  <!-- Step 6: Deduplicate -->
+  <rect x="100" y="160" width="580" height="76" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="2"/>
+  <text x="390" y="182" text-anchor="middle" font-family="Segoe UI,Arial" font-size="12" font-weight="bold" fill="#1B3A5C">Deduplication — Set-based merge</text>
+  <text font-family="Consolas,monospace" font-size="11" fill="#555">
+    <tspan x="120" y="204">existingKeys = new Set( currentList.map(i =&gt; i.key) )</tspan>
+    <tspan x="120" y="224">uniqueNew = serverItems.filter(i =&gt; !existingKeys.has(i.key))</tspan>
+  </text>
+  <line x1="390" y1="240" x2="390" y2="265" stroke="#999" stroke-width="1.5" marker-end="url(#ard)"/>
+
+  <!-- Step 7: setList -->
+  <rect x="210" y="270" width="360" height="38" rx="8" fill="#2E7D5A"/>
+  <text x="390" y="295" text-anchor="middle" font-family="Consolas,monospace" font-size="12" font-weight="bold" fill="#fff">setList( [...currentList, ...uniqueNew] )</text>
+
+  <!-- Note -->
+  <text x="390" y="330" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">Re-render: VirtualizedList now shows merged list without duplicates</text>
+</svg>
+<div class="diagram-caption">Figure 6 — Load flow: GET → parse → deduplicate with Set → merge → update state. Server items with keys already in the list are skipped.</div>
+</div>
+
+<h3>6.2 Save Flow: Serialize → POST</h3>
+
+<!-- === DIAGRAM 7: Save Flow === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Save flow: serialize list to JSON and POST it to the server">
+  <rect x="15" y="20" width="148" height="52" rx="8" fill="#1B3A5C"/>
+  <text x="89" y="40" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#a0c4e8">App.js calls</text>
+  <text x="89" y="58" text-anchor="middle" font-family="Consolas,monospace" font-size="11.5" font-weight="bold" fill="#fff">saveToServer()</text>
+  <line x1="167" y1="46" x2="193" y2="46" stroke="#999" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <rect x="198" y="20" width="170" height="52" rx="8" fill="#7c5cbf"/>
+  <text x="283" y="40" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#d8cce8">remoteAccess.js</text>
+  <text x="283" y="58" text-anchor="middle" font-family="Consolas,monospace" font-size="11.5" font-weight="bold" fill="#fff">saveList(url, list)</text>
+  <line x1="372" y1="46" x2="398" y2="46" stroke="#999" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <rect x="403" y="20" width="200" height="52" rx="8" fill="#d4880f"/>
+  <text x="503" y="38" text-anchor="middle" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#fff">JSON.stringify(list)</text>
+  <text x="503" y="55" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" fill="#fff">POST • Content-Type: json</text>
+  <line x1="607" y1="46" x2="623" y2="46" stroke="#999" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <rect x="628" y="20" width="140" height="52" rx="8" fill="#fef3e0" stroke="#c8890f" stroke-width="1.5"/>
+  <text x="698" y="40" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#7a5a0a">🌐 Server stores</text>
+  <text x="698" y="55" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#7a5a0a">JSON for user</text>
+
+  <text x="390" y="90" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">Save is fire-and-forget — no state change, no re-render triggered</text>
+</svg>
+<div class="diagram-caption">Figure 7 — Save flow: serialize list to JSON → POST to server. No local state changes — this is a one-way push.</div>
+</div>
+
+
+<!-- ============================================================ -->
+<h2>7. VirtualizedList: How Virtualization Works</h2>
+
+<p>
+  A <code>ScrollView</code> renders <em>every</em> item into the component tree, even items off-screen. With 10,000 items, that's 10,000 components in memory — the app would freeze. <code>VirtualizedList</code> solves this by only rendering the items currently visible in the scroll viewport, plus a small buffer above and below.
+</p>
+
+<!-- === DIAGRAM 8: Virtualization === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VirtualizedList rendering only visible rows from a 10000-item list">
+  <!-- Left: the full data array -->
+  <text x="115" y="22" text-anchor="middle" font-family="Segoe UI,Arial" font-size="13" font-weight="bold" fill="#1B3A5C">Full State Array (list)</text>
+
+  <rect x="35" y="35" width="160" height="305" rx="6" fill="#f7fafc" stroke="#d0dce6" stroke-width="1"/>
+  <text font-family="Consolas,monospace" font-size="10.5" fill="#999">
+    <tspan x="50" y="55">{ key: "obo 0.2", … }</tspan>
+    <tspan x="50" y="72">{ key: "obo 0.4", … }</tspan>
+    <tspan x="50" y="89">{ key: "obo 0.7", … }</tspan>
+    <tspan x="50" y="106">{ key: "obo 0.1", … }</tspan>
+  </text>
+  <!-- Visible region highlight -->
+  <rect x="38" y="114" width="154" height="68" rx="0" fill="#e8f0f7" stroke="#2E5D8A" stroke-width="2"/>
+  <text font-family="Consolas,monospace" font-size="10.5" fill="#1B3A5C" font-weight="bold">
+    <tspan x="50" y="131">{ key: "obo 0.9", … }</tspan>
+    <tspan x="50" y="148">{ key: "obo 0.3", … }</tspan>
+    <tspan x="50" y="165">{ key: "obo 0.5", … }</tspan>
+  </text>
+  <text font-family="Consolas,monospace" font-size="10.5" fill="#999">
+    <tspan x="50" y="196">{ key: "obo 0.8", … }</tspan>
+    <tspan x="50" y="213">{ key: "obo 0.6", … }</tspan>
+  </text>
+  <text x="115" y="245" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">⋮</text>
+  <text x="115" y="270" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">(10,000 items)</text>
+  <text x="115" y="290" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">⋮</text>
+  <text font-family="Consolas,monospace" font-size="10.5" fill="#999">
+    <tspan x="50" y="318">{ key: "obo 0.0", … }</tspan>
+  </text>
+
+  <!-- Arrow to VirtualizedList -->
+  <line x1="200" y1="148" x2="265" y2="148" stroke="#2E5D8A" stroke-width="2" marker-end="url(#ar1)"/>
+  <text x="232" y="140" font-family="Segoe UI,Arial" font-size="9" fill="#2E5D8A">visible</text>
+
+  <!-- VirtualizedList box -->
+  <rect x="270" y="35" width="240" height="300" rx="10" fill="#fff" stroke="#2E5D8A" stroke-width="2"/>
+  <rect x="270" y="35" width="240" height="34" rx="10" fill="#1B3A5C"/>
+  <text x="390" y="58" text-anchor="middle" font-family="Consolas,monospace" font-size="12" font-weight="bold" fill="#fff">VirtualizedList</text>
+
+  <!-- API calls -->
+  <text font-family="Consolas,monospace" font-size="10.5" fill="#555">
+    <tspan x="285" y="90" fill="#2E5D8A" font-weight="bold">getItemCount</tspan><tspan>()</tspan>
+    <tspan x="285" y="107">→ returns list.length</tspan>
+    <tspan x="285" y="132" fill="#2E5D8A" font-weight="bold">getItem</tspan><tspan>(_data, index)</tspan>
+    <tspan x="285" y="149">→ returns list[index]</tspan>
+  </text>
+
+  <!-- Rendered Items -->
+  <rect x="285" y="172" width="210" height="35" rx="6" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="390" y="194" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#2E7D5A">&lt;Item /&gt;  "obo 0.9"</text>
+
+  <rect x="285" y="214" width="210" height="35" rx="6" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="390" y="236" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#2E7D5A">&lt;Item /&gt;  "obo 0.3"</text>
+
+  <rect x="285" y="256" width="210" height="35" rx="6" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="390" y="278" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#2E7D5A">&lt;Item /&gt;  "obo 0.5"</text>
+
+  <text x="390" y="320" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10.5" fill="#999">Only 3–4 rows rendered at a time</text>
+
+  <!-- Right: explanation -->
+  <rect x="540" y="50" width="225" height="260" rx="10" fill="#f7fafc" stroke="#d0dce6" stroke-width="1"/>
+  <text x="652" y="78" text-anchor="middle" font-family="Segoe UI,Arial" font-size="13" font-weight="bold" fill="#1B3A5C">Why Virtualize?</text>
+  <text font-family="Segoe UI,Arial" font-size="11.5" fill="#555">
+    <tspan x="555" y="102" font-weight="bold" fill="#FF3B30">ScrollView</tspan><tspan> renders ALL</tspan>
+    <tspan x="555" y="119">10,000 items at once:</tspan>
+    <tspan x="555" y="140">• 10,000 components in memory</tspan>
+    <tspan x="555" y="157">• Multi-second render time</tspan>
+    <tspan x="555" y="174">• App freezes or crashes</tspan>
+    <tspan x="555" y="200" font-weight="bold" fill="#2E7D5A">VirtualizedList</tspan><tspan> renders</tspan>
+    <tspan x="555" y="217">only visible rows (~4):</tspan>
+    <tspan x="555" y="238">• ~4 components in memory</tspan>
+    <tspan x="555" y="255">• Instant render, smooth scroll</tspan>
+    <tspan x="555" y="272">• Works with 10K+ items</tspan>
+  </text>
+  <rect x="555" y="285" width="195" height="18" rx="3" fill="#e8f5e9"/>
+  <text x="652" y="298" text-anchor="middle" font-family="Segoe UI,Arial" font-size="10" font-weight="600" fill="#2E7D5A">initialNumToRender = 4</text>
+</svg>
+<div class="diagram-caption">Figure 8 — VirtualizedList only creates Item components for visible rows. The "Explode" button adds 10,000 items to demonstrate that rendering stays smooth.</div>
+</div>
+
+<div class="callout-warn">
+  <strong>The <code>data</code> Prop Trick:</strong> VirtualizedList requires a <code>data</code> prop, but this app ignores it — the real data lives in <code>list</code> state. The <code>getItemCount</code> and <code>getItem</code> callback functions read directly from state instead of from <code>data</code>. This is a valid pattern but somewhat unusual; <code>FlatList</code> (a simpler wrapper around VirtualizedList) avoids this indirection by reading from <code>data</code> directly.
+</div>
+
+
+<!-- ============================================================ -->
+<h2>8. The Item Component: Anatomy of a Presentational Component</h2>
+
+<p>
+  <code>ListItem.js</code> exports a single component — <code>&lt;Item /&gt;</code> — that is purely presentational: it receives all its data and behavior through props, has no state of its own, and delegates user interaction back to the parent via a callback.
+</p>
+
+<!-- === DIAGRAM 9: Item Component Anatomy === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Anatomy of the Item component showing TouchableOpacity wrapping Text, with four props and the onPress callback">
+  <!-- Component box -->
+  <rect x="190" y="15" width="400" height="250" rx="12" fill="#fff" stroke="#2E7D5A" stroke-width="2"/>
+  <rect x="190" y="15" width="400" height="36" rx="12" fill="#2E7D5A"/>
+  <text x="390" y="39" text-anchor="middle" font-family="Consolas,monospace" font-size="14" font-weight="bold" fill="#fff">&lt;Item /&gt;   (ListItem.js)</text>
+
+  <!-- TouchableOpacity -->
+  <rect x="215" y="65" width="350" height="80" rx="8" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="390" y="85" text-anchor="middle" font-family="Consolas,monospace" font-size="12" font-weight="bold" fill="#1B3A5C">&lt;TouchableOpacity&gt;</text>
+  <text x="390" y="103" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#666">style: [itemStyles.item, backgroundColor]</text>
+  <text x="390" y="120" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#666">onPress: calls parent's toggleItem</text>
+
+  <!-- Text inside -->
+  <rect x="260" y="132" width="260" height="30" rx="6" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1"/>
+  <text x="390" y="152" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#2E7D5A">&lt;Text&gt; {item.key} &lt;/Text&gt;</text>
+
+  <!-- Props arrows from left -->
+  <text x="55" y="80" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#2E5D8A">item</text>
+  <line x1="80" y1="82" x2="188" y2="82" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <text x="20" y="110" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#d4880f">onPress</text>
+  <line x1="85" y1="112" x2="188" y2="112" stroke="#d4880f" stroke-width="1.5" marker-end="url(#ar1)"/>
+
+  <text x="20" y="140" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#2E5D8A">bgColor</text>
+  <line x1="85" y1="142" x2="188" y2="100" stroke="#2E5D8A" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ar1)"/>
+
+  <text x="20" y="170" font-family="Consolas,monospace" font-size="11" font-weight="bold" fill="#2E5D8A">txtColor</text>
+  <line x1="85" y1="172" x2="258" y2="147" stroke="#2E5D8A" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ar1)"/>
+
+  <!-- Selected vs Unselected states -->
+  <rect x="215" y="185" width="165" height="60" rx="6" fill="#fff" stroke="#ddd" stroke-width="1.5"/>
+  <text x="297" y="202" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" font-weight="bold" fill="#1B3A5C">Unselected</text>
+  <rect x="240" y="210" width="115" height="24" rx="4" fill="#fff" stroke="#ddd" stroke-width="1"/>
+  <text x="297" y="227" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#333">obo 0.3a7f</text>
+
+  <rect x="400" y="185" width="165" height="60" rx="6" fill="#000" stroke="#333" stroke-width="1.5"/>
+  <text x="482" y="202" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" font-weight="bold" fill="#fff">Selected</text>
+  <rect x="425" y="210" width="115" height="24" rx="4" fill="#000" stroke="#444" stroke-width="1"/>
+  <text x="482" y="227" text-anchor="middle" font-family="Consolas,monospace" font-size="11" fill="#fff">obo 0.3a7f</text>
+</svg>
+<div class="diagram-caption">Figure 9 — Item receives four props: the data, a callback, and two style objects. Selected items invert to white-on-black.</div>
+</div>
+
+
+<!-- ============================================================ -->
+<h2>9. The Complete Lifecycle: App Startup to User Interaction</h2>
+
+<p>
+  Putting it all together — here's the sequence of events from the moment the app launches to the user interacting with the list.
+</p>
+
+<!-- === DIAGRAM 10: Full Lifecycle Timeline === -->
+<div class="diagram-container">
+<svg viewBox="0 0 780 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Timeline of app startup through first render, server load, re-render, and user interaction">
+  <!-- Timeline axis -->
+  <line x1="60" y1="20" x2="60" y2="420" stroke="#d0dce6" stroke-width="2"/>
+  <text x="50" y="14" text-anchor="end" font-family="Segoe UI,Arial" font-size="11" font-weight="bold" fill="#999">TIME</text>
+
+  <!-- Step 1 -->
+  <circle cx="60" cy="40" r="6" fill="#1B3A5C"/>
+  <rect x="85" y="25" width="500" height="34" rx="6" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="100" y="47" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#1B3A5C">1. Mount:</tspan> VirtualList renders with initial state: list = [{key:"obo ", selected:false}]</text>
+
+  <!-- Step 2 -->
+  <circle cx="60" cy="82" r="6" fill="#1B3A5C"/>
+  <rect x="85" y="67" width="500" height="34" rx="6" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="100" y="89" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#1B3A5C">2. First Render:</tspan> VirtualizedList shows 1 row. Buttons appear. UI is interactive.</text>
+
+  <!-- Step 3 -->
+  <circle cx="60" cy="124" r="6" fill="#7c5cbf"/>
+  <rect x="85" y="109" width="500" height="34" rx="6" fill="#f5f0fa" stroke="#7c5cbf" stroke-width="1.5"/>
+  <text x="100" y="131" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#4a3580">3. useEffect fires:</tspan> loadFromServer() → loadList() → fetch(GET) sent to server</text>
+
+  <!-- Step 4 -->
+  <circle cx="60" cy="166" r="6" fill="#c8890f"/>
+  <rect x="85" y="151" width="500" height="34" rx="6" fill="#fef9f0" stroke="#d4880f" stroke-width="1.5"/>
+  <text x="100" y="173" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#8a5a0a">4. Server responds:</tspan> JSON array arrives. Deduplicated, merged into list state.</text>
+
+  <!-- Step 5 -->
+  <circle cx="60" cy="208" r="6" fill="#2E7D5A"/>
+  <rect x="85" y="193" width="500" height="34" rx="6" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="100" y="215" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#2E7D5A">5. Re-render:</tspan> setList() triggers re-render. VirtualizedList queries new state.</text>
+
+  <!-- Step 6 -->
+  <circle cx="60" cy="250" r="6" fill="#2E7D5A"/>
+  <rect x="85" y="235" width="500" height="34" rx="6" fill="#e8f5e9" stroke="#2E7D5A" stroke-width="1.5"/>
+  <text x="100" y="257" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#2E7D5A">6. Updated UI:</tspan> List now shows server items + the original placeholder item.</text>
+
+  <!-- Separator -->
+  <line x1="85" y1="285" x2="585" y2="285" stroke="#ddd" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="335" y="300" text-anchor="middle" font-family="Segoe UI,Arial" font-size="11" fill="#999">— app is now ready for user interaction —</text>
+
+  <!-- Step 7 -->
+  <circle cx="60" cy="324" r="6" fill="#5856D6"/>
+  <rect x="85" y="309" width="500" height="34" rx="6" fill="#f0f6fb" stroke="#5856D6" stroke-width="1.5"/>
+  <text x="100" y="331" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#5856D6">7. User taps row:</tspan> Item calls onPress → toggleItem(i) → setList(new array) → re-render</text>
+
+  <!-- Step 8 -->
+  <circle cx="60" cy="366" r="6" fill="#007AFF"/>
+  <rect x="85" y="351" width="500" height="34" rx="6" fill="#f0f6fb" stroke="#007AFF" stroke-width="1.5"/>
+  <text x="100" y="373" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#007AFF">8. User taps +:</tspan> handleAdd() → setList([newItem, ...list]) → re-render with new row</text>
+
+  <!-- Step 9 -->
+  <circle cx="60" cy="408" r="6" fill="#8a5a0a"/>
+  <rect x="85" y="393" width="500" height="34" rx="6" fill="#fef9f0" stroke="#d4880f" stroke-width="1.5"/>
+  <text x="100" y="415" font-family="Segoe UI,Arial" font-size="12" fill="#333"><tspan font-weight="bold" fill="#8a5a0a">9. User taps Save:</tspan> saveToServer() → saveList(POST) → list persisted to server</text>
+</svg>
+<div class="diagram-caption">Figure 10 — Full app lifecycle: mount → first render → server load → re-render → user interaction loop.</div>
+</div>
+
+
+<!-- ============================================================ -->
+<h2>10. Key Concepts Summary</h2>
+
+<p>
+  This app, despite being compact, demonstrates nearly every core concept from Themes 2 and 4 of the course. Here's how the pieces connect:
+</p>
+
+<table>
+  <tr>
+    <th style="width: 30%;">Concept</th>
+    <th style="width: 35%;">Where in the Code</th>
+    <th style="width: 35%;">Course Theme</th>
+  </tr>
+  <tr>
+    <td><strong>Component composition</strong></td>
+    <td>VirtualList → VirtualizedList → Item</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>Props &amp; one-way data flow</strong></td>
+    <td>Item receives item, onPress, colors</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>Callback pattern</strong></td>
+    <td>toggleItem passed as onPress prop</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>useState</strong></td>
+    <td>list, autosave, firsttime</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>useEffect</strong></td>
+    <td>loadFromServer on mount (empty deps)</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>Immutable state updates</strong></td>
+    <td>spread, filter, map → setList</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>VirtualizedList</strong></td>
+    <td>Efficient rendering of 10K+ items</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>Container vs. presentational</strong></td>
+    <td>App.js (state) vs. ListItem.js (display)</td>
+    <td>Theme 2 — Building</td>
+  </tr>
+  <tr>
+    <td><strong>Async/await &amp; fetch()</strong></td>
+    <td>remoteAccess.js: GET and POST</td>
+    <td>Theme 4 — Architecture</td>
+  </tr>
+  <tr>
+    <td><strong>Client-server architecture</strong></td>
+    <td>Phone ↔ PHP server via HTTP</td>
+    <td>Theme 4 — Architecture</td>
+  </tr>
+  <tr>
+    <td><strong>Separation of concerns</strong></td>
+    <td>Three files with distinct responsibilities</td>
+    <td>Theme 4 — Architecture</td>
+  </tr>
+  <tr>
+    <td><strong>Data persistence</strong></td>
+    <td>Save/load JSON to/from remote server</td>
+    <td>Theme 4 — Architecture</td>
+  </tr>
+</table>
+
+<div class="callout-arch">
+  <strong>What's Missing (and Why That's Instructive):</strong> This example deliberately omits error handling (what if <code>fetch()</code> fails?), loading indicators (the user doesn't know data is being fetched), authentication (anyone can read/write this user's data), and input validation. Recognizing these gaps is itself a learning exercise — it connects to Theme 3 (Quality) and Theme 4 (never trust the client).
+</div>
+
+</body>
+</html>
