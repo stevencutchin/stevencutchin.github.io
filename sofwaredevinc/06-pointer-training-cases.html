@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pointer Training Cases — C Memory Patterns</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-blue: #448aff;
+    --accent-pink: #ff80ab;
+    --code-bg: #0a0f1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.75;
+  }
+
+  .page-grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  /* ── Top bar ── */
+  .series-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 40px;
+    display: flex; align-items: center; gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px; color: var(--text-dim);
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+  .series-bar .chip {
+    background: var(--accent-orange);
+    color: var(--bg); padding: 2px 10px; border-radius: 3px;
+    font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-orange); }
+
+  /* ── Hero ── */
+  .hero { padding: 70px 40px 50px; max-width: 960px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-orange); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(34px, 5vw, 56px); color: var(--heading); line-height: 1.1; margin-bottom: 18px; }
+  h1 .hl { background: linear-gradient(135deg, var(--accent-orange), var(--accent-yellow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 19px; color: var(--text-dim); max-width: 660px; line-height: 1.6; }
+
+  /* ── Content ── */
+  .content { max-width: 960px; margin: 0 auto; padding: 0 40px 100px; }
+
+  /* ── Table of Contents ── */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin: 40px 0 60px;
+    columns: 2;
+    column-gap: 40px;
+  }
+  .toc-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; color: var(--accent-orange);
+    letter-spacing: 2px; text-transform: uppercase;
+    margin-bottom: 14px;
+    column-span: all;
+  }
+  .toc a {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 5px 0;
+    break-inside: avoid;
+    transition: color 0.2s;
+  }
+  .toc a:hover { color: var(--accent-cyan); }
+  .toc a .num { color: var(--accent-orange); margin-right: 6px; font-weight: 600; }
+
+  /* ── Case cards ── */
+  .case {
+    margin: 60px 0 0;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+  }
+  .case:first-of-type { border-top: none; }
+
+  .case-header {
+    display: flex; align-items: baseline; gap: 16px;
+    margin-bottom: 8px;
+  }
+  .case-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 36px; font-weight: 600;
+    line-height: 1;
+  }
+  .case-title {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700; font-size: 26px;
+    color: var(--heading);
+  }
+  .case-desc {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 20px;
+    max-width: 700px;
+  }
+
+  /* ── Shared elements ── */
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+  .diagram-container .caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--text-dim);
+    margin-top: 14px; text-align: center;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 7px; border-radius: 4px;
+    font-size: 14px; color: var(--accent-green);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px; line-height: 1.7;
+    color: var(--text);
+  }
+  pre .kw  { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .cmt { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .fn  { color: var(--accent-orange); }
+
+  .ok-box {
+    background: linear-gradient(135deg, rgba(105,240,174,0.06), rgba(0,229,255,0.03));
+    border-left: 3px solid var(--accent-green);
+    padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  }
+  .ok-box strong { color: var(--accent-green); font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .bug-box {
+    background: rgba(255,82,82,0.06);
+    border-left: 3px solid var(--accent-red);
+    padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  }
+  .bug-box strong { color: var(--accent-red); font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .note-box {
+    background: rgba(179,136,255,0.06);
+    border-left: 3px solid var(--accent-purple);
+    padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;
+  }
+  .note-box strong { color: var(--accent-purple); font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+
+  p { margin-bottom: 16px; }
+
+  .side-by-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+  .side-by-side > div { min-width: 0; }
+  .side-by-side pre { margin: 0; font-size: 13px; }
+
+  @media (max-width: 750px) {
+    .hero, .content { padding-left: 18px; padding-right: 18px; }
+    .series-bar { padding: 10px 14px; font-size: 11px; }
+    .diagram-container { padding: 14px; }
+    .toc { columns: 1; }
+    .side-by-side { grid-template-columns: 1fr; }
+    .case-num { font-size: 28px; }
+    .case-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">Training</span>
+  <span>C Memory Concepts</span>
+  <div class="nav-links">
+    <a href="01-pointers.html">Pointers</a>
+    <a href="02-arrays-are-pointers.html">Arrays</a>
+    <a href="03-malloc-free.html">malloc &amp; free</a>
+    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+    <a href="05-garbage-collection.html">Garbage Collection</a>
+    <a href="06-pointer-training-cases.html" class="active">Training Cases</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Reference Guide</div>
+  <h1>Pointer <span class="hl">Training Cases</span></h1>
+  <p class="subtitle">Fourteen practical patterns every C developer encounters. Each case shows the correct code, the memory picture, and the common bug that goes with it.</p>
+</header>
+
+<main class="content">
+
+<!-- ══════════════════════════════════════════════════ TOC -->
+<div class="toc">
+  <div class="toc-title">Table of Contents</div>
+  <a href="#case01"><span class="num">01</span> Allocate a Single Value on the Heap</a>
+  <a href="#case02"><span class="num">02</span> Allocate an Array with malloc</a>
+  <a href="#case03"><span class="num">03</span> Walk an Array with Pointer Arithmetic</a>
+  <a href="#case04"><span class="num">04</span> Pass a Pointer to Modify a Variable</a>
+  <a href="#case05"><span class="num">05</span> Return Heap Memory from a Function</a>
+  <a href="#case06"><span class="num">06</span> Strings as char* — Copy &amp; Duplicate</a>
+  <a href="#case07"><span class="num">07</span> Struct Pointers and the Arrow Operator</a>
+  <a href="#case08"><span class="num">08</span> Array of Pointers (Array of Strings)</a>
+  <a href="#case09"><span class="num">09</span> Double Pointer — Modifying a Caller's Pointer</a>
+  <a href="#case10"><span class="num">10</span> Growing an Array with realloc</a>
+  <a href="#case11"><span class="num">11</span> Memory Leak in a Loop</a>
+  <a href="#case12"><span class="num">12</span> Building &amp; Freeing a Linked List</a>
+  <a href="#case13"><span class="num">13</span> Dangling Pointer After Free</a>
+  <a href="#case14"><span class="num">14</span> Detecting Leaks with Valgrind</a>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 01 -->
+<section class="case" id="case01">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-cyan)">01</span>
+    <span class="case-title">Allocate a Single Value on the Heap</span>
+  </div>
+  <p class="case-desc">The simplest malloc pattern: allocate space for one value, use it, free it.</p>
+
+  <pre><span class="type">int</span> *p = <span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">int</span>));   <span class="cmt">// request 4 bytes</span>
+<span class="kw">if</span> (p == <span class="num">NULL</span>) {
+    <span class="fn">perror</span>(<span class="str">"malloc"</span>);
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+*p = <span class="num">42</span>;                        <span class="cmt">// write through the pointer</span>
+<span class="fn">printf</span>(<span class="str">"%d\n"</span>, *p);             <span class="cmt">// read through the pointer → 42</span>
+<span class="fn">free</span>(p);                        <span class="cmt">// release the memory</span>
+p = <span class="num">NULL</span>;                       <span class="cmt">// prevent dangling pointer</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 130" width="100%" height="130">
+      <defs>
+        <marker id="a01" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker>
+      </defs>
+      <!-- Stack -->
+      <rect x="30" y="30" width="160" height="60" rx="6" fill="rgba(68,138,255,0.07)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="110" y="22" text-anchor="middle" fill="#448aff" font-size="11" font-weight="600">STACK</text>
+      <text x="110" y="56" text-anchor="middle" fill="#00e5ff" font-size="13">int *p</text>
+      <text x="110" y="76" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">0xA000</text>
+      <!-- Heap -->
+      <rect x="370" y="30" width="130" height="60" rx="6" fill="rgba(179,136,255,0.08)" stroke="#b388ff" stroke-width="2"/>
+      <text x="435" y="22" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">HEAP</text>
+      <text x="435" y="56" text-anchor="middle" fill="#69f0ae" font-size="20" font-weight="600">42</text>
+      <text x="435" y="76" text-anchor="middle" fill="#ffab40" font-size="10">0xA000</text>
+      <!-- Arrow -->
+      <path d="M190 60 L368 60" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#a01)" stroke-dasharray="6,4"/>
+      <!-- Sizeof -->
+      <text x="570" y="56" fill="#6b7fa3" font-size="11">4 bytes</text>
+      <text x="570" y="72" fill="#6b7fa3" font-size="11">(sizeof int)</text>
+    </svg>
+    <div class="caption">Stack holds the pointer variable (8 bytes). Heap holds the actual int (4 bytes).</div>
+  </div>
+
+  <div class="ok-box">
+    <strong>Pattern</strong><br>
+    Always check malloc's return for NULL. Always free. Always NULL-out the pointer after freeing.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 02 -->
+<section class="case" id="case02">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-green)">02</span>
+    <span class="case-title">Allocate an Array with malloc</span>
+  </div>
+  <p class="case-desc">Dynamically create an array whose size is only known at runtime.</p>
+
+  <pre><span class="type">int</span> n = <span class="num">5</span>;
+<span class="type">int</span> *arr = <span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="type">int</span>));  <span class="cmt">// 5 × 4 = 20 bytes</span>
+<span class="kw">if</span> (!arr) { <span class="fn">perror</span>(<span class="str">"malloc"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) {
+    arr[i] = (i + <span class="num">1</span>) * <span class="num">10</span>;           <span class="cmt">// 10, 20, 30, 40, 50</span>
+}
+
+<span class="cmt">// use arr[0]..arr[4] as normal ...</span>
+
+<span class="fn">free</span>(arr);
+arr = <span class="num">NULL</span>;</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 130" width="100%" height="130">
+      <defs><marker id="a02" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+      <!-- ptr on stack -->
+      <rect x="20" y="35" width="120" height="55" rx="6" fill="rgba(68,138,255,0.07)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="80" y="58" text-anchor="middle" fill="#00e5ff" font-size="12">arr →</text>
+      <text x="80" y="78" text-anchor="middle" fill="#00e5ff" font-size="11">0xB000</text>
+      <!-- Heap array -->
+      <rect x="220" y="35" width="90" height="55" rx="4" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="310" y="35" width="90" height="55" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="400" y="35" width="90" height="55" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="490" y="35" width="90" height="55" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="580" y="35" width="90" height="55" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <text x="265" y="67" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">10</text>
+      <text x="355" y="67" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">20</text>
+      <text x="445" y="67" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">30</text>
+      <text x="535" y="67" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">40</text>
+      <text x="625" y="67" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">50</text>
+      <text x="265" y="108" text-anchor="middle" fill="#6b7fa3" font-size="10">[0]</text>
+      <text x="355" y="108" text-anchor="middle" fill="#6b7fa3" font-size="10">[1]</text>
+      <text x="445" y="108" text-anchor="middle" fill="#6b7fa3" font-size="10">[2]</text>
+      <text x="535" y="108" text-anchor="middle" fill="#6b7fa3" font-size="10">[3]</text>
+      <text x="625" y="108" text-anchor="middle" fill="#6b7fa3" font-size="10">[4]</text>
+      <!-- Arrow -->
+      <path d="M140 62 L218 62" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#a02)" stroke-dasharray="6,4"/>
+      <!-- Addresses -->
+      <text x="265" y="28" text-anchor="middle" fill="#ffab40" font-size="9">0xB000</text>
+      <text x="355" y="28" text-anchor="middle" fill="#ffab40" font-size="9">+4</text>
+      <text x="445" y="28" text-anchor="middle" fill="#ffab40" font-size="9">+8</text>
+      <text x="535" y="28" text-anchor="middle" fill="#ffab40" font-size="9">+12</text>
+      <text x="625" y="28" text-anchor="middle" fill="#ffab40" font-size="9">+16</text>
+    </svg>
+    <div class="caption">malloc returns a contiguous block. arr[i] indexes into it identically to a stack array.</div>
+  </div>
+
+  <div class="bug-box">
+    <strong>Common Bug</strong><br>
+    Writing <code>malloc(n)</code> instead of <code>malloc(n * sizeof(int))</code>. This allocates n <em>bytes</em>, not n ints — causing a buffer overflow when n &gt; 1.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 03 -->
+<section class="case" id="case03">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-purple)">03</span>
+    <span class="case-title">Walk an Array with Pointer Arithmetic</span>
+  </div>
+  <p class="case-desc">Use a moving pointer instead of an index to traverse array elements.</p>
+
+  <pre><span class="type">int</span> arr[] = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>};
+<span class="type">int</span> n = <span class="num">5</span>;
+
+<span class="type">int</span> *p   = arr;         <span class="cmt">// points to arr[0]</span>
+<span class="type">int</span> *end = arr + n;     <span class="cmt">// one past the last element</span>
+
+<span class="kw">while</span> (p &lt; end) {
+    <span class="fn">printf</span>(<span class="str">"%d "</span>, *p);    <span class="cmt">// dereference current element</span>
+    p++;                 <span class="cmt">// advance to next element (adds sizeof(int) bytes)</span>
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 160" width="100%" height="160">
+      <defs><marker id="a03" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b388ff"/></marker></defs>
+      <!-- Cells -->
+      <rect x="80" y="50" width="100" height="50" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="180" y="50" width="100" height="50" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="280" y="50" width="100" height="50" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="380" y="50" width="100" height="50" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="480" y="50" width="100" height="50" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+      <!-- Values -->
+      <text x="130" y="82" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">10</text>
+      <text x="230" y="82" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">20</text>
+      <text x="330" y="82" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">30</text>
+      <text x="430" y="82" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">40</text>
+      <text x="530" y="82" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">50</text>
+      <!-- p traveling -->
+      <text x="130" y="36" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">p</text>
+      <line x1="130" y1="39" x2="130" y2="48" stroke="#b388ff" stroke-width="2" marker-end="url(#a03)"/>
+      <text x="230" y="36" text-anchor="middle" fill="#b388ff" font-size="11" opacity="0.5">p++</text>
+      <text x="330" y="36" text-anchor="middle" fill="#b388ff" font-size="11" opacity="0.35">p++</text>
+      <text x="430" y="36" text-anchor="middle" fill="#b388ff" font-size="11" opacity="0.25">p++</text>
+      <text x="530" y="36" text-anchor="middle" fill="#b388ff" font-size="11" opacity="0.15">p++</text>
+      <!-- end sentinel -->
+      <line x1="580" y1="40" x2="580" y2="100" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="610" y="46" fill="#ff5252" font-size="10" font-weight="600">end</text>
+      <text x="618" y="60" fill="#6b7fa3" font-size="9">(one past</text>
+      <text x="618" y="72" fill="#6b7fa3" font-size="9">last element)</text>
+      <!-- hop arcs -->
+      <path d="M130 115 Q180 140 230 115" stroke="#ffab40" stroke-width="1" fill="none" stroke-dasharray="3,2"/>
+      <text x="180" y="145" text-anchor="middle" fill="#ffab40" font-size="9">+sizeof(int)</text>
+    </svg>
+    <div class="caption">p++ moves the pointer forward by one element (4 bytes for int). The loop stops when p reaches the "end" sentinel.</div>
+  </div>
+
+  <div class="note-box">
+    <strong>Why This Matters</strong><br>
+    This is the pattern behind <code>memcpy</code>, <code>strcpy</code>, and most low-level C library functions. Understanding pointer-walking is essential for reading real C code.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 04 -->
+<section class="case" id="case04">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-orange)">04</span>
+    <span class="case-title">Pass a Pointer to Modify a Variable</span>
+  </div>
+  <p class="case-desc">C passes everything by value. To let a function modify the caller's variable, pass a pointer to it.</p>
+
+  <pre><span class="kw">void</span> <span class="fn">swap</span>(<span class="type">int</span> *a, <span class="type">int</span> *b) {
+    <span class="type">int</span> tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+<span class="type">int</span> x = <span class="num">3</span>, y = <span class="num">7</span>;
+<span class="fn">swap</span>(&amp;x, &amp;y);
+<span class="cmt">// x == 7, y == 3</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 150" width="100%" height="150">
+      <defs><marker id="a04" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+      <!-- main vars -->
+      <rect x="30" y="20" width="200" height="110" rx="8" fill="rgba(68,138,255,0.04)" stroke="#448aff" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="130" y="14" text-anchor="middle" fill="#448aff" font-size="11" font-weight="600">main()</text>
+      <rect x="50" y="40" width="70" height="40" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="85" y="56" text-anchor="middle" fill="#69f0ae" font-size="11">x</text>
+      <text x="85" y="72" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">3→7</text>
+      <rect x="140" y="40" width="70" height="40" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="175" y="56" text-anchor="middle" fill="#69f0ae" font-size="11">y</text>
+      <text x="175" y="72" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">7→3</text>
+      <!-- swap params -->
+      <rect x="380" y="20" width="280" height="110" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="520" y="14" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">swap()</text>
+      <rect x="400" y="40" width="110" height="40" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="455" y="56" text-anchor="middle" fill="#00e5ff" font-size="11">int *a</text>
+      <text x="455" y="72" text-anchor="middle" fill="#00e5ff" font-size="12">&amp;x</text>
+      <rect x="530" y="40" width="110" height="40" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="585" y="56" text-anchor="middle" fill="#00e5ff" font-size="11">int *b</text>
+      <text x="585" y="72" text-anchor="middle" fill="#00e5ff" font-size="12">&amp;y</text>
+      <!-- Arrows -->
+      <path d="M400 60 C350 60 290 45 120 55" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a04)" stroke-dasharray="5,3"/>
+      <path d="M530 60 C480 75 290 80 210 65" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a04)" stroke-dasharray="5,3"/>
+      <!-- tmp -->
+      <rect x="400" y="90" width="110" height="30" rx="4" fill="rgba(179,136,255,0.06)" stroke="#b388ff" stroke-width="0.5"/>
+      <text x="455" y="110" text-anchor="middle" fill="#b388ff" font-size="11">tmp = 3</text>
+    </svg>
+    <div class="caption">swap() receives addresses of x and y. Writing through *a and *b modifies the originals in main().</div>
+  </div>
+
+  <div class="bug-box">
+    <strong>Common Bug</strong><br>
+    Writing <code>swap(x, y)</code> instead of <code>swap(&amp;x, &amp;y)</code>. Without the <code>&amp;</code>, you pass copies of the values — the function swaps its own local copies and the originals are unchanged.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 05 -->
+<section class="case" id="case05">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-blue)">05</span>
+    <span class="case-title">Return Heap Memory from a Function</span>
+  </div>
+  <p class="case-desc">A function can allocate memory and return a pointer to it. The caller becomes responsible for freeing it.</p>
+
+  <pre><span class="type">int</span>* <span class="fn">make_range</span>(<span class="type">int</span> start, <span class="type">int</span> count) {
+    <span class="type">int</span> *arr = <span class="fn">malloc</span>(count * <span class="kw">sizeof</span>(<span class="type">int</span>));
+    <span class="kw">if</span> (!arr) <span class="kw">return</span> <span class="num">NULL</span>;
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; count; i++)
+        arr[i] = start + i;
+    <span class="kw">return</span> arr;   <span class="cmt">// heap memory survives function return</span>
+}
+
+<span class="cmt">// Caller code:</span>
+<span class="type">int</span> *data = <span class="fn">make_range</span>(<span class="num">1</span>, <span class="num">5</span>);   <span class="cmt">// data = {1,2,3,4,5}</span>
+<span class="cmt">// ... use data ...</span>
+<span class="fn">free</span>(data);                      <span class="cmt">// caller's responsibility!</span></pre>
+
+  <div class="ok-box">
+    <strong>Ownership Contract</strong><br>
+    When a function returns <code>malloc</code>'d memory, document it clearly. The caller "owns" the memory and must free it. This is the most common source of memory leaks in large C programs — ownership ambiguity.
+  </div>
+
+  <div class="bug-box">
+    <strong>Common Bug — Returning a Stack Address</strong><br>
+    <pre style="margin:8px 0 0"><span class="type">int</span>* <span class="fn">broken</span>() {
+    <span class="type">int</span> arr[<span class="num">5</span>] = {<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>,<span class="num">5</span>};
+    <span class="kw">return</span> arr;   <span class="cmt">// ✗ arr is on the stack — destroyed on return!</span>
+}</pre>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 06 -->
+<section class="case" id="case06">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-yellow)">06</span>
+    <span class="case-title">Strings as char* — Copy &amp; Duplicate</span>
+  </div>
+  <p class="case-desc">Strings in C are just null-terminated char arrays. String operations are pointer operations.</p>
+
+  <pre><span class="cmt">// String literal — read-only, stored in program data section</span>
+<span class="type">char</span> *greeting = <span class="str">"Hello"</span>;
+
+<span class="cmt">// Mutable copy on the heap</span>
+<span class="type">char</span> *copy = <span class="fn">malloc</span>(<span class="fn">strlen</span>(greeting) + <span class="num">1</span>);  <span class="cmt">// +1 for '\0'</span>
+<span class="kw">if</span> (!copy) { <span class="fn">perror</span>(<span class="str">"malloc"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+<span class="fn">strcpy</span>(copy, greeting);
+
+<span class="cmt">// Or use strdup (allocates + copies in one step):</span>
+<span class="type">char</span> *dup = <span class="fn">strdup</span>(greeting);  <span class="cmt">// equivalent to malloc+strcpy</span>
+
+<span class="fn">free</span>(copy);
+<span class="fn">free</span>(dup);</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 110" width="100%" height="110">
+      <!-- String in memory -->
+      <rect x="100" y="30" width="55" height="45" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="155" y="30" width="55" height="45" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="210" y="30" width="55" height="45" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="265" y="30" width="55" height="45" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="320" y="30" width="55" height="45" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="375" y="30" width="55" height="45" rx="3" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="127" y="58" text-anchor="middle" fill="#69f0ae" font-size="16">'H'</text>
+      <text x="182" y="58" text-anchor="middle" fill="#69f0ae" font-size="16">'e'</text>
+      <text x="237" y="58" text-anchor="middle" fill="#69f0ae" font-size="16">'l'</text>
+      <text x="292" y="58" text-anchor="middle" fill="#69f0ae" font-size="16">'l'</text>
+      <text x="347" y="58" text-anchor="middle" fill="#69f0ae" font-size="16">'o'</text>
+      <text x="402" y="58" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">\0</text>
+      <!-- Labels -->
+      <text x="127" y="92" text-anchor="middle" fill="#6b7fa3" font-size="9">[0]</text>
+      <text x="182" y="92" text-anchor="middle" fill="#6b7fa3" font-size="9">[1]</text>
+      <text x="237" y="92" text-anchor="middle" fill="#6b7fa3" font-size="9">[2]</text>
+      <text x="292" y="92" text-anchor="middle" fill="#6b7fa3" font-size="9">[3]</text>
+      <text x="347" y="92" text-anchor="middle" fill="#6b7fa3" font-size="9">[4]</text>
+      <text x="402" y="92" text-anchor="middle" fill="#ff5252" font-size="9">[5]</text>
+      <!-- strlen -->
+      <text x="500" y="48" fill="#ffab40" font-size="11">strlen = 5</text>
+      <text x="500" y="64" fill="#ffab40" font-size="11">malloc needs 6</text>
+      <text x="500" y="80" fill="#6b7fa3" font-size="10">(5 chars + 1 null)</text>
+    </svg>
+    <div class="caption">"Hello" is 5 characters but needs 6 bytes — the null terminator '\0' marks the end of the string.</div>
+  </div>
+
+  <div class="bug-box">
+    <strong>Common Bug — Off-By-One</strong><br>
+    Writing <code>malloc(strlen(s))</code> instead of <code>malloc(strlen(s) + 1)</code>. The missing <code>+1</code> doesn't allocate room for the null terminator, causing <code>strcpy</code> to write one byte past the end of the allocation.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 07 -->
+<section class="case" id="case07">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-pink)">07</span>
+    <span class="case-title">Struct Pointers and the Arrow Operator</span>
+  </div>
+  <p class="case-desc">When you have a pointer to a struct, <code>-&gt;</code> dereferences and accesses a field in one step.</p>
+
+  <pre><span class="kw">typedef struct</span> {
+    <span class="type">char</span> name[<span class="num">50</span>];
+    <span class="type">int</span>  age;
+} <span class="type">Person</span>;
+
+<span class="type">Person</span> *p = <span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">Person</span>));
+<span class="kw">if</span> (!p) { <span class="fn">perror</span>(<span class="str">"malloc"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="fn">strcpy</span>(p->name, <span class="str">"Alice"</span>);   <span class="cmt">// p->name ≡ (*p).name</span>
+p->age = <span class="num">30</span>;               <span class="cmt">// p->age  ≡ (*p).age</span>
+
+<span class="fn">printf</span>(<span class="str">"%s is %d\n"</span>, p->name, p->age);
+<span class="fn">free</span>(p);</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 120" width="100%" height="120">
+      <defs><marker id="a07" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+      <!-- Pointer -->
+      <rect x="30" y="30" width="120" height="55" rx="6" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="90" y="55" text-anchor="middle" fill="#00e5ff" font-size="13">Person *p</text>
+      <text x="90" y="73" text-anchor="middle" fill="#00e5ff" font-size="11">0xC000</text>
+      <!-- Struct on heap -->
+      <rect x="280" y="20" width="350" height="75" rx="8" fill="rgba(255,128,171,0.06)" stroke="#ff80ab" stroke-width="2"/>
+      <text x="455" y="14" text-anchor="middle" fill="#ff80ab" font-size="11" font-weight="600">HEAP — sizeof(Person) = 54 bytes</text>
+      <rect x="295" y="35" width="200" height="45" rx="4" fill="rgba(255,128,171,0.04)" stroke="#ff80ab" stroke-width="0.5"/>
+      <text x="395" y="55" text-anchor="middle" fill="#69f0ae" font-size="13">.name = "Alice"</text>
+      <text x="395" y="72" text-anchor="middle" fill="#6b7fa3" font-size="9">char[50] — 50 bytes</text>
+      <rect x="510" y="35" width="105" height="45" rx="4" fill="rgba(255,128,171,0.04)" stroke="#ff80ab" stroke-width="0.5"/>
+      <text x="562" y="55" text-anchor="middle" fill="#69f0ae" font-size="13">.age = 30</text>
+      <text x="562" y="72" text-anchor="middle" fill="#6b7fa3" font-size="9">int — 4 bytes</text>
+      <!-- Arrow -->
+      <path d="M150 57 L278 57" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#a07)" stroke-dasharray="6,4"/>
+    </svg>
+    <div class="caption">p-> is the arrow operator: dereference the pointer and access a struct field in one step.</div>
+  </div>
+
+  <div class="note-box">
+    <strong>Equivalence</strong><br>
+    <code>p->name</code> is exactly identical to <code>(*p).name</code>. The arrow operator exists purely for readability — dereferencing and dot-accessing in the same expression is clunky.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 08 -->
+<section class="case" id="case08">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-cyan)">08</span>
+    <span class="case-title">Array of Pointers (Array of Strings)</span>
+  </div>
+  <p class="case-desc">An array where each element is itself a pointer — the foundation of argv and dynamic string tables.</p>
+
+  <pre><span class="type">int</span> n = <span class="num">3</span>;
+<span class="type">char</span> **names = <span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="type">char</span>*));  <span class="cmt">// array of 3 pointers</span>
+<span class="kw">if</span> (!names) { <span class="fn">perror</span>(<span class="str">"malloc"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+names[<span class="num">0</span>] = <span class="fn">strdup</span>(<span class="str">"Alice"</span>);    <span class="cmt">// each strdup malloc's a string</span>
+names[<span class="num">1</span>] = <span class="fn">strdup</span>(<span class="str">"Bob"</span>);
+names[<span class="num">2</span>] = <span class="fn">strdup</span>(<span class="str">"Charlie"</span>);
+
+<span class="cmt">// Free: inner strings first, then the outer array</span>
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++)
+    <span class="fn">free</span>(names[i]);    <span class="cmt">// free each string</span>
+<span class="fn">free</span>(names);            <span class="cmt">// free the pointer array itself</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 180" width="100%" height="180">
+      <defs><marker id="a08" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+      <!-- Pointer array -->
+      <rect x="30" y="40" width="130" height="40" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <rect x="30" y="80" width="130" height="40" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <rect x="30" y="120" width="130" height="40" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="95" y="65" text-anchor="middle" fill="#00e5ff" font-size="11">names[0]</text>
+      <text x="95" y="105" text-anchor="middle" fill="#00e5ff" font-size="11">names[1]</text>
+      <text x="95" y="145" text-anchor="middle" fill="#00e5ff" font-size="11">names[2]</text>
+      <text x="95" y="30" text-anchor="middle" fill="#448aff" font-size="10" font-weight="600">char** (3 × 8 bytes)</text>
+      <!-- Strings on heap -->
+      <rect x="300" y="40" width="180" height="34" rx="4" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1"/>
+      <text x="390" y="62" text-anchor="middle" fill="#69f0ae" font-size="13">"Alice\0"</text>
+      <rect x="300" y="84" width="140" height="34" rx="4" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1"/>
+      <text x="370" y="106" text-anchor="middle" fill="#69f0ae" font-size="13">"Bob\0"</text>
+      <rect x="300" y="128" width="220" height="34" rx="4" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1"/>
+      <text x="410" y="150" text-anchor="middle" fill="#69f0ae" font-size="13">"Charlie\0"</text>
+      <!-- Arrows -->
+      <path d="M160 57 L298 57" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a08)" stroke-dasharray="5,3"/>
+      <path d="M160 100 L298 100" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a08)" stroke-dasharray="5,3"/>
+      <path d="M160 143 L298 143" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a08)" stroke-dasharray="5,3"/>
+      <!-- Label -->
+      <text x="540" y="62" fill="#6b7fa3" font-size="10">6 bytes</text>
+      <text x="540" y="106" fill="#6b7fa3" font-size="10">4 bytes</text>
+      <text x="540" y="150" fill="#6b7fa3" font-size="10">8 bytes</text>
+    </svg>
+    <div class="caption">4 separate allocations: 1 for the pointer array + 3 for the strings. All 4 must be freed.</div>
+  </div>
+
+  <div class="bug-box">
+    <strong>Common Bug — Freeing in Wrong Order</strong><br>
+    Calling <code>free(names)</code> first destroys the pointer array — now you've lost the addresses of the strings and can never free them. Always free the inner allocations before the outer container.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 09 -->
+<section class="case" id="case09">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-green)">09</span>
+    <span class="case-title">Double Pointer — Modifying a Caller's Pointer</span>
+  </div>
+  <p class="case-desc">If a function needs to change <em>where</em> a caller's pointer points (not just the data), it needs a pointer-to-a-pointer.</p>
+
+  <pre><span class="kw">void</span> <span class="fn">allocate_array</span>(<span class="type">int</span> **out, <span class="type">int</span> n) {
+    *out = <span class="fn">malloc</span>(n * <span class="kw">sizeof</span>(<span class="type">int</span>));  <span class="cmt">// writes to caller's pointer</span>
+}
+
+<span class="type">int</span> *arr = <span class="num">NULL</span>;
+<span class="fn">allocate_array</span>(&amp;arr, <span class="num">10</span>);  <span class="cmt">// pass address of the pointer itself</span>
+<span class="cmt">// arr now points to 10 ints on the heap</span>
+arr[<span class="num">0</span>] = <span class="num">42</span>;
+<span class="fn">free</span>(arr);</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 130" width="100%" height="130">
+      <defs>
+        <marker id="a09a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b388ff"/></marker>
+        <marker id="a09b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker>
+      </defs>
+      <!-- int **out -->
+      <rect x="20" y="35" width="120" height="55" rx="6" fill="rgba(179,136,255,0.08)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="80" y="56" text-anchor="middle" fill="#b388ff" font-size="12">int **out</text>
+      <text x="80" y="76" text-anchor="middle" fill="#b388ff" font-size="11">&amp;arr</text>
+      <!-- int *arr -->
+      <rect x="240" y="35" width="120" height="55" rx="6" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="300" y="56" text-anchor="middle" fill="#00e5ff" font-size="12">int *arr</text>
+      <text x="300" y="76" text-anchor="middle" fill="#00e5ff" font-size="11">0xD000</text>
+      <!-- Heap block -->
+      <rect x="480" y="35" width="190" height="55" rx="6" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="575" y="60" text-anchor="middle" fill="#69f0ae" font-size="12">10 ints on heap</text>
+      <text x="575" y="78" text-anchor="middle" fill="#ffab40" font-size="10">0xD000</text>
+      <!-- Arrows -->
+      <path d="M140 62 L238 62" stroke="#b388ff" stroke-width="2" fill="none" marker-end="url(#a09a)" stroke-dasharray="5,3"/>
+      <path d="M360 62 L478 62" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#a09b)" stroke-dasharray="5,3"/>
+      <!-- Labels -->
+      <text x="190" y="52" text-anchor="middle" fill="#b388ff" font-size="10">*out =</text>
+      <text x="420" y="52" text-anchor="middle" fill="#00e5ff" font-size="10">arr →</text>
+    </svg>
+    <div class="caption">out is a pointer to arr. *out = malloc(...) makes arr point to the new heap block — modifying the caller's variable.</div>
+  </div>
+
+  <div class="note-box">
+    <strong>When You Need This</strong><br>
+    Any time a function must <em>reassign</em> a caller's pointer: allocator functions, linked-list insert/delete that can change the head pointer, parsing functions that advance a pointer through input.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 10 -->
+<section class="case" id="case10">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-orange)">10</span>
+    <span class="case-title">Growing an Array with realloc</span>
+  </div>
+  <p class="case-desc">Resize a heap allocation when you need more space — the basis of dynamic arrays and vectors.</p>
+
+  <pre><span class="type">int</span> cap = <span class="num">4</span>, size = <span class="num">0</span>;
+<span class="type">int</span> *arr = <span class="fn">malloc</span>(cap * <span class="kw">sizeof</span>(<span class="type">int</span>));
+
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="num">10</span>; i++) {
+    <span class="kw">if</span> (size == cap) {
+        cap *= <span class="num">2</span>;   <span class="cmt">// double capacity</span>
+        <span class="type">int</span> *tmp = <span class="fn">realloc</span>(arr, cap * <span class="kw">sizeof</span>(<span class="type">int</span>));
+        <span class="kw">if</span> (!tmp) { <span class="fn">free</span>(arr); <span class="kw">return</span> <span class="num">1</span>; }
+        arr = tmp;  <span class="cmt">// arr may have moved!</span>
+    }
+    arr[size++] = i * <span class="num">10</span>;
+}
+
+<span class="fn">free</span>(arr);</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 200" width="100%" height="200">
+      <!-- Before realloc -->
+      <text x="200" y="20" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">Before: capacity = 4 (full)</text>
+      <rect x="80" y="30" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="140" y="30" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="200" y="30" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="260" y="30" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="110" y="55" text-anchor="middle" fill="#69f0ae" font-size="14">0</text>
+      <text x="170" y="55" text-anchor="middle" fill="#69f0ae" font-size="14">10</text>
+      <text x="230" y="55" text-anchor="middle" fill="#69f0ae" font-size="14">20</text>
+      <text x="290" y="55" text-anchor="middle" fill="#69f0ae" font-size="14">30</text>
+      <text x="350" y="50" fill="#ff5252" font-size="11">← FULL!</text>
+      <!-- After realloc -->
+      <text x="360" y="110" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">After: capacity = 8 (may have moved to new address)</text>
+      <rect x="80" y="120" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="140" y="120" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="200" y="120" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="260" y="120" width="60" height="40" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="320" y="120" width="60" height="40" rx="3" fill="rgba(179,136,255,0.06)" stroke="#b388ff" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="380" y="120" width="60" height="40" rx="3" fill="rgba(179,136,255,0.06)" stroke="#b388ff" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="440" y="120" width="60" height="40" rx="3" fill="rgba(179,136,255,0.06)" stroke="#b388ff" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="500" y="120" width="60" height="40" rx="3" fill="rgba(179,136,255,0.06)" stroke="#b388ff" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="110" y="145" text-anchor="middle" fill="#69f0ae" font-size="14">0</text>
+      <text x="170" y="145" text-anchor="middle" fill="#69f0ae" font-size="14">10</text>
+      <text x="230" y="145" text-anchor="middle" fill="#69f0ae" font-size="14">20</text>
+      <text x="290" y="145" text-anchor="middle" fill="#69f0ae" font-size="14">30</text>
+      <text x="350" y="145" text-anchor="middle" fill="#b388ff" font-size="12">—</text>
+      <text x="410" y="145" text-anchor="middle" fill="#b388ff" font-size="12">—</text>
+      <text x="470" y="145" text-anchor="middle" fill="#b388ff" font-size="12">—</text>
+      <text x="530" y="145" text-anchor="middle" fill="#b388ff" font-size="12">—</text>
+      <text x="440" y="180" text-anchor="middle" fill="#b388ff" font-size="10">new capacity (uninitialized)</text>
+    </svg>
+    <div class="caption">realloc copies the old data to a new (possibly different) location, then frees the old block.</div>
+  </div>
+
+  <div class="bug-box">
+    <strong>Common Bug — Losing the Original Pointer</strong><br>
+    Writing <code>arr = realloc(arr, ...)</code> directly. If realloc fails it returns NULL — and you've just overwritten arr with NULL, losing the original allocation forever (memory leak). Always use a temporary variable.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 11 -->
+<section class="case" id="case11">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-red)">11</span>
+    <span class="case-title">Memory Leak in a Loop</span>
+  </div>
+  <p class="case-desc">One of the most common leak patterns: allocating inside a loop without freeing before the next iteration.</p>
+
+  <div class="side-by-side">
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent-red);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">✗ Leaky Version</div>
+      <pre><span class="type">char</span> *line = <span class="num">NULL</span>;
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="num">100</span>; i++) {
+    line = <span class="fn">malloc</span>(<span class="num">256</span>);
+    <span class="fn">sprintf</span>(line, <span class="str">"Line %d"</span>, i);
+    <span class="fn">process</span>(line);
+    <span class="cmt">// LEAK: old line never freed</span>
+    <span class="cmt">// before next malloc!</span>
+}
+<span class="fn">free</span>(line); <span class="cmt">// only frees last one</span></pre>
+    </div>
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent-green);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">✓ Fixed Version</div>
+      <pre><span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="num">100</span>; i++) {
+    <span class="type">char</span> *line = <span class="fn">malloc</span>(<span class="num">256</span>);
+    <span class="fn">sprintf</span>(line, <span class="str">"Line %d"</span>, i);
+    <span class="fn">process</span>(line);
+    <span class="fn">free</span>(line);  <span class="cmt">// free at end of</span>
+                  <span class="cmt">// each iteration</span>
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 200" width="100%" height="200">
+      <!-- Leaky loop visualization -->
+      <text x="350" y="20" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">Leaky Loop: 99 orphaned blocks on the heap</text>
+
+      <!-- Pointer -->
+      <rect x="30" y="50" width="100" height="40" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="80" y="75" text-anchor="middle" fill="#00e5ff" font-size="12">line →</text>
+
+      <!-- Ghost allocations -->
+      <rect x="200" y="45" width="70" height="30" rx="3" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="235" y="64" text-anchor="middle" fill="#ff5252" font-size="9">iter 0</text>
+      <rect x="280" y="55" width="70" height="30" rx="3" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="315" y="74" text-anchor="middle" fill="#ff5252" font-size="9">iter 1</text>
+      <rect x="360" y="45" width="70" height="30" rx="3" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="395" y="64" text-anchor="middle" fill="#ff5252" font-size="9">iter 2</text>
+      <text x="455" y="62" fill="#6b7fa3" font-size="16">…</text>
+      <rect x="490" y="50" width="70" height="30" rx="3" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="525" y="69" text-anchor="middle" fill="#ff5252" font-size="9">iter 98</text>
+
+      <!-- Only last one connected -->
+      <rect x="580" y="45" width="90" height="35" rx="4" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="625" y="67" text-anchor="middle" fill="#69f0ae" font-size="10">iter 99</text>
+      <defs><marker id="a11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+      <path d="M130 65 C200 100 500 100 578 62" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a11)" stroke-dasharray="5,3"/>
+
+      <!-- Summary -->
+      <text x="350" y="120" text-anchor="middle" fill="#ff5252" font-size="12">99 × 256 = <tspan font-weight="600">24,864 bytes leaked</tspan></text>
+      <text x="350" y="140" text-anchor="middle" fill="#6b7fa3" font-size="11">Each reassignment of 'line' orphans the previous allocation</text>
+      <text x="350" y="160" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">Fix: free(line) at the end of each loop iteration</text>
+      <text x="350" y="178" text-anchor="middle" fill="#6b7fa3" font-size="11">Or: move declaration inside the loop &amp; free before loop end</text>
+    </svg>
+    <div class="caption">Each iteration replaces the pointer, orphaning the previous allocation. Over 100 iterations, 99 blocks leak.</div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 12 -->
+<section class="case" id="case12">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-purple)">12</span>
+    <span class="case-title">Building &amp; Freeing a Linked List</span>
+  </div>
+  <p class="case-desc">Each node is a separate malloc — freeing the list requires traversing and freeing each node individually.</p>
+
+  <pre><span class="kw">typedef struct</span> Node {
+    <span class="type">int</span> data;
+    <span class="kw">struct</span> <span class="type">Node</span> *next;
+} <span class="type">Node</span>;
+
+<span class="cmt">// Build: prepend 3 nodes</span>
+<span class="type">Node</span> *head = <span class="num">NULL</span>;
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="num">3</span>; i++) {
+    <span class="type">Node</span> *n = <span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">Node</span>));
+    n->data = i;
+    n->next = head;
+    head = n;
+}
+
+<span class="cmt">// Free: must save next BEFORE freeing current</span>
+<span class="kw">while</span> (head != <span class="num">NULL</span>) {
+    <span class="type">Node</span> *tmp = head->next;  <span class="cmt">// save next pointer</span>
+    <span class="fn">free</span>(head);              <span class="cmt">// free current node</span>
+    head = tmp;              <span class="cmt">// advance to saved next</span>
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 150" width="100%" height="150">
+      <defs><marker id="a12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+      <!-- head ptr -->
+      <rect x="20" y="45" width="80" height="45" rx="5" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="60" y="72" text-anchor="middle" fill="#00e5ff" font-size="12">head</text>
+      <!-- Node 2 -->
+      <rect x="160" y="35" width="130" height="60" rx="6" fill="rgba(179,136,255,0.08)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="200" y="58" fill="#69f0ae" font-size="12">data: 2</text>
+      <text x="200" y="78" fill="#00e5ff" font-size="11">next →</text>
+      <!-- Node 1 -->
+      <rect x="340" y="35" width="130" height="60" rx="6" fill="rgba(179,136,255,0.08)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="380" y="58" fill="#69f0ae" font-size="12">data: 1</text>
+      <text x="380" y="78" fill="#00e5ff" font-size="11">next →</text>
+      <!-- Node 0 -->
+      <rect x="520" y="35" width="130" height="60" rx="6" fill="rgba(179,136,255,0.08)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="560" y="58" fill="#69f0ae" font-size="12">data: 0</text>
+      <text x="560" y="78" fill="#ff5252" font-size="11">next: NULL</text>
+      <!-- Arrows -->
+      <path d="M100 67 L158 67" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#a12)" stroke-dasharray="5,3"/>
+      <path d="M290 67 L338 67" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a12)" stroke-dasharray="5,3"/>
+      <path d="M470 67 L518 67" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a12)" stroke-dasharray="5,3"/>
+      <!-- Labels -->
+      <text x="225" y="115" text-anchor="middle" fill="#6b7fa3" font-size="10">Each node is a separate malloc</text>
+      <text x="225" y="130" text-anchor="middle" fill="#ff5252" font-size="10">3 allocations → need exactly 3 frees</text>
+    </svg>
+    <div class="caption">Three separate heap allocations chained by pointers. Freeing requires saving 'next' before each free.</div>
+  </div>
+
+  <div class="bug-box">
+    <strong>Common Bug — Losing the Chain</strong><br>
+    Writing <code>free(head); head = head->next;</code> — after freeing, <code>head->next</code> is a use-after-free. You must save <code>head->next</code> in a temp variable <em>before</em> calling free.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 13 -->
+<section class="case" id="case13">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-red)">13</span>
+    <span class="case-title">Dangling Pointer After Free</span>
+  </div>
+  <p class="case-desc">Using a pointer after the memory it points to has been freed. The pointer still holds the old address, but the memory may be reused.</p>
+
+  <div class="side-by-side">
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent-red);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">✗ Dangerous</div>
+      <pre><span class="type">int</span> *p = <span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">int</span>));
+*p = <span class="num">42</span>;
+<span class="fn">free</span>(p);
+
+<span class="cmt">// p still holds the old address!</span>
+<span class="fn">printf</span>(<span class="str">"%d\n"</span>, *p); <span class="cmt">// UB!</span>
+*p = <span class="num">99</span>;             <span class="cmt">// UB!</span></pre>
+    </div>
+    <div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent-green);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">✓ Safe</div>
+      <pre><span class="type">int</span> *p = <span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">int</span>));
+*p = <span class="num">42</span>;
+<span class="fn">free</span>(p);
+p = <span class="num">NULL</span>;  <span class="cmt">// NULL it out immediately</span>
+
+<span class="cmt">// Now any accidental use will</span>
+<span class="cmt">// crash immediately (segfault)</span>
+<span class="cmt">// instead of silently corrupting</span></pre>
+    </div>
+  </div>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 130" width="100%" height="130">
+      <!-- Before free -->
+      <text x="170" y="18" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">Before free(p)</text>
+      <rect x="30" y="30" width="100" height="40" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="80" y="55" text-anchor="middle" fill="#00e5ff" font-size="12">p: 0xA00</text>
+      <rect x="200" y="30" width="100" height="40" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="250" y="55" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">42</text>
+      <defs><marker id="a13" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+      <path d="M130 50 L198 50" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#a13)"/>
+
+      <!-- After free (dangling) -->
+      <text x="540" y="18" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">After free(p) — DANGLING!</text>
+      <rect x="400" y="30" width="100" height="40" rx="4" fill="rgba(255,82,82,0.07)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="450" y="55" text-anchor="middle" fill="#ff5252" font-size="12">p: 0xA00</text>
+      <rect x="570" y="30" width="100" height="40" rx="4" fill="none" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="620" y="55" text-anchor="middle" fill="#ff5252" font-size="12">???</text>
+      <path d="M500 50 L568 50" stroke="#ff5252" stroke-width="1.5" fill="none" marker-end="url(#a13)" stroke-dasharray="4,3"/>
+      <text x="450" y="90" text-anchor="middle" fill="#ff5252" font-size="10">p still holds old address</text>
+      <text x="620" y="90" text-anchor="middle" fill="#ff5252" font-size="10">memory may be reused</text>
+      <text x="540" y="115" text-anchor="middle" fill="#6b7fa3" font-size="11">Fix: p = NULL immediately after free(p)</text>
+    </svg>
+    <div class="caption">After free, the pointer still holds the stale address. Accessing it is undefined behavior. NULLing it converts silent corruption into a visible crash.</div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ CASE 14 -->
+<section class="case" id="case14">
+  <div class="case-header">
+    <span class="case-num" style="color:var(--accent-yellow)">14</span>
+    <span class="case-title">Detecting Leaks with Valgrind</span>
+  </div>
+  <p class="case-desc">Valgrind is your essential safety net — it monitors every malloc and free and reports any discrepancies.</p>
+
+  <pre><span class="cmt">// Compile with debug symbols:</span>
+$ gcc -g -o myprogram myprogram.c
+
+<span class="cmt">// Run under Valgrind:</span>
+$ valgrind --leak-check=full ./myprogram</pre>
+
+  <p>Valgrind will produce output like this for a leaky program:</p>
+
+  <pre style="color:var(--text-dim);font-size:13px;">==12345== HEAP SUMMARY:
+==12345==   in use at exit: <span style="color:var(--accent-red)">256 bytes in 1 blocks</span>
+==12345==   total heap usage: 5 allocs, <span style="color:var(--accent-red)">4 frees</span>, 1,280 bytes allocated
+==12345==
+==12345== <span style="color:var(--accent-red)">256 bytes in 1 blocks are definitely lost</span> in loss record 1 of 1
+==12345==    at 0x4C2AB: malloc (vg_replace_malloc.c:299)
+==12345==    by 0x400567: <span style="color:var(--accent-orange)">build_greeting</span> (<span style="color:var(--accent-cyan)">main.c:14</span>)
+==12345==    by 0x4005A3: main (main.c:28)
+==12345==
+==12345== LEAK SUMMARY:
+==12345==   <span style="color:var(--accent-red)">definitely lost: 256 bytes in 1 blocks</span></pre>
+
+  <p>A clean Valgrind report looks like this:</p>
+
+  <pre style="color:var(--text-dim);font-size:13px;">==12345== HEAP SUMMARY:
+==12345==   in use at exit: <span style="color:var(--accent-green)">0 bytes in 0 blocks</span>
+==12345==   total heap usage: 5 allocs, <span style="color:var(--accent-green)">5 frees</span>, 1,280 bytes allocated
+==12345==
+==12345== All heap blocks were freed -- <span style="color:var(--accent-green)">no leaks are possible</span></pre>
+
+  <div class="ok-box">
+    <strong>Valgrind Cheat Sheet</strong><br>
+    <code>--leak-check=full</code> — show where each leaked block was allocated.<br>
+    <code>--track-origins=yes</code> — show where uninitialized values come from.<br>
+    <code>--show-reachable=yes</code> — also report memory still reachable at exit.<br>
+    The goal: "All heap blocks were freed — no leaks are possible."
+  </div>
+
+  <div class="note-box">
+    <strong>What Valgrind Catches</strong><br>
+    Memory leaks (allocs without matching frees), use-after-free, double-free, reads of uninitialized memory, buffer overflows past heap allocations, and mismatched free/delete. Make it part of your development workflow — run it on every non-trivial C program.
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════ SUMMARY -->
+<section style="margin-top:80px;padding:40px;background:var(--surface);border:1px solid var(--border);border-radius:16px;">
+  <h2 style="margin-top:0;padding-top:0;">Quick-Reference Rules</h2>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;">
+    <div class="ok-box" style="margin:0">
+      <strong>Every malloc needs exactly one free</strong><br>
+      Count them. Match them. No exceptions.
+    </div>
+    <div class="ok-box" style="margin:0">
+      <strong>Always check malloc's return</strong><br>
+      <code>if (!ptr) { handle error }</code>
+    </div>
+    <div class="ok-box" style="margin:0">
+      <strong>NULL pointers after freeing</strong><br>
+      <code>free(p); p = NULL;</code>
+    </div>
+    <div class="ok-box" style="margin:0">
+      <strong>Use sizeof, not magic numbers</strong><br>
+      <code>malloc(n * sizeof(int))</code>
+    </div>
+    <div class="ok-box" style="margin:0">
+      <strong>Free inner before outer</strong><br>
+      Array of pointers: free elements, then the array.
+    </div>
+    <div class="ok-box" style="margin:0">
+      <strong>realloc into a temp variable</strong><br>
+      Never <code>p = realloc(p, ...)</code> directly.
+    </div>
+    <div class="ok-box" style="margin:0">
+      <strong>Save .next before freeing a node</strong><br>
+      <code>tmp = n->next; free(n); n = tmp;</code>
+    </div>
+    <div class="ok-box" style="margin:0">
+      <strong>Run Valgrind regularly</strong><br>
+      <code>valgrind --leak-check=full ./prog</code>
+    </div>
+  </div>
+</section>
+
+</main>
+</body>
+</html>
