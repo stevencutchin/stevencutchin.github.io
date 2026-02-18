@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arrays Are Pointers — C Memory Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-green); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-green); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-green); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 620px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-green); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  .key-concept { background: linear-gradient(135deg, rgba(105,240,174,0.06), rgba(0,229,255,0.04)); border-left: 3px solid var(--accent-green); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-green); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .equivalence { background: rgba(255,215,64,0.06); border-left: 3px solid var(--accent-yellow); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .equivalence strong { color: var(--accent-yellow); }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  @media (max-width: 600px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">2 / 5</span>
+  <span>C Memory Concepts</span>
+  <div class="nav-links">
+    <a href="01-pointers.html">Pointers</a>
+    <a href="02-arrays-are-pointers.html" class="active">Arrays</a>
+    <a href="03-malloc-free.html">malloc &amp; free</a>
+    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+    <a href="05-garbage-collection.html">Garbage Collection</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 02</div>
+  <h1>Arrays Are Just <span class="highlight">Pointers</span></h1>
+  <p class="subtitle">In C, an array name "decays" into a pointer to its first element. Understanding this unlocks pointer arithmetic and reveals how arrays truly work in memory.</p>
+</header>
+
+<main class="content">
+
+  <h2>An Array in Memory</h2>
+
+  <p>When you declare <code>int arr[5] = {10, 20, 30, 40, 50};</code>, C allocates five consecutive <code>int</code>-sized slots in memory — one right after another with no gaps.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <defs>
+        <linearGradient id="cellGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(105,240,174,0.12)"/>
+          <stop offset="100%" stop-color="rgba(105,240,174,0.03)"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Array cells -->
+      <g id="cells">
+        <rect x="60" y="50" width="120" height="70" rx="4" fill="url(#cellGrad)" stroke="#69f0ae" stroke-width="1.5"/>
+        <rect x="180" y="50" width="120" height="70" rx="4" fill="url(#cellGrad)" stroke="#69f0ae" stroke-width="1.5"/>
+        <rect x="300" y="50" width="120" height="70" rx="4" fill="url(#cellGrad)" stroke="#69f0ae" stroke-width="1.5"/>
+        <rect x="420" y="50" width="120" height="70" rx="4" fill="url(#cellGrad)" stroke="#69f0ae" stroke-width="1.5"/>
+        <rect x="540" y="50" width="120" height="70" rx="4" fill="url(#cellGrad)" stroke="#69f0ae" stroke-width="1.5"/>
+      </g>
+
+      <!-- Values -->
+      <text x="120" y="92" text-anchor="middle" fill="#69f0ae" font-size="22" font-weight="600">10</text>
+      <text x="240" y="92" text-anchor="middle" fill="#69f0ae" font-size="22" font-weight="600">20</text>
+      <text x="360" y="92" text-anchor="middle" fill="#69f0ae" font-size="22" font-weight="600">30</text>
+      <text x="480" y="92" text-anchor="middle" fill="#69f0ae" font-size="22" font-weight="600">40</text>
+      <text x="600" y="92" text-anchor="middle" fill="#69f0ae" font-size="22" font-weight="600">50</text>
+
+      <!-- Indices -->
+      <text x="120" y="140" text-anchor="middle" fill="#c8d6e5" font-size="12">[0]</text>
+      <text x="240" y="140" text-anchor="middle" fill="#c8d6e5" font-size="12">[1]</text>
+      <text x="360" y="140" text-anchor="middle" fill="#c8d6e5" font-size="12">[2]</text>
+      <text x="480" y="140" text-anchor="middle" fill="#c8d6e5" font-size="12">[3]</text>
+      <text x="600" y="140" text-anchor="middle" fill="#c8d6e5" font-size="12">[4]</text>
+
+      <!-- Addresses -->
+      <text x="120" y="42" text-anchor="middle" fill="#ffab40" font-size="10">0x3000</text>
+      <text x="240" y="42" text-anchor="middle" fill="#ffab40" font-size="10">0x3004</text>
+      <text x="360" y="42" text-anchor="middle" fill="#ffab40" font-size="10">0x3008</text>
+      <text x="480" y="42" text-anchor="middle" fill="#ffab40" font-size="10">0x300C</text>
+      <text x="600" y="42" text-anchor="middle" fill="#ffab40" font-size="10">0x3010</text>
+
+      <!-- Size annotation -->
+      <line x1="60" y1="165" x2="180" y2="165" stroke="#6b7fa3" stroke-width="1"/>
+      <line x1="60" y1="160" x2="60" y2="170" stroke="#6b7fa3" stroke-width="1"/>
+      <line x1="180" y1="160" x2="180" y2="170" stroke="#6b7fa3" stroke-width="1"/>
+      <text x="120" y="180" text-anchor="middle" fill="#6b7fa3" font-size="10">4 bytes (sizeof int)</text>
+    </svg>
+    <div class="caption">5 ints × 4 bytes each = 20 bytes of contiguous memory. Each element is exactly sizeof(int) apart.</div>
+  </div>
+
+  <h2>Array Name = Pointer to First Element</h2>
+
+  <p>Here's the critical insight: when you use the name <code>arr</code> in almost any expression, C automatically converts it into a pointer to the first element — <code>&amp;arr[0]</code>. This is called <strong>"array decay."</strong></p>
+
+  <pre><span class="type">int</span> arr[<span class="num">5</span>] = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>};
+
+<span class="func">printf</span>(<span class="str">"%p\n"</span>, arr);       <span class="comment">// 0x3000  — address of the array</span>
+<span class="func">printf</span>(<span class="str">"%p\n"</span>, &amp;arr[<span class="num">0</span>]);  <span class="comment">// 0x3000  — same thing!</span>
+
+<span class="type">int</span> *p = arr;              <span class="comment">// perfectly legal — arr decays to a pointer</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, *p);       <span class="comment">// 10 — the first element</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 180" width="100%" height="180">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+      </defs>
+
+      <!-- Array cells (compact) -->
+      <rect x="280" y="50" width="80" height="55" rx="4" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="2"/>
+      <rect x="360" y="50" width="80" height="55" rx="4" fill="rgba(105,240,174,0.05)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="440" y="50" width="80" height="55" rx="4" fill="rgba(105,240,174,0.05)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="520" y="50" width="80" height="55" rx="4" fill="rgba(105,240,174,0.05)" stroke="#69f0ae" stroke-width="1"/>
+      <rect x="600" y="50" width="80" height="55" rx="4" fill="rgba(105,240,174,0.05)" stroke="#69f0ae" stroke-width="1"/>
+
+      <text x="320" y="83" text-anchor="middle" fill="#69f0ae" font-size="18" font-weight="600">10</text>
+      <text x="400" y="83" text-anchor="middle" fill="#c8d6e5" font-size="16">20</text>
+      <text x="480" y="83" text-anchor="middle" fill="#c8d6e5" font-size="16">30</text>
+      <text x="560" y="83" text-anchor="middle" fill="#c8d6e5" font-size="16">40</text>
+      <text x="640" y="83" text-anchor="middle" fill="#c8d6e5" font-size="16">50</text>
+
+      <!-- arr label -->
+      <rect x="60" y="50" width="140" height="55" rx="6" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="2"/>
+      <text x="130" y="74" text-anchor="middle" fill="#00e5ff" font-size="13">arr ==</text>
+      <text x="130" y="92" text-anchor="middle" fill="#00e5ff" font-size="13">0x3000</text>
+
+      <!-- Arrow -->
+      <path d="M 200 77 L 278 77" stroke="#00e5ff" stroke-width="2.5" fill="none" marker-end="url(#arr2)" stroke-dasharray="6,4"/>
+
+      <!-- Text -->
+      <text x="320" y="130" text-anchor="middle" fill="#6b7fa3" font-size="11">arr[0]</text>
+      <text x="400" y="130" text-anchor="middle" fill="#6b7fa3" font-size="11">arr[1]</text>
+      <text x="480" y="130" text-anchor="middle" fill="#6b7fa3" font-size="11">arr[2]</text>
+      <text x="560" y="130" text-anchor="middle" fill="#6b7fa3" font-size="11">arr[3]</text>
+      <text x="640" y="130" text-anchor="middle" fill="#6b7fa3" font-size="11">arr[4]</text>
+
+      <text x="240" y="150" text-anchor="middle" fill="#00e5ff" font-size="12">arr decays to &amp;arr[0]</text>
+    </svg>
+    <div class="caption">The array name "arr" automatically becomes a pointer to the first element in most expressions.</div>
+  </div>
+
+  <h2>Pointer Arithmetic</h2>
+
+  <p>When you add an integer to a pointer, C doesn't just add that number of bytes — it adds that number of <em>elements</em>. If <code>p</code> is an <code>int*</code> and an <code>int</code> is 4 bytes, then <code>p + 1</code> advances by 4 bytes, <code>p + 2</code> by 8 bytes, and so on.</p>
+
+  <pre><span class="type">int</span> arr[<span class="num">5</span>] = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>};
+<span class="type">int</span> *p = arr;
+
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, *(p + <span class="num">0</span>));  <span class="comment">// 10  — arr[0]</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, *(p + <span class="num">1</span>));  <span class="comment">// 20  — arr[1]</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, *(p + <span class="num">2</span>));  <span class="comment">// 30  — arr[2]</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, *(p + <span class="num">3</span>));  <span class="comment">// 40  — arr[3]</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 240" width="100%" height="240">
+      <defs>
+        <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#b388ff"/>
+        </marker>
+      </defs>
+
+      <!-- Memory cells -->
+      <rect x="80" y="80" width="110" height="60" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="190" y="80" width="110" height="60" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="300" y="80" width="110" height="60" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="410" y="80" width="110" height="60" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <rect x="520" y="80" width="110" height="60" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+
+      <text x="135" y="116" text-anchor="middle" fill="#69f0ae" font-size="20" font-weight="600">10</text>
+      <text x="245" y="116" text-anchor="middle" fill="#69f0ae" font-size="20" font-weight="600">20</text>
+      <text x="355" y="116" text-anchor="middle" fill="#69f0ae" font-size="20" font-weight="600">30</text>
+      <text x="465" y="116" text-anchor="middle" fill="#69f0ae" font-size="20" font-weight="600">40</text>
+      <text x="575" y="116" text-anchor="middle" fill="#69f0ae" font-size="20" font-weight="600">50</text>
+
+      <!-- Addresses -->
+      <text x="135" y="72" text-anchor="middle" fill="#ffab40" font-size="10">0x3000</text>
+      <text x="245" y="72" text-anchor="middle" fill="#ffab40" font-size="10">0x3004</text>
+      <text x="355" y="72" text-anchor="middle" fill="#ffab40" font-size="10">0x3008</text>
+      <text x="465" y="72" text-anchor="middle" fill="#ffab40" font-size="10">0x300C</text>
+      <text x="575" y="72" text-anchor="middle" fill="#ffab40" font-size="10">0x3010</text>
+
+      <!-- Pointer arithmetic arrows -->
+      <text x="135" y="50" text-anchor="middle" fill="#b388ff" font-size="12" font-weight="600">p + 0</text>
+      <line x1="135" y1="55" x2="135" y2="78" stroke="#b388ff" stroke-width="1.5" marker-end="url(#pa)"/>
+
+      <text x="245" y="50" text-anchor="middle" fill="#b388ff" font-size="12" font-weight="600">p + 1</text>
+      <line x1="245" y1="55" x2="245" y2="78" stroke="#b388ff" stroke-width="1.5" marker-end="url(#pa)"/>
+
+      <text x="355" y="50" text-anchor="middle" fill="#b388ff" font-size="12" font-weight="600">p + 2</text>
+      <line x1="355" y1="55" x2="355" y2="78" stroke="#b388ff" stroke-width="1.5" marker-end="url(#pa)"/>
+
+      <text x="465" y="50" text-anchor="middle" fill="#b388ff" font-size="12" font-weight="600">p + 3</text>
+      <line x1="465" y1="55" x2="465" y2="78" stroke="#b388ff" stroke-width="1.5" marker-end="url(#pa)"/>
+
+      <!-- Jump annotations -->
+      <path d="M 135 160 Q 190 190 245 160" stroke="#ffab40" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+      <text x="190" y="195" text-anchor="middle" fill="#ffab40" font-size="10">+4 bytes</text>
+
+      <path d="M 245 160 Q 300 190 355 160" stroke="#ffab40" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+      <text x="300" y="195" text-anchor="middle" fill="#ffab40" font-size="10">+4 bytes</text>
+
+      <path d="M 355 160 Q 410 190 465 160" stroke="#ffab40" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+      <text x="410" y="195" text-anchor="middle" fill="#ffab40" font-size="10">+4 bytes</text>
+
+      <!-- Bottom note -->
+      <text x="360" y="228" text-anchor="middle" fill="#b388ff" font-size="12">p + n advances by n × sizeof(int) bytes</text>
+    </svg>
+    <div class="caption">Pointer arithmetic automatically scales by element size. p+1 is 4 bytes ahead for int*, 8 bytes for double*, etc.</div>
+  </div>
+
+  <h2>Indexing Is Pointer Arithmetic</h2>
+
+  <p>Here's the punchline: the bracket syntax <code>arr[i]</code> is literally defined as <code>*(arr + i)</code>. The compiler translates indexing into pointer arithmetic. They are the same operation.</p>
+
+  <div class="equivalence">
+    <strong>The Equivalence</strong><br>
+    <code>arr[i]</code> &nbsp;≡&nbsp; <code>*(arr + i)</code> &nbsp;≡&nbsp; <code>*(i + arr)</code> &nbsp;≡&nbsp; <code>i[arr]</code><br><br>
+    Yes, <code>3[arr]</code> is legal C and gives you <code>arr[3]</code>. Addition is commutative, so <code>*(arr + 3) == *(3 + arr)</code>. This is a fun fact more than a practical technique — but it proves that indexing really is just pointer math.
+  </div>
+
+  <pre><span class="type">int</span> arr[<span class="num">5</span>] = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>};
+
+<span class="comment">// All four of these are identical:</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, arr[<span class="num">2</span>]);         <span class="comment">// 30</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, *(arr + <span class="num">2</span>));     <span class="comment">// 30</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, *(<span class="num">2</span> + arr));     <span class="comment">// 30</span>
+<span class="func">printf</span>(<span class="str">"%d\n"</span>, <span class="num">2</span>[arr]);         <span class="comment">// 30 (please don't do this)</span></pre>
+
+  <h2>Arrays Passed to Functions Become Pointers</h2>
+
+  <p>When you pass an array to a function, it completely loses its "array-ness." It decays into a pointer. The function receives only a pointer to the first element — it has no idea how long the array is. This is why C functions that take arrays almost always need a separate <code>size</code> parameter.</p>
+
+  <pre><span class="kw">void</span> <span class="func">print_array</span>(<span class="type">int</span> *arr, <span class="type">int</span> size) {  <span class="comment">// arr is just a pointer here</span>
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; size; i++) {
+        <span class="func">printf</span>(<span class="str">"%d "</span>, arr[i]);     <span class="comment">// still works — indexing a pointer</span>
+    }
+}
+
+<span class="type">int</span> nums[<span class="num">5</span>] = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>};
+<span class="func">print_array</span>(nums, <span class="num">5</span>);  <span class="comment">// nums decays to pointer, must pass size separately</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 190" width="100%" height="190">
+      <defs>
+        <marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+      </defs>
+
+      <!-- main's scope -->
+      <rect x="30" y="20" width="300" height="150" rx="8" fill="rgba(105,240,174,0.03)" stroke="#69f0ae" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="180" y="14" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">main()</text>
+
+      <!-- Array representation -->
+      <g>
+        <rect x="50" y="50" width="50" height="40" rx="3" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+        <rect x="100" y="50" width="50" height="40" rx="3" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+        <rect x="150" y="50" width="50" height="40" rx="3" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+        <rect x="200" y="50" width="50" height="40" rx="3" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+        <rect x="250" y="50" width="50" height="40" rx="3" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1"/>
+        <text x="75" y="75" text-anchor="middle" fill="#69f0ae" font-size="13">10</text>
+        <text x="125" y="75" text-anchor="middle" fill="#69f0ae" font-size="13">20</text>
+        <text x="175" y="75" text-anchor="middle" fill="#69f0ae" font-size="13">30</text>
+        <text x="225" y="75" text-anchor="middle" fill="#69f0ae" font-size="13">40</text>
+        <text x="275" y="75" text-anchor="middle" fill="#69f0ae" font-size="13">50</text>
+      </g>
+      <text x="180" y="110" text-anchor="middle" fill="#69f0ae" font-size="12">int nums[5]</text>
+      <text x="180" y="130" text-anchor="middle" fill="#6b7fa3" font-size="10">sizeof(nums) == 20</text>
+      <text x="180" y="148" text-anchor="middle" fill="#6b7fa3" font-size="10">knows its own size ✓</text>
+
+      <!-- Function scope -->
+      <rect x="410" y="20" width="280" height="150" rx="8" fill="rgba(0,229,255,0.03)" stroke="#00e5ff" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="550" y="14" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">print_array()</text>
+
+      <rect x="440" y="50" width="220" height="40" rx="6" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="550" y="75" text-anchor="middle" fill="#00e5ff" font-size="14">arr = 0x3000  (just a ptr)</text>
+      <text x="550" y="110" text-anchor="middle" fill="#00e5ff" font-size="12">int *arr</text>
+      <text x="550" y="130" text-anchor="middle" fill="#6b7fa3" font-size="10">sizeof(arr) == 8</text>
+      <text x="550" y="148" text-anchor="middle" fill="var(--accent-red)" font-size="10">doesn't know array size ✗</text>
+
+      <!-- Arrow -->
+      <path d="M 330 70 L 438 70" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#fa)" stroke-dasharray="6,4"/>
+      <text x="384" y="60" text-anchor="middle" fill="#6b7fa3" font-size="10">decays</text>
+    </svg>
+    <div class="caption">Inside main, nums knows its size (20 bytes). Inside the function, it's just a pointer (8 bytes) — the size information is lost.</div>
+  </div>
+
+  <h2>The One Difference</h2>
+
+  <p>Arrays and pointers are <em>almost</em> the same, but there is one key difference: an array name is not a modifiable variable. You can't reassign it.</p>
+
+  <pre><span class="type">int</span> arr[<span class="num">5</span>] = {<span class="num">10</span>, <span class="num">20</span>, <span class="num">30</span>, <span class="num">40</span>, <span class="num">50</span>};
+<span class="type">int</span> *p = arr;
+
+p++;          <span class="comment">// ✓ legal — p now points to arr[1]</span>
+arr++;        <span class="comment">// ✗ COMPILE ERROR — can't modify an array name</span>
+
+p = arr + <span class="num">3</span>;  <span class="comment">// ✓ legal — p now points to arr[3]</span>
+arr = p;      <span class="comment">// ✗ COMPILE ERROR — arr is not assignable</span></pre>
+
+  <div class="warning">
+    <strong>Remember</strong><br>
+    The array name is a <em>constant</em> pointer — it always refers to the same block of memory. You can use it like a pointer, but you cannot change where it points. A pointer variable, on the other hand, can be reassigned to point anywhere.
+  </div>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    Arrays in C are contiguous blocks of memory. The array name decays to a pointer to the first element. Indexing <code>arr[i]</code> is syntactic sugar for <code>*(arr + i)</code>. Once passed to a function, an array is indistinguishable from a pointer — which is why you must always pass the size separately.
+  </div>
+
+</main>
+</body>
+</html>

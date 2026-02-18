@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Garbage Collection — C Memory Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-pink: #ff80ab;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-pink); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-pink); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-pink); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(36px, 5.5vw, 60px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 650px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-pink); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  .key-concept { background: linear-gradient(135deg, rgba(255,128,171,0.06), rgba(179,136,255,0.04)); border-left: 3px solid var(--accent-pink); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-pink); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .analogy { background: rgba(179,136,255,0.06); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .analogy strong { color: var(--accent-purple); }
+  .lang-bar { display: flex; gap: 12px; flex-wrap: wrap; margin: 20px 0; }
+  .lang-bar .tag { font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border); }
+  @media (max-width: 600px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">5 / 5</span>
+  <span>C Memory Concepts</span>
+  <div class="nav-links">
+    <a href="01-pointers.html">Pointers</a>
+    <a href="02-arrays-are-pointers.html">Arrays</a>
+    <a href="03-malloc-free.html">malloc &amp; free</a>
+    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+    <a href="05-garbage-collection.html" class="active">Garbage Collection</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 05</div>
+  <h1><span class="highlight">Garbage Collection</span></h1>
+  <p class="subtitle">C doesn't have it. That's the point. Understanding what garbage collection is — and why C forces you to do it manually — explains one of the deepest design trade-offs in all of programming.</p>
+</header>
+
+<main class="content">
+
+  <h2>The Problem: Humans Are Bad at Manual Memory</h2>
+
+  <p>As we saw in the previous chapters, C requires you to manually <code>malloc</code> every allocation and <code>free</code> every deallocation. In a small program, this is manageable. In a large program with complex data structures, shared pointers, and error-handling paths, it becomes extraordinarily difficult to get right.</p>
+
+  <pre><span class="comment">// A realistic example of how manual memory gets complicated:</span>
+<span class="type">char</span> *<span class="func">build_greeting</span>(<span class="type">char</span> *first, <span class="type">char</span> *last) {
+    <span class="type">char</span> *full = <span class="func">malloc</span>(<span class="num">256</span>);
+    <span class="kw">if</span> (!full) <span class="kw">return</span> <span class="num">NULL</span>;
+
+    <span class="type">char</span> *greeting = <span class="func">malloc</span>(<span class="num">512</span>);
+    <span class="kw">if</span> (!greeting) {
+        <span class="func">free</span>(full);          <span class="comment">// must remember to free full!</span>
+        <span class="kw">return</span> <span class="num">NULL</span>;
+    }
+
+    <span class="func">sprintf</span>(full, <span class="str">"%s %s"</span>, first, last);
+    <span class="func">sprintf</span>(greeting, <span class="str">"Hello, %s!"</span>, full);
+    <span class="func">free</span>(full);              <span class="comment">// done with full, free it</span>
+    <span class="kw">return</span> greeting;          <span class="comment">// caller must free greeting!</span>
+}</pre>
+
+  <p>Every error path needs its own cleanup. Every allocation creates an obligation. As code grows, missed frees lead to <strong>memory leaks</strong>, and premature frees lead to <strong>use-after-free bugs</strong> — some of the most dangerous security vulnerabilities in software.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 280" width="100%" height="280">
+      <!-- The problem visualization: objects with unclear ownership -->
+      <text x="360" y="25" text-anchor="middle" fill="#ff80ab" font-size="14" font-weight="600">Who should free this memory?</text>
+
+      <!-- Central object -->
+      <rect x="280" y="80" width="160" height="60" rx="8" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="2"/>
+      <text x="360" y="105" text-anchor="middle" fill="#ff80ab" font-size="14" font-weight="600">Data Block</text>
+      <text x="360" y="125" text-anchor="middle" fill="#6b7fa3" font-size="11">malloc'd somewhere...</text>
+
+      <!-- Multiple pointers to it -->
+      <defs>
+        <marker id="gc1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#448aff"/>
+        </marker>
+      </defs>
+
+      <rect x="40" y="50" width="130" height="35" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1"/>
+      <text x="105" y="73" text-anchor="middle" fill="#448aff" font-size="11">Function A's ptr</text>
+      <path d="M 170 67 L 278 95" stroke="#448aff" stroke-width="1.5" fill="none" marker-end="url(#gc1)"/>
+
+      <rect x="40" y="120" width="130" height="35" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1"/>
+      <text x="105" y="143" text-anchor="middle" fill="#448aff" font-size="11">Struct B's field</text>
+      <path d="M 170 137 L 278 115" stroke="#448aff" stroke-width="1.5" fill="none" marker-end="url(#gc1)"/>
+
+      <rect x="550" y="50" width="130" height="35" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1"/>
+      <text x="615" y="73" text-anchor="middle" fill="#448aff" font-size="11">Array C[7]</text>
+      <path d="M 550 67 L 442 95" stroke="#448aff" stroke-width="1.5" fill="none" marker-end="url(#gc1)"/>
+
+      <rect x="550" y="120" width="130" height="35" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1"/>
+      <text x="615" y="143" text-anchor="middle" fill="#448aff" font-size="11">Global cache</text>
+      <path d="M 550 137 L 442 115" stroke="#448aff" stroke-width="1.5" fill="none" marker-end="url(#gc1)"/>
+
+      <!-- Question marks -->
+      <text x="360" y="175" text-anchor="middle" fill="#ff5252" font-size="16">?? When is it safe to free ??</text>
+
+      <!-- Problems listed -->
+      <text x="160" y="220" text-anchor="middle" fill="#ff5252" font-size="12">Free too early →</text>
+      <text x="160" y="238" text-anchor="middle" fill="#ff5252" font-size="12">use-after-free</text>
+
+      <text x="360" y="220" text-anchor="middle" fill="#ff5252" font-size="12">Free twice →</text>
+      <text x="360" y="238" text-anchor="middle" fill="#ff5252" font-size="12">heap corruption</text>
+
+      <text x="560" y="220" text-anchor="middle" fill="#ff5252" font-size="12">Never free →</text>
+      <text x="560" y="238" text-anchor="middle" fill="#ff5252" font-size="12">memory leak</text>
+    </svg>
+    <div class="caption">When multiple parts of a program share a pointer to the same allocation, deciding who should free it becomes the core challenge.</div>
+  </div>
+
+  <h2>The Solution: Automatic Garbage Collection</h2>
+
+  <p>Garbage collection (GC) is a runtime system that automatically determines when memory is no longer reachable and reclaims it. Languages like Java, Python, Go, JavaScript, and C# all use garbage collection — the programmer allocates objects, but never explicitly frees them.</p>
+
+  <div class="lang-bar">
+    <span class="tag" style="color: var(--accent-orange);">Java — GC</span>
+    <span class="tag" style="color: var(--accent-green);">Python — GC</span>
+    <span class="tag" style="color: var(--accent-cyan);">Go — GC</span>
+    <span class="tag" style="color: var(--accent-yellow);">JavaScript — GC</span>
+    <span class="tag" style="color: var(--accent-purple);">C# — GC</span>
+    <span class="tag" style="color: var(--accent-red);">C — Manual</span>
+    <span class="tag" style="color: var(--accent-red);">C++ — Manual*</span>
+    <span class="tag" style="color: var(--accent-pink);">Rust — Ownership</span>
+  </div>
+
+  <p>The fundamental question a garbage collector answers is: <em>"Is this piece of memory still reachable from any variable in the running program?"</em> If not, it can be safely reclaimed.</p>
+
+  <h2>Strategy 1: Reference Counting</h2>
+
+  <p>Each object keeps a counter of how many pointers refer to it. When a new pointer is assigned to the object, the count goes up. When a pointer stops referring to it, the count goes down. When the count reaches zero, the object is freed immediately.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 340" width="100%" height="340">
+      <defs>
+        <marker id="rc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+      </defs>
+
+      <!-- Phase 1 -->
+      <text x="180" y="25" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">① Two references → count = 2</text>
+
+      <rect x="40" y="50" width="100" height="35" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="90" y="73" text-anchor="middle" fill="#00e5ff" font-size="12">ptr_a</text>
+      <path d="M 140 67 L 198 67" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#rc)"/>
+
+      <rect x="40" y="95" width="100" height="35" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="90" y="118" text-anchor="middle" fill="#00e5ff" font-size="12">ptr_b</text>
+      <path d="M 140 112 L 198 85" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#rc)"/>
+
+      <rect x="200" y="45" width="140" height="60" rx="8" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="270" y="72" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">Object</text>
+      <text x="270" y="92" text-anchor="middle" fill="#69f0ae" font-size="12">refcount: 2</text>
+
+      <!-- Phase 2 -->
+      <text x="540" y="25" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">② ptr_a removed → count = 1</text>
+
+      <rect x="400" y="50" width="100" height="35" rx="4" fill="rgba(107,127,163,0.08)" stroke="#6b7fa3" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="450" y="73" text-anchor="middle" fill="#6b7fa3" font-size="12" text-decoration="line-through">ptr_a</text>
+
+      <rect x="400" y="95" width="100" height="35" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="450" y="118" text-anchor="middle" fill="#00e5ff" font-size="12">ptr_b</text>
+      <path d="M 500 112 L 558 85" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#rc)"/>
+
+      <rect x="560" y="45" width="140" height="60" rx="8" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="2"/>
+      <text x="630" y="72" text-anchor="middle" fill="#ffab40" font-size="14" font-weight="600">Object</text>
+      <text x="630" y="92" text-anchor="middle" fill="#ffab40" font-size="12">refcount: 1</text>
+
+      <!-- Phase 3 -->
+      <text x="180" y="175" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">③ ptr_b removed → count = 0 → FREED!</text>
+
+      <rect x="40" y="200" width="100" height="35" rx="4" fill="rgba(107,127,163,0.08)" stroke="#6b7fa3" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="90" y="223" text-anchor="middle" fill="#6b7fa3" font-size="12" text-decoration="line-through">ptr_a</text>
+
+      <rect x="40" y="245" width="100" height="35" rx="4" fill="rgba(107,127,163,0.08)" stroke="#6b7fa3" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="90" y="268" text-anchor="middle" fill="#6b7fa3" font-size="12" text-decoration="line-through">ptr_b</text>
+
+      <rect x="200" y="200" width="140" height="60" rx="8" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="270" y="225" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">Object</text>
+      <text x="270" y="245" text-anchor="middle" fill="#ff5252" font-size="12">refcount: 0</text>
+      <text x="270" y="280" text-anchor="middle" fill="#ff5252" font-size="11">→ Memory reclaimed</text>
+
+      <!-- The cycle problem -->
+      <text x="540" y="175" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">⚠ The Cycle Problem</text>
+
+      <rect x="430" y="200" width="100" height="50" rx="8" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
+      <text x="480" y="222" text-anchor="middle" fill="#ff80ab" font-size="12">Obj A</text>
+      <text x="480" y="240" text-anchor="middle" fill="#ff80ab" font-size="10">rc: 1</text>
+
+      <rect x="590" y="200" width="100" height="50" rx="8" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
+      <text x="640" y="222" text-anchor="middle" fill="#ff80ab" font-size="12">Obj B</text>
+      <text x="640" y="240" text-anchor="middle" fill="#ff80ab" font-size="10">rc: 1</text>
+
+      <!-- Cycle arrows -->
+      <path d="M 530 210 L 588 210" stroke="#ff80ab" stroke-width="1.5" fill="none" marker-end="url(#rc)"/>
+      <path d="M 590 240 L 532 240" stroke="#ff80ab" stroke-width="1.5" fill="none" marker-end="url(#rc)"/>
+
+      <text x="560" y="275" text-anchor="middle" fill="#ff5252" font-size="11">Neither can reach 0!</text>
+      <text x="560" y="293" text-anchor="middle" fill="#6b7fa3" font-size="10">They keep each other alive = leak</text>
+    </svg>
+    <div class="caption">Reference counting frees objects instantly when unreachable. But circular references create a leak — neither count reaches zero.</div>
+  </div>
+
+  <p>Reference counting is simple and deterministic (objects are freed the moment they become unreachable), but it can't handle <strong>circular references</strong> — two objects that point to each other will each keep the other's count above zero indefinitely. Python uses reference counting as its primary strategy but adds a separate cycle detector to handle this case.</p>
+
+  <h2>Strategy 2: Mark-and-Sweep</h2>
+
+  <p>Mark-and-sweep is the more general approach. Periodically, the garbage collector pauses the program and traverses all references starting from "root" pointers (global variables, stack variables, CPU registers). Every object it can reach gets marked as "alive." After the traversal, anything unmarked is garbage and gets swept (freed).</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 400" width="100%" height="400">
+      <defs>
+        <marker id="ms" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+        <marker id="ms2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7fa3"/>
+        </marker>
+      </defs>
+
+      <!-- MARK PHASE -->
+      <text x="360" y="25" text-anchor="middle" fill="#69f0ae" font-size="15" font-weight="600">MARK PHASE — Trace from roots</text>
+
+      <!-- Root set -->
+      <rect x="20" y="50" width="80" height="130" rx="6" fill="rgba(0,229,255,0.06)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="60" y="45" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">ROOTS</text>
+      <rect x="30" y="60" width="60" height="24" rx="3" fill="rgba(0,229,255,0.1)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="60" y="77" text-anchor="middle" fill="#00e5ff" font-size="9">global_a</text>
+      <rect x="30" y="92" width="60" height="24" rx="3" fill="rgba(0,229,255,0.1)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="60" y="109" text-anchor="middle" fill="#00e5ff" font-size="9">local_b</text>
+      <rect x="30" y="124" width="60" height="24" rx="3" fill="rgba(0,229,255,0.1)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="60" y="141" text-anchor="middle" fill="#00e5ff" font-size="9">local_c</text>
+
+      <!-- Reachable objects (marked green) -->
+      <rect x="160" y="55" width="80" height="40" rx="6" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="200" y="78" text-anchor="middle" fill="#69f0ae" font-size="11">A ✓</text>
+
+      <rect x="300" y="45" width="80" height="40" rx="6" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="340" y="68" text-anchor="middle" fill="#69f0ae" font-size="11">B ✓</text>
+
+      <rect x="300" y="110" width="80" height="40" rx="6" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="340" y="133" text-anchor="middle" fill="#69f0ae" font-size="11">C ✓</text>
+
+      <rect x="160" y="120" width="80" height="40" rx="6" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="200" y="143" text-anchor="middle" fill="#69f0ae" font-size="11">D ✓</text>
+
+      <rect x="440" y="70" width="80" height="40" rx="6" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="480" y="93" text-anchor="middle" fill="#69f0ae" font-size="11">E ✓</text>
+
+      <!-- Unreachable objects (unmarked) -->
+      <rect x="460" y="140" width="80" height="40" rx="6" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="500" y="163" text-anchor="middle" fill="#ff5252" font-size="11">F ✗</text>
+
+      <rect x="600" y="55" width="80" height="40" rx="6" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="640" y="78" text-anchor="middle" fill="#ff5252" font-size="11">G ✗</text>
+
+      <rect x="600" y="120" width="80" height="40" rx="6" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="640" y="143" text-anchor="middle" fill="#ff5252" font-size="11">H ✗</text>
+
+      <!-- Trace arrows (green — reachable) -->
+      <path d="M 100 72 L 158 72" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#ms)"/>
+      <path d="M 100 104 L 158 135" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#ms)"/>
+      <path d="M 240 72 L 298 62" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#ms)"/>
+      <path d="M 240 78 L 298 125" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#ms)"/>
+      <path d="M 380 65 L 438 85" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#ms)"/>
+
+      <!-- Cycle between F, G, H (still unreachable!) -->
+      <path d="M 540 155 L 598 135" stroke="#6b7fa3" stroke-width="1" fill="none" marker-end="url(#ms2)"/>
+      <path d="M 640 120 L 640 97" stroke="#6b7fa3" stroke-width="1" fill="none" marker-end="url(#ms2)"/>
+      <path d="M 600 72 L 542 150" stroke="#6b7fa3" stroke-width="1" fill="none" marker-end="url(#ms2)"/>
+
+      <!-- SWEEP PHASE -->
+      <line x1="0" y1="195" x2="720" y2="195" stroke="var(--border)" stroke-width="1"/>
+      <text x="360" y="220" text-anchor="middle" fill="#ff5252" font-size="15" font-weight="600">SWEEP PHASE — Free unmarked objects</text>
+
+      <!-- After sweep -->
+      <rect x="100" y="245" width="80" height="40" rx="6" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="140" y="268" text-anchor="middle" fill="#69f0ae" font-size="12">A</text>
+
+      <rect x="210" y="245" width="80" height="40" rx="6" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="250" y="268" text-anchor="middle" fill="#69f0ae" font-size="12">B</text>
+
+      <rect x="320" y="245" width="80" height="40" rx="6" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="360" y="268" text-anchor="middle" fill="#69f0ae" font-size="12">C</text>
+
+      <rect x="430" y="245" width="80" height="40" rx="6" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="470" y="268" text-anchor="middle" fill="#69f0ae" font-size="12">D</text>
+
+      <rect x="540" y="245" width="80" height="40" rx="6" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="580" y="268" text-anchor="middle" fill="#69f0ae" font-size="12">E</text>
+
+      <text x="360" y="310" text-anchor="middle" fill="#69f0ae" font-size="12">✓ Reachable — kept alive</text>
+
+      <!-- Freed -->
+      <rect x="210" y="340" width="80" height="35" rx="6" fill="none" stroke="#ff5252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="250" y="362" text-anchor="middle" fill="#ff5252" font-size="12">F</text>
+      <rect x="320" y="340" width="80" height="35" rx="6" fill="none" stroke="#ff5252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="360" y="362" text-anchor="middle" fill="#ff5252" font-size="12">G</text>
+      <rect x="430" y="340" width="80" height="35" rx="6" fill="none" stroke="#ff5252" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="470" y="362" text-anchor="middle" fill="#ff5252" font-size="12">H</text>
+
+      <text x="360" y="395" text-anchor="middle" fill="#ff5252" font-size="12">✗ Unreachable — freed (even the cycle!)</text>
+    </svg>
+    <div class="caption">Mark-and-sweep traces from root pointers, marking everything reachable. Unmarked objects — including cycles — are freed.</div>
+  </div>
+
+  <p>The beauty of mark-and-sweep is that it handles cycles effortlessly. Objects F, G, and H point to each other in a cycle, but since no root can reach any of them, the mark phase never visits them, and the sweep phase frees them all.</p>
+
+  <h2>The Trade-offs</h2>
+
+  <p>Garbage collection isn't free. It comes with real costs that explain why C (and systems programming in general) doesn't use it.</p>
+
+  <p><strong style="color:var(--accent-pink)">GC pauses.</strong> Mark-and-sweep must "stop the world" — pause the program — to trace references. Modern GCs are clever about minimizing this (concurrent collection, generational strategies), but some latency is unavoidable. For real-time systems, device drivers, or operating system kernels — where pauses of even a few milliseconds are unacceptable — GC is a non-starter.</p>
+
+  <p><strong style="color:var(--accent-pink)">Memory overhead.</strong> The GC needs its own bookkeeping data structures and typically keeps more memory allocated than strictly necessary (it collects periodically, not instantly). Programs with GC typically use 2-3× more memory than equivalent programs with manual management.</p>
+
+  <p><strong style="color:var(--accent-pink)">Non-deterministic.</strong> You can't predict exactly when memory will be freed. In C, <code>free(p)</code> happens at a precise, known moment. With GC, deallocation happens "eventually" — which complicates resource management for things like file handles, network connections, and hardware locks that need prompt cleanup.</p>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    Manual memory (C) is like washing your dishes immediately after each meal. You always know the sink is clean, but you spend a lot of time washing. Garbage collection is like hiring a cleaning crew that comes by periodically — you never think about dishes, but sometimes the kitchen gets messy before they arrive, and occasionally they show up at an inconvenient time.
+  </div>
+
+  <h2>The Spectrum of Approaches</h2>
+
+  <p>Manual memory and garbage collection aren't the only options. There's a spectrum of strategies, and understanding C's position on it illuminates the trade-offs.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <!-- Spectrum bar -->
+      <defs>
+        <linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#ff5252"/>
+          <stop offset="35%" stop-color="#ffab40"/>
+          <stop offset="65%" stop-color="#69f0ae"/>
+          <stop offset="100%" stop-color="#448aff"/>
+        </linearGradient>
+      </defs>
+      <rect x="60" y="80" width="600" height="8" rx="4" fill="url(#spectrum)" opacity="0.6"/>
+
+      <!-- Labels -->
+      <text x="60" y="65" text-anchor="middle" fill="#ff5252" font-size="11" font-weight="600">Full Manual</text>
+      <text x="60" y="50" text-anchor="middle" fill="#ff5252" font-size="10">Max control</text>
+      <text x="60" y="110" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">C</text>
+
+      <text x="240" y="65" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">RAII / Ownership</text>
+      <text x="240" y="50" text-anchor="middle" fill="#ffab40" font-size="10">Compile-time rules</text>
+      <text x="240" y="110" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">C++ / Rust</text>
+
+      <text x="440" y="65" text-anchor="middle" fill="#69f0ae" font-size="11" font-weight="600">Ref Counting</text>
+      <text x="440" y="50" text-anchor="middle" fill="#69f0ae" font-size="10">Semi-automatic</text>
+      <text x="440" y="110" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">Swift / Python</text>
+
+      <text x="620" y="65" text-anchor="middle" fill="#448aff" font-size="11" font-weight="600">Full GC</text>
+      <text x="620" y="50" text-anchor="middle" fill="#448aff" font-size="10">Max convenience</text>
+      <text x="620" y="110" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">Java / Go / JS</text>
+
+      <!-- Bottom labels -->
+      <text x="60" y="145" text-anchor="middle" fill="#ff5252" font-size="10">More control</text>
+      <text x="60" y="160" text-anchor="middle" fill="#ff5252" font-size="10">More bugs</text>
+      <text x="60" y="175" text-anchor="middle" fill="#ff5252" font-size="10">Zero overhead</text>
+
+      <text x="620" y="145" text-anchor="middle" fill="#448aff" font-size="10">Less control</text>
+      <text x="620" y="160" text-anchor="middle" fill="#448aff" font-size="10">Fewer bugs</text>
+      <text x="620" y="175" text-anchor="middle" fill="#448aff" font-size="10">Runtime overhead</text>
+    </svg>
+    <div class="caption">Memory management strategies from manual (C) to fully automatic (Java/Go). Each point trades control for convenience.</div>
+  </div>
+
+  <h2>Why C Doesn't Have GC</h2>
+
+  <p>C was designed in the 1970s for writing operating systems and systems software — programs that need predictable timing, minimal overhead, and direct hardware access. Garbage collection conflicts with all three of these requirements. C trusts the programmer to manage memory correctly, which makes it harder to write but gives you complete control over performance characteristics.</p>
+
+  <p>This is a deliberate design choice, not an oversight. When you write C, you accept the burden of manual memory management in exchange for the ability to control exactly when every byte is allocated and freed — a necessity for operating systems, embedded systems, game engines, and other performance-critical software.</p>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    Garbage collection automatically frees memory that's no longer reachable. Reference counting tracks pointers but can't handle cycles. Mark-and-sweep traces from roots and handles everything but requires pausing the program. C doesn't use GC because it prioritizes performance, predictability, and control — at the cost of placing full memory management responsibility on the programmer. Understanding this trade-off is understanding why different languages exist for different purposes.
+  </div>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>malloc &amp; free — C Memory Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-orange); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-orange); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-orange); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-orange), var(--accent-yellow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 620px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-orange); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  .key-concept { background: linear-gradient(135deg, rgba(255,171,64,0.06), rgba(255,215,64,0.04)); border-left: 3px solid var(--accent-orange); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-orange); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .lifecycle { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 32px 0; }
+  .lifecycle .step { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; text-align: center; }
+  .lifecycle .step .num { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; margin-bottom: 8px; }
+  .lifecycle .step .label { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .lifecycle .step .desc { font-size: 14px; color: var(--text-dim); line-height: 1.5; }
+  @media (max-width: 700px) { .lifecycle { grid-template-columns: 1fr; } .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">3 / 5</span>
+  <span>C Memory Concepts</span>
+  <div class="nav-links">
+    <a href="01-pointers.html">Pointers</a>
+    <a href="02-arrays-are-pointers.html">Arrays</a>
+    <a href="03-malloc-free.html" class="active">malloc &amp; free</a>
+    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+    <a href="05-garbage-collection.html">Garbage Collection</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 03</div>
+  <h1><span class="highlight">malloc</span> &amp; <span class="highlight">free</span></h1>
+  <p class="subtitle">C gives you raw control over memory. You ask the system for memory with malloc, use it, and return it with free. No safety net. Full responsibility.</p>
+</header>
+
+<main class="content">
+
+  <h2>Why Dynamic Allocation?</h2>
+
+  <p>Local variables and fixed-size arrays live on the stack, but they have a fundamental limitation: their size must be known at compile time, and they disappear when the function returns. What if you need memory whose size is only known at runtime, or memory that outlives the function that created it? That's what <code>malloc</code> is for.</p>
+
+  <pre><span class="comment">// We don't know how many items until the user tells us:</span>
+<span class="type">int</span> n;
+<span class="func">scanf</span>(<span class="str">"%d"</span>, &amp;n);
+
+<span class="type">int</span> *arr = <span class="func">malloc</span>(n * <span class="kw">sizeof</span>(<span class="type">int</span>));  <span class="comment">// allocate n ints at runtime</span></pre>
+
+  <h2>The Allocation Lifecycle</h2>
+
+  <div class="lifecycle">
+    <div class="step">
+      <div class="num" style="color: var(--accent-cyan);">1</div>
+      <div class="label" style="color: var(--accent-cyan);">Allocate</div>
+      <div class="desc">Call <code>malloc(size)</code> to request <em>size</em> bytes from the heap. Returns a pointer to the allocated block, or NULL on failure.</div>
+    </div>
+    <div class="step">
+      <div class="num" style="color: var(--accent-green);">2</div>
+      <div class="label" style="color: var(--accent-green);">Use</div>
+      <div class="desc">Read and write through the pointer. The memory belongs to you — treat it like any array or data structure.</div>
+    </div>
+    <div class="step">
+      <div class="num" style="color: var(--accent-red);">3</div>
+      <div class="label" style="color: var(--accent-red);">Free</div>
+      <div class="desc">Call <code>free(ptr)</code> when done. The memory is returned to the system for reuse. Forgetting this step causes a memory leak.</div>
+    </div>
+  </div>
+
+  <pre><span class="comment">// Step 1: Allocate</span>
+<span class="type">int</span> *arr = <span class="func">malloc</span>(<span class="num">5</span> * <span class="kw">sizeof</span>(<span class="type">int</span>));
+<span class="kw">if</span> (arr == <span class="num">NULL</span>) {
+    <span class="func">fprintf</span>(stderr, <span class="str">"Out of memory!\n"</span>);
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+
+<span class="comment">// Step 2: Use</span>
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="num">5</span>; i++) {
+    arr[i] = i * <span class="num">10</span>;
+}
+
+<span class="comment">// Step 3: Free</span>
+<span class="func">free</span>(arr);
+arr = <span class="num">NULL</span>;  <span class="comment">// good habit: prevent accidental use after free</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 380" width="100%" height="380">
+      <defs>
+        <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+        <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
+        </marker>
+      </defs>
+
+      <!-- Phase 1: malloc -->
+      <text x="30" y="28" fill="#00e5ff" font-size="14" font-weight="600">① malloc(20)</text>
+
+      <!-- Stack variable -->
+      <rect x="30" y="42" width="150" height="50" rx="6" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="105" y="62" text-anchor="middle" fill="#00e5ff" font-size="11">int *arr</text>
+      <text x="105" y="80" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">0x7F00</text>
+
+      <!-- Heap block -->
+      <rect x="320" y="42" width="360" height="50" rx="6" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="500" y="62" text-anchor="middle" fill="#69f0ae" font-size="11">Heap — 20 bytes allocated</text>
+      <text x="356" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">0x7F00</text>
+      <text x="428" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">0x7F04</text>
+      <text x="500" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">0x7F08</text>
+      <text x="572" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">0x7F0C</text>
+      <text x="644" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">0x7F10</text>
+
+      <!-- Arrow 1 -->
+      <path d="M 180 67 L 318 67" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#m1)" stroke-dasharray="6,4"/>
+
+      <!-- Phase 2: Use -->
+      <text x="30" y="138" fill="#69f0ae" font-size="14" font-weight="600">② arr[i] = i * 10</text>
+
+      <rect x="30" y="152" width="150" height="50" rx="6" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="105" y="172" text-anchor="middle" fill="#00e5ff" font-size="11">int *arr</text>
+      <text x="105" y="190" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">0x7F00</text>
+
+      <rect x="320" y="152" width="360" height="50" rx="6" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="2"/>
+      <!-- Values filled in -->
+      <text x="356" y="183" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">0</text>
+      <text x="428" y="183" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">10</text>
+      <text x="500" y="183" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">20</text>
+      <text x="572" y="183" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">30</text>
+      <text x="644" y="183" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="600">40</text>
+
+      <line x1="320" y1="152" x2="320" y2="202" stroke="#1e2d4a" stroke-width="0.5"/>
+      <line x1="392" y1="152" x2="392" y2="202" stroke="#1e2d4a" stroke-width="0.5"/>
+      <line x1="464" y1="152" x2="464" y2="202" stroke="#1e2d4a" stroke-width="0.5"/>
+      <line x1="536" y1="152" x2="536" y2="202" stroke="#1e2d4a" stroke-width="0.5"/>
+      <line x1="608" y1="152" x2="608" y2="202" stroke="#1e2d4a" stroke-width="0.5"/>
+
+      <path d="M 180 177 L 318 177" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#m1)" stroke-dasharray="6,4"/>
+
+      <!-- Phase 3: Free -->
+      <text x="30" y="248" fill="#ff5252" font-size="14" font-weight="600">③ free(arr)</text>
+
+      <rect x="30" y="262" width="150" height="50" rx="6" fill="rgba(255,82,82,0.07)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="105" y="282" text-anchor="middle" fill="#ff5252" font-size="11">int *arr</text>
+      <text x="105" y="300" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">NULL</text>
+
+      <rect x="320" y="262" width="360" height="50" rx="6" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="8,4"/>
+      <text x="500" y="292" text-anchor="middle" fill="#ff5252" font-size="13">Memory returned to system</text>
+
+      <!-- X over arrow -->
+      <line x1="180" y1="287" x2="318" y2="287" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.4"/>
+      <text x="250" y="282" text-anchor="middle" fill="#ff5252" font-size="18">✗</text>
+
+      <!-- Bottom label -->
+      <text x="360" y="350" text-anchor="middle" fill="#6b7fa3" font-size="12">Setting arr = NULL after free prevents dangling pointer bugs</text>
+    </svg>
+    <div class="caption">The three-phase lifecycle: allocate → use → free. After freeing, set the pointer to NULL.</div>
+  </div>
+
+  <h2>How malloc Works Internally</h2>
+
+  <p>When you call <code>malloc(20)</code>, the memory allocator (part of the C runtime library) does several things behind the scenes. It searches its free list — a bookkeeping structure of available memory chunks — for a block of at least 20 bytes. If it finds one, it marks that block as "in use" and returns its address. If no suitable block exists, it asks the operating system for more memory (via system calls like <code>sbrk</code> or <code>mmap</code>).</p>
+
+  <p>The allocator also stores metadata (typically in a hidden header just before the returned pointer) that records the size of the allocation. This is how <code>free</code> knows how many bytes to reclaim — you only pass the pointer, not the size.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 180" width="100%" height="180">
+      <!-- Hidden header -->
+      <rect x="80" y="50" width="100" height="70" rx="6" fill="rgba(179,136,255,0.1)" stroke="#b388ff" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="130" y="78" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">HIDDEN</text>
+      <text x="130" y="95" text-anchor="middle" fill="#b388ff" font-size="11">size: 20</text>
+      <text x="130" y="108" text-anchor="middle" fill="#b388ff" font-size="10">+ metadata</text>
+
+      <!-- Actual user memory -->
+      <rect x="180" y="50" width="360" height="70" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="360" y="80" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">Your 20 bytes of usable memory</text>
+      <text x="360" y="100" text-anchor="middle" fill="#6b7fa3" font-size="11">arr[0] through arr[4]</text>
+
+      <!-- Pointer arrow -->
+      <text x="220" y="42" fill="#00e5ff" font-size="11">← malloc returns this address</text>
+      <line x1="180" y1="35" x2="180" y2="48" stroke="#00e5ff" stroke-width="2"/>
+      <circle cx="180" cy="50" r="3" fill="#00e5ff"/>
+
+      <!-- Size annotations -->
+      <line x1="80" y1="140" x2="540" y2="140" stroke="#6b7fa3" stroke-width="1"/>
+      <line x1="80" y1="135" x2="80" y2="145" stroke="#6b7fa3" stroke-width="1"/>
+      <line x1="540" y1="135" x2="540" y2="145" stroke="#6b7fa3" stroke-width="1"/>
+      <text x="310" y="160" text-anchor="middle" fill="#6b7fa3" font-size="11">Total block: header + your requested size</text>
+    </svg>
+    <div class="caption">malloc stores a hidden header before your memory block. This is how free() knows the size of the allocation.</div>
+  </div>
+
+  <h2>Related Functions</h2>
+
+  <h3>calloc — Allocate and Zero</h3>
+  <p><code>calloc(count, size)</code> allocates memory for <code>count</code> elements of <code>size</code> bytes each, and initializes all bytes to zero. Unlike <code>malloc</code>, which leaves memory uninitialized (containing whatever garbage was there before).</p>
+
+  <pre><span class="type">int</span> *arr = <span class="func">calloc</span>(<span class="num">5</span>, <span class="kw">sizeof</span>(<span class="type">int</span>));  <span class="comment">// 5 ints, all initialized to 0</span></pre>
+
+  <h3>realloc — Resize an Allocation</h3>
+  <p><code>realloc(ptr, new_size)</code> resizes a previously allocated block. It may move the data to a new location if there isn't room to expand in place, returning the new address.</p>
+
+  <pre><span class="type">int</span> *arr = <span class="func">malloc</span>(<span class="num">5</span> * <span class="kw">sizeof</span>(<span class="type">int</span>));
+<span class="comment">// ... fill arr with data ...</span>
+
+<span class="comment">// Need more space — resize to 10 ints:</span>
+<span class="type">int</span> *tmp = <span class="func">realloc</span>(arr, <span class="num">10</span> * <span class="kw">sizeof</span>(<span class="type">int</span>));
+<span class="kw">if</span> (tmp == <span class="num">NULL</span>) {
+    <span class="comment">// realloc failed — arr is still valid at its original location</span>
+    <span class="func">free</span>(arr);
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+arr = tmp;  <span class="comment">// arr might have moved to a new address</span></pre>
+
+  <h2>The Four Deadly Sins of Dynamic Memory</h2>
+
+  <div class="warning">
+    <strong>1. Memory Leak</strong><br>
+    Forgetting to call <code>free()</code>. The memory stays allocated forever (until the program exits). In long-running programs, leaks accumulate and eventually exhaust available memory.
+  </div>
+
+  <div class="warning">
+    <strong>2. Use After Free (Dangling Pointer)</strong><br>
+    Accessing memory after <code>free()</code> has been called. The memory may have been reused for something else. Behavior is completely undefined — it might seem to work, crash, or silently corrupt data.
+  </div>
+
+  <div class="warning">
+    <strong>3. Double Free</strong><br>
+    Calling <code>free()</code> on the same pointer twice. This corrupts the allocator's internal data structures and can cause crashes or security vulnerabilities.
+  </div>
+
+  <div class="warning">
+    <strong>4. Buffer Overflow</strong><br>
+    Writing past the end of an allocated block (e.g., writing 6 ints into a 5-int allocation). This overwrites the allocator's metadata or other data, causing unpredictable corruption.
+  </div>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 260" width="100%" height="260">
+      <!-- Memory Leak -->
+      <rect x="30" y="20" width="320" height="100" rx="8" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1"/>
+      <text x="50" y="45" fill="#ff5252" font-size="13" font-weight="600">Memory Leak</text>
+      <text x="50" y="68" fill="#c8d6e5" font-size="12">ptr = malloc(100);</text>
+      <text x="50" y="85" fill="#c8d6e5" font-size="12">ptr = malloc(200);</text>
+      <text x="50" y="102" fill="#6b7fa3" font-size="11">← first block is lost forever!</text>
+
+      <!-- Use After Free -->
+      <rect x="370" y="20" width="320" height="100" rx="8" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1"/>
+      <text x="390" y="45" fill="#ff5252" font-size="13" font-weight="600">Use After Free</text>
+      <text x="390" y="68" fill="#c8d6e5" font-size="12">free(ptr);</text>
+      <text x="390" y="85" fill="#c8d6e5" font-size="12">ptr[0] = 42;</text>
+      <text x="390" y="102" fill="#6b7fa3" font-size="11">← undefined behavior!</text>
+
+      <!-- Double Free -->
+      <rect x="30" y="140" width="320" height="100" rx="8" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1"/>
+      <text x="50" y="165" fill="#ff5252" font-size="13" font-weight="600">Double Free</text>
+      <text x="50" y="188" fill="#c8d6e5" font-size="12">free(ptr);</text>
+      <text x="50" y="205" fill="#c8d6e5" font-size="12">free(ptr);</text>
+      <text x="50" y="222" fill="#6b7fa3" font-size="11">← corrupts allocator!</text>
+
+      <!-- Buffer Overflow -->
+      <rect x="370" y="140" width="320" height="100" rx="8" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1"/>
+      <text x="390" y="165" fill="#ff5252" font-size="13" font-weight="600">Buffer Overflow</text>
+      <text x="390" y="188" fill="#c8d6e5" font-size="12">int *p = malloc(5 * 4);</text>
+      <text x="390" y="205" fill="#c8d6e5" font-size="12">p[5] = 99;</text>
+      <text x="390" y="222" fill="#6b7fa3" font-size="11">← writes past the end!</text>
+    </svg>
+    <div class="caption">The four classic dynamic memory bugs. Every C programmer will encounter all of these.</div>
+  </div>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    <code>malloc</code> requests memory from the heap and returns a pointer to it. <code>free</code> returns that memory. Between those two calls, you own the memory completely. The contract is simple: allocate what you need, use it, and give it back. The difficulty is in the bookkeeping — every <code>malloc</code> must have exactly one matching <code>free</code>.
+  </div>
+
+</main>
+</body>
+</html>
