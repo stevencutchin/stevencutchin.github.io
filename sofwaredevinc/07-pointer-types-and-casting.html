@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Pointer Type Matters — C Memory Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-blue: #448aff;
+    --accent-pink: #ff80ab;
+    --code-bg: #0a0f1a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Source Serif 4',Georgia,serif; font-size:17px; line-height:1.75; }
+  .page-grain { position:fixed; inset:0; pointer-events:none; z-index:100; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat:repeat; }
+  .series-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 40px; display:flex; align-items:center; gap:16px; font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--text-dim); position:sticky; top:0; z-index:50; backdrop-filter:blur(12px); }
+  .series-bar .chip { background:var(--accent-blue); color:#fff; padding:2px 10px; border-radius:3px; font-weight:600; font-size:11px; letter-spacing:.5px; text-transform:uppercase; }
+  .series-bar .nav-links { margin-left:auto; display:flex; gap:20px; }
+  .series-bar .nav-links a { color:var(--text-dim); text-decoration:none; transition:color .2s; }
+  .series-bar .nav-links a:hover { color:var(--accent-cyan); }
+  .series-bar .nav-links a.active { color:var(--accent-blue); }
+  .hero { padding:70px 40px 50px; max-width:940px; margin:0 auto; }
+  .hero .number { font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--accent-blue); letter-spacing:3px; text-transform:uppercase; margin-bottom:14px; }
+  h1 { font-family:'Playfair Display',serif; font-weight:900; font-size:clamp(34px,5vw,56px); color:var(--heading); line-height:1.1; margin-bottom:18px; }
+  h1 .hl { background:linear-gradient(135deg,var(--accent-blue),var(--accent-cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .subtitle { font-size:19px; color:var(--text-dim); max-width:660px; line-height:1.6; }
+  .content { max-width:940px; margin:0 auto; padding:0 40px 100px; }
+  h2 { font-family:'Playfair Display',serif; font-weight:700; font-size:30px; color:var(--heading); margin:60px 0 22px; padding-top:20px; }
+  h3 { font-family:'IBM Plex Mono',monospace; font-size:15px; color:var(--accent-blue); letter-spacing:1px; text-transform:uppercase; margin:36px 0 14px; }
+  p { margin-bottom:18px; }
+  svg text { font-family:'IBM Plex Mono',monospace; }
+  code { font-family:'IBM Plex Mono',monospace; background:var(--code-bg); border:1px solid var(--border); padding:1px 7px; border-radius:4px; font-size:14px; color:var(--accent-green); }
+  pre { background:var(--code-bg); border:1px solid var(--border); border-radius:8px; padding:20px 24px; margin:20px 0; overflow-x:auto; font-family:'IBM Plex Mono',monospace; font-size:14px; line-height:1.7; color:var(--text); }
+  pre .kw { color:var(--accent-purple); }
+  pre .type { color:var(--accent-cyan); }
+  pre .str { color:var(--accent-green); }
+  pre .cmt { color:var(--text-dim); font-style:italic; }
+  pre .num { color:var(--accent-orange); }
+  pre .fn { color:var(--accent-orange); }
+  .diagram-container { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:28px; margin:28px 0; overflow-x:auto; }
+  .diagram-container .caption { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); margin-top:14px; text-align:center; letter-spacing:.5px; text-transform:uppercase; }
+  .ok-box { background:linear-gradient(135deg,rgba(105,240,174,.06),rgba(0,229,255,.03)); border-left:3px solid var(--accent-green); padding:16px 20px; margin:22px 0; border-radius:0 8px 8px 0; }
+  .ok-box strong { color:var(--accent-green); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase; }
+  .bug-box { background:rgba(255,82,82,.06); border-left:3px solid var(--accent-red); padding:16px 20px; margin:22px 0; border-radius:0 8px 8px 0; }
+  .bug-box strong { color:var(--accent-red); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase; }
+  .note-box { background:rgba(179,136,255,.06); border-left:3px solid var(--accent-purple); padding:16px 20px; margin:22px 0; border-radius:0 8px 8px 0; }
+  .note-box strong { color:var(--accent-purple); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase; }
+  .blue-box { background:rgba(68,138,255,.06); border-left:3px solid var(--accent-blue); padding:16px 20px; margin:22px 0; border-radius:0 8px 8px 0; }
+  .blue-box strong { color:var(--accent-blue); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase; }
+  .side { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:22px 0; }
+  .side>div { min-width:0; }
+  .side pre { margin:0; font-size:13px; }
+  .side-label { font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+  @media(max-width:750px){ .hero,.content{padding-left:18px;padding-right:18px;} .series-bar{padding:10px 14px;font-size:11px;} .diagram-container{padding:14px;} .side{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">Deep Dive</span>
+  <span>C Memory Concepts</span>
+  <div class="nav-links">
+    <a href="01-pointers.html">Pointers</a>
+    <a href="02-arrays-are-pointers.html">Arrays</a>
+    <a href="03-malloc-free.html">malloc &amp; free</a>
+    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+    <a href="05-garbage-collection.html">Garbage Collection</a>
+    <a href="06-pointer-training-cases.html">Training Cases</a>
+    <a href="07-pointer-types-and-casting.html" class="active">Types &amp; Casting</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Deep Dive</div>
+  <h1>Why Pointer <span class="hl">Type</span> Matters</h1>
+  <p class="subtitle">Every pointer is the same size. So why does the compiler care whether it's an <code>int*</code> or a <code>char*</code>? Because the type controls everything the pointer <em>does</em> — how many bytes it reads, how far it steps, and what it writes.</p>
+</header>
+
+<main class="content">
+
+<!-- ═══════════════════════════════════════════════ 1. SAME SIZE -->
+<h2>All Pointers Are the Same Size</h2>
+
+<p>On a 64-bit system, every pointer — regardless of what it points to — occupies 8 bytes. A pointer is just a memory address, and modern systems use 64-bit addresses.</p>
+
+<pre><span class="fn">printf</span>(<span class="str">"char*   = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">char</span>*));    <span class="cmt">// 8</span>
+<span class="fn">printf</span>(<span class="str">"int*    = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">int</span>*));     <span class="cmt">// 8</span>
+<span class="fn">printf</span>(<span class="str">"double* = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">double</span>*));  <span class="cmt">// 8</span>
+<span class="fn">printf</span>(<span class="str">"void*   = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">void</span>*));    <span class="cmt">// 8</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 120" width="100%" height="120">
+    <rect x="40" y="25" width="140" height="60" rx="6" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="110" y="52" text-anchor="middle" fill="#00e5ff" font-size="12">char *c</text>
+    <text x="110" y="72" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">8 bytes</text>
+
+    <rect x="200" y="25" width="140" height="60" rx="6" fill="rgba(105,240,174,.07)" stroke="#69f0ae" stroke-width="1.5"/>
+    <text x="270" y="52" text-anchor="middle" fill="#69f0ae" font-size="12">int *i</text>
+    <text x="270" y="72" text-anchor="middle" fill="#69f0ae" font-size="11" font-weight="600">8 bytes</text>
+
+    <rect x="360" y="25" width="140" height="60" rx="6" fill="rgba(255,171,64,.07)" stroke="#ffab40" stroke-width="1.5"/>
+    <text x="430" y="52" text-anchor="middle" fill="#ffab40" font-size="12">double *d</text>
+    <text x="430" y="72" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">8 bytes</text>
+
+    <rect x="520" y="25" width="140" height="60" rx="6" fill="rgba(179,136,255,.07)" stroke="#b388ff" stroke-width="1.5"/>
+    <text x="590" y="52" text-anchor="middle" fill="#b388ff" font-size="12">void *v</text>
+    <text x="590" y="72" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">8 bytes</text>
+
+    <text x="360" y="108" text-anchor="middle" fill="#6b7fa3" font-size="11">All 8 bytes. All just a memory address. So why does the type matter?</text>
+  </svg>
+</div>
+
+<p>If every pointer is just an 8-byte address, you might think the type is decorative. It isn't. The type is an instruction to the compiler that controls <strong>three critical behaviors</strong>:</p>
+
+
+<!-- ═══════════════════════════════════════════════ 2. THREE BEHAVIORS -->
+<h2>Behavior 1: How Many Bytes Does * Read or Write?</h2>
+
+<p>When you dereference a pointer with <code>*p</code>, the type tells the compiler how many bytes to read or write at that address. A <code>char*</code> reads 1 byte, an <code>int*</code> reads 4, and a <code>double*</code> reads 8.</p>
+
+<pre><span class="type">char</span>   c = <span class="str">'A'</span>;
+<span class="type">int</span>    i = <span class="num">42</span>;
+<span class="type">double</span> d = <span class="num">3.14</span>;
+
+<span class="type">char</span>   *pc = &amp;c;   <span class="cmt">// *pc reads 1 byte</span>
+<span class="type">int</span>    *pi = &amp;i;   <span class="cmt">// *pi reads 4 bytes</span>
+<span class="type">double</span> *pd = &amp;d;   <span class="cmt">// *pd reads 8 bytes</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 260" width="100%" height="260">
+    <!-- Memory row — byte-level view -->
+    <text x="360" y="20" text-anchor="middle" fill="#6b7fa3" font-size="12" font-weight="600">Same memory, different lenses</text>
+
+    <!-- char* reads 1 byte -->
+    <text x="50" y="58" fill="#00e5ff" font-size="12" font-weight="600">char *pc</text>
+    <text x="50" y="74" fill="#00e5ff" font-size="11">*pc reads:</text>
+    <rect x="170" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.12)" stroke="#00e5ff" stroke-width="2"/>
+    <rect x="220" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="270" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="320" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="370" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="420" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="470" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="520" y="44" width="50" height="40" rx="4" fill="rgba(0,229,255,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <text x="195" y="69" text-anchor="middle" fill="#00e5ff" font-size="14" font-weight="600">0x41</text>
+    <text x="195" y="100" text-anchor="middle" fill="#00e5ff" font-size="10">1 byte</text>
+
+    <!-- int* reads 4 bytes -->
+    <text x="50" y="148" fill="#69f0ae" font-size="12" font-weight="600">int *pi</text>
+    <text x="50" y="164" fill="#69f0ae" font-size="11">*pi reads:</text>
+    <rect x="170" y="134" width="200" height="40" rx="4" fill="rgba(105,240,174,.1)" stroke="#69f0ae" stroke-width="2"/>
+    <rect x="370" y="134" width="50" height="40" rx="4" fill="rgba(105,240,174,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="420" y="134" width="50" height="40" rx="4" fill="rgba(105,240,174,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="470" y="134" width="50" height="40" rx="4" fill="rgba(105,240,174,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <rect x="520" y="134" width="50" height="40" rx="4" fill="rgba(105,240,174,.03)" stroke="var(--border)" stroke-width=".5"/>
+    <text x="270" y="159" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">0x 00 00 00 2A</text>
+    <text x="270" y="190" text-anchor="middle" fill="#69f0ae" font-size="10">4 bytes (sizeof int)</text>
+
+    <!-- double* reads 8 bytes -->
+    <text x="50" y="238" fill="#ffab40" font-size="12" font-weight="600">double *pd</text>
+    <text x="50" y="254" fill="#ffab40" font-size="11">*pd reads:</text>
+    <rect x="170" y="224" width="400" height="40" rx="4" fill="rgba(255,171,64,.1)" stroke="#ffab40" stroke-width="2"/>
+    <text x="370" y="249" text-anchor="middle" fill="#ffab40" font-size="14" font-weight="600">0x 40 09 1E B8 51 EB 85 1F</text>
+    <text x="370" y="280" text-anchor="middle" fill="#ffab40" font-size="10">8 bytes (sizeof double)</text>
+
+    <!-- Byte addresses -->
+    <text x="195" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+0</text>
+    <text x="245" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+1</text>
+    <text x="295" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+2</text>
+    <text x="345" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+3</text>
+    <text x="395" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+4</text>
+    <text x="445" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+5</text>
+    <text x="495" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+6</text>
+    <text x="545" y="40" text-anchor="middle" fill="#6b7fa3" font-size="8">+7</text>
+  </svg>
+  <div class="caption">The pointer type is the "lens" through which the compiler reads memory. Same address, different byte counts.</div>
+</div>
+
+<div class="blue-box">
+  <strong>The Rule</strong><br>
+  <code>*p</code> reads or writes exactly <code>sizeof(*p)</code> bytes starting at the address <code>p</code> holds. The type of the pointer determines sizeof(*p).
+</div>
+
+
+<h2>Behavior 2: How Far Does p+1 Move?</h2>
+
+<p>Pointer arithmetic scales by element size. <code>p + 1</code> doesn't add 1 byte — it adds <code>sizeof(*p)</code> bytes. This is why you can loop through arrays with <code>p++</code> and always land on the next element.</p>
+
+<pre><span class="type">char</span>   *pc = (<span class="type">char</span>*)  <span class="num">0x1000</span>;   <span class="cmt">// pc + 1 = 0x1001 (+1 byte)</span>
+<span class="type">int</span>    *pi = (<span class="type">int</span>*)   <span class="num">0x1000</span>;   <span class="cmt">// pi + 1 = 0x1004 (+4 bytes)</span>
+<span class="type">double</span> *pd = (<span class="type">double</span>*)<span class="num">0x1000</span>;   <span class="cmt">// pd + 1 = 0x1008 (+8 bytes)</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 220" width="100%" height="220">
+    <defs>
+      <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker>
+      <marker id="ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69f0ae"/></marker>
+      <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ffab40"/></marker>
+    </defs>
+
+    <!-- Byte ruler -->
+    <line x1="60" y1="30" x2="660" y2="30" stroke="var(--border)" stroke-width="1"/>
+    <text x="60" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">0x1000</text>
+    <text x="135" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+1</text>
+    <text x="210" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+2</text>
+    <text x="285" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+3</text>
+    <text x="360" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+4</text>
+    <text x="435" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+5</text>
+    <text x="510" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+6</text>
+    <text x="585" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+7</text>
+    <text x="660" y="22" text-anchor="middle" fill="#6b7fa3" font-size="9">+8</text>
+
+    <!-- char* p+1 = 1 byte -->
+    <text x="30" y="68" fill="#00e5ff" font-size="11" font-weight="600">char*</text>
+    <rect x="60" y="48" width="75" height="28" rx="3" fill="rgba(0,229,255,.1)" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="97" y="66" text-anchor="middle" fill="#00e5ff" font-size="10">p</text>
+    <rect x="135" y="48" width="75" height="28" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <text x="172" y="66" text-anchor="middle" fill="#00e5ff" font-size="10">p+1</text>
+    <rect x="210" y="48" width="75" height="28" rx="3" fill="rgba(0,229,255,.04)" stroke="#00e5ff" stroke-width=".5"/>
+    <text x="247" y="66" text-anchor="middle" fill="#00e5ff" font-size="10">p+2</text>
+    <path d="M97 80 Q116 96 135 80" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
+    <text x="116" y="102" text-anchor="middle" fill="#00e5ff" font-size="9">+1 byte</text>
+
+    <!-- int* p+1 = 4 bytes -->
+    <text x="30" y="138" fill="#69f0ae" font-size="11" font-weight="600">int*</text>
+    <rect x="60" y="116" width="300" height="28" rx="3" fill="rgba(105,240,174,.08)" stroke="#69f0ae" stroke-width="1.5"/>
+    <text x="210" y="134" text-anchor="middle" fill="#69f0ae" font-size="10">p</text>
+    <rect x="360" y="116" width="300" height="28" rx="3" fill="rgba(105,240,174,.04)" stroke="#69f0ae" stroke-width="1"/>
+    <text x="510" y="134" text-anchor="middle" fill="#69f0ae" font-size="10">p+1</text>
+    <path d="M210 148 Q285 166 360 148" stroke="#69f0ae" stroke-width="1.5" fill="none"/>
+    <text x="285" y="170" text-anchor="middle" fill="#69f0ae" font-size="9">+4 bytes</text>
+
+    <!-- double* p+1 = 8 bytes -->
+    <text x="30" y="206" fill="#ffab40" font-size="11" font-weight="600">double*</text>
+    <rect x="60" y="184" width="600" height="28" rx="3" fill="rgba(255,171,64,.08)" stroke="#ffab40" stroke-width="1.5"/>
+    <text x="360" y="202" text-anchor="middle" fill="#ffab40" font-size="10">p                                                p+1 →</text>
+    <path d="M360 216 Q510 236 660 216" stroke="#ffab40" stroke-width="1.5" fill="none"/>
+    <text x="510" y="238" text-anchor="middle" fill="#ffab40" font-size="9">+8 bytes</text>
+  </svg>
+  <div class="caption">p++ advances by 1 byte for char*, 4 bytes for int*, and 8 bytes for double*. The type determines the step size.</div>
+</div>
+
+
+<h2>Behavior 3: How Does the Compiler Interpret the Bits?</h2>
+
+<p>The raw bits <code>0x42280000</code> sitting at some address could mean completely different things depending on what type of pointer you use to read them:</p>
+
+<pre><span class="type">float</span> f = <span class="num">42.0f</span>;              <span class="cmt">// stored as 0x42280000</span>
+<span class="type">float</span> *pf = &amp;f;
+<span class="type">int</span>   *pi = (<span class="type">int</span>*)&amp;f;         <span class="cmt">// same address, different type</span>
+
+<span class="fn">printf</span>(<span class="str">"as float: %f\n"</span>, *pf);  <span class="cmt">// 42.000000</span>
+<span class="fn">printf</span>(<span class="str">"as int:   %d\n"</span>, *pi);  <span class="cmt">// 1109917696  ← same bits!</span></pre>
+
+<div class="note-box">
+  <strong>Same Bits, Different Meaning</strong><br>
+  The 4 bytes at that address are <code>42 28 00 00</code> no matter what. But an <code>int*</code> interprets them as a two's complement integer (1,109,917,696) while a <code>float*</code> interprets them as an IEEE 754 floating-point number (42.0). The pointer type is the decoder ring.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ 3. ASSIGNMENT RULES -->
+<h2>Pointer Assignment: Type Compatibility</h2>
+
+<p>The compiler enforces type safety on pointer assignments. You cannot assign a pointer of one type to a pointer of a different type without an explicit cast. This is the compiler protecting you from accidentally misinterpreting memory.</p>
+
+<div class="side">
+  <div>
+    <div class="side-label" style="color:var(--accent-green)">✓ Legal — same type</div>
+    <pre><span class="type">int</span> x = <span class="num">42</span>;
+<span class="type">int</span> *a = &amp;x;
+<span class="type">int</span> *b = a;   <span class="cmt">// int* → int* ✓</span></pre>
+  </div>
+  <div>
+    <div class="side-label" style="color:var(--accent-red)">✗ Illegal — type mismatch</div>
+    <pre><span class="type">int</span> x = <span class="num">42</span>;
+<span class="type">int</span>   *pi = &amp;x;
+<span class="type">char</span>  *pc = pi;  <span class="cmt">// ERROR!</span>
+<span class="type">float</span> *pf = pi;  <span class="cmt">// ERROR!</span></pre>
+  </div>
+</div>
+
+<pre><span class="cmt">// The compiler produces warnings/errors like:</span>
+<span class="cmt">// warning: incompatible pointer types assigning 'char *' from 'int *'</span></pre>
+
+<h3>The Special Case: void*</h3>
+
+<p><code>void*</code> is C's "generic pointer" — it can hold any address, and any pointer type can be assigned to or from <code>void*</code> without a cast. This is how <code>malloc</code> works: it returns <code>void*</code>, and you assign it to whatever pointer type you need.</p>
+
+<pre><span class="type">int</span> *p = <span class="fn">malloc</span>(<span class="kw">sizeof</span>(<span class="type">int</span>));  <span class="cmt">// malloc returns void* → int* is fine</span>
+
+<span class="type">void</span> *generic = p;       <span class="cmt">// int* → void*  ✓  (any pointer → void*)</span>
+<span class="type">int</span>  *back = generic;    <span class="cmt">// void* → int*  ✓  (void* → any pointer)</span></pre>
+
+<div class="bug-box">
+  <strong>void* Limitation</strong><br>
+  You cannot dereference a <code>void*</code> — the compiler doesn't know how many bytes to read. You cannot do pointer arithmetic on <code>void*</code> — the compiler doesn't know the step size. You must cast to a concrete type first.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ 4. CASTING -->
+<h2>Casting Between Pointer Types</h2>
+
+<p>A cast tells the compiler: "I know the types don't match. Trust me — treat this address as the new type." The cast doesn't change the address stored in the pointer. It changes the compiler's <em>interpretation</em> of what's at that address.</p>
+
+<pre><span class="type">int</span> x = <span class="num">42</span>;
+<span class="type">int</span>  *pi = &amp;x;
+<span class="type">char</span> *pc = (<span class="type">char</span>*)pi;  <span class="cmt">// explicit cast: "treat this int's address as a char*"</span>
+
+<span class="cmt">// pi and pc hold the SAME address</span>
+<span class="cmt">// but *pi reads 4 bytes and *pc reads only 1 byte</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 200" width="100%" height="200">
+    <defs>
+      <marker id="ax" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker>
+      <marker id="ay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69f0ae"/></marker>
+    </defs>
+
+    <!-- The int in memory (4 bytes, little-endian) -->
+    <text x="400" y="20" text-anchor="middle" fill="#6b7fa3" font-size="11">int x = 42 in memory (little-endian)</text>
+    <rect x="260" y="30" width="70" height="50" rx="4" fill="rgba(179,136,255,.08)" stroke="#b388ff" stroke-width="1.5"/>
+    <rect x="330" y="30" width="70" height="50" rx="4" fill="rgba(179,136,255,.05)" stroke="#b388ff" stroke-width="1"/>
+    <rect x="400" y="30" width="70" height="50" rx="4" fill="rgba(179,136,255,.05)" stroke="#b388ff" stroke-width="1"/>
+    <rect x="470" y="30" width="70" height="50" rx="4" fill="rgba(179,136,255,.05)" stroke="#b388ff" stroke-width="1"/>
+    <text x="295" y="60" text-anchor="middle" fill="#b388ff" font-size="14" font-weight="600">0x2A</text>
+    <text x="365" y="60" text-anchor="middle" fill="#b388ff" font-size="14">0x00</text>
+    <text x="435" y="60" text-anchor="middle" fill="#b388ff" font-size="14">0x00</text>
+    <text x="505" y="60" text-anchor="middle" fill="#b388ff" font-size="14">0x00</text>
+    <text x="295" y="94" text-anchor="middle" fill="#6b7fa3" font-size="9">byte 0</text>
+    <text x="365" y="94" text-anchor="middle" fill="#6b7fa3" font-size="9">byte 1</text>
+    <text x="435" y="94" text-anchor="middle" fill="#6b7fa3" font-size="9">byte 2</text>
+    <text x="505" y="94" text-anchor="middle" fill="#6b7fa3" font-size="9">byte 3</text>
+
+    <!-- int* sees all 4 bytes -->
+    <text x="80" y="125" fill="#69f0ae" font-size="12" font-weight="600">int *pi:</text>
+    <text x="80" y="142" fill="#69f0ae" font-size="11">*pi reads 4 bytes →</text>
+    <rect x="258" y="110" width="284" height="30" rx="3" fill="none" stroke="#69f0ae" stroke-width="2.5"/>
+    <text x="580" y="130" fill="#69f0ae" font-size="13" font-weight="600">= 42</text>
+
+    <!-- char* sees only 1 byte -->
+    <text x="80" y="172" fill="#00e5ff" font-size="12" font-weight="600">char *pc:</text>
+    <text x="80" y="189" fill="#00e5ff" font-size="11">*pc reads 1 byte →</text>
+    <rect x="258" y="158" width="74" height="30" rx="3" fill="none" stroke="#00e5ff" stroke-width="2.5"/>
+    <text x="580" y="178" fill="#00e5ff" font-size="13" font-weight="600">= 0x2A (42)</text>
+  </svg>
+  <div class="caption">Same address, same bytes. The int* reads all 4 bytes as one integer. The char* reads only the first byte.</div>
+</div>
+
+<p>In this particular example, reading one byte of a small integer (42) happens to give the same numeric value on a little-endian machine — because 42 fits in a single byte and is stored in byte 0. But this is a coincidence that breaks spectacularly with larger values or different operations.</p>
+
+
+<!-- ═══════════════════════════════════════════════ 5. THE DISASTER CASE -->
+<h2>The Disaster: Casting char* to int* and Writing Through It</h2>
+
+<p>This is where the real damage happens. Suppose you have a 4-byte buffer allocated as <code>char*</code>, and you cast it to <code>int*</code> and write an integer into it.</p>
+
+<pre><span class="type">char</span> *buf = <span class="fn">malloc</span>(<span class="num">4</span>);   <span class="cmt">// 4 bytes of char data</span>
+buf[<span class="num">0</span>] = <span class="str">'H'</span>;
+buf[<span class="num">1</span>] = <span class="str">'i'</span>;
+buf[<span class="num">2</span>] = <span class="str">'!'</span>;
+buf[<span class="num">3</span>] = <span class="str">'\0'</span>;
+<span class="cmt">// buf contains: "Hi!\0" — a nice little string</span>
+
+<span class="cmt">// Now: cast to int* and write a number</span>
+<span class="type">int</span> *ip = (<span class="type">int</span>*)buf;
+*ip = <span class="num">305419896</span>;   <span class="cmt">// 0x12345678</span>
+
+<span class="cmt">// What happened to our string?</span>
+<span class="fn">printf</span>(<span class="str">"%s\n"</span>, buf);  <span class="cmt">// garbage! all 4 chars overwritten</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 310" width="100%" height="310">
+    <!-- BEFORE -->
+    <text x="360" y="22" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">BEFORE — buf contains "Hi!\0"</text>
+
+    <rect x="130" y="35" width="110" height="60" rx="5" fill="rgba(0,229,255,.08)" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="185" y="62" text-anchor="middle" fill="#00e5ff" font-size="12">char *buf</text>
+
+    <rect x="320" y="35" width="90" height="60" rx="4" fill="rgba(105,240,174,.1)" stroke="#69f0ae" stroke-width="1.5"/>
+    <rect x="410" y="35" width="90" height="60" rx="4" fill="rgba(105,240,174,.1)" stroke="#69f0ae" stroke-width="1.5"/>
+    <rect x="500" y="35" width="90" height="60" rx="4" fill="rgba(105,240,174,.1)" stroke="#69f0ae" stroke-width="1.5"/>
+    <rect x="590" y="35" width="90" height="60" rx="4" fill="rgba(255,82,82,.06)" stroke="#ff5252" stroke-width="1"/>
+
+    <text x="365" y="62" text-anchor="middle" fill="#69f0ae" font-size="18">'H'</text>
+    <text x="455" y="62" text-anchor="middle" fill="#69f0ae" font-size="18">'i'</text>
+    <text x="545" y="62" text-anchor="middle" fill="#69f0ae" font-size="18">'!'</text>
+    <text x="635" y="62" text-anchor="middle" fill="#ff5252" font-size="14">\0</text>
+
+    <text x="365" y="80" text-anchor="middle" fill="#6b7fa3" font-size="9">0x48</text>
+    <text x="455" y="80" text-anchor="middle" fill="#6b7fa3" font-size="9">0x69</text>
+    <text x="545" y="80" text-anchor="middle" fill="#6b7fa3" font-size="9">0x21</text>
+    <text x="635" y="80" text-anchor="middle" fill="#6b7fa3" font-size="9">0x00</text>
+
+    <defs><marker id="az" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#00e5ff"/></marker></defs>
+    <path d="M240 65 L318 65" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#az)" stroke-dasharray="5,3"/>
+
+    <!-- THE CAST -->
+    <rect x="30" y="120" width="660" height="40" rx="6" fill="rgba(255,82,82,.04)" stroke="#ff5252" stroke-width="2"/>
+    <text x="360" y="145" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">int *ip = (int*)buf;   *ip = 305419896;   // 0x12345678</text>
+
+    <!-- AFTER -->
+    <text x="360" y="188" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">AFTER — int write obliterates all 4 char bytes</text>
+
+    <rect x="130" y="200" width="110" height="60" rx="5" fill="rgba(255,82,82,.07)" stroke="#ff5252" stroke-width="1.5"/>
+    <text x="185" y="227" text-anchor="middle" fill="#ff5252" font-size="12">int *ip</text>
+
+    <rect x="320" y="200" width="360" height="60" rx="4" fill="rgba(255,82,82,.1)" stroke="#ff5252" stroke-width="2.5"/>
+
+    <text x="365" y="227" text-anchor="middle" fill="#ff5252" font-size="16" font-weight="600">0x78</text>
+    <text x="455" y="227" text-anchor="middle" fill="#ff5252" font-size="16" font-weight="600">0x56</text>
+    <text x="545" y="227" text-anchor="middle" fill="#ff5252" font-size="16" font-weight="600">0x34</text>
+    <text x="635" y="227" text-anchor="middle" fill="#ff5252" font-size="16" font-weight="600">0x12</text>
+
+    <text x="365" y="248" text-anchor="middle" fill="#6b7fa3" font-size="9">'x'</text>
+    <text x="455" y="248" text-anchor="middle" fill="#6b7fa3" font-size="9">'V'</text>
+    <text x="545" y="248" text-anchor="middle" fill="#6b7fa3" font-size="9">'4'</text>
+    <text x="635" y="248" text-anchor="middle" fill="#6b7fa3" font-size="9">non-print</text>
+
+    <defs><marker id="az2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff5252"/></marker></defs>
+    <path d="M240 230 L318 230" stroke="#ff5252" stroke-width="2" fill="none" marker-end="url(#az2)" stroke-dasharray="5,3"/>
+
+    <!-- Bracket showing single int write -->
+    <path d="M320 270 L320 280 L680 280 L680 270" stroke="#ff5252" stroke-width="1.5" fill="none"/>
+    <text x="500" y="298" text-anchor="middle" fill="#ff5252" font-size="11">One int write (4 bytes) overwrites ALL four chars</text>
+    <text x="500" y="312" text-anchor="middle" fill="#6b7fa3" font-size="10">little-endian: least significant byte at lowest address</text>
+  </svg>
+  <div class="caption">Writing one int through a cast pointer destroys all four chars. "Hi!" is gone — replaced by the bytes of 0x12345678.</div>
+</div>
+
+<div class="bug-box">
+  <strong>What Went Wrong</strong><br>
+  The <code>int*</code> write doesn't know or care that the memory was being used for characters. It writes 4 bytes (the integer representation of 305,419,896) starting at the same address. The string "Hi!\0" is obliterated — every single byte is overwritten with different data.
+</div>
+
+
+<h2>It Gets Worse: Buffer Overrun Through Mismatched Types</h2>
+
+<p>What if the char buffer is smaller than the integer being written? This is where a cast doesn't just corrupt your data — it corrupts <em>other</em> data beyond the buffer.</p>
+
+<pre><span class="type">char</span> *small = <span class="fn">malloc</span>(<span class="num">2</span>);   <span class="cmt">// only 2 bytes!</span>
+small[<span class="num">0</span>] = <span class="str">'A'</span>;
+small[<span class="num">1</span>] = <span class="str">'B'</span>;
+
+<span class="type">int</span> *ip = (<span class="type">int</span>*)small;
+*ip = <span class="num">0x11223344</span>;          <span class="cmt">// writes 4 bytes into a 2-byte buffer!</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 180" width="100%" height="180">
+    <!-- Allocated -->
+    <text x="250" y="22" text-anchor="middle" fill="#69f0ae" font-size="11" font-weight="600">YOUR 2 BYTES</text>
+    <text x="490" y="22" text-anchor="middle" fill="#ff5252" font-size="11" font-weight="600">NOT YOUR MEMORY</text>
+
+    <rect x="170" y="30" width="80" height="50" rx="4" fill="rgba(105,240,174,.08)" stroke="#69f0ae" stroke-width="1.5"/>
+    <rect x="250" y="30" width="80" height="50" rx="4" fill="rgba(105,240,174,.08)" stroke="#69f0ae" stroke-width="1.5"/>
+    <rect x="330" y="30" width="80" height="50" rx="4" fill="rgba(255,82,82,.04)" stroke="#ff5252" stroke-width="1" stroke-dasharray="4,3"/>
+    <rect x="410" y="30" width="80" height="50" rx="4" fill="rgba(255,82,82,.04)" stroke="#ff5252" stroke-width="1" stroke-dasharray="4,3"/>
+    <rect x="490" y="30" width="80" height="50" rx="4" fill="rgba(107,127,163,.04)" stroke="var(--border)" stroke-width=".5"/>
+
+    <text x="210" y="60" text-anchor="middle" fill="#69f0ae" font-size="14">A</text>
+    <text x="290" y="60" text-anchor="middle" fill="#69f0ae" font-size="14">B</text>
+    <text x="370" y="60" text-anchor="middle" fill="#6b7fa3" font-size="12">??</text>
+    <text x="450" y="60" text-anchor="middle" fill="#6b7fa3" font-size="12">??</text>
+    <text x="530" y="60" text-anchor="middle" fill="#6b7fa3" font-size="12">…</text>
+
+    <!-- After write -->
+    <text x="360" y="108" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">After *ip = 0x11223344:</text>
+
+    <rect x="170" y="118" width="320" height="50" rx="4" fill="rgba(255,82,82,.1)" stroke="#ff5252" stroke-width="2.5"/>
+    <rect x="490" y="118" width="80" height="50" rx="4" fill="rgba(107,127,163,.04)" stroke="var(--border)" stroke-width=".5"/>
+
+    <text x="210" y="148" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">0x44</text>
+    <text x="290" y="148" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">0x33</text>
+    <text x="370" y="148" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">0x22</text>
+    <text x="450" y="148" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">0x11</text>
+
+    <text x="370" y="180" text-anchor="middle" fill="#ff5252" font-size="10">← these 2 bytes are past the end of the allocation →</text>
+
+    <!-- Boundary line -->
+    <line x1="330" y1="118" x2="330" y2="168" stroke="#ff5252" stroke-width="2.5" stroke-dasharray="5,3"/>
+    <text x="340" y="114" fill="#ff5252" font-size="9" font-weight="600">← boundary</text>
+  </svg>
+  <div class="caption">The int* write extends 2 bytes past the allocation, corrupting adjacent heap memory — a buffer overrun.</div>
+</div>
+
+<p>Those 2 extra bytes could be the allocator's metadata, another variable, or part of a different data structure. This is a classic <strong>buffer overflow</strong> — one of the most exploited security vulnerabilities in the history of computing.</p>
+
+
+<!-- ═══════════════════════════════════════════════ 6. POINTER ARITHMETIC WITH WRONG TYPE -->
+<h2>Wrong Type Breaks Pointer Arithmetic Too</h2>
+
+<p>If you cast a <code>char*</code> buffer to <code>int*</code> and then use array indexing, every <code>[i]</code> jumps by 4 bytes instead of 1. You'll skip over data and read/write to addresses you never intended.</p>
+
+<pre><span class="type">char</span> buf[<span class="num">8</span>] = <span class="str">"ABCDEFGH"</span>;
+<span class="type">int</span> *ip = (<span class="type">int</span>*)buf;
+
+<span class="cmt">// char* indexing:  buf[0]='A' buf[1]='B' buf[2]='C' ...</span>
+<span class="cmt">// int* indexing:   ip[0]=bytes 0-3    ip[1]=bytes 4-7</span>
+
+ip[<span class="num">1</span>] = <span class="num">0</span>;  <span class="cmt">// zeros out bytes 4,5,6,7 → "EFGH" gone!</span>
+<span class="fn">printf</span>(<span class="str">"%s\n"</span>, buf);  <span class="cmt">// prints "ABCD" — the rest is null</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 220" width="100%" height="220">
+    <!-- char view -->
+    <text x="50" y="25" fill="#00e5ff" font-size="11" font-weight="600">char view: buf[0] through buf[7]</text>
+    <rect x="110" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <rect x="180" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <rect x="250" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <rect x="320" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <rect x="390" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <rect x="460" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <rect x="530" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <rect x="600" y="32" width="70" height="42" rx="3" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1"/>
+    <text x="145" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">A</text>
+    <text x="215" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">B</text>
+    <text x="285" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">C</text>
+    <text x="355" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">D</text>
+    <text x="425" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">E</text>
+    <text x="495" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">F</text>
+    <text x="565" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">G</text>
+    <text x="635" y="58" text-anchor="middle" fill="#00e5ff" font-size="14">H</text>
+    <text x="145" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[0]</text>
+    <text x="215" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[1]</text>
+    <text x="285" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[2]</text>
+    <text x="355" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[3]</text>
+    <text x="425" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[4]</text>
+    <text x="495" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[5]</text>
+    <text x="565" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[6]</text>
+    <text x="635" y="84" text-anchor="middle" fill="#6b7fa3" font-size="8">[7]</text>
+
+    <!-- int view -->
+    <text x="50" y="115" fill="#69f0ae" font-size="11" font-weight="600">int view: ip[0] and ip[1]</text>
+    <rect x="110" y="122" width="280" height="42" rx="4" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width="1.5"/>
+    <rect x="390" y="122" width="280" height="42" rx="4" fill="rgba(255,82,82,.08)" stroke="#ff5252" stroke-width="2"/>
+    <text x="250" y="148" text-anchor="middle" fill="#69f0ae" font-size="13">ip[0] → "ABCD"</text>
+    <text x="530" y="148" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">ip[1] → "EFGH"</text>
+
+    <!-- After ip[1] = 0 -->
+    <text x="360" y="190" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">After ip[1] = 0:</text>
+    <rect x="110" y="196" width="280" height="28" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width="1"/>
+    <text x="250" y="215" text-anchor="middle" fill="#69f0ae" font-size="12">A B C D</text>
+    <rect x="390" y="196" width="280" height="28" rx="3" fill="rgba(255,82,82,.06)" stroke="#ff5252" stroke-width="1.5"/>
+    <text x="530" y="215" text-anchor="middle" fill="#ff5252" font-size="12">\0 \0 \0 \0</text>
+  </svg>
+  <div class="caption">ip[1] writes to byte offset 4 (not byte 1). One int-write zeroes out four characters at once.</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ 7. ALIGNMENT -->
+<h2>The Hidden Danger: Alignment</h2>
+
+<p>Many processors require that multi-byte types be stored at addresses that are multiples of their size. An <code>int</code> (4 bytes) should live at an address divisible by 4. A <code>double</code> (8 bytes) at an address divisible by 8. <code>char</code> has no alignment requirement — it can live anywhere.</p>
+
+<p>When you cast a <code>char*</code> to an <code>int*</code>, the address might not be properly aligned. On some architectures, this causes a hardware <strong>bus error</strong> — an immediate crash. On others (like x86), it silently works but with a performance penalty.</p>
+
+<pre><span class="type">char</span> buf[<span class="num">10</span>] = <span class="str">"ABCDEFGHIJ"</span>;
+
+<span class="type">int</span> *p1 = (<span class="type">int</span>*)(buf);       <span class="cmt">// might be aligned (if buf starts at 0x...0)</span>
+<span class="type">int</span> *p2 = (<span class="type">int</span>*)(buf + <span class="num">1</span>);   <span class="cmt">// almost certainly misaligned!</span>
+
+*p2 = <span class="num">42</span>;  <span class="cmt">// On ARM: BUS ERROR (crash)</span>
+           <span class="cmt">// On x86: works, but slower + undefined behavior in C standard</span></pre>
+
+<div class="diagram-container">
+  <svg viewBox="0 0 720 150" width="100%" height="150">
+    <!-- Byte grid -->
+    <rect x="60" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.08)" stroke="#69f0ae" stroke-width="1"/>
+    <rect x="120" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width=".5"/>
+    <rect x="180" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width=".5"/>
+    <rect x="240" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width=".5"/>
+    <rect x="300" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width=".5"/>
+    <rect x="360" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width=".5"/>
+    <rect x="420" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width=".5"/>
+    <rect x="480" y="30" width="60" height="45" rx="3" fill="rgba(105,240,174,.06)" stroke="#69f0ae" stroke-width=".5"/>
+
+    <text x="90" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">A</text>
+    <text x="150" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">B</text>
+    <text x="210" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">C</text>
+    <text x="270" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">D</text>
+    <text x="330" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">E</text>
+    <text x="390" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">F</text>
+    <text x="450" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">G</text>
+    <text x="510" y="57" text-anchor="middle" fill="#69f0ae" font-size="13">H</text>
+
+    <!-- Addresses -->
+    <text x="90" y="24" text-anchor="middle" fill="#ffab40" font-size="8">0x1000</text>
+    <text x="150" y="24" text-anchor="middle" fill="#ffab40" font-size="8">0x1001</text>
+    <text x="210" y="24" text-anchor="middle" fill="#ffab40" font-size="8">0x1002</text>
+    <text x="270" y="24" text-anchor="middle" fill="#ffab40" font-size="8">0x1003</text>
+    <text x="330" y="24" text-anchor="middle" fill="#ffab40" font-size="8">0x1004</text>
+
+    <!-- Aligned read -->
+    <rect x="58" y="85" width="244" height="26" rx="3" fill="none" stroke="#69f0ae" stroke-width="2"/>
+    <text x="35" y="102" text-anchor="end" fill="#69f0ae" font-size="10">p1:</text>
+    <text x="320" y="102" fill="#69f0ae" font-size="10">✓ aligned (0x1000 ÷ 4 = 0)</text>
+
+    <!-- Misaligned read -->
+    <rect x="118" y="116" width="244" height="26" rx="3" fill="none" stroke="#ff5252" stroke-width="2"/>
+    <text x="35" y="133" text-anchor="end" fill="#ff5252" font-size="10">p2:</text>
+    <text x="380" y="133" fill="#ff5252" font-size="10">✗ misaligned (0x1001 ÷ 4 ≠ integer)</text>
+  </svg>
+  <div class="caption">p1 starts at a 4-byte boundary (aligned). p2 starts at an odd address (misaligned) — dangerous or illegal on many architectures.</div>
+</div>
+
+<div class="bug-box">
+  <strong>Undefined Behavior</strong><br>
+  The C standard says accessing a misaligned pointer is undefined behavior. Even on x86 where it happens to "work," the compiler is allowed to assume alignment and may generate code that breaks. The compiler optimizes based on type — violating its assumptions invites silent corruption.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ 8. LEGITIMATE USES -->
+<h2>When Is Casting Legitimate?</h2>
+
+<p>Despite all these dangers, pointer casting is sometimes necessary in C. Here are the safe and common patterns:</p>
+
+<h3>1. Casting to/from void*</h3>
+<p>This is the most common case and is always safe in terms of the cast itself — <code>void*</code> is designed for this. The danger comes from casting <em>to the wrong type</em>.</p>
+
+<pre><span class="type">int</span> *arr = (<span class="type">int</span>*)<span class="fn">malloc</span>(<span class="num">40</span>);  <span class="cmt">// void* → int* ✓</span>
+<span class="type">void</span> *gen = arr;             <span class="cmt">// int*  → void* ✓</span></pre>
+
+<h3>2. Casting to char* to Inspect Raw Bytes</h3>
+<p><code>char*</code> (and <code>unsigned char*</code>) is the one type that can legally alias any other type. You can always cast any pointer to <code>char*</code> to examine its raw bytes. This is how <code>memcpy</code>, <code>memset</code>, and hex dumps work.</p>
+
+<pre><span class="type">int</span> x = <span class="num">42</span>;
+<span class="type">unsigned char</span> *bytes = (<span class="type">unsigned char</span>*)&amp;x;
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="kw">sizeof</span>(<span class="type">int</span>); i++) {
+    <span class="fn">printf</span>(<span class="str">"%02x "</span>, bytes[i]);   <span class="cmt">// prints individual bytes of the int</span>
+}
+<span class="cmt">// Output: 2a 00 00 00  (little-endian)</span></pre>
+
+<h3>3. Struct Casting for Polymorphism</h3>
+<p>C doesn't have inheritance, but you can simulate it by placing a common header struct at the beginning of different struct types and casting between them. This pattern is used extensively in real systems code.</p>
+
+<pre><span class="kw">typedef struct</span> { <span class="type">int</span> type; } <span class="type">Shape</span>;
+<span class="kw">typedef struct</span> { <span class="type">int</span> type; <span class="type">double</span> radius; } <span class="type">Circle</span>;
+<span class="kw">typedef struct</span> { <span class="type">int</span> type; <span class="type">double</span> width, height; } <span class="type">Rect</span>;
+
+<span class="type">Circle</span> c = {<span class="num">1</span>, <span class="num">5.0</span>};
+<span class="type">Shape</span> *s = (<span class="type">Shape</span>*)&amp;c;   <span class="cmt">// safe: first member is 'type' in both</span>
+<span class="fn">printf</span>(<span class="str">"type = %d\n"</span>, s->type);  <span class="cmt">// works — accessing common prefix</span></pre>
+
+<div class="ok-box">
+  <strong>Safe Casting Rules</strong><br>
+  Cast <strong>to</strong> <code>void*</code> — always safe.<br>
+  Cast <strong>from</strong> <code>void*</code> — safe if you cast back to the original type.<br>
+  Cast <strong>to</strong> <code>char*</code> / <code>unsigned char*</code> — always legal for byte inspection.<br>
+  Cast between struct types — safe if they share a common initial layout.<br>
+  Cast between unrelated pointer types and <strong>write through them</strong> — almost always <strong>wrong</strong>.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════ SUMMARY -->
+<section style="margin-top:70px;padding:36px;background:var(--surface);border:1px solid var(--border);border-radius:16px;">
+  <h2 style="margin-top:0;padding-top:0;">Summary: What the Pointer Type Controls</h2>
+
+  <div class="diagram-container" style="background:var(--surface2);margin-top:20px;">
+    <svg viewBox="0 0 720 280" width="100%" height="280">
+      <!-- Central concept -->
+      <rect x="230" y="10" width="260" height="50" rx="8" fill="rgba(68,138,255,.1)" stroke="#448aff" stroke-width="2"/>
+      <text x="360" y="40" text-anchor="middle" fill="#448aff" font-size="16" font-weight="600">Pointer Type</text>
+
+      <!-- Three branches -->
+      <line x1="280" y1="60" x2="120" y2="100" stroke="#448aff" stroke-width="1.5"/>
+      <line x1="360" y1="60" x2="360" y2="100" stroke="#448aff" stroke-width="1.5"/>
+      <line x1="440" y1="60" x2="600" y2="100" stroke="#448aff" stroke-width="1.5"/>
+
+      <!-- Dereference size -->
+      <rect x="30" y="100" width="180" height="70" rx="8" fill="rgba(0,229,255,.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="120" y="125" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">Dereference Size</text>
+      <text x="120" y="145" text-anchor="middle" fill="#6b7fa3" font-size="11">How many bytes does</text>
+      <text x="120" y="160" text-anchor="middle" fill="#6b7fa3" font-size="11">*p read or write?</text>
+
+      <!-- Arithmetic step -->
+      <rect x="270" y="100" width="180" height="70" rx="8" fill="rgba(105,240,174,.07)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="360" y="125" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">Arithmetic Step</text>
+      <text x="360" y="145" text-anchor="middle" fill="#6b7fa3" font-size="11">How far does</text>
+      <text x="360" y="160" text-anchor="middle" fill="#6b7fa3" font-size="11">p+1 advance?</text>
+
+      <!-- Bit interpretation -->
+      <rect x="510" y="100" width="180" height="70" rx="8" fill="rgba(255,171,64,.07)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="600" y="125" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">Bit Interpretation</text>
+      <text x="600" y="145" text-anchor="middle" fill="#6b7fa3" font-size="11">What do the bits</text>
+      <text x="600" y="160" text-anchor="middle" fill="#6b7fa3" font-size="11">at the address mean?</text>
+
+      <!-- Examples -->
+      <text x="120" y="196" text-anchor="middle" fill="#00e5ff" font-size="11">char*  → 1 byte</text>
+      <text x="120" y="212" text-anchor="middle" fill="#00e5ff" font-size="11">int*   → 4 bytes</text>
+      <text x="120" y="228" text-anchor="middle" fill="#00e5ff" font-size="11">double*→ 8 bytes</text>
+
+      <text x="360" y="196" text-anchor="middle" fill="#69f0ae" font-size="11">char*  → +1 byte</text>
+      <text x="360" y="212" text-anchor="middle" fill="#69f0ae" font-size="11">int*   → +4 bytes</text>
+      <text x="360" y="228" text-anchor="middle" fill="#69f0ae" font-size="11">double*→ +8 bytes</text>
+
+      <text x="600" y="196" text-anchor="middle" fill="#ffab40" font-size="11">int*   → two's complement</text>
+      <text x="600" y="212" text-anchor="middle" fill="#ffab40" font-size="11">float* → IEEE 754</text>
+      <text x="600" y="228" text-anchor="middle" fill="#ffab40" font-size="11">char*  → ASCII value</text>
+
+      <!-- Bottom line -->
+      <text x="360" y="268" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">Casting changes ALL THREE — this is why wrong casts corrupt data</text>
+    </svg>
+  </div>
+
+  <p style="margin-top:20px;">The pointer type is not decoration. It's an instruction manual for the compiler: how many bytes to touch, how far to step, and how to interpret the bits. Casting between incompatible pointer types throws away this instruction manual and replaces it with a different one — causing the compiler to read the wrong number of bytes, step the wrong distance, and interpret bits in nonsensical ways. The address stored in the pointer stays the same; everything it <em>does</em> changes.</p>
+</section>
+
+</main>
+</body>
+</html>
