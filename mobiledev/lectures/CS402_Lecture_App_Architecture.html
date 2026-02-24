@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 — Mobile Device Software Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+    font-size: 16px; line-height: 1.75; color: #2c2c2c; background: #f5f5f5;
+  }
+
+  /* ---- Navigation Bar ---- */
+  .topnav {
+    position: sticky; top: 0; z-index: 100;
+    background: #1B3A5C; color: #fff;
+    padding: 10px 24px; display: flex; align-items: center; gap: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 13px; flex-wrap: wrap;
+  }
+  .topnav .brand { font-weight: 700; font-size: 15px; margin-right: 12px; white-space: nowrap; }
+  .topnav a {
+    color: rgba(255,255,255,0.8); text-decoration: none; padding: 4px 10px;
+    border-radius: 4px; transition: all 0.2s; white-space: nowrap;
+  }
+  .topnav a:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  /* ---- Slide sections ---- */
+  .slide {
+    max-width: 920px; margin: 0 auto 2px; padding: 60px 48px;
+    background: #fff; min-height: 80vh;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .slide-title {
+    max-width: 920px; margin: 0 auto 2px; padding: 80px 48px;
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+    background: linear-gradient(135deg, #1B3A5C 0%, #2E5D8A 50%, #1B3A5C 100%);
+    color: #fff;
+  }
+  .slide-section-break {
+    max-width: 920px; margin: 0 auto 2px; padding: 60px 48px;
+    min-height: 40vh; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+    background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%); color: #fff;
+  }
+
+  /* ---- Typography ---- */
+  h1 { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; }
+  .slide-title h1 { font-size: 42px; margin-bottom: 12px; }
+  .slide-title .meta { font-size: 18px; opacity: 0.8; }
+  .slide-section-break h1 { font-size: 36px; margin-bottom: 8px; }
+  .slide-section-break p { font-size: 16px; opacity: 0.7; }
+
+  h2 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 28px; color: #1B3A5C; margin-bottom: 20px; font-weight: 400;
+  }
+  h3 { font-size: 18px; color: #2E5D8A; margin: 24px 0 10px; font-weight: 700; }
+  p { margin-bottom: 14px; color: #333; }
+  .lead { font-size: 17px; color: #444; line-height: 1.8; }
+
+  /* ---- Spec card (phone spec etc) ---- */
+  .spec-card {
+    display: inline-block; padding: 20px 28px; background: #f7fafc;
+    border: 1px solid #e0e8f0; border-radius: 10px; margin: 16px 0;
+  }
+  .spec-card .name { font-size: 20px; font-weight: 700; color: #1B3A5C; margin-bottom: 4px; }
+  .spec-card .year { font-size: 15px; color: #c8890f; font-weight: 600; }
+  .spec-card .specs { font-size: 14px; color: #555; margin-top: 8px; line-height: 1.6; }
+
+  /* ---- Key point callout ---- */
+  .callout {
+    margin: 20px 0; padding: 18px 22px;
+    background: #f0f6fb; border-left: 4px solid #2E5D8A;
+    border-radius: 0 8px 8px 0;
+  }
+  .callout strong { color: #1B3A5C; }
+  .callout-warn {
+    margin: 20px 0; padding: 18px 22px;
+    background: #fef9f0; border-left: 4px solid #c8890f;
+    border-radius: 0 8px 8px 0;
+  }
+  .callout-warn strong { color: #8a5d0a; }
+
+  /* ---- Columns ---- */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0; }
+  .cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+  .col-card {
+    padding: 20px; border-radius: 8px; border: 1px solid #e0e8f0;
+  }
+  .col-card h3 { margin-top: 0; }
+
+
+  /* ---- Photo insets ---- */
+  .inset-right {
+    float: right; margin: 0 0 16px 24px; max-width: 160px;
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    background: #fff; border: 1px solid #e0e8f0;
+  }
+  .inset-left {
+    float: left; margin: 0 24px 16px 0; max-width: 200px;
+    border-radius: 8px; overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    background: #fff; border: 1px solid #e0e8f0;
+  }
+  .inset-right img, .inset-left img {
+    display: block; width: 100%; height: auto;
+  }
+  .inset-caption {
+    padding: 6px 10px; font-size: 11px; color: #777;
+    text-align: center; line-height: 1.3; background: #fafbfc;
+    border-top: 1px solid #eee;
+  }
+  .tl-item::after { content: ''; display: table; clear: both; }
+
+  /* ---- SVG containers ---- */
+  .diagram { margin: 28px 0; text-align: center; }
+  .diagram svg { max-width: 100%; height: auto; }
+
+  /* ---- History timeline ---- */
+  .timeline { position: relative; padding-left: 28px; margin: 20px 0; }
+  .timeline::before {
+    content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 3px; background: #d0dce6; border-radius: 2px;
+  }
+  .tl-item { position: relative; margin-bottom: 24px; padding-left: 20px; }
+  .tl-item::before {
+    content: ''; position: absolute; left: -24px; top: 8px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #2E5D8A; border: 3px solid #fff; box-shadow: 0 0 0 2px #2E5D8A;
+  }
+  .tl-year { font-size: 13px; font-weight: 700; color: #c8890f; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tl-title { font-size: 17px; font-weight: 700; color: #1B3A5C; }
+  .tl-desc { font-size: 14.5px; color: #555; margin-top: 4px; }
+
+  /* ---- Table ---- */
+  .data-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  .data-table th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left; }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  .data-table tr:nth-child(even) { background: #f4f8fb; }
+
+  /* ---- Slide number ---- */
+  .slide-num {
+    font-size: 12px; color: #bbb; margin-top: 24px; text-align: right;
+    padding-top: 12px; border-top: 1px solid #eee;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace; background: #f0f0f0;
+    padding: 2px 6px; border-radius: 3px; font-size: 14px;
+  }
+
+  @media (max-width: 700px) {
+    .slide { padding: 32px 20px; }
+    .cols, .cols-3 { grid-template-columns: 1fr; }
+    .topnav { font-size: 11px; gap: 8px; }
+  }
+  @media print {
+    .topnav { display: none; }
+    .slide { break-after: page; min-height: auto; padding: 32px; }
+    .slide-title { break-after: page; }
+  }
+</style>
+</head>
+<body>
+
+<!-- STICKY NAV -->
+<nav class="topnav">
+  <span class="brand">CS 402</span>
+  <a href="#history">History</a>
+  <a href="#three-tier">3-Tier Architecture</a>
+  <a href="#mvc">MVC</a>
+  <a href="#mobile-arch">Mobile Design</a>
+  <a href="#client-spectrum">Thin↔Rich Spectrum</a>
+  <a href="#layers-detail">Layer Details</a>
+  <a href="#rn-arch">React Native Runtime</a>
+  <a href="#design">App Design</a>
+  <a href="#permissions">Permissions</a>
+</nav>
+
+<!-- ============================================================ -->
+<!-- TITLE SLIDE                                                   -->
+<!-- ============================================================ -->
+<section class="slide-title" id="top">
+  <h1>Mobile Device Software Architecture</h1>
+  <div class="meta">CS 402 — Mobile Application Development · Spring 2026</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 1: HISTORY                                               -->
+<!-- ============================================================ -->
+<section class="slide-section-break" id="history">
+  <h1>The Way Back Time</h1>
+  <p>When a phone was a phone… plus a story!</p>
+</section>
+
+<section class="slide">
+  <h2>A Brief History of Mobile</h2>
+  <p class="lead">Before we build apps, let's understand how we got here. The path from brick phones to app ecosystems explains <em>why</em> mobile architecture looks the way it does.</p>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="inset-right" style="max-width:120px;">
+        <img src="data:image/jpeg;base64,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" alt="Motorola DynaTAC 8000X">
+        <div class="inset-caption">Motorola DynaTAC 8000X, 1983</div>
+      </div>
+      <div class="tl-year">1983</div>
+      <div class="tl-title">The Motorola DynaTAC 8000X</div>
+      <div class="tl-desc">13 × 1.75 × 3.5 inches. 2.5 pounds. $3,995 plus monthly fee plus per-minute charges. This was a phone — and only a phone. Then came the bag phone.</div>
+    </div>
+    <div class="tl-item">
+      <div class="inset-left" style="max-width:200px;">
+        <img src="data:image/jpeg;base64,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" alt="Bag phone">
+        <div class="inset-caption">The bag phone — mobile, sort of</div>
+      </div>
+      <div class="tl-year">Late 1990s</div>
+      <div class="tl-title">Nokia Invents Mobile Phone Gaming</div>
+      <div class="tl-desc">Remember Snake? Other early apps: basic contact managers, Pong, Tetris. The phone becomes more than a phone — but the manufacturer controls everything.</div>
+    </div>
+    <div class="tl-item">
+      <div class="inset-right" style="max-width:90px;">
+        <img src="data:image/jpeg;base64,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" alt="WAP phone interface">
+        <div class="inset-caption">WAP browser on a phone emulator</div>
+      </div>
+      <div class="tl-year">~1999</div>
+      <div class="tl-title">WAP — The First Mobile Web Platform</div>
+      <div class="tl-desc">Wireless Application Protocol: stripped-down HTTP for unreliable mobile networks. Used WML instead of HTML with a "card" mentality. The two popular WAP sites? CNN and ESPN.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">Early 2000s</div>
+      <div class="tl-title">In-App Purchases Before Apps: SMS</div>
+      <div class="tl-desc">Before app stores existed, SMS was the monetization platform. Text a short code, get charged on your phone bill. Ring tones, wallpapers, trivia — the first mobile economy.</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">~2005–2007</div>
+      <div class="tl-title">Third-Party Apps Begin</div>
+      <div class="tl-desc">Batteries improved, form factors shrank, coverage expanded. Handset manufacturers didn't want to write all the apps — but also didn't want to open their platforms. Phones started running known operating systems (Windows CE, Linux). Now the big players were involved.</div>
+    </div>
+    <div class="tl-item">
+      <div class="inset-right" style="max-width:180px;">
+        <img src="data:image/jpeg;base64,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" alt="Modern mobile device with apps floating around it">
+        <div class="inset-caption">The modern mobile ecosystem</div>
+      </div>
+      <div class="tl-year">2007–Now</div>
+      <div class="tl-title">The Fractured Mobile Market</div>
+      <div class="tl-desc">Who do you develop for? How do you test for every phone? Which market works best? How do you port between platforms? Which tools can you use? This is the world we inherited.</div>
+    </div>
+  </div>
+  <div class="slide-num">Slides 2–10</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 2: THREE-TIERED ARCHITECTURE                             -->
+<!-- ============================================================ -->
+<section class="slide-section-break" id="three-tier">
+  <h1>The Three-Tiered Architecture</h1>
+  <p>The foundation of every modern application</p>
+</section>
+
+<section class="slide">
+  <h2>The Three Tiers</h2>
+  <p class="lead">For a web application: the browser + dynamically generated HTML is the presentation layer. Middleware files (PHP, Java servlets) contain the business logic. The database server is the data layer.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 520" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <defs>
+      <filter id="ds" x="-2%" y="-2%" width="104%" height="108%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+      </filter>
+    </defs>
+
+    <!-- Presentation Tier -->
+    <rect x="40" y="20" width="720" height="140" rx="10" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2" filter="url(#ds)"/>
+    <rect x="40" y="20" width="720" height="38" rx="10" fill="#2E5D8A"/>
+    <rect x="40" y="48" width="720" height="10" fill="#2E5D8A"/>
+    <text x="70" y="46" font-size="16" font-weight="700" fill="white">Presentation Tier</text>
+    <text x="70" y="86" font-size="14" fill="#333">The top-most level of the application is the user interface.</text>
+    <text x="70" y="106" font-size="14" fill="#333">The main function of the interface is to translate tasks and</text>
+    <text x="70" y="126" font-size="14" fill="#333">results to something the user can understand.</text>
+
+    <!-- Terminal icons -->
+    <rect x="580" y="65" width="80" height="55" rx="6" fill="#1e1e2e"/>
+    <text x="590" y="85" font-size="10" font-family="monospace" fill="#4ade80">> GET SALES</text>
+    <text x="590" y="98" font-size="10" font-family="monospace" fill="#4ade80">  TOTAL</text>
+    <rect x="680" y="65" width="60" height="55" rx="6" fill="#1e1e2e"/>
+    <text x="686" y="85" font-size="9" font-family="monospace" fill="#4ade80">> TOTAL:</text>
+    <text x="686" y="98" font-size="9" font-family="monospace" fill="#f59e0b">  4 SALES</text>
+
+    <!-- Arrow down -->
+    <line x1="400" y1="160" x2="400" y2="180" stroke="#c0392b" stroke-width="2.5" marker-end="url(#arrowR)"/>
+    <defs><marker id="arrowR" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#c0392b"/></marker></defs>
+
+    <!-- Logic Tier -->
+    <rect x="40" y="185" width="720" height="140" rx="10" fill="#f0faf0" stroke="#27ae60" stroke-width="2" filter="url(#ds)"/>
+    <rect x="40" y="185" width="720" height="38" rx="10" fill="#27ae60"/>
+    <rect x="40" y="213" width="720" height="10" fill="#27ae60"/>
+    <text x="70" y="211" font-size="16" font-weight="700" fill="white">Logic Tier</text>
+    <text x="70" y="251" font-size="14" fill="#333">This layer coordinates the application, processes commands,</text>
+    <text x="70" y="271" font-size="14" fill="#333">makes logical decisions and evaluations, and performs calculations.</text>
+    <text x="70" y="291" font-size="14" fill="#333">It also moves and processes data between the two surrounding layers.</text>
+
+    <!-- Gear icon area -->
+    <circle cx="620" cy="260" r="16" fill="none" stroke="#27ae60" stroke-width="2"/>
+    <text x="620" y="265" text-anchor="middle" font-size="14">⚙</text>
+    <text x="650" y="252" font-size="11" font-weight="700" fill="#333">GET LIST</text>
+    <text x="650" y="266" font-size="11" font-weight="700" fill="#333">OF SALES</text>
+    <text x="710" y="280" font-size="11" font-weight="700" fill="#333">→ ADD ALL</text>
+
+    <!-- Arrow down -->
+    <line x1="400" y1="325" x2="400" y2="345" stroke="#c0392b" stroke-width="2.5" marker-end="url(#arrowR)"/>
+
+    <!-- Data Tier -->
+    <rect x="40" y="350" width="720" height="140" rx="10" fill="#fdf6ec" stroke="#c8890f" stroke-width="2" filter="url(#ds)"/>
+    <rect x="40" y="350" width="720" height="38" rx="10" fill="#c8890f"/>
+    <rect x="40" y="378" width="720" height="10" fill="#c8890f"/>
+    <text x="70" y="376" font-size="16" font-weight="700" fill="white">Data Tier</text>
+    <text x="70" y="416" font-size="14" fill="#333">Here information is stored and retrieved from a database or</text>
+    <text x="70" y="436" font-size="14" fill="#333">file system. The information is then passed back to the logic tier</text>
+    <text x="70" y="456" font-size="14" fill="#333">for processing, and then eventually back to the user.</text>
+
+    <!-- DB icon -->
+    <ellipse cx="620" cy="415" rx="30" ry="12" fill="#c8890f" opacity="0.3" stroke="#c8890f" stroke-width="1.5"/>
+    <rect x="590" y="415" width="60" height="30" fill="#fdf6ec" stroke="#c8890f" stroke-width="1.5"/>
+    <ellipse cx="620" cy="445" rx="30" ry="12" fill="none" stroke="#c8890f" stroke-width="1.5"/>
+    <ellipse cx="620" cy="415" rx="30" ry="12" fill="#c8890f" opacity="0.15" stroke="#c8890f" stroke-width="1.5"/>
+    <text x="620" y="435" text-anchor="middle" font-size="11" font-weight="600" fill="#8a5d0a">Database</text>
+    <text x="700" y="430" font-size="12" fill="#555">↔ Storage</text>
+  </svg>
+  </div>
+
+  <div class="callout">
+    <strong>Why this matters:</strong> Keep the presentation separate so it's lightweight, easier to maintain, and can be tested separately. Keep the logic separate so you can change it without changing the UI. Keep the data separate because you should NEVER build a system based on current data values.
+  </div>
+  <div class="slide-num">Slides 11–13</div>
+</section>
+
+<section class="slide">
+  <h2>The Business Origins of 3-Tier Architecture</h2>
+  <p class="lead">Before it was a technical pattern, the 3-tier architecture was a <strong>business strategy for managing software teams</strong>. Understanding its origins tells you why it's structured the way it is.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <defs>
+      <filter id="ds3" x="-2%" y="-2%" width="104%" height="108%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.08"/></filter>
+    </defs>
+
+    <text x="400" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#1B3A5C">3-Tier as a Team Management Strategy</text>
+
+    <!-- Three team boxes -->
+    <rect x="30" y="50" width="220" height="120" rx="10" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2" filter="url(#ds3)"/>
+    <text x="140" y="78" text-anchor="middle" font-size="14" font-weight="700" fill="#2E5D8A">UI / Frontend Team</text>
+    <text x="140" y="100" text-anchor="middle" font-size="12" fill="#555">Designers &amp; front-end devs</text>
+    <text x="140" y="118" text-anchor="middle" font-size="12" fill="#555">Can redesign the UI without</text>
+    <text x="140" y="134" text-anchor="middle" font-size="12" fill="#555">touching business rules or DB</text>
+    <text x="140" y="156" text-anchor="middle" font-size="11" font-weight="600" fill="#2E5D8A">Owns: Presentation Tier</text>
+
+    <rect x="290" y="50" width="220" height="120" rx="10" fill="#f0faf0" stroke="#27ae60" stroke-width="2" filter="url(#ds3)"/>
+    <text x="400" y="78" text-anchor="middle" font-size="14" font-weight="700" fill="#27ae60">Application Dev Team</text>
+    <text x="400" y="100" text-anchor="middle" font-size="12" fill="#555">Backend &amp; logic developers</text>
+    <text x="400" y="118" text-anchor="middle" font-size="12" fill="#555">Can change business rules</text>
+    <text x="400" y="134" text-anchor="middle" font-size="12" fill="#555">without redesigning the UI</text>
+    <text x="400" y="156" text-anchor="middle" font-size="11" font-weight="600" fill="#27ae60">Owns: Logic Tier</text>
+
+    <rect x="550" y="50" width="220" height="120" rx="10" fill="#fdf6ec" stroke="#c8890f" stroke-width="2" filter="url(#ds3)"/>
+    <text x="660" y="78" text-anchor="middle" font-size="14" font-weight="700" fill="#c8890f">Database / DBA Team</text>
+    <text x="660" y="100" text-anchor="middle" font-size="12" fill="#555">DBAs &amp; data engineers</text>
+    <text x="660" y="118" text-anchor="middle" font-size="12" fill="#555">Can optimize, migrate, scale</text>
+    <text x="660" y="134" text-anchor="middle" font-size="12" fill="#555">the database independently</text>
+    <text x="660" y="156" text-anchor="middle" font-size="11" font-weight="600" fill="#c8890f">Owns: Data Tier</text>
+
+    <!-- Connecting interfaces -->
+    <line x1="250" y1="110" x2="290" y2="110" stroke="#333" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="270" y="102" text-anchor="middle" font-size="9" fill="#888">API</text>
+    <line x1="510" y1="110" x2="550" y2="110" stroke="#333" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="530" y="102" text-anchor="middle" font-size="9" fill="#888">API</text>
+
+    <!-- Bottom explanation -->
+    <rect x="30" y="195" width="740" height="90" rx="8" fill="#f7fafc" stroke="#e0e8f0" stroke-width="1"/>
+    <text x="50" y="220" font-size="14" font-weight="700" fill="#1B3A5C">The business insight:</text>
+    <text x="50" y="240" font-size="13" fill="#333">When tiers are cleanly separated, teams can work in parallel with defined interfaces between them.</text>
+    <text x="50" y="258" font-size="13" fill="#333">You can replace the database vendor without rewriting the UI. You can redesign the mobile app without</text>
+    <text x="50" y="276" font-size="13" fill="#333">touching the server logic. This reduces risk, enables specialization, and accelerates development.</text>
+  </svg>
+  </div>
+
+  <p>In the early days of enterprise software (1990s), large companies discovered that monolithic applications — where UI, logic, and data were all tangled together — couldn't scale organizationally. When the database team needed to optimize queries, they'd break the UI. When designers wanted to refresh the look, they'd introduce logic bugs. The 3-tier architecture solved a <em>people problem</em>: how do you let multiple specialized teams work on the same application without stepping on each other?</p>
+
+  <p>The technical separation followed naturally from the organizational one: clear APIs between tiers, independent deployment, separate testing. This is why 3-tier thinking applies everywhere — web apps, desktop apps, mobile apps, microservices. It's not about where the code runs; it's about <strong>how you organize the code so that humans can maintain it</strong>.</p>
+
+  <div class="callout">
+    <strong>Key takeaway:</strong> The 3-tier architecture is a <strong>software development methodology</strong> — a way to organize your code and your team regardless of platform. It tells you <em>how</em> to structure an application. It applies whether you're building a web app, a desktop app, or a mobile app. It applies across <em>all</em> the mobile architectures we'll discuss next.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 3: MVC                                                   -->
+<!-- ============================================================ -->
+<section class="slide-section-break" id="mvc">
+  <h1>Model-View-Controller</h1>
+  <p>The pattern that maps user actions to data and back</p>
+</section>
+
+<section class="slide">
+  <h2>MVC — The Pattern</h2>
+  <p class="lead">The MVC pattern maps: identify what the user is asking for → load a particular resource → display the pertinent info back to the user. That maps to Controller → Model → View.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <defs>
+      <marker id="aBlk" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#333"/></marker>
+      <marker id="aBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#2E5D8A"/></marker>
+    </defs>
+
+    <!-- Model box (top center) -->
+    <rect x="250" y="30" width="200" height="60" rx="8" fill="#f0e0e0" stroke="#c0392b" stroke-width="2"/>
+    <text x="350" y="66" text-anchor="middle" font-size="18" font-weight="700" fill="#333">MODEL</text>
+
+    <!-- View box (bottom left) -->
+    <rect x="60" y="200" width="200" height="60" rx="8" fill="#e0f0e0" stroke="#27ae60" stroke-width="2"/>
+    <text x="160" y="236" text-anchor="middle" font-size="18" font-weight="700" fill="#333">VIEW</text>
+
+    <!-- Controller box (bottom right) -->
+    <rect x="440" y="200" width="200" height="60" rx="8" fill="#e0e8f0" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="540" y="236" text-anchor="middle" font-size="18" font-weight="700" fill="#333">CONTROLLER</text>
+
+    <!-- User circle (bottom center) -->
+    <circle cx="350" cy="350" r="35" fill="#f0f0f0" stroke="#888" stroke-width="2"/>
+    <text x="350" y="355" text-anchor="middle" font-size="15" font-weight="700" fill="#555">USER</text>
+
+    <!-- Arrows: Model → View (UPDATES) -->
+    <path d="M260,85 Q160,140 165,195" fill="none" stroke="#333" stroke-width="2" marker-end="url(#aBlk)"/>
+    <text x="170" y="140" font-size="12" font-weight="700" fill="#555">UPDATES</text>
+
+    <!-- Arrows: Controller → Model (MANIPULATES) -->
+    <path d="M445,205 Q400,140 440,90" fill="none" stroke="#333" stroke-width="2" marker-end="url(#aBlk)"/>
+    <text x="460" y="140" font-size="12" font-weight="700" fill="#555">MANIPULATES</text>
+
+    <!-- Arrows: User → Controller (USES) -->
+    <path d="M380,325 Q460,290 445,260" fill="none" stroke="#888" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#aBlk)"/>
+    <text x="430" y="305" font-size="12" fill="#888">USES</text>
+
+    <!-- Arrows: View → User (SEES) -->
+    <path d="M165,260 Q180,300 320,325" fill="none" stroke="#888" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#aBlk)"/>
+    <text x="200" y="305" font-size="12" fill="#888">SEES</text>
+  </svg>
+  </div>
+
+  <div class="cols">
+    <div class="col-card" style="background:#fdf6ec; border-color:#c8890f;">
+      <h3 style="color:#8a5d0a;">Controller — The Traffic Cop</h3>
+      <p style="font-size:14px;">Takes the request from the user. Finds the appropriate model to load. Finds the appropriate view to display. Returns the whole thing back to the user.</p>
+    </div>
+    <div class="col-card" style="background:#f0e8f0; border-color:#7c5cbf;">
+      <h3 style="color:#4a3580;">Model — Data + API Rules</h3>
+      <p style="font-size:14px;">The representation of the data. Often maps directly to a database table with columns as attributes. Contains relationship rules (a Student has many Classes). Think "class definition with DB backend."</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Exercise:</strong> If you were building a blog, what might some of the models be? What resources should have addresses? How do they relate to each other? (Posts, Comments, Users, Tags…)
+  </div>
+  <div class="slide-num">Slides 14–20</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 4: MOBILE ARCHITECTURES                                  -->
+<!-- ============================================================ -->
+<section class="slide-section-break" id="mobile-arch">
+  <h1>Mobile App Architectures</h1>
+  <p>A mobile-specific design decision that complements the 3-tier model</p>
+</section>
+
+<section class="slide">
+  <h2>Two Complementary Decisions</h2>
+  <p class="lead">Now we shift from a general software development principle to a <strong>mobile-specific design choice</strong>. The 3-tier architecture tells you <em>how to organize your code</em>. The mobile architecture spectrum tells you <em>where that code physically runs</em>.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 230" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <!-- Left box: 3-Tier -->
+    <rect x="30" y="20" width="340" height="190" rx="12" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="200" y="50" text-anchor="middle" font-size="16" font-weight="700" fill="#1B3A5C">3-Tier Architecture</text>
+    <text x="200" y="72" text-anchor="middle" font-size="13" font-weight="600" fill="#2E5D8A">Software Development Approach</text>
+    <line x1="60" y1="82" x2="340" y2="82" stroke="#d0dce6" stroke-width="1"/>
+    <text x="50" y="106" font-size="13" fill="#333">Answers: <tspan font-weight="700">HOW</tspan> do I organize my code?</text>
+    <text x="50" y="128" font-size="13" fill="#555">Separate presentation, logic, and data</text>
+    <text x="50" y="148" font-size="13" fill="#555">so teams can work independently</text>
+    <text x="50" y="172" font-size="12" font-weight="600" fill="#2E5D8A">Applies to: web, desktop, mobile, any platform</text>
+    <text x="50" y="192" font-size="12" font-weight="600" fill="#2E5D8A">Origin: business team management strategy</text>
+
+    <!-- Right box: Mobile Spectrum -->
+    <rect x="430" y="20" width="340" height="190" rx="12" fill="#fdf6ec" stroke="#c8890f" stroke-width="2"/>
+    <text x="600" y="50" text-anchor="middle" font-size="16" font-weight="700" fill="#8a5d0a">Thin ↔ Rich Spectrum</text>
+    <text x="600" y="72" text-anchor="middle" font-size="13" font-weight="600" fill="#c8890f">Mobile App Design Choice</text>
+    <line x1="460" y1="82" x2="740" y2="82" stroke="#e8dcc8" stroke-width="1"/>
+    <text x="450" y="106" font-size="13" fill="#333">Answers: <tspan font-weight="700">WHERE</tspan> does my code run?</text>
+    <text x="450" y="128" font-size="13" fill="#555">On the device, on the server,</text>
+    <text x="450" y="148" font-size="13" fill="#555">or split between them?</text>
+    <text x="450" y="172" font-size="12" font-weight="600" fill="#c8890f">Applies to: mobile apps specifically</text>
+    <text x="450" y="192" font-size="12" font-weight="600" fill="#c8890f">Driven by: connectivity, device features, UX</text>
+
+    <!-- Connecting plus sign -->
+    <circle cx="400" cy="115" r="18" fill="#fff" stroke="#333" stroke-width="2"/>
+    <text x="400" y="121" text-anchor="middle" font-size="20" font-weight="700" fill="#333">+</text>
+  </svg>
+  </div>
+
+  <p>These two ideas are <strong>complementary, not competing</strong>. You always use the 3-tier architecture to organize your code into presentation, logic, and data concerns — that's good software engineering on any platform. The mobile-specific question is: given that I have these three tiers, <em>where do they physically execute?</em> That answer depends on your app's requirements for connectivity, device features, offline capability, and user experience.</p>
+
+  <div class="callout-warn">
+    <strong>The mobile-specific constraints that drive this choice:</strong> Unreliable networks that drop constantly. Limited battery shared across all apps. App store review processes that delay updates. Users who switch between apps constantly and expect instant responsiveness. These constraints don't exist for web or desktop development — they're what make mobile architecture its own discipline.
+  </div>
+  <div class="slide-num">Slide 21</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 4B: THIN-TO-RICH CLIENT SPECTRUM (DEEP DIVE)             -->
+<!-- ============================================================ -->
+<section class="slide-section-break" id="client-spectrum">
+  <h1>The Thin-to-Rich Client Spectrum</h1>
+  <p>Where do features live — on the device or on the server?</p>
+</section>
+
+<section class="slide">
+  <h2>The Spectrum: A Design Decision, Not a Category</h2>
+  <p class="lead">Most apps aren't purely thin or purely rich — they fall somewhere along a spectrum. The question isn't "which type is my app?" but rather: <em>for each feature, where should the computation and data live?</em></p>
+
+  <!-- THE SPECTRUM DIAGRAM -->
+  <div class="diagram">
+  <svg viewBox="0 0 800 110" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <defs>
+      <linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#2E5D8A"/>
+        <stop offset="50%" stop-color="#7c5cbf"/>
+        <stop offset="100%" stop-color="#c8890f"/>
+      </linearGradient>
+    </defs>
+    <!-- Spectrum bar -->
+    <rect x="40" y="40" width="720" height="14" rx="7" fill="url(#spectrum)"/>
+    <!-- Endpoint labels -->
+    <text x="40" y="28" font-size="13" font-weight="700" fill="#2E5D8A">Server does everything</text>
+    <text x="760" y="28" text-anchor="end" font-size="13" font-weight="700" fill="#c8890f">Device does everything</text>
+    <!-- Tick marks -->
+    <line x1="130" y1="58" x2="130" y2="72" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="130" y="88" text-anchor="middle" font-size="11" font-weight="600" fill="#2E5D8A">Rich Internet</text>
+    <text x="130" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="#2E5D8A">Application</text>
+    <line x1="400" y1="58" x2="400" y2="72" stroke="#7c5cbf" stroke-width="2"/>
+    <text x="400" y="88" text-anchor="middle" font-size="11" font-weight="600" fill="#7c5cbf">Thin Mobile</text>
+    <text x="400" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="#7c5cbf">Architecture</text>
+    <line x1="670" y1="58" x2="670" y2="72" stroke="#c8890f" stroke-width="2"/>
+    <text x="670" y="88" text-anchor="middle" font-size="11" font-weight="600" fill="#c8890f">Rich Mobile</text>
+    <text x="670" y="102" text-anchor="middle" font-size="11" font-weight="600" fill="#c8890f">Architecture</text>
+  </svg>
+  </div>
+
+  <p>Each position on the spectrum represents a different answer to the same question: <em>how much of the 3-tier architecture lives on the device vs. on the server?</em> Let's look at each one and map the three tiers across them.</p>
+</section>
+
+<!-- RICH INTERNET APPLICATION -->
+<section class="slide">
+  <h2>Rich Internet Application (RIA)</h2>
+  <p class="lead">The lightest possible mobile client. Eschews the use of any phone resources other than a browser. All three tiers live on the server; the phone is just a viewport.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <defs>
+      <filter id="ds2" x="-2%" y="-2%" width="104%" height="108%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.08"/></filter>
+    </defs>
+
+    <!-- Phone side (left) -->
+    <rect x="30" y="20" width="260" height="340" rx="12" fill="#f7fafc" stroke="#bbb" stroke-width="2" filter="url(#ds2)"/>
+    <text x="160" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#333">📱 Mobile Device</text>
+    <!-- Only browser -->
+    <rect x="55" y="70" width="210" height="60" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="160" y="98" text-anchor="middle" font-size="15" font-weight="700" fill="#2E5D8A">Web Browser</text>
+    <text x="160" y="114" text-anchor="middle" font-size="11" fill="#555">The only resource used</text>
+    <!-- Empty space showing nothing else on device -->
+    <rect x="55" y="150" width="210" height="180" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="6,4"/>
+    <text x="160" y="230" text-anchor="middle" font-size="13" fill="#ccc">No local logic</text>
+    <text x="160" y="250" text-anchor="middle" font-size="13" fill="#ccc">No local data</text>
+    <text x="160" y="270" text-anchor="middle" font-size="13" fill="#ccc">No device features</text>
+
+    <!-- Arrow -->
+    <line x1="290" y1="100" x2="370" y2="100" stroke="#2E5D8A" stroke-width="2.5" marker-end="url(#aBlk)"/>
+    <text x="330" y="88" text-anchor="middle" font-size="10" fill="#888">HTTP</text>
+    <line x1="370" y1="120" x2="290" y2="120" stroke="#27ae60" stroke-width="2.5" marker-end="url(#aBlk)"/>
+    <text x="330" y="140" text-anchor="middle" font-size="10" fill="#888">HTML</text>
+
+    <!-- Server side (right) -->
+    <rect x="380" y="20" width="390" height="340" rx="12" fill="#f0f6fb" stroke="#2E5D8A" stroke-width="2" filter="url(#ds2)"/>
+    <text x="575" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#1B3A5C">🖥 Server</text>
+
+    <rect x="405" y="65" width="340" height="70" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="1.5"/>
+    <text x="420" y="86" font-size="11" font-weight="700" fill="#2E5D8A">PRESENTATION</text>
+    <text x="420" y="103" font-size="12" fill="#555">Dynamic HTML generation, CSS, JS</text>
+    <text x="420" y="118" font-size="12" fill="#555">Rendered on server, sent to browser</text>
+
+    <rect x="405" y="150" width="340" height="70" rx="8" fill="#fff" stroke="#27ae60" stroke-width="1.5"/>
+    <text x="420" y="171" font-size="11" font-weight="700" fill="#27ae60">LOGIC</text>
+    <text x="420" y="188" font-size="12" fill="#555">PHP, Java servlets, Node.js, Python</text>
+    <text x="420" y="203" font-size="12" fill="#555">All business rules on the server</text>
+
+    <rect x="405" y="235" width="340" height="70" rx="8" fill="#fff" stroke="#c8890f" stroke-width="1.5"/>
+    <text x="420" y="256" font-size="11" font-weight="700" fill="#c8890f">DATA</text>
+    <text x="420" y="273" font-size="12" fill="#555">Database, file storage, all state</text>
+    <text x="420" y="288" font-size="12" fill="#555">Nothing stored locally on device</text>
+
+    <!-- Verdict -->
+    <rect x="405" y="320" width="340" height="28" rx="6" fill="#2E5D8A" opacity="0.1"/>
+    <text x="575" y="340" text-anchor="middle" font-size="12" font-weight="700" fill="#2E5D8A">All three tiers live on the server</text>
+  </svg>
+  </div>
+
+  <div class="cols">
+    <div class="col-card" style="background:#eef4fb;">
+      <h3 style="color:#2E5D8A; margin-top:0;">When to use this</h3>
+      <p style="font-size:14px;">Apps that need maximum reach — run on any device with a browser. No app store submission required. Updates are instant (just update the server). Good for information-display apps, internal tools, dashboards.</p>
+    </div>
+    <div class="col-card" style="background:#fef3f3;">
+      <h3 style="color:#c0392b; margin-top:0;">What you give up</h3>
+      <p style="font-size:14px;">No access to device hardware (camera, GPS, accelerometer). No offline capability whatsoever. Performance limited by network latency. Doesn't feel "native" — no platform-specific gestures or conventions.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <strong>Real-world examples:</strong> Mobile banking web apps, Google Docs on mobile, many internal enterprise tools. The trade is clear: maximum portability in exchange for zero device integration.
+  </div>
+</section>
+
+<!-- THIN MOBILE ARCHITECTURE -->
+<section class="slide">
+  <h2>Thin Mobile Architecture</h2>
+  <p class="lead">The phone handles <strong>presentation</strong> natively — it's a real app with native UI — but most business logic and all data services remain on the server. The device is a smart display with some local behavior.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <!-- Phone side (left) -->
+    <rect x="30" y="20" width="310" height="340" rx="12" fill="#f7fafc" stroke="#bbb" stroke-width="2" filter="url(#ds2)"/>
+    <text x="185" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#333">📱 Mobile Device</text>
+
+    <rect x="50" y="65" width="270" height="80" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="65" y="86" font-size="11" font-weight="700" fill="#2E5D8A">PRESENTATION ★</text>
+    <text x="65" y="103" font-size="12" fill="#555">Native UI components</text>
+    <text x="65" y="118" font-size="12" fill="#555">Touch handling, navigation, gestures</text>
+    <text x="65" y="133" font-size="12" fill="#555">Platform-specific look &amp; feel</text>
+
+    <rect x="50" y="160" width="270" height="55" rx="8" fill="#fff" stroke="#27ae60" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="65" y="181" font-size="11" font-weight="700" fill="#27ae60" opacity="0.6">LOGIC (minimal)</text>
+    <text x="65" y="198" font-size="12" fill="#999">Input validation, caching, UI state</text>
+
+    <rect x="50" y="230" width="270" height="55" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="6,4"/>
+    <text x="65" y="251" font-size="11" font-weight="700" fill="#ccc">DATA (cache only)</text>
+    <text x="65" y="268" font-size="12" fill="#ccc">Temporary cache at most</text>
+
+    <text x="185" y="310" text-anchor="middle" font-size="11" fill="#7c5cbf" font-weight="700">Phone services: push notifications,</text>
+    <text x="185" y="326" text-anchor="middle" font-size="11" fill="#7c5cbf" font-weight="700">camera for QR, basic sensors</text>
+
+    <!-- Arrows -->
+    <line x1="340" y1="140" x2="410" y2="140" stroke="#7c5cbf" stroke-width="2.5" marker-end="url(#aBlk)"/>
+    <text x="375" y="128" text-anchor="middle" font-size="10" fill="#888">API calls</text>
+    <line x1="410" y1="160" x2="340" y2="160" stroke="#7c5cbf" stroke-width="2.5" marker-end="url(#aBlk)"/>
+    <text x="375" y="178" text-anchor="middle" font-size="10" fill="#888">JSON</text>
+
+    <!-- Server side (right) -->
+    <rect x="420" y="20" width="350" height="340" rx="12" fill="#f3eff8" stroke="#7c5cbf" stroke-width="2" filter="url(#ds2)"/>
+    <text x="595" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#4a3580">🖥 Server</text>
+
+    <rect x="440" y="65" width="310" height="45" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="1" stroke-dasharray="4,3"/>
+    <text x="455" y="86" font-size="11" font-weight="700" fill="#2E5D8A" opacity="0.5">PRESENTATION (API formatting)</text>
+    <text x="455" y="100" font-size="11" fill="#999">JSON serialization for the client</text>
+
+    <rect x="440" y="125" width="310" height="80" rx="8" fill="#fff" stroke="#27ae60" stroke-width="2"/>
+    <text x="455" y="146" font-size="11" font-weight="700" fill="#27ae60">LOGIC ★</text>
+    <text x="455" y="163" font-size="12" fill="#555">All business rules, validation</text>
+    <text x="455" y="178" font-size="12" fill="#555">Computation, workflows, auth</text>
+    <text x="455" y="193" font-size="12" fill="#555">The "brain" of the application</text>
+
+    <rect x="440" y="220" width="310" height="80" rx="8" fill="#fff" stroke="#c8890f" stroke-width="2"/>
+    <text x="455" y="241" font-size="11" font-weight="700" fill="#c8890f">DATA ★</text>
+    <text x="455" y="258" font-size="12" fill="#555">Full database, file storage</text>
+    <text x="455" y="273" font-size="12" fill="#555">Source of truth for all state</text>
+    <text x="455" y="288" font-size="12" fill="#555">Backup, replication, scaling</text>
+
+    <rect x="440" y="315" width="310" height="28" rx="6" fill="#7c5cbf" opacity="0.1"/>
+    <text x="595" y="335" text-anchor="middle" font-size="12" font-weight="700" fill="#7c5cbf">Logic + Data on server · Presentation on device</text>
+  </svg>
+  </div>
+
+  <div class="cols">
+    <div class="col-card" style="background:#f3eff8;">
+      <h3 style="color:#7c5cbf; margin-top:0;">When to use this</h3>
+      <p style="font-size:14px;">Apps that need native feel but centralized control. Social media feeds, email clients, news apps, e-commerce. The server holds the real data; the phone is a beautiful, responsive window into it. Good for apps that require phone services (push, camera) but are data-driven.</p>
+    </div>
+    <div class="col-card" style="background:#fef3f3;">
+      <h3 style="color:#c0392b; margin-top:0;">What you give up</h3>
+      <p style="font-size:14px;">Requires Internet connectivity for almost everything. Server goes down = app is useless. Latency affects every interaction. You're paying for server infrastructure and scaling.</p>
+    </div>
+  </div>
+</section>
+
+<!-- RICH MOBILE ARCHITECTURE -->
+<section class="slide">
+  <h2>Rich Mobile Architecture</h2>
+  <p class="lead">Business logic and data services live <strong>on the phone itself</strong>. The device is a self-contained application that can function independently, syncing with a remote server when connectivity is available.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <!-- Phone side (left) — the big one now -->
+    <rect x="30" y="20" width="420" height="380" rx="12" fill="#fdf6ec" stroke="#c8890f" stroke-width="2" filter="url(#ds2)"/>
+    <text x="240" y="50" text-anchor="middle" font-size="14" font-weight="700" fill="#8a5d0a">📱 Mobile Device</text>
+
+    <rect x="50" y="65" width="380" height="70" rx="8" fill="#fff" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="65" y="86" font-size="11" font-weight="700" fill="#2E5D8A">PRESENTATION ★</text>
+    <text x="65" y="103" font-size="12" fill="#555">Full native UI, gestures, navigation, animations</text>
+    <text x="65" y="118" font-size="12" fill="#555">Platform-specific components, accessibility</text>
+
+    <rect x="50" y="148" width="380" height="80" rx="8" fill="#fff" stroke="#27ae60" stroke-width="2"/>
+    <text x="65" y="169" font-size="11" font-weight="700" fill="#27ae60">LOGIC ★</text>
+    <text x="65" y="186" font-size="12" fill="#555">Business rules, validation, computation ON DEVICE</text>
+    <text x="65" y="201" font-size="12" fill="#555">Workflows, app facade, offline decision-making</text>
+    <text x="65" y="216" font-size="12" fill="#555">Can function without any server connection</text>
+
+    <rect x="50" y="241" width="380" height="70" rx="8" fill="#fff" stroke="#c8890f" stroke-width="2"/>
+    <text x="65" y="262" font-size="11" font-weight="700" fill="#c8890f">DATA ★</text>
+    <text x="65" y="279" font-size="12" fill="#555">Local SQLite database, AsyncStorage, file system</text>
+    <text x="65" y="294" font-size="12" fill="#555">Full CRUD locally — sync to server when connected</text>
+
+    <!-- Cross-cutting sidebar -->
+    <rect x="360" y="65" width="70" height="246" rx="6" fill="#f3eff8" stroke="#7c5cbf" stroke-width="1.5"/>
+    <text x="395" y="160" text-anchor="middle" font-size="9" font-weight="700" fill="#7c5cbf" transform="rotate(-90 395 160)">Security · Config · Communications</text>
+
+    <!-- Local data store -->
+    <rect x="50" y="328" width="130" height="30" rx="6" fill="#eee" stroke="#aaa" stroke-width="1"/>
+    <text x="115" y="348" text-anchor="middle" font-size="11" font-weight="600" fill="#666">Local Data &amp; Cache</text>
+
+    <rect x="50" y="368" width="380" height="24" rx="6" fill="#c8890f" opacity="0.1"/>
+    <text x="240" y="384" text-anchor="middle" font-size="11" font-weight="700" fill="#c8890f">All three tiers live on the device</text>
+
+    <!-- Sync arrow -->
+    <line x1="450" y1="200" x2="520" y2="200" stroke="#c8890f" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#aBlk)"/>
+    <line x1="520" y1="220" x2="450" y2="220" stroke="#c8890f" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#aBlk)"/>
+    <text x="485" y="248" text-anchor="middle" font-size="10" fill="#888">Sync when</text>
+    <text x="485" y="261" text-anchor="middle" font-size="10" fill="#888">connected</text>
+
+    <!-- Server side (right) — smaller now -->
+    <rect x="530" y="90" width="240" height="240" rx="12" fill="#f7fafc" stroke="#bbb" stroke-width="1.5" filter="url(#ds2)"/>
+    <text x="650" y="118" text-anchor="middle" font-size="13" font-weight="700" fill="#333">🖥 Remote Infrastructure</text>
+
+    <rect x="550" y="135" width="200" height="50" rx="6" fill="#fff" stroke="#c8890f" stroke-width="1.5"/>
+    <text x="565" y="155" font-size="10" font-weight="700" fill="#c8890f">DATA (backup/sync)</text>
+    <text x="565" y="172" font-size="11" fill="#555">Central database, backup</text>
+
+    <rect x="550" y="200" width="200" height="50" rx="6" fill="#fff" stroke="#27ae60" stroke-width="1.5"/>
+    <text x="565" y="220" font-size="10" font-weight="700" fill="#27ae60">SERVICES</text>
+    <text x="565" y="237" font-size="11" fill="#555">Sync, push, shared data</text>
+
+    <rect x="550" y="265" width="200" height="40" rx="6" fill="#fff" stroke="#7c5cbf" stroke-width="1.5"/>
+    <text x="565" y="290" font-size="10" font-weight="700" fill="#7c5cbf">SYNC ENGINE</text>
+  </svg>
+  </div>
+
+  <div class="cols">
+    <div class="col-card" style="background:#fdf6ec;">
+      <h3 style="color:#c8890f; margin-top:0;">When to use this</h3>
+      <p style="font-size:14px;">Apps that must work "off the grid." Field data collection, GPS/mapping apps (Waze!), note-taking, games, medical apps in remote areas, any app where connectivity can't be guaranteed. The device is the primary computer; the server is a backup and coordination layer.</p>
+    </div>
+    <div class="col-card" style="background:#fef3f3;">
+      <h3 style="color:#c0392b; margin-top:0;">What you give up</h3>
+      <p style="font-size:14px;">Most complex to build. Data sync conflicts are hard (two devices edit the same record offline — who wins?). Larger app binary. More battery and storage usage. Business logic updates require app store re-deployment instead of a server-side fix.</p>
+    </div>
+  </div>
+</section>
+
+<!-- THE REAL DECISION -->
+<section class="slide">
+  <h2>The 3-Tier Model Applies Across the Entire Spectrum</h2>
+  <p class="lead">Here's the key insight: you <strong>always</strong> organize your code into presentation, logic, and data tiers — that's non-negotiable good engineering. What changes across the mobile spectrum is <em>where each tier physically executes</em>. The 3-tier structure is the constant; the thin-to-rich spectrum is the variable.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 370" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <!-- Title -->
+    <text x="400" y="22" text-anchor="middle" font-size="15" font-weight="700" fill="#1B3A5C">Same 3 Tiers — Different Physical Location</text>
+
+    <!-- Column headers -->
+    <text x="210" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="#2E5D8A">Rich Internet App</text>
+    <text x="440" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="#7c5cbf">Thin Mobile</text>
+    <text x="670" y="52" text-anchor="middle" font-size="14" font-weight="700" fill="#c8890f">Rich Mobile</text>
+
+    <!-- Row headers -->
+    <text x="55" y="108" text-anchor="middle" font-size="12" font-weight="700" fill="#2E5D8A">Presentation</text>
+    <text x="55" y="188" text-anchor="middle" font-size="12" font-weight="700" fill="#27ae60">Logic</text>
+    <text x="55" y="268" text-anchor="middle" font-size="12" font-weight="700" fill="#c8890f">Data</text>
+
+    <!-- Grid lines -->
+    <line x1="110" y1="65" x2="780" y2="65" stroke="#e8edf2" stroke-width="1"/>
+    <line x1="110" y1="145" x2="780" y2="145" stroke="#e8edf2" stroke-width="1"/>
+    <line x1="110" y1="225" x2="780" y2="225" stroke="#e8edf2" stroke-width="1"/>
+    <line x1="110" y1="305" x2="780" y2="305" stroke="#e8edf2" stroke-width="1"/>
+    <line x1="325" y1="65" x2="325" y2="305" stroke="#e8edf2" stroke-width="1"/>
+    <line x1="555" y1="65" x2="555" y2="305" stroke="#e8edf2" stroke-width="1"/>
+
+    <!-- RIA column -->
+    <rect x="130" y="75" width="160" height="60" rx="6" fill="#f0f6fb"/>
+    <text x="210" y="98" text-anchor="middle" font-size="11" fill="#555">Server renders HTML</text>
+    <text x="210" y="114" text-anchor="middle" font-size="11" fill="#555">Browser is a viewport</text>
+    <text x="210" y="128" text-anchor="middle" font-size="11" font-weight="600" fill="#888">📍 SERVER</text>
+
+    <rect x="130" y="155" width="160" height="60" rx="6" fill="#f0f6fb"/>
+    <text x="210" y="178" text-anchor="middle" font-size="11" fill="#555">All logic server-side</text>
+    <text x="210" y="194" text-anchor="middle" font-size="11" fill="#555">PHP, Java, Python, etc.</text>
+    <text x="210" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="#888">📍 SERVER</text>
+
+    <rect x="130" y="235" width="160" height="60" rx="6" fill="#f0f6fb"/>
+    <text x="210" y="258" text-anchor="middle" font-size="11" fill="#555">Database on server</text>
+    <text x="210" y="274" text-anchor="middle" font-size="11" fill="#555">Nothing stored locally</text>
+    <text x="210" y="288" text-anchor="middle" font-size="11" font-weight="600" fill="#888">📍 SERVER</text>
+
+    <!-- Thin column -->
+    <rect x="345" y="75" width="190" height="60" rx="6" fill="#f3eff8"/>
+    <text x="440" y="98" text-anchor="middle" font-size="11" fill="#555">Native UI on device</text>
+    <text x="440" y="114" text-anchor="middle" font-size="11" fill="#555">Touch, gestures, nav</text>
+    <text x="440" y="128" text-anchor="middle" font-size="11" font-weight="600" fill="#7c5cbf">📱 DEVICE</text>
+
+    <rect x="345" y="155" width="190" height="60" rx="6" fill="#f3eff8"/>
+    <text x="440" y="178" text-anchor="middle" font-size="11" fill="#555">Server-side + minimal</text>
+    <text x="440" y="194" text-anchor="middle" font-size="11" fill="#555">device-side validation</text>
+    <text x="440" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="#7c5cbf">📍 MOSTLY SERVER</text>
+
+    <rect x="345" y="235" width="190" height="60" rx="6" fill="#f3eff8"/>
+    <text x="440" y="258" text-anchor="middle" font-size="11" fill="#555">Server is source of truth</text>
+    <text x="440" y="274" text-anchor="middle" font-size="11" fill="#555">Local cache at best</text>
+    <text x="440" y="288" text-anchor="middle" font-size="11" font-weight="600" fill="#7c5cbf">📍 SERVER (cache on device)</text>
+
+    <!-- Rich column -->
+    <rect x="575" y="75" width="185" height="60" rx="6" fill="#fdf6ec"/>
+    <text x="668" y="98" text-anchor="middle" font-size="11" fill="#555">Full native UI + all</text>
+    <text x="668" y="114" text-anchor="middle" font-size="11" fill="#555">device hardware access</text>
+    <text x="668" y="128" text-anchor="middle" font-size="11" font-weight="600" fill="#c8890f">📱 DEVICE</text>
+
+    <rect x="575" y="155" width="185" height="60" rx="6" fill="#fdf6ec"/>
+    <text x="668" y="178" text-anchor="middle" font-size="11" fill="#555">Business logic ON device</text>
+    <text x="668" y="194" text-anchor="middle" font-size="11" fill="#555">Works without server</text>
+    <text x="668" y="208" text-anchor="middle" font-size="11" font-weight="600" fill="#c8890f">📱 DEVICE</text>
+
+    <rect x="575" y="235" width="185" height="60" rx="6" fill="#fdf6ec"/>
+    <text x="668" y="258" text-anchor="middle" font-size="11" fill="#555">Local DB (SQLite) + sync</text>
+    <text x="668" y="274" text-anchor="middle" font-size="11" fill="#555">Device is source of truth</text>
+    <text x="668" y="288" text-anchor="middle" font-size="11" font-weight="600" fill="#c8890f">📱 DEVICE (sync to server)</text>
+
+    <!-- Bottom annotations -->
+    <rect x="110" y="312" width="670" height="46" rx="6" fill="#f7fafc" stroke="#e0e8f0" stroke-width="1"/>
+    <text x="130" y="332" font-size="13" fill="#1B3A5C" font-weight="700">Constant:</text>
+    <text x="220" y="332" font-size="13" fill="#555">All three have a presentation tier, a logic tier, and a data tier.</text>
+    <text x="130" y="350" font-size="13" fill="#c8890f" font-weight="700">Variable:</text>
+    <text x="220" y="350" font-size="13" fill="#555">The mobile architecture choice determines where each tier physically executes.</text>
+  </svg>
+  </div>
+
+  <div class="callout-warn">
+    <strong>In practice, most apps are hybrids.</strong> The per-feature question is: for <em>this</em> feature, where should its presentation, logic, and data live? Login logic → server. Photo filters → device. Shopping cart → both (local for speed, server for persistence). The 3-tier discipline ensures each feature is well-structured; the spectrum choice determines where it deploys.
+  </div>
+  <div class="slide-num">Slides 21–23</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 5: LAYER DETAILS                                         -->
+<!-- ============================================================ -->
+<section class="slide" id="layers-detail">
+  <h2>The Three Layers — Mobile Edition</h2>
+
+  <div class="cols">
+    <div class="col-card" style="background:#eef4fb;">
+      <h3 style="color:#2E5D8A;">The Presentation Layer</h3>
+      <p style="font-size:14px;"><strong>Remember: it's a phone!</strong> Simple = good. People have different sized fingers. User actions call functions which execute features — user actions ≠ features. Phones can have varying power/resources and can go on or off the grid at any point.</p>
+      <p style="font-size:13px; color:#555; margin-top:8px;"><strong>Approach:</strong> Know your client type. Present data coherently. Guard against untrusted input. Factor out business logic. Determine how you'll pass data between layers.</p>
+    </div>
+    <div class="col-card" style="background:#f0faf0;">
+      <h3 style="color:#27ae60;">The Business Layer</h3>
+      <p style="font-size:14px;">For the most part, these are your web services and related functionalities. These are your fetched URL items.</p>
+      <p style="font-size:13px; color:#555; margin-top:8px;"><strong>Approach:</strong> Identify features at this level. Build components that support feature execution. Hide implementation details from the presentation layer. Determine caching strategy. Map out use cases.</p>
+    </div>
+  </div>
+
+  <div class="col-card" style="background:#fdf6ec; border: 1px solid #e0e8f0; border-radius: 8px; margin-top: 16px;">
+    <h3 style="color:#8a5d0a;">The Data Layer</h3>
+    <p style="font-size:14px;">Your module that talks to the database. Will be intertwined with the business layer to some degree. Handles local storage, remote sync, and caching strategies.</p>
+  </div>
+
+  <div class="callout-warn">
+    <strong>Your React Native approach:</strong> React UI which calls… your "business logic" code… that connects to some data store (local or remote). This is the 3-tier model in your pocket.
+  </div>
+  <div class="slide-num">Slides 24–29</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 6: REACT NATIVE RUNTIME ARCHITECTURE                     -->
+<!-- ============================================================ -->
+<section class="slide-section-break" id="rn-arch">
+  <h1>React Native Runtime Architecture</h1>
+  <p>One Process — How your code becomes native UI</p>
+</section>
+
+<section class="slide">
+  <h2>JavaScript Runtime (Web Browser Model)</h2>
+  <p>Before understanding React Native's runtime, understand the JavaScript runtime it's based on:</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <!-- Outer process box -->
+    <rect x="20" y="20" width="760" height="360" rx="12" fill="none" stroke="#bbb" stroke-width="2"/>
+    <text x="40" y="16" font-size="12" fill="#888">One Process</text>
+    <text x="400" y="48" text-anchor="middle" font-size="18" font-weight="700" fill="#333">JavaScript Runtime (Web Browser)</text>
+
+    <!-- JS Engine box -->
+    <rect x="50" y="65" width="380" height="130" rx="8" fill="none" stroke="#999" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="70" y="85" font-size="13" fill="#666">JavaScript Engine (Single main thread)</text>
+    <!-- Memory Heap -->
+    <rect x="70" y="100" width="150" height="70" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="145" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#1B3A5C">Memory Heap</text>
+    <!-- Call Stack -->
+    <rect x="250" y="100" width="150" height="70" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="325" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#1B3A5C">Call Stack</text>
+
+    <!-- Job Queue -->
+    <ellipse cx="600" cy="100" rx="80" ry="35" fill="#f0faf0" stroke="#27ae60" stroke-width="2"/>
+    <text x="600" y="96" text-anchor="middle" font-size="14" font-weight="700" fill="#2a6325">Job Queue</text>
+    <text x="600" y="112" text-anchor="middle" font-size="11" fill="#555">Promise</text>
+
+    <!-- Arrow: Call Stack → Job Queue -->
+    <line x1="400" y1="120" x2="520" y2="100" stroke="#333" stroke-width="1.5" marker-end="url(#aBlk)"/>
+
+    <!-- Event Loop label -->
+    <text x="520" y="195" font-size="18" font-weight="700" fill="#c8890f" opacity="0.6">Event</text>
+    <text x="520" y="215" font-size="18" font-weight="700" fill="#c8890f" opacity="0.6">Loop</text>
+    <!-- Curved arrow for event loop -->
+    <path d="M570,150 Q620,170 600,200 Q580,230 530,230 Q480,230 490,195" fill="none" stroke="#c8890f" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#aBlk)"/>
+
+    <!-- Web API box -->
+    <rect x="50" y="240" width="380" height="110" rx="8" fill="none" stroke="#999" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="70" y="262" font-size="13" fill="#666">Web API (Thread pool)</text>
+    <rect x="100" y="280" width="220" height="50" rx="8" fill="#f3eff8" stroke="#7c5cbf" stroke-width="2"/>
+    <text x="210" y="310" text-anchor="middle" font-size="14" font-weight="700" fill="#4a3580">DOM, fetch, setTimeout</text>
+
+    <!-- Callback Queue -->
+    <ellipse cx="600" cy="300" rx="80" ry="35" fill="#fdf6ec" stroke="#c8890f" stroke-width="2"/>
+    <text x="600" y="296" text-anchor="middle" font-size="14" font-weight="700" fill="#8a5d0a">Callback</text>
+    <text x="600" y="312" text-anchor="middle" font-size="14" font-weight="700" fill="#8a5d0a">Queue</text>
+
+    <!-- Arrow: Web API → Callback Queue -->
+    <line x1="320" y1="310" x2="520" y2="300" stroke="#333" stroke-width="1.5" marker-end="url(#aBlk)"/>
+    <!-- Arrow: Callback → Event Loop → Call Stack -->
+    <path d="M600,265 Q600,230 530,215" fill="none" stroke="#c8890f" stroke-width="1.5" marker-end="url(#aBlk)"/>
+  </svg>
+  </div>
+  <div class="slide-num">Slide 30</div>
+</section>
+
+<section class="slide">
+  <h2>React Native Bridge Architecture</h2>
+  <p>React Native runs your JavaScript and maps it to native platform components through a bridge:</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 440" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <!-- JS Thread area -->
+    <rect x="30" y="20" width="350" height="150" rx="10" fill="none" stroke="#999" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="50" y="45" font-size="14" fill="#888">JavaScript thread</text>
+    <rect x="50" y="60" width="140" height="50" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="120" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C">React Native</text>
+    <text x="120" y="98" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C">JS Library</text>
+    <rect x="220" y="60" width="140" height="50" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="290" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C">React</text>
+    <text x="290" y="98" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C">Component</text>
+
+    <!-- Bridge circle (center) -->
+    <circle cx="400" cy="250" r="50" fill="#fff" stroke="#333" stroke-width="3"/>
+    <text x="400" y="255" text-anchor="middle" font-size="18" font-weight="700" fill="#333">Bridge</text>
+
+    <!-- Arrows: JS → Bridge -->
+    <line x1="200" y1="150" x2="370" y2="210" stroke="#333" stroke-width="2" marker-end="url(#aBlk)"/>
+    <line x1="300" y1="130" x2="385" y2="205" stroke="#333" stroke-width="2" marker-end="url(#aBlk)"/>
+
+    <!-- Background thread area -->
+    <rect x="530" y="170" width="230" height="70" rx="10" fill="none" stroke="#999" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="550" y="195" font-size="12" fill="#888">Background thread</text>
+    <rect x="550" y="205" width="190" height="30" rx="6" fill="#fdf6ec" stroke="#c8890f" stroke-width="1.5"/>
+    <text x="645" y="225" text-anchor="middle" font-size="12" font-weight="700" fill="#8a5d0a">Shadow Node / Yoga Engine</text>
+
+    <!-- Arrow: Bridge → Background -->
+    <line x1="448" y1="235" x2="545" y2="220" stroke="#333" stroke-width="2" marker-end="url(#aBlk)"/>
+
+    <!-- Native thread area -->
+    <rect x="30" y="320" width="450" height="100" rx="10" fill="none" stroke="#999" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="50" y="345" font-size="14" fill="#888">Native (Main) thread</text>
+    <rect x="50" y="356" width="170" height="45" rx="8" fill="#f0faf0" stroke="#27ae60" stroke-width="2"/>
+    <text x="135" y="374" text-anchor="middle" font-size="11" font-weight="700" fill="#2a6325">Native Modules</text>
+    <text x="135" y="390" text-anchor="middle" font-size="11" font-weight="700" fill="#2a6325">Implementation</text>
+    <rect x="250" y="356" width="170" height="45" rx="8" fill="#f0faf0" stroke="#27ae60" stroke-width="2"/>
+    <text x="335" y="374" text-anchor="middle" font-size="11" font-weight="700" fill="#2a6325">UI Manager</text>
+    <text x="335" y="390" text-anchor="middle" font-size="11" font-weight="700" fill="#2a6325">Module</text>
+
+    <!-- Platform bar -->
+    <rect x="60" y="408" width="400" height="5" rx="2" fill="#27ae60" opacity="0.5"/>
+    <text x="260" y="425" text-anchor="middle" font-size="11" fill="#555">Native (iOS / Android platforms)</text>
+
+    <!-- Arrows: Bridge ↔ Native -->
+    <line x1="370" y1="295" x2="200" y2="352" stroke="#333" stroke-width="2" marker-end="url(#aBlk)"/>
+    <line x1="400" y1="300" x2="350" y2="352" stroke="#333" stroke-width="2" marker-end="url(#aBlk)"/>
+  </svg>
+  </div>
+
+  <div class="callout">
+    <strong>Key insight:</strong> Your React Native components (View, Text, Image) map to real native views — ViewGroup/ImageView/TextView on Android and UIView/UIImageView/UITextView on iOS. The bridge translates between them. This is why React Native apps feel native — because at the rendering level, they <em>are</em> native.
+  </div>
+  <div class="slide-num">Slides 31–32</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 7: MOBILE APPLICATION DESIGN                             -->
+<!-- ============================================================ -->
+<section class="slide" id="design">
+  <h2>Mobile Application Design Process</h2>
+  <p class="lead">A systematic approach to designing mobile applications, applying the three-tier model:</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+    <!-- 7 steps as connected boxes -->
+    <rect x="0" y="30" width="100" height="60" rx="8" fill="#2E5D8A"/><text x="50" y="55" text-anchor="middle" font-size="10" font-weight="600" fill="white">1. Identify</text><text x="50" y="69" text-anchor="middle" font-size="10" font-weight="600" fill="white">Requirements</text>
+    <text x="108" y="64" font-size="14" fill="#bbb">→</text>
+    <rect x="117" y="30" width="90" height="60" rx="8" fill="#2E5D8A"/><text x="162" y="55" text-anchor="middle" font-size="10" font-weight="600" fill="white">2. Design</text><text x="162" y="69" text-anchor="middle" font-size="10" font-weight="600" fill="white">Tests</text>
+    <text x="215" y="64" font-size="14" fill="#bbb">→</text>
+    <rect x="224" y="30" width="90" height="60" rx="8" fill="#2E5D8A"/><text x="269" y="55" text-anchor="middle" font-size="10" font-weight="600" fill="white">3. Design</text><text x="269" y="69" text-anchor="middle" font-size="10" font-weight="600" fill="white">Architecture</text>
+    <text x="322" y="64" font-size="14" fill="#bbb">→</text>
+    <rect x="331" y="30" width="90" height="60" rx="8" fill="#7c5cbf"/><text x="376" y="55" text-anchor="middle" font-size="10" font-weight="600" fill="white">4. Split Into</text><text x="376" y="69" text-anchor="middle" font-size="10" font-weight="600" fill="white">3 Tiers</text>
+    <text x="429" y="64" font-size="14" fill="#bbb">→</text>
+    <rect x="438" y="30" width="100" height="60" rx="8" fill="#7c5cbf"/><text x="488" y="55" text-anchor="middle" font-size="10" font-weight="600" fill="white">5. Design</text><text x="488" y="69" text-anchor="middle" font-size="10" font-weight="600" fill="white">UI · Logic · Data</text>
+    <text x="546" y="64" font-size="14" fill="#bbb">→</text>
+    <rect x="555" y="30" width="100" height="60" rx="8" fill="#c8890f"/><text x="605" y="55" text-anchor="middle" font-size="10" font-weight="600" fill="white">6. Design Data</text><text x="605" y="69" text-anchor="middle" font-size="10" font-weight="600" fill="white">Structures</text>
+    <text x="663" y="64" font-size="14" fill="#bbb">→</text>
+    <rect x="672" y="30" width="118" height="60" rx="8" fill="#c0392b"/><text x="731" y="55" text-anchor="middle" font-size="10" font-weight="600" fill="white">7. Mobile-Specific</text><text x="731" y="69" text-anchor="middle" font-size="10" font-weight="600" fill="white">Tests &amp; Reviews</text>
+  </svg>
+  </div>
+
+  <h3>Unique Elements of Mobile Applications</h3>
+  <div class="cols-3">
+    <div class="col-card" style="background:#fef3f3; border-color:#c0392b;">
+      <p style="font-size:14px; margin:0;"><strong style="color:#c0392b;">Tiny UI</strong> — extremely limited pixels. No real keyboard.</p>
+    </div>
+    <div class="col-card" style="background:#fef9f0; border-color:#c8890f;">
+      <p style="font-size:14px; margin:0;"><strong style="color:#8a5d0a;">Sharing</strong> — users constantly switch apps. Everything is shared.</p>
+    </div>
+    <div class="col-card" style="background:#f0f6fb; border-color:#2E5D8A;">
+      <p style="font-size:14px; margin:0;"><strong style="color:#1B3A5C;">Unreliable</strong> — network drops constantly. Limited storage shared between all apps.</p>
+    </div>
+  </div>
+
+  <div class="callout-warn">
+    <strong>Apps are suspended or killed constantly.</strong> Your app is never guaranteed to remain running. Design for interruption from the start.
+  </div>
+  <div class="slide-num">Slides 33–34</div>
+</section>
+
+<section class="slide">
+  <h2>React Native Application Architecture</h2>
+  <p class="lead">Mapping the 3-tier model to your React Native code:</p>
+
+  <div class="cols">
+    <div>
+      <div class="col-card" style="background:#eef4fb; margin-bottom:16px;">
+        <h3 style="color:#2E5D8A; margin-top:0;">UI Layer (Presentation)</h3>
+        <p style="font-size:14px;">Design user interface and identify state variables. Create state variable update functions. Create callbacks to update UI appearance.</p>
+      </div>
+      <div class="col-card" style="background:#f0faf0; margin-bottom:16px;">
+        <h3 style="color:#27ae60; margin-top:0;">Logic Layer (Business)</h3>
+        <p style="font-size:14px;">What components of the UI will you modify? How will you keep your list of UI callbacks? How will you set up data source callbacks? Not all data may need to be shown on the UI.</p>
+      </div>
+      <div class="col-card" style="background:#fdf6ec;">
+        <h3 style="color:#8a5d0a; margin-top:0;">Data Layer</h3>
+        <p style="font-size:14px;">Plan for asynchronous updates. Is this a thin app or a feature-rich app? Local storage, remote APIs, or both?</p>
+      </div>
+    </div>
+    <div>
+      <div class="diagram">
+      <svg viewBox="0 0 320 400" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', 'Segoe UI', sans-serif">
+        <!-- Mobile Client App box -->
+        <rect x="10" y="10" width="300" height="300" rx="10" fill="#fafbfc" stroke="#ddd" stroke-width="1.5"/>
+        <text x="160" y="35" text-anchor="middle" font-size="13" font-weight="700" fill="#333">Mobile Client Application</text>
+
+        <!-- Presentation -->
+        <rect x="25" y="48" width="190" height="70" rx="6" fill="#eef4fb" stroke="#2E5D8A" stroke-width="1.5"/>
+        <text x="35" y="65" font-size="10" font-weight="700" fill="#2E5D8A">Presentation</text>
+        <text x="35" y="80" font-size="9" fill="#555">UI Components</text>
+        <text x="35" y="95" font-size="9" fill="#555">UI Process Components</text>
+
+        <!-- Business -->
+        <rect x="25" y="128" width="190" height="70" rx="6" fill="#f0faf0" stroke="#27ae60" stroke-width="1.5"/>
+        <text x="35" y="145" font-size="10" font-weight="700" fill="#27ae60">Business</text>
+        <text x="35" y="160" font-size="9" fill="#555">Workflows · Components</text>
+        <text x="35" y="175" font-size="9" fill="#555">Entities · Application Facade</text>
+
+        <!-- Data -->
+        <rect x="25" y="208" width="190" height="70" rx="6" fill="#fdf6ec" stroke="#c8890f" stroke-width="1.5"/>
+        <text x="35" y="225" font-size="10" font-weight="700" fill="#c8890f">Data</text>
+        <text x="35" y="240" font-size="9" fill="#555">Data Access · Utilities</text>
+        <text x="35" y="255" font-size="9" fill="#555">Service Agents</text>
+
+        <!-- Cross-cutting -->
+        <rect x="225" y="48" width="75" height="230" rx="6" fill="#f3eff8" stroke="#7c5cbf" stroke-width="1.5"/>
+        <text x="262" y="120" text-anchor="middle" font-size="9" font-weight="700" fill="#7c5cbf" transform="rotate(-90 262 120)">Cross-Cutting</text>
+        <text x="262" y="200" text-anchor="middle" font-size="8" fill="#555" transform="rotate(-90 262 200)">Security · Config · Comms</text>
+
+        <!-- Local Data -->
+        <rect x="25" y="290" width="90" height="24" rx="4" fill="#eee" stroke="#aaa" stroke-width="1"/>
+        <text x="70" y="306" text-anchor="middle" font-size="9" fill="#555">Local Cache</text>
+
+        <!-- Arrows to remote -->
+        <line x1="160" y1="310" x2="160" y2="345" stroke="#555" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aBlk)"/>
+
+        <!-- Remote infrastructure -->
+        <rect x="30" y="350" width="260" height="40" rx="6" fill="#f4f8fb" stroke="#ddd" stroke-width="1.5"/>
+        <text x="60" y="374" font-size="11" font-weight="600" fill="#555">Data Sources</text>
+        <text x="180" y="374" font-size="11" font-weight="600" fill="#27ae60">Services</text>
+        <text x="160" y="345" text-anchor="middle" font-size="9" fill="#888">Remote Infrastructure</text>
+      </svg>
+      </div>
+    </div>
+  </div>
+  <div class="slide-num">Slide 35</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PART 8: PERMISSIONS                                           -->
+<!-- ============================================================ -->
+<section class="slide" id="permissions">
+  <h2>React Native Permissions</h2>
+  <p>Permissions work differently depending on how you're running your app:</p>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Expo GO</th>
+        <th>Android APK</th>
+        <th>iOS Bundle</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-weight:700; color:#1B3A5C;">App Requirements</td>
+        <td>App Manifest asks for all permissions</td>
+        <td>You add permissions to the manifest file</td>
+        <td>You add permissions properties to the app Podfile</td>
+      </tr>
+      <tr>
+        <td style="font-weight:700; color:#1B3A5C;">Your Code</td>
+        <td>Ask for permission via API call. If approved, can use.</td>
+        <td>Ask for permission via API call. If approved, can use.</td>
+        <td>Ask for permission via API call. If approved, can use.</td>
+      </tr>
+      <tr>
+        <td style="font-weight:700; color:#1B3A5C;">Mobile Settings</td>
+        <td>User approves per-app permissions</td>
+        <td>User approves per-app permissions</td>
+        <td>User approves per-app permissions</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <strong>The pattern is consistent:</strong> declare what you need in your app manifest, request it at runtime via an API call, and the user approves per-app in system settings. The details differ by platform, but the three-step contract is the same.
+  </div>
+  <div class="slide-num">Slide 36</div>
+</section>
+
+<!-- ============================================================ -->
+<!-- FOOTER                                                        -->
+<!-- ============================================================ -->
+<section class="slide-section-break">
+  <h1 style="font-size:28px;">End of Lecture</h1>
+  <p style="margin-top:12px;">Mobile Device Software Architecture · CS 402 · Spring 2026</p>
+</section>
+
+</body>
+</html>

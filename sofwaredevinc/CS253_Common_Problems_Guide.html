@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 253 — Common Problems Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  /* Wong colorblind-safe palette */
+  :root {
+    --lang: #0072B2;     --lang-bg: #EAF2F8;
+    --runtime: #E69F00;  --runtime-bg: #FDF4E5;
+    --machine: #009E73;  --machine-bg: #E6F5EF;
+    --eco: #CC79A7;      --eco-bg: #F8EEF3;
+    --symptom: #B35806;  --symptom-bg: #FDF1E6;
+    --fix: #0B7A56;      --fix-bg: #E6F5EF;
+    --crosses: #8854A0;  --crosses-bg: #F3EEF7;
+    --text: #2D3748;     --text-light: #5A6A7E;  --text-lighter: #8E9BAD;
+    --surface: #ffffff;  --surface-alt: #F7F8FA;  --border: #DDE3EA;
+    --accent: #1A2332;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'IBM Plex Sans',sans-serif; color:var(--text); background:var(--surface-alt); line-height:1.6; font-size:15px; -webkit-font-smoothing:antialiased; }
+  .page { max-width:900px; margin:0 auto; padding:3rem 2rem; }
+
+  .doc-header { margin-bottom:3rem; padding-bottom:2rem; border-bottom:3px solid var(--accent); }
+  .doc-header .course { font-size:0.8rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-light); margin-bottom:0.25rem; }
+  .doc-header h1 { font-size:2.2rem; font-weight:700; color:var(--accent); line-height:1.2; margin-bottom:0.5rem; }
+  .doc-header .subtitle { font-size:1rem; color:var(--text-light); font-weight:300; }
+
+  h2 { font-size:1.5rem; font-weight:700; margin:3rem 0 0.75rem; }
+  h3 { font-size:1.1rem; font-weight:600; color:var(--text); margin:2rem 0 0.75rem; }
+  p { margin-bottom:1rem; } p.muted { color:var(--text-light); }
+
+  .layer-section { padding:2rem 0 0; }
+  .layer-section h2 { display:flex; align-items:center; gap:0.75rem; }
+  .layer-section h2 .dot { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+  .layer-section.lang h2 { color:var(--lang); } .layer-section.lang h2 .dot { background:var(--lang); }
+  .layer-section.runtime h2 { color:var(--runtime); } .layer-section.runtime h2 .dot { background:var(--runtime); }
+  .layer-section.machine h2 { color:var(--machine); } .layer-section.machine h2 .dot { background:var(--machine); }
+  .layer-section.eco h2 { color:var(--eco); } .layer-section.eco h2 .dot { background:var(--eco); }
+  .layer-section .layer-intro { font-size:0.9rem; color:var(--text-light); margin-bottom:1.5rem; padding-left:1.75rem; }
+
+  .category-name { font-size:0.95rem; font-weight:700; color:var(--accent); margin:1.75rem 0 0.75rem; padding-bottom:0.3rem; border-bottom:1px solid var(--border); }
+
+  .problem { background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:1rem; overflow:hidden; }
+  .problem .row { display:grid; grid-template-columns:90px 1fr; border-bottom:1px solid var(--border); font-size:0.85rem; }
+  .problem .row:last-child { border-bottom:none; }
+  .problem .row .tag { padding:0.5rem 0.6rem; font-weight:600; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:flex-start; padding-top:0.6rem; }
+  .problem .row .val { padding:0.5rem 0.75rem; line-height:1.5; }
+
+  .row.symptom .tag { color:var(--symptom); background:var(--symptom-bg); }
+  .row.symptom .val { color:#7C3D04; font-weight:500; }
+  .row.why .tag { color:var(--accent); background:#EFF1F4; }
+  .row.fix .tag { color:var(--fix); background:var(--fix-bg); }
+  .row.crosses .tag { color:var(--crosses); background:var(--crosses-bg); }
+  .row.crosses .val { color:var(--text-light); font-style:italic; font-size:0.82rem; }
+
+  code { font-family:'IBM Plex Mono',monospace; background:var(--surface-alt); padding:0.1rem 0.35rem; border-radius:3px; font-size:0.82em; }
+
+  .diagnostic-step { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-bottom:0.25rem; border-radius:6px; overflow:hidden; border:1px solid var(--border); }
+  .diagnostic-step .question { grid-column:1/-1; padding:0.6rem 0.9rem; font-weight:600; font-size:0.9rem; background:var(--surface); border-bottom:1px solid var(--border); }
+  .diagnostic-step .answer-no { padding:0.5rem 0.9rem; font-size:0.82rem; background:var(--symptom-bg); border-right:1px solid var(--border); }
+  .diagnostic-step .answer-no::before { content:"✗ "; font-weight:600; color:var(--symptom); }
+  .diagnostic-step .answer-yes { padding:0.5rem 0.9rem; font-size:0.82rem; background:var(--fix-bg); }
+  .diagnostic-step .answer-yes::before { content:"✓ "; font-weight:600; color:var(--fix); }
+  .diagnostic-arrow { text-align:center; color:var(--text-lighter); font-size:0.9rem; padding:0.15rem 0; }
+
+  .layer-nav { display:flex; gap:0.5rem; margin:1.5rem 0; flex-wrap:wrap; }
+  .layer-nav a { padding:0.4rem 0.9rem; border-radius:5px; font-size:0.8rem; font-weight:600; text-decoration:none; color:white; }
+  .layer-nav a.lang { background:var(--lang); }
+  .layer-nav a.runtime { background:var(--runtime); }
+  .layer-nav a.machine { background:var(--machine); }
+  .layer-nav a.eco { background:var(--eco); }
+  .layer-nav a.diag { background:var(--accent); }
+
+  @media print { body{background:white;font-size:12px} .page{max-width:none;padding:0} .problem{break-inside:avoid} .layer-nav{display:none} }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="doc-header">
+    <div class="course">CS 253 · Software Development in C</div>
+    <h1>Common Problems Guide</h1>
+    <div class="subtitle">Organized by the Four Layers — find where you're stuck, understand why, fix it</div>
+  </div>
+
+  <p class="muted">When you hit a problem, figure out which layer it lives in. A syntax error is a <strong>Language</strong> problem. A segfault is a <strong>Runtime</strong> problem. "File not found" might be a <strong>Machine</strong> problem. A merge conflict is an <strong>Ecosystem</strong> problem. The "Crosses into" field shows when bugs span layers.</p>
+
+  <div class="layer-nav">
+    <a href="#lang" class="lang">C Language</a>
+    <a href="#runtime" class="runtime">C Runtime</a>
+    <a href="#machine" class="machine">Machine Env.</a>
+    <a href="#eco" class="eco">Dev Ecosystem</a>
+    <a href="#diagnostic" class="diag">Quick Diagnostic ↓</a>
+  </div>
+
+  <!-- ═══ LAYER 1: C LANGUAGE ═══ -->
+  <div class="layer-section lang" id="lang">
+    <h2><span class="dot"></span>C Language Problems</h2>
+    <p class="layer-intro">Something wrong with what you wrote — illegal syntax, or legal syntax that doesn't mean what you think.</p>
+
+    <div class="category-name">Pointer Confusion</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Incompatible pointer type" or "assignment from incompatible type"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Mixing up levels of indirection. An <code>int*</code> is not an <code>int**</code>, and neither is an <code>int</code>.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Trace the type from declaration to use. What type is this variable? What type does this expression produce? Do they match?</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Runtime — incorrect pointer types lead to reading memory as the wrong type</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Using <code>&amp;</code> when you should use <code>*</code>, or vice versa</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val"><code>&amp;</code> gives the address (up one level). <code>*</code> follows an address to the value (down one level). They're opposites.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Read <code>&amp;</code> as "address of" and <code>*</code> as "thing at this address."</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Pointer arithmetic gives unexpected results</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Pointer math is scaled by the pointed-to type's size. <code>p+1</code> on an <code>int*</code> moves by <code>sizeof(int)</code> bytes, not 1.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val"><code>p[i]</code> is exactly <code>*(p + i)</code>. The compiler handles scaling. For byte-level access, cast to <code>char*</code>.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Machine — scaling depends on type sizes on your specific system</div></div>
+    </div>
+
+    <div class="category-name">Array Mistakes</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Off-by-one: accessing <code>array[n]</code> when array has <code>n</code> elements</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Zero-indexed. Size <code>n</code> means valid indices 0 through <code>n-1</code>. No bounds checking.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Use <code>&lt; n</code> in loops, never <code>&lt;= n</code>.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Runtime — out-of-bounds access corrupts stack or heap, crashes far from the bug</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val"><code>sizeof()</code> on an array parameter gives 8, not the array size</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Arrays decay to pointers when passed to functions. <code>sizeof</code> measures the pointer.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Always pass array size as a separate parameter.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val"><code>arr1 = arr2</code> doesn't compile</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Arrays aren't assignable in C. They're memory regions, not first-class values.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Use <code>memcpy()</code> or copy element by element.</div></div>
+    </div>
+
+    <div class="category-name">String Pitfalls</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Garbage at end of string, or crashes in string functions</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Missing null terminator. String functions walk memory until <code>'\0'</code>. Without it, they keep going.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Allocate n+1 for a string of length n. Verify <code>'\0'</code> is present after manual operations.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Runtime — reading past a buffer is undefined behavior and a security vulnerability</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val"><code>==</code> to compare strings always fails</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val"><code>==</code> compares addresses, not contents.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Use <code>strcmp(s1, s2) == 0</code>.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Buffer overflow writing into a fixed-size <code>char</code> array</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">C doesn't check if data fits. Writing past the end corrupts adjacent memory.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Use <code>strncpy</code> or <code>snprintf</code> with explicit size limits. Never use <code>gets()</code>.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Runtime + Machine — buffer overflows corrupt the stack and are a classic exploit vector</div></div>
+    </div>
+
+    <div class="category-name">Struct &amp; Type Issues</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Using <code>.</code> when you need <code>-&gt;</code>, or vice versa</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val"><code>.</code> is for struct values, <code>-&gt;</code> is for struct pointers. <code>p-&gt;field</code> means <code>(*p).field</code>.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Is it a struct or a pointer to a struct? Pointer → <code>-&gt;</code>. Struct itself → <code>.</code></div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Struct <code>=</code> copy doesn't copy what pointers point to</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Shallow copy. Both structs now point to the same heap memory.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Write a deep copy function that allocates new memory and copies contents.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Runtime — shared heap pointer leads to double-free or use-after-free</div></div>
+    </div>
+
+    <div class="category-name">Function &amp; Scope Issues</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Returning a pointer to a local variable — works sometimes, crashes later</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Local variables die when the function returns. The pointer becomes dangling.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Allocate on the heap (caller must free), pass a buffer as parameter, or return by value.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Runtime — stack memory is reused by the next function call</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Function changes to a parameter don't affect the caller's variable</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">C is pass-by-value. The function gets a copy.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Pass a pointer: <code>void modify(int *x) { *x = 42; }</code> then call <code>modify(&amp;myVar)</code>.</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYER 2: C RUNTIME ═══ -->
+  <div class="layer-section runtime" id="runtime">
+    <h2><span class="dot"></span>C Runtime Problems</h2>
+    <p class="layer-intro">Your syntax is legal, but runtime behavior is wrong or dangerous. Crashes often appear far from the actual mistake.</p>
+
+    <div class="category-name">Segmentation Faults</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Segmentation fault (core dumped)"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Accessed memory you don't own: NULL dereference, freed pointer, way-out-of-bounds, uninitialized pointer.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Run in gdb. At the crash, use <code>bt</code>. Inspect the pointer/index. The bug is often earlier than the crash.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Machine — the OS enforces memory protection through page tables</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Segfault that only happens sometimes or with certain inputs</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Uninitialized or freed memory that sometimes still holds valid data. Undefined behavior.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Initialize all variables. Use valgrind to find uninitialized reads. Set pointers to NULL after free.</div></div>
+    </div>
+
+    <div class="category-name">Memory Leaks</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Valgrind: "definitely lost" or "indirectly lost" bytes</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Allocated memory never freed, or lost your only pointer to it.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Every malloc needs a corresponding free. Trace each allocation's lifecycle.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Language — often caused by losing pointer ownership across function calls</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Valgrind: "still reachable" bytes</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">You still have a pointer but never freed before exit.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Add cleanup before exit. Free everything you allocated.</div></div>
+    </div>
+
+    <div class="category-name">Heap Corruption</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Valgrind: "Invalid write" or "Invalid read"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Accessing memory outside your allocation: past a buffer, freed pointer, out-of-bounds index.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Check malloc sizes, array indices, and pointer lifetimes.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"double free detected" or valgrind "Invalid free"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Calling free() on the same address twice. Corrupts the heap allocator.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">After <code>free(p)</code>, set <code>p = NULL</code>. Only one owner frees shared memory.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Language — usually a shallow copy problem</div></div>
+    </div>
+
+    <div class="category-name">Stack Overflow</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Segfault with deep recursion or very large local arrays</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Stack has a fixed size (~8 MB). Infinite recursion or huge local arrays exhaust it.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Ensure recursion has a terminating base case. Use malloc for large data.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Machine — stack size is set by the OS (<code>ulimit -s</code>)</div></div>
+    </div>
+
+    <div class="category-name">Build Pipeline Issues</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Linker: "undefined reference to 'function_name'"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Called a function but the linker can't find the implementation. The .c file isn't in your build.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Include all .c files in gcc or Makefile. Check name matches exactly.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Ecosystem — often a Makefile configuration issue</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Linker: "multiple definition of 'variable_name'"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">A global defined in a header included by multiple .c files.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Use <code>extern</code> in the header. Define in exactly one .c file.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Preprocessor errors with <code>#include</code></div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Missing include guards cause double inclusion.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Always use: <code>#ifndef FILE_H</code> / <code>#define FILE_H</code> / ... / <code>#endif</code></div></div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYER 3: MACHINE ENVIRONMENT ═══ -->
+  <div class="layer-section machine" id="machine">
+    <h2><span class="dot"></span>Machine Environment Problems</h2>
+    <p class="layer-intro">Problems from the physical system: hardware, the OS, and assumptions C makes about the machine.</p>
+
+    <div class="category-name">Platform-Dependent Behavior</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Code works on one machine, fails on another</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val"><code>int</code> size, struct padding, byte order vary by platform.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Use <code>sizeof()</code> instead of hardcoded sizes. Use <code>stdint.h</code> types for exact sizes.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Different results at <code>-O0</code> vs <code>-O2</code></div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Undefined behavior that happens to work unoptimized. Compiler assumes UB never happens.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Compile with <code>-Wall -Wextra -fsanitize=undefined</code> to find the root cause.</div></div>
+    </div>
+
+    <div class="category-name">File System &amp; OS Issues</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Permission denied" or "No such file or directory"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Wrong path, wrong working directory, or missing permissions.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Always check <code>fopen()</code> return value. Print the path. Check working directory.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Language — not checking fopen's NULL return leads to NULL dereference</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Works interactively but fails reading from file or pipe</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Different buffering modes. EOF handling may differ.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Always check return values of scanf/fgets for EOF.</div></div>
+    </div>
+
+    <div class="category-name">Memory &amp; Process Issues</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val"><code>malloc</code> returns NULL</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">OS can't satisfy the request — possibly a size calculation bug asking for gigabytes.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Always check if malloc returned NULL. Verify allocation size makes sense.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Too many open files"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">File descriptor limit (~1024). Opening in a loop without closing exhausts it.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Close files when done. In loops, open and close within the loop body.</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYER 4: DEV ECOSYSTEM ═══ -->
+  <div class="layer-section eco" id="eco">
+    <h2><span class="dot"></span>Development Ecosystem Problems</h2>
+    <p class="layer-intro">Your code may be fine, but you can't build it, track it, or find the bug.</p>
+
+    <div class="category-name">Git Problems</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Merge conflict</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Two changes to the same lines. Git can't pick one.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Find the conflict markers, decide the correct code, remove markers, <code>git add</code>, <code>git commit</code>.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Accidentally committed binaries or .o files</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">No <code>.gitignore</code>.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Create <code>.gitignore</code> with <code>*.o</code> / <code>*.out</code> / <code>a.out</code>. Remove tracked: <code>git rm --cached filename</code>.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Your branch is behind" — push rejected</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Remote has changes you don't have locally.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val"><code>git pull</code>, resolve conflicts, then push.</div></div>
+    </div>
+
+    <div class="category-name">Makefile Problems</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"missing separator. Stop."</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Recipes must start with a tab, not spaces.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Use real tabs. Check your editor's tab vs. spaces setting.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Nothing to be done" or doesn't rebuild after changes</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Dependencies are wrong.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">List .h files as dependencies. Use <code>make clean &amp;&amp; make</code> to force rebuild.</div></div>
+    </div>
+
+    <div class="category-name">Debugging Tool Issues</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">gdb: "No debugging symbols found"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Compiled without <code>-g</code>.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Recompile with <code>-g</code>. Add it to Makefile CFLAGS.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">Valgrind output is overwhelming — hundreds of errors</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">One bug cascades into many. Early errors propagate.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Fix the <em>first</em> error and rerun. One fix often eliminates dozens.</div></div>
+    </div>
+
+    <div class="category-name">Compiler Warning Interpretation</div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Implicit declaration of function"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Calling a function not yet declared. Missing <code>#include</code> or prototype.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Add the appropriate <code>#include</code> or function prototype.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Format '%d' expects 'int', but argument has type 'long'"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">Format specifier doesn't match argument type.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val"><code>%d</code>=int, <code>%ld</code>=long, <code>%f</code>=double, <code>%zu</code>=size_t, <code>%p</code>=pointer.</div></div>
+    </div>
+    <div class="problem">
+      <div class="row symptom"><div class="tag">Symptom</div><div class="val">"Variable may be used uninitialized"</div></div>
+      <div class="row why"><div class="tag">Why</div><div class="val">A code path reads the variable before assignment. Value will be stack garbage.</div></div>
+      <div class="row fix"><div class="tag">Fix</div><div class="val">Initialize all variables at declaration. The compiler is almost always right.</div></div>
+      <div class="row crosses"><div class="tag">Crosses</div><div class="val">Runtime — uninitialized variables cause unpredictable behavior</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ DIAGNOSTIC FLOWCHART ═══ -->
+  <div class="layer-section" id="diagnostic" style="padding-top:3rem">
+    <h2 style="color:var(--accent)">Quick Diagnostic: Which Layer Is My Problem In?</h2>
+    <p class="muted" style="margin-bottom:1.5rem">Work through in order. The first "No" tells you where to start.</p>
+
+    <div class="diagnostic-step"><div class="question">1. Does your code compile?</div><div class="answer-no"><strong>Language.</strong> Read the first error — file, line, and what's wrong. Fix it first; later errors are often caused by it.</div><div class="answer-yes">Keep going ↓</div></div>
+    <div class="diagnostic-arrow">│</div>
+    <div class="diagnostic-step"><div class="question">2. Does it compile without warnings (<code>-Wall -Wextra</code>)?</div><div class="answer-no"><strong>Language/Runtime in disguise.</strong> Warnings predict bugs. Fix them.</div><div class="answer-yes">Keep going ↓</div></div>
+    <div class="diagnostic-arrow">│</div>
+    <div class="diagnostic-step"><div class="question">3. Does it run without crashing?</div><div class="answer-no"><strong>Runtime.</strong> Run in gdb, <code>bt</code> at crash. Common: NULL, out of bounds, use-after-free.</div><div class="answer-yes">Keep going ↓</div></div>
+    <div class="diagnostic-arrow">│</div>
+    <div class="diagnostic-step"><div class="question">4. Does it produce correct output?</div><div class="answer-no"><strong>Logic error (Language + Runtime).</strong> Step through in gdb. Compare values against expectations.</div><div class="answer-yes">Keep going ↓</div></div>
+    <div class="diagnostic-arrow">│</div>
+    <div class="diagnostic-step"><div class="question">5. Does valgrind report zero errors and zero leaks?</div><div class="answer-no"><strong>Runtime/Machine.</strong> Memory errors are real bugs even if output looks correct. Fix every one.</div><div class="answer-yes">Keep going ↓</div></div>
+    <div class="diagnostic-arrow">│</div>
+    <div class="diagnostic-step"><div class="question">6. Does it pass all provided tests?</div><div class="answer-no"><strong>Edge case.</strong> Empty input? Large input? Zero values? I/O format mismatch?</div><div class="answer-yes">In good shape. Review for style and submit. ✓</div></div>
+  </div>
+
+</div>
+</body>
+</html>
