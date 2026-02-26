@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parameters &amp; Passing — C Function Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-blue: #448aff;
+    --accent-teal: #64ffda;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; min-height: 100vh; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-orange); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-orange); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-orange); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-orange), var(--accent-yellow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 640px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-orange); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  .key-concept { background: linear-gradient(135deg, rgba(255,171,64,0.06), rgba(255,215,64,0.04)); border-left: 3px solid var(--accent-orange); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-orange); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .analogy { background: rgba(179,136,255,0.06); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .analogy strong { color: var(--accent-purple); }
+  .layer-label { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 3px; margin-bottom: 12px; }
+  .layer-lang { background: rgba(0,229,255,0.12); color: var(--accent-cyan); border: 1px solid rgba(0,229,255,0.25); }
+  .layer-runtime { background: rgba(255,171,64,0.12); color: var(--accent-orange); border: 1px solid rgba(255,171,64,0.25); }
+  .layer-machine { background: rgba(179,136,255,0.12); color: var(--accent-purple); border: 1px solid rgba(179,136,255,0.25); }
+  .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+  .comparison .col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+  .comparison .col h4 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; margin-bottom: 16px; font-weight: 600; }
+  .comparison .col ul { list-style: none; padding: 0; }
+  .comparison .col li { font-size: 15px; padding: 6px 0; padding-left: 20px; position: relative; color: var(--text-dim); }
+  .comparison .col li::before { content: "→"; position: absolute; left: 0; }
+  @media (max-width: 700px) { .comparison { grid-template-columns: 1fr; } .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">2 / 3</span>
+  <span>C Function Concepts</span>
+  <div class="nav-links">
+    <a href="06-what-is-a-function.html">What Is a Function?</a>
+    <a href="07-parameters-and-passing.html" class="active">Parameters &amp; Passing</a>
+    <a href="08-scope-and-pitfalls.html">Scope &amp; Pitfalls</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 07</div>
+  <h1>Parameters &amp; <span class="highlight">Passing</span></h1>
+  <p class="subtitle">C passes everything by value — always. That single rule explains both the safety of function isolation and the frustration of trying to modify the caller's data. The workaround? Pass a pointer.</p>
+</header>
+
+<main class="content">
+
+  <h2>Arguments vs. Parameters</h2>
+
+  <p>Before we go further, let's nail down vocabulary. A <strong style="color:var(--accent-orange)">parameter</strong> is the variable declared in the function definition — it's a placeholder. An <strong style="color:var(--accent-cyan)">argument</strong> is the actual value you pass when calling the function. The argument's value gets <em>copied</em> into the parameter.</p>
+
+  <pre><span class="type">int</span> <span class="func">square</span>(<span class="type">int</span> n) {     <span class="comment">// n is the PARAMETER (placeholder)</span>
+    <span class="kw">return</span> n * n;
+}
+
+<span class="type">int</span> x = <span class="num">5</span>;
+<span class="type">int</span> result = <span class="func">square</span>(x); <span class="comment">// x is the ARGUMENT (actual value)</span>
+                         <span class="comment">// the value 5 is COPIED into n</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 180" width="100%" height="180">
+      <defs>
+        <marker id="cp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
+        </marker>
+      </defs>
+
+      <!-- Caller side -->
+      <rect x="40" y="30" width="240" height="110" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="160" y="22" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">CALLER (main)</text>
+      <rect x="60" y="55" width="200" height="45" rx="6" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="100" y="75" fill="#00e5ff" font-size="13">x</text>
+      <text x="130" y="75" fill="var(--text-dim)" font-size="13">=</text>
+      <text x="155" y="75" fill="#69f0ae" font-size="18" font-weight="600">5</text>
+      <text x="100" y="92" fill="var(--text-dim)" font-size="10">argument</text>
+
+      <!-- Callee side -->
+      <rect x="440" y="30" width="240" height="110" rx="8" fill="rgba(255,171,64,0.04)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="560" y="22" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">CALLEE (square)</text>
+      <rect x="460" y="55" width="200" height="45" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="1"/>
+      <text x="500" y="75" fill="#ffab40" font-size="13">n</text>
+      <text x="530" y="75" fill="var(--text-dim)" font-size="13">=</text>
+      <text x="555" y="75" fill="#69f0ae" font-size="18" font-weight="600">5</text>
+      <text x="500" y="92" fill="var(--text-dim)" font-size="10">parameter</text>
+
+      <!-- Copy arrow -->
+      <path d="M 282 78 C 330 78, 370 78, 438 78" stroke="#ffab40" stroke-width="2.5" fill="none" marker-end="url(#cp)" stroke-dasharray="8,4"/>
+      <text x="360" y="68" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">COPY</text>
+      <text x="360" y="100" text-anchor="middle" fill="var(--text-dim)" font-size="11">value 5 is copied — these are two separate variables</text>
+
+      <!-- Separate boxes emphasis -->
+      <text x="160" y="160" text-anchor="middle" fill="#00e5ff" font-size="11">lives in main's stack frame</text>
+      <text x="560" y="160" text-anchor="middle" fill="#ffab40" font-size="11">lives in square's stack frame</text>
+    </svg>
+    <div class="caption">The argument x and the parameter n are completely separate variables in separate stack frames. The value is copied.</div>
+  </div>
+
+  <h2>Pass by Value — The Only Mode C Has</h2>
+
+  <p>In C, <strong>every argument is passed by value</strong>. The function receives a <em>copy</em> of the value. Modifying the parameter inside the function has absolutely no effect on the caller's original variable. This is true at every layer:</p>
+
+  <pre><span class="kw">void</span> <span class="func">try_to_change</span>(<span class="type">int</span> n) {
+    n = <span class="num">999</span>;    <span class="comment">// modifies the LOCAL copy only</span>
+    <span class="func">printf</span>(<span class="str">"inside: n = %d\n"</span>, n);   <span class="comment">// 999</span>
+}
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> x = <span class="num">42</span>;
+    <span class="func">try_to_change</span>(x);
+    <span class="func">printf</span>(<span class="str">"outside: x = %d\n"</span>, x);  <span class="comment">// still 42!</span>
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 290" width="100%" height="290">
+      <defs>
+        <marker id="pv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
+        </marker>
+      </defs>
+
+      <!-- Before -->
+      <text x="180" y="20" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">Before: try_to_change(x)</text>
+
+      <rect x="30" y="35" width="140" height="80" rx="6" fill="rgba(0,229,255,0.06)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="100" y="55" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">main()</text>
+      <rect x="42" y="64" width="116" height="28" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="100" y="83" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">x = 42</text>
+
+      <rect x="200" y="35" width="140" height="80" rx="6" fill="rgba(255,171,64,0.06)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="270" y="55" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">try_to_change()</text>
+      <rect x="212" y="64" width="116" height="28" rx="4" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="270" y="83" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">n = 42</text>
+
+      <text x="180" y="130" text-anchor="middle" fill="var(--text-dim)" font-size="11">n is a copy of x — both hold 42</text>
+
+      <!-- After -->
+      <text x="540" y="20" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">After: n = 999</text>
+
+      <rect x="400" y="35" width="140" height="80" rx="6" fill="rgba(0,229,255,0.06)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="470" y="55" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">main()</text>
+      <rect x="412" y="64" width="116" height="28" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="470" y="83" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">x = 42</text>
+
+      <rect x="570" y="35" width="140" height="80" rx="6" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="640" y="55" text-anchor="middle" fill="#ff5252" font-size="11" font-weight="600">try_to_change()</text>
+      <rect x="582" y="64" width="116" height="28" rx="4" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="0.5"/>
+      <text x="640" y="83" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">n = 999</text>
+
+      <text x="470" y="130" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">x unchanged!</text>
+      <text x="640" y="130" text-anchor="middle" fill="#ff5252" font-size="12">only n changed</text>
+
+      <!-- Three-layer explanation -->
+      <rect x="30" y="155" width="660" height="120" rx="8" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+
+      <rect x="40" y="165" width="200" height="100" rx="6" fill="rgba(0,229,255,0.03)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="140" y="183" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">C LANGUAGE</text>
+      <text x="140" y="202" text-anchor="middle" fill="var(--text)" font-size="11">n is a separate variable</text>
+      <text x="140" y="218" text-anchor="middle" fill="var(--text)" font-size="11">in its own scope. Writing</text>
+      <text x="140" y="234" text-anchor="middle" fill="var(--text)" font-size="11">to n cannot affect x.</text>
+
+      <rect x="260" y="165" width="200" height="100" rx="6" fill="rgba(255,171,64,0.03)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="360" y="183" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">C RUNTIME</text>
+      <text x="360" y="202" text-anchor="middle" fill="var(--text)" font-size="11">x is at address 0xA000</text>
+      <text x="360" y="218" text-anchor="middle" fill="var(--text)" font-size="11">n is at address 0xB000</text>
+      <text x="360" y="234" text-anchor="middle" fill="var(--text)" font-size="11">Different stack frames.</text>
+
+      <rect x="480" y="165" width="200" height="100" rx="6" fill="rgba(179,136,255,0.03)" stroke="#b388ff" stroke-width="0.5"/>
+      <text x="580" y="183" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">MACHINE</text>
+      <text x="580" y="202" text-anchor="middle" fill="var(--text)" font-size="11">Value 42 was copied into</text>
+      <text x="580" y="218" text-anchor="middle" fill="var(--text)" font-size="11">register RDI, then stored</text>
+      <text x="580" y="234" text-anchor="middle" fill="var(--text)" font-size="11">to n's location on stack.</text>
+    </svg>
+    <div class="caption">Pass by value means the function works on its own copy. The original variable is completely isolated across all three layers.</div>
+  </div>
+
+  <div class="key-concept">
+    <strong>The Golden Rule</strong><br>
+    In C, a function <strong>cannot</strong> modify its caller's variables through normal parameters. The parameter is always a copy. This is pass by value — the only passing mechanism C has.
+  </div>
+
+  <h2>The Problem: "I Need to Modify the Original"</h2>
+
+  <p>Pass by value is safe but limiting. What if you genuinely need a function to change the caller's variable? Consider a <code>swap</code> function that exchanges two values:</p>
+
+  <pre><span class="comment">// THIS DOESN'T WORK:</span>
+<span class="kw">void</span> <span class="func">broken_swap</span>(<span class="type">int</span> a, <span class="type">int</span> b) {
+    <span class="type">int</span> temp = a;
+    a = b;
+    b = temp;
+    <span class="comment">// a and b are swapped... but they're just local copies!</span>
+}
+
+<span class="type">int</span> x = <span class="num">10</span>, y = <span class="num">20</span>;
+<span class="func">broken_swap</span>(x, y);
+<span class="func">printf</span>(<span class="str">"%d %d\n"</span>, x, y);  <span class="comment">// still "10 20" — nothing happened!</span></pre>
+
+  <div class="warning">
+    <strong>Classic Beginner Bug</strong><br>
+    Writing a swap function that takes its arguments by value is one of the most common mistakes in C. The function swaps its own copies perfectly — but the caller's variables are completely untouched. The function's work vanishes the instant it returns.
+  </div>
+
+  <h2>The Solution: Pass a Pointer (Simulated Pass by Reference)</h2>
+
+  <p>Since C only passes by value, how do we let a function modify the caller's data? By passing the <em>address</em> of the variable instead of the variable itself. The function receives a copy of the address (still pass by value!) but can use that address to reach back and modify the original variable through dereferencing.</p>
+
+  <pre><span class="comment">// THIS WORKS:</span>
+<span class="kw">void</span> <span class="func">swap</span>(<span class="type">int</span> *a, <span class="type">int</span> *b) {   <span class="comment">// parameters are pointers</span>
+    <span class="type">int</span> temp = *a;     <span class="comment">// read the value at address a</span>
+    *a = *b;           <span class="comment">// write value at b into location a</span>
+    *b = temp;         <span class="comment">// write saved value into location b</span>
+}
+
+<span class="type">int</span> x = <span class="num">10</span>, y = <span class="num">20</span>;
+<span class="func">swap</span>(&amp;x, &amp;y);            <span class="comment">// pass the ADDRESSES of x and y</span>
+<span class="func">printf</span>(<span class="str">"%d %d\n"</span>, x, y);  <span class="comment">// "20 10" — actually swapped!</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 360" width="100%" height="360">
+      <defs>
+        <marker id="ptr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+      </defs>
+
+      <!-- main's stack frame -->
+      <rect x="30" y="30" width="220" height="160" rx="8" fill="rgba(68,138,255,0.05)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="140" y="22" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">main()</text>
+
+      <rect x="50" y="50" width="180" height="50" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="90" y="72" fill="#69f0ae" font-size="14">x = 10</text>
+      <text x="185" y="72" fill="#ffab40" font-size="10">0xA000</text>
+      <text x="185" y="90" fill="var(--text-dim)" font-size="10">4 bytes</text>
+
+      <rect x="50" y="110" width="180" height="50" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="90" y="132" fill="#69f0ae" font-size="14">y = 20</text>
+      <text x="185" y="132" fill="#ffab40" font-size="10">0xA004</text>
+      <text x="185" y="150" fill="var(--text-dim)" font-size="10">4 bytes</text>
+
+      <!-- swap's stack frame -->
+      <rect x="370" y="30" width="320" height="160" rx="8" fill="rgba(0,229,255,0.05)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="530" y="22" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">swap()</text>
+
+      <rect x="390" y="50" width="130" height="50" rx="6" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="410" y="72" fill="#00e5ff" font-size="13">a = 0xA000</text>
+      <text x="410" y="90" fill="var(--text-dim)" font-size="10">int* (8 bytes)</text>
+
+      <rect x="540" y="50" width="130" height="50" rx="6" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="560" y="72" fill="#00e5ff" font-size="13">b = 0xA004</text>
+      <text x="560" y="90" fill="var(--text-dim)" font-size="10">int* (8 bytes)</text>
+
+      <rect x="390" y="110" width="130" height="50" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="1"/>
+      <text x="410" y="132" fill="#ffab40" font-size="13">temp = 10</text>
+      <text x="410" y="150" fill="var(--text-dim)" font-size="10">local variable</text>
+
+      <!-- Pointer arrows reaching back into main -->
+      <path d="M 390 75 C 340 55, 290 55, 232 75" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ptr)" stroke-dasharray="6,4"/>
+      <path d="M 540 75 C 490 110, 350 145, 232 135" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ptr)" stroke-dasharray="6,4"/>
+
+      <text x="310" y="48" text-anchor="middle" fill="#00e5ff" font-size="10">*a reaches x</text>
+      <text x="350" y="155" text-anchor="middle" fill="#00e5ff" font-size="10">*b reaches y</text>
+
+      <!-- Three-layer annotation -->
+      <rect x="30" y="210" width="660" height="135" rx="8" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+
+      <rect x="40" y="220" width="200" height="115" rx="6" fill="rgba(0,229,255,0.03)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="140" y="238" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">C LANGUAGE</text>
+      <text x="140" y="258" text-anchor="middle" fill="var(--text)" font-size="11">a and b are int* parameters.</text>
+      <text x="140" y="275" text-anchor="middle" fill="var(--text)" font-size="11">*a = *b writes through the</text>
+      <text x="140" y="292" text-anchor="middle" fill="var(--text)" font-size="11">pointer to the original. Still</text>
+      <text x="140" y="309" text-anchor="middle" fill="var(--text)" font-size="11">pass by value — of an address.</text>
+
+      <rect x="260" y="220" width="200" height="115" rx="6" fill="rgba(255,171,64,0.03)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="360" y="238" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">C RUNTIME</text>
+      <text x="360" y="258" text-anchor="middle" fill="var(--text)" font-size="11">swap's frame holds two 8-byte</text>
+      <text x="360" y="275" text-anchor="middle" fill="var(--text)" font-size="11">pointer copies. Dereferencing</text>
+      <text x="360" y="292" text-anchor="middle" fill="var(--text)" font-size="11">these pointers reads/writes</text>
+      <text x="360" y="309" text-anchor="middle" fill="var(--text)" font-size="11">directly in main's stack frame.</text>
+
+      <rect x="480" y="220" width="200" height="115" rx="6" fill="rgba(179,136,255,0.03)" stroke="#b388ff" stroke-width="0.5"/>
+      <text x="580" y="238" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">MACHINE</text>
+      <text x="580" y="258" text-anchor="middle" fill="var(--text)" font-size="11">Addresses 0xA000 and 0xA004</text>
+      <text x="580" y="275" text-anchor="middle" fill="var(--text)" font-size="11">passed in RDI, RSI. MOV</text>
+      <text x="580" y="292" text-anchor="middle" fill="var(--text)" font-size="11">instructions with [RDI] and</text>
+      <text x="580" y="309" text-anchor="middle" fill="var(--text)" font-size="11">[RSI] access main's memory.</text>
+    </svg>
+    <div class="caption">Pointers a and b are copies of the addresses — but dereferencing them reads/writes directly into main's stack frame variables.</div>
+  </div>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    Pass by value is like giving someone a <span style="color:var(--accent-orange)">photocopy</span> of a document — they can scribble all over it without affecting your original. Pass by pointer is like giving them your <span style="color:var(--accent-cyan)">home address</span> — they can't change the address itself, but they can go to your house and rearrange the furniture.
+  </div>
+
+  <h2>When to Pass by Pointer</h2>
+
+  <p>There are three main reasons to pass a pointer instead of a plain value:</p>
+
+  <p><strong style="color:var(--accent-cyan)">1. You need the function to modify the caller's data.</strong> This is the swap case above — you want a side effect on the caller's variable. Pass the address, dereference inside.</p>
+
+  <pre><span class="kw">void</span> <span class="func">increment</span>(<span class="type">int</span> *value) {
+    (*value)++;   <span class="comment">// modifies the original variable</span>
+}
+
+<span class="type">int</span> count = <span class="num">0</span>;
+<span class="func">increment</span>(&amp;count);  <span class="comment">// count is now 1</span>
+<span class="func">increment</span>(&amp;count);  <span class="comment">// count is now 2</span></pre>
+
+  <p><strong style="color:var(--accent-cyan)">2. The data is large and copying would be expensive.</strong> Passing a pointer is always 8 bytes (on a 64-bit system), regardless of how large the data is. Passing a 1000-byte struct by value copies all 1000 bytes onto the stack.</p>
+
+  <pre><span class="kw">struct</span> <span class="type">BigData</span> {
+    <span class="type">int</span> values[<span class="num">1000</span>];   <span class="comment">// 4000 bytes!</span>
+};
+
+<span class="kw">void</span> <span class="func">process_slow</span>(<span class="kw">struct</span> <span class="type">BigData</span> data) {  <span class="comment">// copies 4000 bytes onto stack</span>
+    <span class="comment">// ...</span>
+}
+
+<span class="kw">void</span> <span class="func">process_fast</span>(<span class="kw">struct</span> <span class="type">BigData</span> *data) { <span class="comment">// copies 8-byte pointer</span>
+    <span class="comment">// ...</span>
+}</pre>
+
+  <p><strong style="color:var(--accent-cyan)">3. You're passing an array.</strong> As we saw in the memory series, arrays always decay to a pointer when passed to a function. This isn't optional — it's how C works. The function receives a pointer to the first element and must be told the size separately.</p>
+
+  <pre><span class="kw">void</span> <span class="func">zero_array</span>(<span class="type">int</span> *arr, <span class="type">int</span> size) {
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; size; i++) {
+        arr[i] = <span class="num">0</span>;   <span class="comment">// modifies the original array!</span>
+    }
+}
+
+<span class="type">int</span> nums[<span class="num">5</span>] = {<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>};
+<span class="func">zero_array</span>(nums, <span class="num">5</span>);  <span class="comment">// nums is now {0, 0, 0, 0, 0}</span></pre>
+
+  <h2>Returning Multiple Values</h2>
+
+  <p>C functions can only return one value. But with pointers as parameters, a function can effectively "return" multiple values by writing them to addresses the caller provides. This is a very common pattern in C — you'll see it throughout the standard library.</p>
+
+  <pre><span class="kw">void</span> <span class="func">divide</span>(<span class="type">int</span> dividend, <span class="type">int</span> divisor, <span class="type">int</span> *quotient, <span class="type">int</span> *remainder) {
+    *quotient  = dividend / divisor;
+    *remainder = dividend % divisor;
+}
+
+<span class="type">int</span> q, r;
+<span class="func">divide</span>(<span class="num">17</span>, <span class="num">5</span>, &amp;q, &amp;r);
+<span class="func">printf</span>(<span class="str">"17 / 5 = %d remainder %d\n"</span>, q, r);  <span class="comment">// "17 / 5 = 3 remainder 2"</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <defs>
+        <marker id="rv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+      </defs>
+
+      <!-- divide's frame -->
+      <rect x="250" y="15" width="220" height="140" rx="8" fill="rgba(255,171,64,0.05)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="360" y="10" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">divide()</text>
+      <text x="270" y="45" fill="var(--text)" font-size="12">dividend = 17</text>
+      <text x="270" y="65" fill="var(--text)" font-size="12">divisor  = 5</text>
+      <text x="270" y="90" fill="#00e5ff" font-size="12">*quotient  = 3</text>
+      <text x="270" y="110" fill="#00e5ff" font-size="12">*remainder = 2</text>
+
+      <!-- main's variables -->
+      <rect x="550" y="40" width="140" height="90" rx="6" fill="rgba(68,138,255,0.05)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="620" y="35" text-anchor="middle" fill="#448aff" font-size="12" font-weight="600">main()</text>
+      <rect x="562" y="52" width="116" height="28" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="620" y="71" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">q = 3</text>
+      <rect x="562" y="86" width="116" height="28" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="620" y="105" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">r = 2</text>
+
+      <!-- Arrows showing write-back -->
+      <path d="M 472 87 C 500 75, 530 65, 560 65" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#rv)" stroke-dasharray="6,3"/>
+      <path d="M 472 107 C 500 110, 530 105, 560 100" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#rv)" stroke-dasharray="6,3"/>
+
+      <!-- Labels -->
+      <text x="270" y="140" fill="var(--text-dim)" font-size="10">by value (copies)</text>
+      <line x1="270" y1="142" x2="355" y2="142" stroke="var(--text-dim)" stroke-width="0.5"/>
+      <text x="510" y="65" fill="#69f0ae" font-size="10">writes via ptr</text>
+      <text x="510" y="108" fill="#69f0ae" font-size="10">writes via ptr</text>
+
+      <!-- Bottom note -->
+      <text x="360" y="185" text-anchor="middle" fill="var(--text-dim)" font-size="12">dividend and divisor are passed by value (copies). quotient and remainder are passed as pointers (addresses) so divide can write results back.</text>
+    </svg>
+    <div class="caption">Pass plain values for input-only data. Pass pointers for output parameters that the function needs to write back.</div>
+  </div>
+
+  <h2>How the Machine Passes Arguments</h2>
+
+  <p>At the <span class="layer-label layer-machine">Machine</span> level, function arguments follow a <strong>calling convention</strong> — a set of rules about which arguments go in which CPU registers, and what happens when there are too many arguments to fit in registers.</p>
+
+  <p>On x86-64 Linux (the System V AMD64 ABI), the first six integer/pointer arguments are passed in registers: <code>RDI</code>, <code>RSI</code>, <code>RDX</code>, <code>RCX</code>, <code>R8</code>, <code>R9</code>. Any additional arguments go on the stack. The return value comes back in <code>RAX</code>.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 250" width="100%" height="250">
+      <!-- Function call example -->
+      <text x="360" y="22" text-anchor="middle" fill="var(--heading)" font-size="14" font-weight="600">divide(17, 5, &amp;q, &amp;r) — Register Assignment</text>
+
+      <!-- Registers -->
+      <rect x="80" y="50" width="130" height="40" rx="6" fill="rgba(179,136,255,0.1)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="115" y="65" fill="#b388ff" font-size="12" font-weight="600">RDI</text>
+      <text x="115" y="82" fill="var(--text)" font-size="12">= 17</text>
+      <text x="185" y="75" text-anchor="end" fill="var(--text-dim)" font-size="10">1st arg</text>
+
+      <rect x="230" y="50" width="130" height="40" rx="6" fill="rgba(179,136,255,0.1)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="265" y="65" fill="#b388ff" font-size="12" font-weight="600">RSI</text>
+      <text x="265" y="82" fill="var(--text)" font-size="12">= 5</text>
+      <text x="335" y="75" text-anchor="end" fill="var(--text-dim)" font-size="10">2nd arg</text>
+
+      <rect x="380" y="50" width="130" height="40" rx="6" fill="rgba(179,136,255,0.1)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="415" y="65" fill="#b388ff" font-size="12" font-weight="600">RDX</text>
+      <text x="415" y="82" fill="#00e5ff" font-size="11">= &amp;q</text>
+      <text x="485" y="75" text-anchor="end" fill="var(--text-dim)" font-size="10">3rd arg</text>
+
+      <rect x="530" y="50" width="130" height="40" rx="6" fill="rgba(179,136,255,0.1)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="565" y="65" fill="#b388ff" font-size="12" font-weight="600">RCX</text>
+      <text x="565" y="82" fill="#00e5ff" font-size="11">= &amp;r</text>
+      <text x="635" y="75" text-anchor="end" fill="var(--text-dim)" font-size="10">4th arg</text>
+
+      <!-- Return -->
+      <rect x="280" y="120" width="160" height="40" rx="6" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="315" y="135" fill="#69f0ae" font-size="12" font-weight="600">RAX</text>
+      <text x="315" y="152" fill="var(--text-dim)" font-size="11">(void — unused)</text>
+
+      <!-- Note about > 6 args -->
+      <rect x="80" y="185" width="560" height="50" rx="8" fill="rgba(255,171,64,0.04)" stroke="#ffab40" stroke-width="1"/>
+      <text x="360" y="207" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">What happens with more than 6 arguments?</text>
+      <text x="360" y="225" text-anchor="middle" fill="var(--text-dim)" font-size="12">Arguments 7, 8, 9... are pushed onto the stack (slower). This is why functions with many parameters can be less efficient.</text>
+    </svg>
+    <div class="caption">x86-64 calling convention: first 6 args go in registers (fast), extras go on the stack (slower). Return value in RAX.</div>
+  </div>
+
+  <h2>The const Qualifier — Promising Not to Modify</h2>
+
+  <p>When you pass a pointer for efficiency but don't intend to modify the data, use <code>const</code> to make that promise explicit. This gives you the performance benefit of passing a pointer (no copying) with a compile-time guarantee that the function won't alter the data.</p>
+
+  <pre><span class="kw">void</span> <span class="func">print_array</span>(<span class="kw">const</span> <span class="type">int</span> *arr, <span class="type">int</span> size) {
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; size; i++) {
+        <span class="func">printf</span>(<span class="str">"%d "</span>, arr[i]);   <span class="comment">// reading — allowed</span>
+    }
+    <span class="comment">// arr[0] = 99;             // COMPILE ERROR — can't modify const data</span>
+}</pre>
+
+  <p>At the <span class="layer-label layer-lang">C Language</span> level, <code>const</code> is a compile-time contract — it tells the compiler and other programmers "this function won't modify the data." At the <span class="layer-label layer-runtime">Runtime</span> and <span class="layer-label layer-machine">Machine</span> levels, there's no difference — the pointer is passed in a register just the same. The protection is purely at compile time.</p>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    C always passes by value. To modify the caller's variable, pass its address (a pointer) and dereference inside the function. The pointer itself is still passed by value — it's a copy of the address — but dereferencing it reaches the original data. At the machine level, the first few arguments fly through CPU registers, making function calls fast. Use <code>const</code> to mark pointer parameters you won't modify — it's free at runtime and catches bugs at compile time.
+  </div>
+
+</main>
+</body>
+</html>

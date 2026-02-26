@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What Is a Function? — C Function Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-blue: #448aff;
+    --accent-teal: #64ffda;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; min-height: 100vh; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-teal); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-teal); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-teal); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 68px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-teal), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 620px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-teal); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  .key-concept { background: linear-gradient(135deg, rgba(100,255,218,0.06), rgba(0,229,255,0.04)); border-left: 3px solid var(--accent-teal); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-teal); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .analogy { background: rgba(179,136,255,0.06); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .analogy strong { color: var(--accent-purple); }
+  .layer-label { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 3px; margin-bottom: 12px; }
+  .layer-lang { background: rgba(0,229,255,0.12); color: var(--accent-cyan); border: 1px solid rgba(0,229,255,0.25); }
+  .layer-runtime { background: rgba(255,171,64,0.12); color: var(--accent-orange); border: 1px solid rgba(255,171,64,0.25); }
+  .layer-machine { background: rgba(179,136,255,0.12); color: var(--accent-purple); border: 1px solid rgba(179,136,255,0.25); }
+  .three-layers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 32px 0; }
+  .three-layers .layer { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .three-layers .layer h4 { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; margin-bottom: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .three-layers .layer p { font-size: 14px; color: var(--text-dim); line-height: 1.6; margin-bottom: 0; }
+  @media (max-width: 750px) { .three-layers { grid-template-columns: 1fr; } .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">1 / 3</span>
+  <span>C Function Concepts</span>
+  <div class="nav-links">
+    <a href="06-what-is-a-function.html" class="active">What Is a Function?</a>
+    <a href="07-parameters-and-passing.html">Parameters &amp; Passing</a>
+    <a href="08-scope-and-pitfalls.html">Scope &amp; Pitfalls</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 06</div>
+  <h1>What Is a <span class="highlight">Function</span>?</h1>
+  <p class="subtitle">A function is a named block of code that performs a specific task. You define it once and call it whenever you need that task done — but beneath that simple idea, three layers of machinery are working at once.</p>
+</header>
+
+<main class="content">
+
+  <h2>Why Functions?</h2>
+
+  <p>Before we get into mechanics, consider why functions exist at all. Without them, every C program would be a single enormous <code>main()</code> — hundreds or thousands of lines, all tangled together. Functions let you break a program into named, reusable pieces. Each piece has a clear job, clear inputs, and a clear output.</p>
+
+  <p>But functions are more than just organizational tools for programmers. They are a fundamental mechanism that operates simultaneously across three layers of the system. Understanding what happens at <em>each</em> layer when you write and call a function is what separates surface-level C knowledge from real understanding.</p>
+
+  <div class="three-layers">
+    <div class="layer">
+      <h4 style="color: var(--accent-cyan);">C Language</h4>
+      <p>Syntax and semantics — how you declare, define, and call functions. Return types, parameter lists, and scope rules.</p>
+    </div>
+    <div class="layer">
+      <h4 style="color: var(--accent-orange);">C Runtime</h4>
+      <p>What happens when a function is called — the call stack, stack frames, parameter copying, and the return sequence.</p>
+    </div>
+    <div class="layer">
+      <h4 style="color: var(--accent-purple);">Machine Environment</h4>
+      <p>CPU registers, the hardware stack pointer, the instruction pointer jump, and how calling conventions actually work in hardware.</p>
+    </div>
+  </div>
+
+  <h2>Anatomy of a Function</h2>
+
+  <p>Every C function has four parts: a <strong style="color:var(--accent-cyan)">return type</strong>, a <strong style="color:var(--accent-teal)">name</strong>, a <strong style="color:var(--accent-orange)">parameter list</strong>, and a <strong style="color:var(--accent-green)">body</strong>. Together they form the function's <strong>definition</strong> — the complete specification of what the function is and what it does.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 260" width="100%" height="260">
+      <!-- Code representation with labeled parts -->
+      <rect x="40" y="30" width="640" height="190" rx="8" fill="var(--code-bg)" stroke="var(--border)" stroke-width="1.5"/>
+
+      <!-- Line 1: function signature -->
+      <text x="60" y="70" fill="#00e5ff" font-size="17" font-weight="600">int</text>
+      <text x="95" y="70" fill="#64ffda" font-size="17" font-weight="600">sum</text>
+      <text x="130" y="70" fill="var(--text-dim)" font-size="17">(</text>
+      <text x="140" y="70" fill="#00e5ff" font-size="17">int</text>
+      <text x="172" y="70" fill="#ffab40" font-size="17">a</text>
+      <text x="182" y="70" fill="var(--text-dim)" font-size="17">,</text>
+      <text x="196" y="70" fill="#00e5ff" font-size="17">int</text>
+      <text x="228" y="70" fill="#ffab40" font-size="17">b</text>
+      <text x="240" y="70" fill="var(--text-dim)" font-size="17">)</text>
+      <text x="254" y="70" fill="var(--text-dim)" font-size="17">{</text>
+
+      <!-- Line 2: body -->
+      <text x="90" y="110" fill="#00e5ff" font-size="17">int</text>
+      <text x="125" y="110" fill="#69f0ae" font-size="17">result</text>
+      <text x="192" y="110" fill="var(--text-dim)" font-size="17">=</text>
+      <text x="210" y="110" fill="#ffab40" font-size="17">a</text>
+      <text x="226" y="110" fill="var(--text-dim)" font-size="17">+</text>
+      <text x="242" y="110" fill="#ffab40" font-size="17">b</text>
+      <text x="254" y="110" fill="var(--text-dim)" font-size="17">;</text>
+
+      <!-- Line 3: return -->
+      <text x="90" y="150" fill="#b388ff" font-size="17" font-weight="600">return</text>
+      <text x="160" y="150" fill="#69f0ae" font-size="17">result</text>
+      <text x="222" y="150" fill="var(--text-dim)" font-size="17">;</text>
+
+      <!-- Line 4: closing brace -->
+      <text x="60" y="190" fill="var(--text-dim)" font-size="17">}</text>
+
+      <!-- Annotation arrows and labels -->
+      <!-- Return type -->
+      <line x1="70" y1="48" x2="70" y2="35" stroke="#00e5ff" stroke-width="1.5"/>
+      <line x1="70" y1="35" x2="430" y2="35" stroke="#00e5ff" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <text x="440" y="40" fill="#00e5ff" font-size="12" font-weight="600">Return type — what comes back</text>
+
+      <!-- Name -->
+      <line x1="110" y1="75" x2="110" y2="85" stroke="#64ffda" stroke-width="1.5"/>
+      <line x1="110" y1="85" x2="430" y2="85" stroke="#64ffda" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <text x="440" y="90" fill="#64ffda" font-size="12" font-weight="600">Name — how you call it</text>
+
+      <!-- Parameters -->
+      <line x1="200" y1="75" x2="200" y2="130" stroke="#ffab40" stroke-width="1.5"/>
+      <line x1="200" y1="130" x2="430" y2="130" stroke="#ffab40" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <text x="440" y="135" fill="#ffab40" font-size="12" font-weight="600">Parameters — inputs to the function</text>
+
+      <!-- Body -->
+      <line x1="300" y1="110" x2="430" y2="175" stroke="#69f0ae" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <text x="440" y="180" fill="#69f0ae" font-size="12" font-weight="600">Body — the work it does</text>
+
+      <!-- Return keyword -->
+      <text x="440" y="215" fill="#b388ff" font-size="12" font-weight="600">return — sends result back to caller</text>
+    </svg>
+    <div class="caption">The four parts of a function definition: return type, name, parameter list, and body.</div>
+  </div>
+
+  <h2>Declaration vs. Definition</h2>
+
+  <p>C separates two ideas that many languages combine. A <strong>declaration</strong> (also called a "prototype" or "forward declaration") tells the compiler "this function exists, here's its signature." A <strong>definition</strong> provides the actual body — the code that runs when the function is called.</p>
+
+  <pre><span class="comment">// Declaration (prototype) — usually in a header file or at the top of the file</span>
+<span class="type">int</span> <span class="func">sum</span>(<span class="type">int</span> a, <span class="type">int</span> b);   <span class="comment">// note the semicolon — no body</span>
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> result = <span class="func">sum</span>(<span class="num">3</span>, <span class="num">4</span>);  <span class="comment">// compiler knows sum exists and returns int</span>
+    <span class="func">printf</span>(<span class="str">"%d\n"</span>, result);   <span class="comment">// 7</span>
+}
+
+<span class="comment">// Definition — the actual implementation</span>
+<span class="type">int</span> <span class="func">sum</span>(<span class="type">int</span> a, <span class="type">int</span> b) {
+    <span class="kw">return</span> a + b;
+}</pre>
+
+  <p>Why does C bother with this separation? Because the compiler reads your file <em>top to bottom</em>. If <code>main()</code> calls <code>sum()</code> but <code>sum()</code> is defined below <code>main()</code>, the compiler hasn't seen <code>sum()</code> yet. The declaration solves this by saying "trust me, this function will exist — here's what it looks like."</p>
+
+  <div class="key-concept">
+    <strong>Key Concept</strong><br>
+    A declaration says "this function exists." A definition says "here's what it does." You can have many declarations (in header files, at the top of source files) but exactly <em>one</em> definition per function across your entire program.
+  </div>
+
+  <h2>What Happens When You Call a Function — Three Layers Deep</h2>
+
+  <p>When you write <code>int result = sum(3, 4);</code>, you're triggering a coordinated sequence across all three layers. Let's trace what happens from the moment the call is made to the moment the result comes back.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 480" width="100%" height="480">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
+        </marker>
+        <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#b388ff"/>
+        </marker>
+      </defs>
+
+      <!-- Title -->
+      <text x="360" y="25" text-anchor="middle" fill="var(--heading)" font-size="15" font-weight="600">Calling sum(3, 4) — What Happens at Each Layer</text>
+
+      <!-- Layer 1: C Language -->
+      <rect x="30" y="45" width="660" height="110" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="50" y="68" fill="#00e5ff" font-size="12" font-weight="600">C LANGUAGE LAYER</text>
+
+      <text x="50" y="95" fill="var(--text)" font-size="13">① Compiler checks: does sum exist? Does it take two ints? Does it return int?</text>
+      <text x="50" y="115" fill="var(--text)" font-size="13">② Expressions 3 and 4 are evaluated. These values become the arguments.</text>
+      <text x="50" y="135" fill="var(--text)" font-size="13">③ The return value (int) is assigned to result. Type checking is complete.</text>
+
+      <!-- Layer 2: C Runtime -->
+      <rect x="30" y="170" width="660" height="130" rx="8" fill="rgba(255,171,64,0.04)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="50" y="193" fill="#ffab40" font-size="12" font-weight="600">C RUNTIME LAYER</text>
+
+      <text x="50" y="220" fill="var(--text)" font-size="13">④ A new stack frame is pushed for sum(). Space is reserved for parameters</text>
+      <text x="60" y="238" fill="var(--text)" font-size="13">and local variables.</text>
+      <text x="50" y="258" fill="var(--text)" font-size="13">⑤ The values 3 and 4 are <tspan fill="#ffab40" font-weight="600">copied</tspan> into the parameter slots a and b.</text>
+      <text x="50" y="278" fill="var(--text)" font-size="13">⑥ When sum returns, its frame is popped. The return value is passed back.</text>
+
+      <!-- Layer 3: Machine -->
+      <rect x="30" y="315" width="660" height="140" rx="8" fill="rgba(179,136,255,0.04)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="50" y="338" fill="#b388ff" font-size="12" font-weight="600">MACHINE ENVIRONMENT LAYER</text>
+
+      <text x="50" y="365" fill="var(--text)" font-size="13">⑦ Arguments are placed in CPU registers (rdi=3, rsi=4 on x86-64).</text>
+      <text x="50" y="385" fill="var(--text)" font-size="13">⑧ The CALL instruction pushes the return address onto the hardware stack</text>
+      <text x="60" y="403" fill="var(--text)" font-size="13">and jumps the instruction pointer to sum's machine code.</text>
+      <text x="50" y="423" fill="var(--text)" font-size="13">⑨ RET pops the return address and jumps back. The result is in register rax.</text>
+
+      <!-- Connecting flow arrows on the right side -->
+      <path d="M 700 100 L 700 180" stroke="var(--text-dim)" stroke-width="1.5" fill="none" marker-end="url(#a2)" stroke-dasharray="4,3"/>
+      <path d="M 700 240 L 700 325" stroke="var(--text-dim)" stroke-width="1.5" fill="none" marker-end="url(#a3)" stroke-dasharray="4,3"/>
+
+      <text x="715" y="145" fill="var(--text-dim)" font-size="9" transform="rotate(90, 715, 145)">compiles to</text>
+      <text x="715" y="285" fill="var(--text-dim)" font-size="9" transform="rotate(90, 715, 285)">executes as</text>
+
+      <!-- Bottom summary -->
+      <text x="360" y="475" text-anchor="middle" fill="var(--text-dim)" font-size="12">One line of C triggers type checking, stack management, register shuffling, and an instruction pointer jump.</text>
+    </svg>
+    <div class="caption">A single function call engages all three layers simultaneously — from syntax checking to register-level hardware operations.</div>
+  </div>
+
+  <h2>The Call Stack in Action</h2>
+
+  <p>Every running C program maintains a <strong>call stack</strong> — a region of memory that grows and shrinks as functions are called and returned. Each function call creates a <strong>stack frame</strong> containing that function's parameters, local variables, and bookkeeping information (like where to return to).</p>
+
+  <pre><span class="type">int</span> <span class="func">multiply</span>(<span class="type">int</span> x, <span class="type">int</span> y) {
+    <span class="type">int</span> product = x * y;
+    <span class="kw">return</span> product;
+}
+
+<span class="type">int</span> <span class="func">square</span>(<span class="type">int</span> n) {
+    <span class="kw">return</span> <span class="func">multiply</span>(n, n);    <span class="comment">// square calls multiply</span>
+}
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> val = <span class="num">5</span>;
+    <span class="type">int</span> result = <span class="func">square</span>(val);  <span class="comment">// main calls square</span>
+    <span class="func">printf</span>(<span class="str">"%d\n"</span>, result);    <span class="comment">// 25</span>
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 380" width="100%" height="380">
+      <defs>
+        <marker id="stk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64ffda"/>
+        </marker>
+      </defs>
+
+      <!-- Step 1: main only -->
+      <text x="100" y="20" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">main() called</text>
+
+      <rect x="30" y="30" width="140" height="120" rx="6" fill="rgba(68,138,255,0.06)" stroke="#448aff" stroke-width="2"/>
+      <text x="100" y="55" text-anchor="middle" fill="#448aff" font-size="12" font-weight="600">main()</text>
+      <rect x="42" y="65" width="116" height="24" rx="3" fill="rgba(68,138,255,0.1)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="100" y="82" text-anchor="middle" fill="var(--text)" font-size="11">val = 5</text>
+      <rect x="42" y="95" width="116" height="24" rx="3" fill="rgba(68,138,255,0.1)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="100" y="112" text-anchor="middle" fill="var(--text-dim)" font-size="11">result = ???</text>
+      <text x="100" y="165" text-anchor="middle" fill="var(--text-dim)" font-size="10">↑ stack top</text>
+
+      <!-- Arrow -->
+      <path d="M 185 100 L 225 100" stroke="#64ffda" stroke-width="1.5" fill="none" marker-end="url(#stk)"/>
+
+      <!-- Step 2: square pushed -->
+      <text x="340" y="20" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">square(5) called</text>
+
+      <rect x="270" y="30" width="140" height="100" rx="6" fill="rgba(68,138,255,0.04)" stroke="#448aff" stroke-width="1"/>
+      <text x="340" y="52" text-anchor="middle" fill="#448aff" font-size="11">main()</text>
+      <rect x="282" y="60" width="116" height="20" rx="3" fill="rgba(68,138,255,0.06)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="340" y="75" text-anchor="middle" fill="var(--text-dim)" font-size="10">val=5, result=???</text>
+
+      <rect x="270" y="140" width="140" height="90" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="340" y="162" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">square()</text>
+      <rect x="282" y="172" width="116" height="24" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="340" y="189" text-anchor="middle" fill="var(--text)" font-size="11">n = 5</text>
+      <text x="340" y="250" text-anchor="middle" fill="var(--text-dim)" font-size="10">↑ stack top</text>
+
+      <!-- Arrow -->
+      <path d="M 425 150 L 465 150" stroke="#64ffda" stroke-width="1.5" fill="none" marker-end="url(#stk)"/>
+
+      <!-- Step 3: multiply pushed -->
+      <text x="580" y="20" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">multiply(5,5) called</text>
+
+      <rect x="510" y="30" width="140" height="68" rx="6" fill="rgba(68,138,255,0.03)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="580" y="52" text-anchor="middle" fill="#448aff" font-size="10">main()</text>
+      <rect x="522" y="58" width="116" height="18" rx="3" fill="rgba(68,138,255,0.04)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="580" y="72" text-anchor="middle" fill="var(--text-dim)" font-size="9">val=5, result=???</text>
+
+      <rect x="510" y="105" width="140" height="60" rx="6" fill="rgba(105,240,174,0.05)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="580" y="125" text-anchor="middle" fill="#69f0ae" font-size="10">square()</text>
+      <rect x="522" y="132" width="116" height="18" rx="3" fill="rgba(105,240,174,0.06)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="580" y="146" text-anchor="middle" fill="var(--text-dim)" font-size="9">n = 5</text>
+
+      <rect x="510" y="175" width="140" height="110" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="2"/>
+      <text x="580" y="197" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">multiply()</text>
+      <rect x="522" y="207" width="116" height="22" rx="3" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="580" y="223" text-anchor="middle" fill="var(--text)" font-size="11">x = 5</text>
+      <rect x="522" y="233" width="116" height="22" rx="3" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="580" y="249" text-anchor="middle" fill="var(--text)" font-size="11">y = 5</text>
+      <rect x="522" y="259" width="116" height="22" rx="3" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="580" y="275" text-anchor="middle" fill="#69f0ae" font-size="11">product = 25</text>
+      <text x="580" y="305" text-anchor="middle" fill="var(--text-dim)" font-size="10">↑ stack top</text>
+
+      <!-- Layer labels at bottom -->
+      <rect x="50" y="330" width="200" height="35" rx="6" fill="rgba(255,171,64,0.06)" stroke="#ffab40" stroke-width="1"/>
+      <text x="150" y="348" text-anchor="middle" fill="#ffab40" font-size="11">C RUNTIME: stack frames grow/shrink</text>
+
+      <rect x="270" y="330" width="200" height="35" rx="6" fill="rgba(179,136,255,0.06)" stroke="#b388ff" stroke-width="1"/>
+      <text x="370" y="348" text-anchor="middle" fill="#b388ff" font-size="11">MACHINE: RSP register moves</text>
+
+      <rect x="490" y="330" width="200" height="35" rx="6" fill="rgba(0,229,255,0.06)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="590" y="348" text-anchor="middle" fill="#00e5ff" font-size="11">C LANGUAGE: scopes are nested</text>
+    </svg>
+    <div class="caption">Each function call pushes a new frame. multiply's frame sits on top of square's, which sits on main's. Each frame is an isolated workspace.</div>
+  </div>
+
+  <p>At the <span class="layer-label layer-lang">C Language</span> level, each function has its own scope — its variables are private and can't be seen by anyone else. At the <span class="layer-label layer-runtime">C Runtime</span> level, this isolation is implemented by giving each function its own stack frame — a block of memory on the stack. At the <span class="layer-label layer-machine">Machine</span> level, the CPU's stack pointer register (<code>RSP</code> on x86-64) is adjusted to allocate and reclaim these frames.</p>
+
+  <h2>The Return Journey</h2>
+
+  <p>When <code>multiply</code> executes <code>return product;</code>, the entire process unwinds:</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <!-- Three steps of return -->
+      <rect x="20" y="20" width="210" height="150" rx="8" fill="rgba(179,136,255,0.04)" stroke="#b388ff" stroke-width="1"/>
+      <text x="125" y="42" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">MACHINE</text>
+      <text x="125" y="65" text-anchor="middle" fill="var(--text)" font-size="12">Return value 25 placed</text>
+      <text x="125" y="82" text-anchor="middle" fill="var(--text)" font-size="12">into register RAX.</text>
+      <text x="125" y="105" text-anchor="middle" fill="var(--text)" font-size="12">RET instruction pops the</text>
+      <text x="125" y="122" text-anchor="middle" fill="var(--text)" font-size="12">return address and jumps</text>
+      <text x="125" y="139" text-anchor="middle" fill="var(--text)" font-size="12">back into square's code.</text>
+
+      <rect x="255" y="20" width="210" height="150" rx="8" fill="rgba(255,171,64,0.04)" stroke="#ffab40" stroke-width="1"/>
+      <text x="360" y="42" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">C RUNTIME</text>
+      <text x="360" y="65" text-anchor="middle" fill="var(--text)" font-size="12">multiply's stack frame</text>
+      <text x="360" y="82" text-anchor="middle" fill="var(--text)" font-size="12">is popped (RSP moves up).</text>
+      <text x="360" y="105" text-anchor="middle" fill="var(--text)" font-size="12">All of multiply's locals</text>
+      <text x="360" y="122" text-anchor="middle" fill="var(--text)" font-size="12">(x, y, product) are gone.</text>
+      <text x="360" y="139" text-anchor="middle" fill="var(--text)" font-size="12">That memory is reclaimed.</text>
+
+      <rect x="490" y="20" width="210" height="150" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="595" y="42" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">C LANGUAGE</text>
+      <text x="595" y="65" text-anchor="middle" fill="var(--text)" font-size="12">The expression multiply(n,n)</text>
+      <text x="595" y="82" text-anchor="middle" fill="var(--text)" font-size="12">evaluates to 25.</text>
+      <text x="595" y="105" text-anchor="middle" fill="var(--text)" font-size="12">square returns this value,</text>
+      <text x="595" y="122" text-anchor="middle" fill="var(--text)" font-size="12">which main stores in</text>
+      <text x="595" y="139" text-anchor="middle" fill="var(--text)" font-size="12">result. Scopes unwind.</text>
+
+      <!-- Flow arrows -->
+      <path d="M 232 95 L 253 95" stroke="var(--text-dim)" stroke-width="1.5" fill="none" marker-end="url(#a2)"/>
+      <path d="M 467 95 L 488 95" stroke="var(--text-dim)" stroke-width="1.5" fill="none" marker-end="url(#a1)"/>
+    </svg>
+    <div class="caption">Returning from a function: the machine restores the instruction pointer, the runtime reclaims the stack frame, and the language delivers the value.</div>
+  </div>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    Calling a function is like sending a coworker to do a task. You hand them the information they need (<span style="color:var(--accent-orange)">arguments</span>), they go to their own desk (<span style="color:var(--accent-orange)">stack frame</span>), do the work, hand back the result (<span style="color:var(--accent-purple)">return value</span>), and clean up their desk. You don't see their scratch paper — you only get the final answer.
+  </div>
+
+  <h2>void — Functions That Return Nothing</h2>
+
+  <p>Not every function produces a result. A function with return type <code>void</code> performs an action without giving anything back. It might print output, modify data through a pointer, or update a global state.</p>
+
+  <pre><span class="kw">void</span> <span class="func">greet</span>(<span class="type">char</span> *name) {
+    <span class="func">printf</span>(<span class="str">"Hello, %s!\n"</span>, name);
+    <span class="comment">// no return value — the function just does something</span>
+}
+
+<span class="func">greet</span>(<span class="str">"Alice"</span>);  <span class="comment">// prints "Hello, Alice!" but produces no value to store</span></pre>
+
+  <p>At the machine level, a <code>void</code> function still uses the same CALL/RET instruction mechanism — the only difference is that no value is placed in the RAX register before returning. The stack frame still gets created and destroyed in exactly the same way.</p>
+
+  <h2>Functions That Take No Parameters</h2>
+
+  <p>A function with an empty parameter list in C has a subtle quirk worth knowing. In C, <code>void</code> in the parameter list explicitly means "this function takes no arguments." Empty parentheses mean something slightly different — "unspecified parameters" — which is an older C convention that disables type checking on the arguments.</p>
+
+  <pre><span class="type">int</span> <span class="func">get_answer</span>(<span class="kw">void</span>) {   <span class="comment">// explicitly takes NO arguments</span>
+    <span class="kw">return</span> <span class="num">42</span>;
+}
+
+<span class="type">int</span> <span class="func">get_answer2</span>() {       <span class="comment">// in C: unspecified arguments (not recommended)</span>
+    <span class="kw">return</span> <span class="num">42</span>;              <span class="comment">// in C++: same as (void) — but we're writing C!</span>
+}</pre>
+
+  <div class="warning">
+    <strong>C vs. C++ Difference</strong><br>
+    In C++, <code>int f()</code> means "takes no arguments." In C, <code>int f()</code> means "takes an unspecified number of arguments" — the compiler won't check how many arguments you pass. Always use <code>int f(void)</code> in C to mean "takes nothing." This is a common source of subtle bugs when programmers come from C++.
+  </div>
+
+  <h2>main() — The Special Function</h2>
+
+  <p><code>main()</code> is the one function the C runtime calls for you. It's the entry point — where execution begins. But it's still just a function. It has a stack frame, it can call other functions, and it returns a value (the exit code). The C runtime sets up the stack, initializes global data, and then calls <code>main()</code> just like any other function call.</p>
+
+  <pre><span class="type">int</span> <span class="func">main</span>(<span class="type">int</span> argc, <span class="type">char</span> *argv[]) {
+    <span class="comment">// argc = number of command-line arguments</span>
+    <span class="comment">// argv = array of argument strings</span>
+    <span class="kw">return</span> <span class="num">0</span>;  <span class="comment">// exit code 0 = success</span>
+}</pre>
+
+  <p>At the <span class="layer-label layer-machine">Machine</span> level, before <code>main()</code> runs, the C runtime startup code (often called <code>_start</code> or <code>crt0</code>) has already run — setting up the stack, initializing static variables, and preparing the <code>argc</code>/<code>argv</code> values from the operating system. Your <code>main()</code> is the first function <em>you</em> wrote that runs, but it's not the first code that executes.</p>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    A function is a named, reusable block of code with a clear contract: it takes typed inputs (parameters), does work, and optionally returns a typed output. When called, it triggers a coordinated sequence across all three layers — the C language checks types and manages scope, the runtime pushes and pops stack frames, and the machine shuffles registers and jumps the instruction pointer. Understanding all three layers simultaneously is understanding what a function call really <em>is</em>.
+  </div>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scope &amp; Pitfalls — C Function Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-blue: #448aff;
+    --accent-teal: #64ffda;
+    --accent-pink: #ff80ab;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; min-height: 100vh; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-pink); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-pink); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-pink); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 650px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-pink); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  .key-concept { background: linear-gradient(135deg, rgba(255,128,171,0.06), rgba(179,136,255,0.04)); border-left: 3px solid var(--accent-pink); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-pink); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .analogy { background: rgba(179,136,255,0.06); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .analogy strong { color: var(--accent-purple); }
+  .layer-label { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 3px; margin-bottom: 4px; }
+  .layer-lang { background: rgba(0,229,255,0.12); color: var(--accent-cyan); border: 1px solid rgba(0,229,255,0.25); }
+  .layer-runtime { background: rgba(255,171,64,0.12); color: var(--accent-orange); border: 1px solid rgba(255,171,64,0.25); }
+  .layer-machine { background: rgba(179,136,255,0.12); color: var(--accent-purple); border: 1px solid rgba(179,136,255,0.25); }
+  .bug-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+  .bug-gallery .bug { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .bug-gallery .bug h4 { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; color: var(--accent-red); margin-bottom: 8px; }
+  .bug-gallery .bug p { font-size: 14px; color: var(--text-dim); line-height: 1.5; margin-bottom: 0; }
+  @media (max-width: 700px) { .bug-gallery { grid-template-columns: 1fr; } .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">3 / 3</span>
+  <span>C Function Concepts</span>
+  <div class="nav-links">
+    <a href="06-what-is-a-function.html">What Is a Function?</a>
+    <a href="07-parameters-and-passing.html">Parameters &amp; Passing</a>
+    <a href="08-scope-and-pitfalls.html" class="active">Scope &amp; Pitfalls</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 08</div>
+  <h1>Scope &amp; <span class="highlight">Pitfalls</span></h1>
+  <p class="subtitle">Every variable in C has a scope — a region where it's visible. Functions create scope boundaries. When those boundaries collide with variable names, subtle bugs appear — especially the dreaded "hole in scope."</p>
+</header>
+
+<main class="content">
+
+  <h2>What Is Scope?</h2>
+
+  <p>Scope is the region of your source code where a variable name is visible and usable. In C, scope is determined by curly braces — each pair of <code>{}</code> creates a new scope. A variable declared inside a scope is invisible outside it.</p>
+
+  <pre><span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> x = <span class="num">10</span>;         <span class="comment">// x is visible from here to the end of main</span>
+
+    {                      <span class="comment">// new inner scope</span>
+        <span class="type">int</span> y = <span class="num">20</span>;     <span class="comment">// y is only visible inside these braces</span>
+        <span class="func">printf</span>(<span class="str">"%d\n"</span>, x); <span class="comment">// ✓ x is visible here (from outer scope)</span>
+        <span class="func">printf</span>(<span class="str">"%d\n"</span>, y); <span class="comment">// ✓ y is visible here</span>
+    }
+
+    <span class="func">printf</span>(<span class="str">"%d\n"</span>, x);     <span class="comment">// ✓ x is still visible</span>
+    <span class="comment">// printf("%d\n", y);   // ✗ COMPILE ERROR — y doesn't exist here</span>
+}</pre>
+
+  <p>At the <span class="layer-label layer-lang">C Language</span> level, scope is a compile-time concept — the compiler tracks which names are visible at each point. At the <span class="layer-label layer-runtime">C Runtime</span> level, scope corresponds to stack frame lifetime — when a scope ends, its variables' stack space is reclaimed. At the <span class="layer-label layer-machine">Machine</span> level, there is no scope — the CPU just sees memory addresses. Scope is entirely a language-level protection.</p>
+
+  <h2>Function Scope — The Hard Boundary</h2>
+
+  <p>Functions create the most important scope boundary in C. Each function is a completely isolated world — its parameters and local variables are invisible to every other function. Unlike inner block scopes (which can see outer variables), functions cannot see each other's variables at all.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 280" width="100%" height="280">
+      <!-- main scope -->
+      <rect x="30" y="20" width="300" height="230" rx="10" fill="rgba(68,138,255,0.04)" stroke="#448aff" stroke-width="2"/>
+      <text x="180" y="14" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">main() scope</text>
+
+      <rect x="50" y="40" width="260" height="35" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="180" y="63" text-anchor="middle" fill="#448aff" font-size="13">int x = 10;</text>
+
+      <rect x="50" y="85" width="260" height="35" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="180" y="108" text-anchor="middle" fill="#448aff" font-size="13">int y = 20;</text>
+
+      <rect x="50" y="130" width="260" height="35" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="180" y="153" text-anchor="middle" fill="#448aff" font-size="13">int result = add(x, y);</text>
+
+      <text x="180" y="195" text-anchor="middle" fill="#448aff" font-size="11">✓ can see: x, y, result</text>
+      <text x="180" y="215" text-anchor="middle" fill="#ff5252" font-size="11">✗ cannot see: a, b, sum</text>
+
+      <!-- add scope -->
+      <rect x="390" y="20" width="300" height="230" rx="10" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="540" y="14" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">add() scope</text>
+
+      <rect x="410" y="40" width="260" height="35" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="540" y="63" text-anchor="middle" fill="#69f0ae" font-size="13">int a = 10;</text>
+      <text x="660" y="63" fill="var(--text-dim)" font-size="10">param</text>
+
+      <rect x="410" y="85" width="260" height="35" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="540" y="108" text-anchor="middle" fill="#69f0ae" font-size="13">int b = 20;</text>
+      <text x="660" y="108" fill="var(--text-dim)" font-size="10">param</text>
+
+      <rect x="410" y="130" width="260" height="35" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="540" y="153" text-anchor="middle" fill="#69f0ae" font-size="13">int sum = a + b;</text>
+      <text x="660" y="153" fill="var(--text-dim)" font-size="10">local</text>
+
+      <text x="540" y="195" text-anchor="middle" fill="#69f0ae" font-size="11">✓ can see: a, b, sum</text>
+      <text x="540" y="215" text-anchor="middle" fill="#ff5252" font-size="11">✗ cannot see: x, y, result</text>
+
+      <!-- Wall between them -->
+      <line x1="360" y1="15" x2="360" y2="255" stroke="#ff5252" stroke-width="2" stroke-dasharray="6,4"/>
+      <text x="360" y="270" text-anchor="middle" fill="#ff5252" font-size="11" font-weight="600">SCOPE WALL — complete isolation</text>
+    </svg>
+    <div class="caption">Functions are scope fortresses. main cannot see add's variables, and add cannot see main's. Communication happens only through parameters and return values.</div>
+  </div>
+
+  <h2>The Hole in Scope — Shadowing</h2>
+
+  <p>Here's where things get dangerous. When you declare a variable in an inner scope with the <em>same name</em> as a variable in an outer scope, the inner variable <strong>shadows</strong> (hides) the outer one. Within the inner scope, the name refers to the inner variable — the outer one still exists, but you can't reach it. This creates a "hole" in the outer variable's scope.</p>
+
+  <pre><span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> x = <span class="num">100</span>;
+    <span class="func">printf</span>(<span class="str">"outer x = %d\n"</span>, x);  <span class="comment">// 100</span>
+
+    {
+        <span class="type">int</span> x = <span class="num">999</span>;   <span class="comment">// SHADOWS the outer x!</span>
+        <span class="func">printf</span>(<span class="str">"inner x = %d\n"</span>, x);  <span class="comment">// 999 — the outer x is hidden</span>
+    }
+
+    <span class="func">printf</span>(<span class="str">"outer x = %d\n"</span>, x);  <span class="comment">// 100 — outer x is back, unchanged</span>
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 300" width="100%" height="300">
+      <!-- Scope visualization with hole -->
+
+      <!-- Outer scope bar -->
+      <rect x="40" y="40" width="640" height="30" rx="4" fill="rgba(68,138,255,0.15)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="360" y="60" text-anchor="middle" fill="#448aff" font-size="12" font-weight="600">outer x = 100 — visible here</text>
+
+      <!-- The "hole" in outer scope -->
+      <rect x="220" y="40" width="240" height="30" rx="4" fill="rgba(255,82,82,0.2)" stroke="#ff5252" stroke-width="2"/>
+      <text x="340" y="60" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">HOLE — outer x is hidden!</text>
+
+      <!-- Inner scope bar -->
+      <rect x="220" y="80" width="240" height="30" rx="4" fill="rgba(255,128,171,0.2)" stroke="#ff80ab" stroke-width="2"/>
+      <text x="340" y="100" text-anchor="middle" fill="#ff80ab" font-size="12" font-weight="600">inner x = 999 — visible here</text>
+
+      <!-- Timeline labels -->
+      <text x="40" y="32" fill="var(--text-dim)" font-size="10">line 2</text>
+      <text x="130" y="32" fill="var(--text-dim)" font-size="10">line 3</text>
+      <text x="220" y="32" fill="var(--text-dim)" font-size="10">line 5 {</text>
+      <text x="315" y="32" fill="var(--text-dim)" font-size="10">line 6</text>
+      <text x="430" y="32" fill="var(--text-dim)" font-size="10">line 8 }</text>
+      <text x="540" y="32" fill="var(--text-dim)" font-size="10">line 10</text>
+      <text x="640" y="32" fill="var(--text-dim)" font-size="10">line 11 }</text>
+
+      <!-- Arrows showing scope lifetime -->
+      <path d="M 40 75 L 218 75" stroke="#448aff" stroke-width="2" fill="none"/>
+      <path d="M 462 75 L 680 75" stroke="#448aff" stroke-width="2" fill="none"/>
+      <text x="130" y="90" text-anchor="middle" fill="#448aff" font-size="10">outer x visible</text>
+      <text x="570" y="90" text-anchor="middle" fill="#448aff" font-size="10">outer x visible again</text>
+
+      <!-- Three-layer explanation -->
+      <rect x="40" y="135" width="640" height="150" rx="8" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+
+      <rect x="50" y="145" width="200" height="130" rx="6" fill="rgba(0,229,255,0.03)" stroke="#00e5ff" stroke-width="0.5"/>
+      <text x="150" y="163" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">C LANGUAGE</text>
+      <text x="150" y="183" text-anchor="middle" fill="var(--text)" font-size="11">The inner x "shadows" the</text>
+      <text x="150" y="199" text-anchor="middle" fill="var(--text)" font-size="11">outer x. The compiler resolves</text>
+      <text x="150" y="215" text-anchor="middle" fill="var(--text)" font-size="11">the name x to the innermost</text>
+      <text x="150" y="231" text-anchor="middle" fill="var(--text)" font-size="11">declaration in scope. This is</text>
+      <text x="150" y="247" text-anchor="middle" fill="var(--text)" font-size="11">legal C — but usually a bug.</text>
+
+      <rect x="260" y="145" width="200" height="130" rx="6" fill="rgba(255,171,64,0.03)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="360" y="163" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">C RUNTIME</text>
+      <text x="360" y="183" text-anchor="middle" fill="var(--text)" font-size="11">Both x variables exist on the</text>
+      <text x="360" y="199" text-anchor="middle" fill="var(--text)" font-size="11">stack simultaneously — at</text>
+      <text x="360" y="215" text-anchor="middle" fill="var(--text)" font-size="11">different addresses. The outer</text>
+      <text x="360" y="231" text-anchor="middle" fill="var(--text)" font-size="11">x is not overwritten; it's</text>
+      <text x="360" y="247" text-anchor="middle" fill="var(--text)" font-size="11">just unreachable by name.</text>
+
+      <rect x="470" y="145" width="200" height="130" rx="6" fill="rgba(179,136,255,0.03)" stroke="#b388ff" stroke-width="0.5"/>
+      <text x="570" y="163" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">MACHINE</text>
+      <text x="570" y="183" text-anchor="middle" fill="var(--text)" font-size="11">The CPU has no concept of</text>
+      <text x="570" y="199" text-anchor="middle" fill="var(--text)" font-size="11">"scope." There are just two</text>
+      <text x="570" y="215" text-anchor="middle" fill="var(--text)" font-size="11">memory locations: [RBP-4]</text>
+      <text x="570" y="231" text-anchor="middle" fill="var(--text)" font-size="11">for outer x, [RBP-8] for</text>
+      <text x="570" y="247" text-anchor="middle" fill="var(--text)" font-size="11">inner x. Just addresses.</text>
+    </svg>
+    <div class="caption">Shadowing creates a "hole" where the outer variable still exists in memory but can't be accessed by name. The compiler picks the innermost match.</div>
+  </div>
+
+  <h2>The Real Danger: Shadowing When Refactoring to Functions</h2>
+
+  <p>Shadowing inside block scopes (shown above) is annoying but relatively easy to spot. The truly dangerous case happens when you <strong>extract code into a function</strong> — one of the most common refactoring tasks in programming. If you're not careful, a parameter name or local variable in the new function can shadow a variable from the original context, silently breaking the logic.</p>
+
+  <h3>The Scenario</h3>
+  <p>Imagine you have working code inside <code>main()</code> and you decide to extract it into a helper function:</p>
+
+  <pre><span class="comment">// ORIGINAL — everything in main, working correctly:</span>
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> count = <span class="num">0</span>;
+    <span class="type">int</span> limit = <span class="num">100</span>;
+    <span class="type">int</span> data[<span class="num">10</span>] = {<span class="num">5</span>, <span class="num">12</span>, <span class="num">3</span>, <span class="num">99</span>, <span class="num">45</span>, <span class="num">7</span>, <span class="num">88</span>, <span class="num">2</span>, <span class="num">67</span>, <span class="num">33</span>};
+
+    <span class="comment">// count how many items are under the limit</span>
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="num">10</span>; i++) {
+        <span class="kw">if</span> (data[i] &lt; limit) {
+            count++;
+        }
+    }
+    <span class="func">printf</span>(<span class="str">"Found %d items under %d\n"</span>, count, limit);
+    <span class="comment">// prints "Found 8 items under 100" ✓</span>
+}</pre>
+
+  <p>Now you refactor — extracting the loop into a function. But you accidentally name a parameter the same as a variable you were using:</p>
+
+  <pre><span class="comment">// REFACTORED — with a subtle bug:</span>
+<span class="type">int</span> <span class="func">count_under</span>(<span class="type">int</span> *data, <span class="type">int</span> size, <span class="type">int</span> limit) {
+    <span class="type">int</span> count = <span class="num">0</span>;   <span class="comment">// this is fine — local to this function</span>
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; size; i++) {
+        <span class="kw">if</span> (data[i] &lt; limit) {
+            count++;
+        }
+    }
+    <span class="kw">return</span> count;
+}
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> count = <span class="num">0</span>;    <span class="comment">// main's count</span>
+    <span class="type">int</span> limit = <span class="num">100</span>;
+    <span class="type">int</span> data[<span class="num">10</span>] = {<span class="num">5</span>, <span class="num">12</span>, <span class="num">3</span>, <span class="num">99</span>, <span class="num">45</span>, <span class="num">7</span>, <span class="num">88</span>, <span class="num">2</span>, <span class="num">67</span>, <span class="num">33</span>};
+
+    <span class="func">count_under</span>(data, <span class="num">10</span>, limit);  <span class="comment">// BUG! forgot to assign return value</span>
+
+    <span class="func">printf</span>(<span class="str">"Found %d items under %d\n"</span>, count, limit);
+    <span class="comment">// prints "Found 0 items under 100" — WRONG!</span>
+    <span class="comment">// main's count was never updated — function had its own count</span>
+}</pre>
+
+  <div class="warning">
+    <strong>The Hole in Scope — In Practice</strong><br>
+    The variable <code>count</code> exists in both <code>main()</code> and <code>count_under()</code>. In the original code, there was only one <code>count</code> and the loop modified it directly. After refactoring, the function's <code>count</code> is a completely separate variable. If the programmer forgets to capture the return value, <code>main</code>'s <code>count</code> stays at zero. The code compiles cleanly — no warnings, no errors — but produces wrong results.
+  </div>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 400" width="100%" height="400">
+      <!-- Before refactoring -->
+      <text x="180" y="20" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">Before — One Scope, Works Fine</text>
+
+      <rect x="30" y="35" width="300" height="165" rx="8" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="180" y="55" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">main()</text>
+
+      <rect x="45" y="65" width="270" height="28" rx="4" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="0.5"/>
+      <text x="180" y="84" text-anchor="middle" fill="#69f0ae" font-size="12">count = 0   →   count = 8</text>
+
+      <rect x="45" y="100" width="270" height="28" rx="4" fill="rgba(68,138,255,0.06)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="180" y="119" text-anchor="middle" fill="var(--text)" font-size="12">for loop modifies count directly</text>
+
+      <rect x="45" y="135" width="270" height="28" rx="4" fill="rgba(68,138,255,0.06)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="180" y="154" text-anchor="middle" fill="var(--text)" font-size="12">printf → "Found 8 items" ✓</text>
+
+      <text x="180" y="185" text-anchor="middle" fill="#69f0ae" font-size="11">Only ONE count variable exists</text>
+
+      <!-- After refactoring - the bug -->
+      <text x="540" y="20" text-anchor="middle" fill="#ff5252" font-size="14" font-weight="600">After — Two Scopes, Bug!</text>
+
+      <!-- main's scope -->
+      <rect x="390" y="35" width="300" height="165" rx="8" fill="rgba(68,138,255,0.04)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="540" y="55" text-anchor="middle" fill="#448aff" font-size="12" font-weight="600">main()</text>
+
+      <rect x="405" y="65" width="270" height="28" rx="4" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="1"/>
+      <text x="540" y="84" text-anchor="middle" fill="#ff5252" font-size="12">count = 0   →   count = 0  (never changes!)</text>
+
+      <rect x="405" y="100" width="270" height="28" rx="4" fill="rgba(68,138,255,0.06)" stroke="#448aff" stroke-width="0.5"/>
+      <text x="540" y="119" text-anchor="middle" fill="var(--text)" font-size="12">count_under(data, 10, limit);</text>
+
+      <rect x="405" y="135" width="270" height="28" rx="4" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="0.5"/>
+      <text x="540" y="154" text-anchor="middle" fill="#ff5252" font-size="12">printf → "Found 0 items" ✗</text>
+
+      <!-- count_under's scope - ghost -->
+      <rect x="420" y="205" width="250" height="85" rx="8" fill="rgba(255,171,64,0.05)" stroke="#ffab40" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="545" y="225" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">count_under()</text>
+      <rect x="435" y="235" width="220" height="24" rx="4" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="0.5"/>
+      <text x="545" y="252" text-anchor="middle" fill="#ffab40" font-size="12">count = 0  →  count = 8  →  GONE</text>
+      <text x="545" y="278" text-anchor="middle" fill="#ff5252" font-size="11">This count lived and died here — result discarded</text>
+
+      <!-- The fix -->
+      <rect x="30" y="315" width="660" height="70" rx="8" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="360" y="338" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="600">✓ The Fix</text>
+      <text x="360" y="362" text-anchor="middle" fill="var(--text)" font-size="14">count = count_under(data, 10, limit);</text>
+      <text x="360" y="378" text-anchor="middle" fill="var(--text-dim)" font-size="11">Capture the return value! The function's count is separate — you must receive the result.</text>
+    </svg>
+    <div class="caption">The refactoring created two independent count variables. The function's count computes correctly but its result is thrown away because the return value wasn't captured.</div>
+  </div>
+
+  <h3>An Even Subtler Version</h3>
+
+  <p>Sometimes the shadowing is between a <em>parameter</em> name and a variable the developer expects to be shared. Here's a particularly treacherous case:</p>
+
+  <pre><span class="type">int</span> total = <span class="num">0</span>;  <span class="comment">// global variable</span>
+
+<span class="kw">void</span> <span class="func">add_to_total</span>(<span class="type">int</span> total, <span class="type">int</span> value) {  <span class="comment">// BUG: parameter shadows global!</span>
+    total = total + value;     <span class="comment">// modifies the LOCAL parameter, not the global</span>
+}
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="func">add_to_total</span>(total, <span class="num">10</span>);
+    <span class="func">add_to_total</span>(total, <span class="num">20</span>);
+    <span class="func">printf</span>(<span class="str">"total = %d\n"</span>, total);  <span class="comment">// 0 — global was never modified!</span>
+}</pre>
+
+  <p>The parameter <code>total</code> in <code>add_to_total</code> creates a hole that hides the global <code>total</code>. Inside the function, every use of the name <code>total</code> refers to the parameter — a local copy. The global sits untouched. The compiler may warn about this with <code>-Wshadow</code>, but many C compilers don't enable this warning by default.</p>
+
+  <div class="key-concept">
+    <strong>The Shadowing Rule</strong><br>
+    When the same name exists in multiple scopes, C always resolves it to the <strong>innermost</strong> declaration. A function parameter shadows a global. A local variable shadows a parameter. An inner block's variable shadows the enclosing block's. This is the "hole in scope" — the outer variable is eclipsed, silently and completely.
+  </div>
+
+  <h2>The Refactoring Trap — Step by Step</h2>
+
+  <p>This pattern is so common it deserves a detailed walkthrough. Here's exactly how developers fall into it when converting inline code to a function:</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 480" width="100%" height="480">
+      <!-- Step 1 -->
+      <text x="360" y="22" text-anchor="middle" fill="var(--heading)" font-size="14" font-weight="600">The Refactoring Trap — How It Happens</text>
+
+      <!-- Step 1: Working inline code -->
+      <rect x="30" y="40" width="315" height="180" rx="8" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="188" y="60" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">Step 1: Working Inline Code</text>
+
+      <text x="45" y="85" fill="var(--text-dim)" font-size="12" font-style="italic">// in main():</text>
+      <text x="45" y="105" fill="var(--text)" font-size="12">int max = data[0];</text>
+      <text x="45" y="125" fill="var(--text)" font-size="12">for (int i = 1; i &lt; size; i++)</text>
+      <text x="45" y="145" fill="var(--text)" font-size="12">    if (data[i] > max)</text>
+      <text x="45" y="165" fill="var(--text)" font-size="12">        max = data[i];</text>
+      <text x="45" y="190" fill="#69f0ae" font-size="12">// max is now the largest value ✓</text>
+      <text x="45" y="210" fill="var(--text-dim)" font-size="10">data, size, and max all in main's scope</text>
+
+      <!-- Step 2: Developer creates function -->
+      <rect x="375" y="40" width="315" height="180" rx="8" fill="rgba(255,171,64,0.04)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="532" y="60" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">Step 2: Extract to Function</text>
+
+      <text x="390" y="85" fill="var(--text)" font-size="12">int find_max(int *data, int size) {</text>
+      <text x="400" y="105" fill="var(--text)" font-size="12">  int max = data[0];</text>
+      <text x="400" y="125" fill="var(--text)" font-size="12">  for (int i = 1; i &lt; size; i++)</text>
+      <text x="400" y="145" fill="var(--text)" font-size="12">      if (data[i] > max)</text>
+      <text x="400" y="165" fill="var(--text)" font-size="12">          max = data[i];</text>
+      <text x="400" y="185" fill="var(--text)" font-size="12">  return max;</text>
+      <text x="390" y="205" fill="var(--text)" font-size="12">}</text>
+      <text x="390" y="215" fill="#ffab40" font-size="10">Developer copies code, adds params + return</text>
+
+      <!-- Step 3: The subtle bug in calling code -->
+      <rect x="30" y="240" width="315" height="120" rx="8" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="188" y="260" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">Step 3: The Bug in main()</text>
+
+      <text x="45" y="285" fill="var(--text)" font-size="12">int max = 0;</text>
+      <text x="240" y="285" fill="#ff5252" font-size="10">← still here from before!</text>
+      <text x="45" y="305" fill="var(--text)" font-size="12">find_max(data, size);</text>
+      <text x="240" y="305" fill="#ff5252" font-size="10">← return value ignored!</text>
+      <text x="45" y="325" fill="var(--text)" font-size="12">printf("max = %d", max);</text>
+      <text x="240" y="325" fill="#ff5252" font-size="10">← prints 0, not the real max</text>
+      <text x="45" y="350" fill="#ff5252" font-size="11" font-weight="600">main's max and find_max's max are DIFFERENT variables</text>
+
+      <!-- Step 4: The fix -->
+      <rect x="375" y="240" width="315" height="120" rx="8" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="532" y="260" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">Step 4: The Fix</text>
+
+      <text x="390" y="285" fill="var(--text)" font-size="12">int max = find_max(data, size);</text>
+      <text x="390" y="310" fill="#69f0ae" font-size="12">printf("max = %d", max);</text>
+      <text x="390" y="330" fill="#69f0ae" font-size="11">// ✓ prints the correct maximum</text>
+      <text x="390" y="350" fill="var(--text-dim)" font-size="10">main's max is initialized from the return value</text>
+
+      <!-- Bottom lesson -->
+      <rect x="30" y="380" width="660" height="80" rx="8" fill="var(--surface)" stroke="var(--border)" stroke-width="1"/>
+      <text x="360" y="405" text-anchor="middle" fill="var(--accent-pink)" font-size="13" font-weight="600">THE LESSON</text>
+      <text x="360" y="425" text-anchor="middle" fill="var(--text)" font-size="13">When you extract inline code into a function, the variables that used to be</text>
+      <text x="360" y="445" text-anchor="middle" fill="var(--text)" font-size="13">shared in one scope become separate. Every value the function computes must</text>
+      <text x="360" y="460" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">be explicitly returned and captured by the caller.</text>
+    </svg>
+    <div class="caption">The refactoring trap: code that works inline breaks when extracted to a function, because what was one scope becomes two isolated scopes.</div>
+  </div>
+
+  <h2>Compiler Warnings to the Rescue</h2>
+
+  <p>Most C compilers can warn you about shadowing — but the warning isn't always on by default. Turning it on can catch these bugs before they bite:</p>
+
+  <pre><span class="comment"># Compile with shadowing warnings enabled:</span>
+gcc -Wshadow -Wall -Wextra program.c
+
+<span class="comment"># Example output:</span>
+<span class="comment"># program.c:5:9: warning: declaration of 'total' shadows a global</span>
+<span class="comment"># declaration [-Wshadow]</span>
+<span class="comment">#     void add_to_total(int total, int value) {</span>
+<span class="comment">#                            ^~~~~</span></pre>
+
+  <div class="key-concept">
+    <strong>Best Practice</strong><br>
+    Always compile with <code>-Wshadow</code>. It catches accidental name collisions between parameters, locals, and globals. If you're learning C, this single flag will save you hours of debugging. Better yet, use <code>-Wall -Wextra -Wshadow</code> to catch the broadest set of potential issues.
+  </div>
+
+  <h2>Common Function Pitfalls</h2>
+
+  <p>Beyond shadowing, here are the most frequent function-related bugs new C programmers encounter — and how they look across all three layers:</p>
+
+  <div class="bug-gallery">
+    <div class="bug">
+      <h4>1. Returning a Local Variable's Address</h4>
+      <p>Returning <code>&amp;x</code> where <code>x</code> is local. At the <strong>runtime</strong> level, the stack frame is destroyed on return. At the <strong>machine</strong> level, RSP moves and that memory is reclaimed. The pointer is dangling.</p>
+    </div>
+    <div class="bug">
+      <h4>2. Ignoring the Return Value</h4>
+      <p>Calling a function but not storing its result. At the <strong>language</strong> level, this is legal C. At the <strong>machine</strong> level, RAX holds the result briefly, then it's overwritten. The computed value is lost forever.</p>
+    </div>
+    <div class="bug">
+      <h4>3. Forgetting to Pass Size with Arrays</h4>
+      <p>Arrays decay to pointers when passed. At the <strong>language</strong> level, the function has no way to know the length. At the <strong>runtime</strong> level, <code>sizeof(arr)</code> returns 8 (pointer size), not the array size. Overruns cause buffer overflows.</p>
+    </div>
+    <div class="bug">
+      <h4>4. Modifying a By-Value Parameter Expecting Side Effects</h4>
+      <p>Writing <code>n = 99</code> inside a function expecting the caller's variable to change. At the <strong>runtime</strong> level, you're writing to a copy on the function's own stack frame. The caller's memory is untouched.</p>
+    </div>
+  </div>
+
+  <h3>Returning a Local Address — The Classic Disaster</h3>
+  <p>This one deserves extra attention because the consequences are severe and the bug can appear to work intermittently:</p>
+
+  <pre><span class="type">int</span>* <span class="func">bad_function</span>() {
+    <span class="type">int</span> result = <span class="num">42</span>;
+    <span class="kw">return</span> &amp;result;  <span class="comment">// ✗ DANGER! result lives on the stack</span>
+}                    <span class="comment">//   and will be destroyed when this returns</span>
+
+<span class="type">int</span> <span class="func">main</span>() {
+    <span class="type">int</span> *p = <span class="func">bad_function</span>();
+    <span class="func">printf</span>(<span class="str">"%d\n"</span>, *p);  <span class="comment">// UNDEFINED BEHAVIOR — might print 42,</span>
+                          <span class="comment">// might print garbage, might crash</span>
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 210" width="100%" height="210">
+      <!-- During bad_function -->
+      <rect x="30" y="20" width="310" height="160" rx="8" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="185" y="15" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">During bad_function()</text>
+
+      <rect x="50" y="40" width="120" height="50" rx="6" fill="rgba(255,171,64,0.06)" stroke="#ffab40" stroke-width="1"/>
+      <text x="110" y="62" text-anchor="middle" fill="#ffab40" font-size="11">bad_function</text>
+      <text x="110" y="78" text-anchor="middle" fill="var(--text)" font-size="12">result = 42</text>
+
+      <text x="110" y="115" text-anchor="middle" fill="#ffab40" font-size="10">0xBFF0 ← stack frame</text>
+      <text x="110" y="135" text-anchor="middle" fill="var(--text-dim)" font-size="10">&amp;result = 0xBFF0</text>
+      <text x="110" y="155" text-anchor="middle" fill="#ff5252" font-size="10">returns 0xBFF0</text>
+
+      <!-- After bad_function returns -->
+      <rect x="380" y="20" width="310" height="160" rx="8" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="535" y="15" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">After bad_function() returns</text>
+
+      <rect x="400" y="40" width="120" height="50" rx="6" fill="rgba(255,82,82,0.04)" stroke="#ff5252" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="460" y="62" text-anchor="middle" fill="#ff5252" font-size="11">DESTROYED</text>
+      <text x="460" y="78" text-anchor="middle" fill="#ff5252" font-size="12">???</text>
+
+      <rect x="560" y="40" width="120" height="50" rx="6" fill="rgba(68,138,255,0.06)" stroke="#448aff" stroke-width="1"/>
+      <text x="620" y="62" text-anchor="middle" fill="#448aff" font-size="11">main()</text>
+      <text x="620" y="78" text-anchor="middle" fill="#448aff" font-size="11">p = 0xBFF0</text>
+
+      <text x="535" y="115" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">p points to reclaimed memory!</text>
+      <text x="535" y="140" text-anchor="middle" fill="var(--text-dim)" font-size="11">The stack frame is gone. Address 0xBFF0 may now</text>
+      <text x="535" y="158" text-anchor="middle" fill="var(--text-dim)" font-size="11">contain another function's data, or garbage.</text>
+
+      <!-- Machine layer note -->
+      <text x="360" y="200" text-anchor="middle" fill="#b388ff" font-size="11">MACHINE: RSP moved past 0xBFF0. That memory is now "free" stack space — any future function call can overwrite it.</text>
+    </svg>
+    <div class="caption">The pointer survives the function return, but the data it points to is destroyed. This is a dangling pointer — one of the most dangerous bugs in C.</div>
+  </div>
+
+  <h2>A Mental Model for Function Safety</h2>
+
+  <p>When writing or refactoring functions, ask yourself these three questions:</p>
+
+  <p><strong style="color:var(--accent-teal)">1. What does this function need to know?</strong> Those are the parameters. Pass values for read-only data, pointers for data the function needs to modify or data that's too large to copy.</p>
+
+  <p><strong style="color:var(--accent-teal)">2. What does this function produce?</strong> That's the return value. If the function computes something, the caller must capture the return value — it doesn't magically update any existing variable.</p>
+
+  <p><strong style="color:var(--accent-teal)">3. Are any names reused?</strong> Check your parameter names against your globals and locals. If the same name appears at two levels, you have a shadow. Rename one of them to make the code unambiguous.</p>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    A function is a <span style="color:var(--accent-orange)">sealed room</span> with a mail slot. You slide in envelopes (arguments) through the slot. Inside the room, the workers use the contents of those envelopes but they can't see your desk. When they're done, they slide one envelope back out (the return value). If you throw that envelope away without reading it, the work is lost. If you sent a photocopy and expect them to have modified your original — you misunderstand how the room works.
+  </div>
+
+  <h2>Summary — Scope Across Three Layers</h2>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 260" width="100%" height="260">
+      <rect x="20" y="20" width="220" height="220" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="130" y="45" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">C LANGUAGE</text>
+      <text x="130" y="75" text-anchor="middle" fill="var(--text)" font-size="12">Scope = name visibility.</text>
+      <text x="130" y="95" text-anchor="middle" fill="var(--text)" font-size="12">Each {} pair creates a scope.</text>
+      <text x="130" y="115" text-anchor="middle" fill="var(--text)" font-size="12">Functions are isolated scopes.</text>
+      <text x="130" y="140" text-anchor="middle" fill="var(--text)" font-size="12">Inner names shadow outer.</text>
+      <text x="130" y="165" text-anchor="middle" fill="var(--text)" font-size="12">Compiler resolves names to</text>
+      <text x="130" y="185" text-anchor="middle" fill="var(--text)" font-size="12">the innermost declaration.</text>
+      <text x="130" y="215" text-anchor="middle" fill="#00e5ff" font-size="11">-Wshadow catches conflicts</text>
+
+      <rect x="250" y="20" width="220" height="220" rx="8" fill="rgba(255,171,64,0.04)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="360" y="45" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">C RUNTIME</text>
+      <text x="360" y="75" text-anchor="middle" fill="var(--text)" font-size="12">Scope = stack frame lifetime.</text>
+      <text x="360" y="95" text-anchor="middle" fill="var(--text)" font-size="12">Each call gets its own frame.</text>
+      <text x="360" y="115" text-anchor="middle" fill="var(--text)" font-size="12">Shadowed variables coexist</text>
+      <text x="360" y="135" text-anchor="middle" fill="var(--text)" font-size="12">at different addresses.</text>
+      <text x="360" y="160" text-anchor="middle" fill="var(--text)" font-size="12">When function returns, its</text>
+      <text x="360" y="180" text-anchor="middle" fill="var(--text)" font-size="12">frame is popped — all locals</text>
+      <text x="360" y="200" text-anchor="middle" fill="var(--text)" font-size="12">are destroyed.</text>
+      <text x="360" y="225" text-anchor="middle" fill="#ffab40" font-size="11">No protection after pop</text>
+
+      <rect x="480" y="20" width="220" height="220" rx="8" fill="rgba(179,136,255,0.04)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="590" y="45" text-anchor="middle" fill="#b388ff" font-size="13" font-weight="600">MACHINE</text>
+      <text x="590" y="75" text-anchor="middle" fill="var(--text)" font-size="12">No concept of "scope."</text>
+      <text x="590" y="95" text-anchor="middle" fill="var(--text)" font-size="12">Variables are just memory</text>
+      <text x="590" y="115" text-anchor="middle" fill="var(--text)" font-size="12">offsets from RBP or RSP.</text>
+      <text x="590" y="140" text-anchor="middle" fill="var(--text)" font-size="12">Two same-named variables</text>
+      <text x="590" y="160" text-anchor="middle" fill="var(--text)" font-size="12">= two different [RBP-N]</text>
+      <text x="590" y="180" text-anchor="middle" fill="var(--text)" font-size="12">offsets. The CPU doesn't</text>
+      <text x="590" y="200" text-anchor="middle" fill="var(--text)" font-size="12">know or care about names.</text>
+      <text x="590" y="225" text-anchor="middle" fill="#b388ff" font-size="11">Just addresses and values</text>
+    </svg>
+    <div class="caption">Scope is a language-level concept. The runtime implements it with stack frames. The machine knows nothing about it — just memory addresses.</div>
+  </div>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    Scope determines where a variable name is visible. Functions create hard scope boundaries — complete isolation between caller and callee. When a name is reused across scopes, the inner one <strong>shadows</strong> the outer, creating a "hole in scope" where the outer variable is unreachable by name. This is especially dangerous during refactoring: when you extract code from one scope into a new function, variables that were shared become separate. Every computed result must now be explicitly returned and captured. Compile with <code>-Wshadow</code> to catch these errors, and always ask: "Is every result I need being returned and stored?"
+  </div>
+
+</main>
+</body>
+</html>
