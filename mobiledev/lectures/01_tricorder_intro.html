@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 - The Tricorder Parallel</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,serif;max-width:860px;margin:0 auto;padding:40px 28px 60px;color:#1a1a2e;background:#fdfdfd;line-height:1.7}
+.doc-header{text-align:center;margin-bottom:36px;border-bottom:3px solid #2d3a8c;padding-bottom:24px}
+.doc-header h1{font-size:22px;color:#1a1a2e;margin-bottom:4px}
+.semester{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:2px}
+.subtitle{font-size:18px;color:#2d3a8c;margin-top:8px;font-style:italic}
+h2{font-size:22px;color:#2d3a8c;margin:32px 0 14px;border-bottom:2px solid #e0e0e0;padding-bottom:6px}
+h3{font-size:17px;color:#333;margin:24px 0 10px}
+p{margin:0 0 14px}
+.callout{background:#f0f4ff;border-left:4px solid #2d3a8c;padding:14px 18px;margin:18px 0;border-radius:0 6px 6px 0;font-size:15px}
+.callout strong{color:#2d3a8c}
+.callout-warn{background:#fff8f0;border-left:4px solid #e08c4a;padding:14px 18px;margin:18px 0;border-radius:0 6px 6px 0;font-size:15px}
+.callout-warn strong{color:#c06000}
+.diagram-container{text-align:center;margin:24px 0;padding:20px;background:#fafafa;border:1px solid #ddd;border-radius:8px}
+.diagram-caption{font-size:13px;color:#666;font-style:italic;margin-top:10px}
+code{background:#eef1ff;padding:2px 6px;border-radius:3px;font-size:14px;font-family:Consolas,monospace;color:#2d3a8c}
+pre{background:#1e1e2e;color:#cdd6f4;padding:16px 20px;border-radius:6px;overflow-x:auto;margin:12px 0 18px;font-size:13.5px;line-height:1.5;font-family:Consolas,monospace}
+table{width:100%;border-collapse:collapse;margin:16px 0}
+th{background:#2d3a8c;color:#fff;padding:10px 14px;text-align:left;font-size:14px}
+td{padding:10px 14px;border-bottom:1px solid #e0e0e0;font-size:14px;vertical-align:top}
+tr:nth-child(even){background:#f8f9ff}
+.nav{display:flex;justify-content:space-between;margin-top:40px;padding-top:18px;border-top:2px solid #e0e0e0;flex-wrap:wrap;gap:8px}
+.nav a{text-decoration:none;color:#2d3a8c;font-size:14px;font-weight:bold}
+.nav a:hover{color:#5a6abf}
+.foot{margin-top:24px;padding-top:14px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center}
+.tp{display:flex;gap:20px;margin:16px 0;padding:16px;background:#0d1b2a;border-radius:8px;color:#e0e0e0;flex-wrap:wrap}
+.tp .trek,.tp .phone{flex:1;min-width:220px}
+.tp h4{font-size:14px;margin-bottom:8px;letter-spacing:1px}
+.tp .trek h4{color:#f0a500}
+.tp .phone h4{color:#7ec8e3}
+.tp p{font-size:13.5px;line-height:1.6;margin:0 0 8px}
+.sensor-card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:20px;margin:16px 0;border-left:5px solid #2d3a8c}
+.sensor-card h3{margin-top:0;color:#2d3a8c}
+</style></head><body>
+<div class="doc-header">
+<h1>CS 402 &#8212; Mobile Application Development</h1>
+<div class="semester">Spring 2026</div>
+<div class="subtitle">The Tricorder Parallel</div>
+</div>
+
+<h2>1. From Science Fiction to Science Fact</h2>
+
+<p>In the original Star Trek series (1966), the Tricorder was a portable sensing, computing, and recording device. Depending on the model, it could scan for life forms, analyze chemical compositions, diagnose medical conditions, and record data for later analysis. It was small enough to carry on a belt, operated with a flip-open interface, and could process sensor data in real time.</p>
+
+<p>That description &#8212; portable, multi-sensor, flip-open, real-time processing &#8212; maps almost exactly onto a modern smartphone. The phone in your pocket is, by any reasonable definition, a Tricorder. In fact, it significantly exceeds the fictional device&#8217;s capabilities in several dimensions.</p>
+
+<div class="tp">
+<div class="trek">
+<h4>&#9733; STAR TREK TRICORDER</h4>
+<p>Scans for life forms nearby</p>
+<p>Measures atmospheric composition</p>
+<p>Records audio and data logs</p>
+<p>Determines geographic position</p>
+<p>Analyzes material composition</p>
+<p>Communicates with the ship</p>
+</div>
+<div class="phone">
+<h4>&#9733; YOUR SMARTPHONE (2026)</h4>
+<p>Bluetooth/WiFi detects nearby devices; camera + ML identifies faces</p>
+<p>Barometer measures pressure; humidity sensor (some models)</p>
+<p>Microphone, camera, and 256GB+ storage</p>
+<p>GPS accurate to 1&#8211;3 meters, plus compass heading</p>
+<p>Camera + spectral analysis apps; LiDAR scans 3D geometry</p>
+<p>5G, WiFi 6E, Bluetooth 5.3, NFC, satellite SOS</p>
+</div>
+</div>
+
+<div class="callout">
+<strong>Key Insight:</strong> The Star Trek Tricorder was designed to be impressive science fiction. A modern phone has <em>more</em> sensors, <em>more</em> processing power, and <em>more</em> connectivity than the writers ever imagined. As mobile developers, you are building software for the most capable sensor platform ever mass-produced.
+</div>
+
+<h2>2. The Sensor Inventory</h2>
+
+<p>A modern flagship smartphone contains approximately 12&#8211;15 distinct sensors, plus 4&#8211;5 radio transceivers. Each sensor converts some physical phenomenon &#8212; acceleration, light, magnetic field, air pressure &#8212; into electrical signals that the SoC can process. Here is the complete inventory:</p>
+
+<div class="diagram-container">
+<svg width="720" height="400" viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
+<!-- Phone outline - large -->
+<rect x="260" y="20" width="200" height="360" rx="24" fill="#1a1a2e" stroke="#3a5a7c" stroke-width="2"/>
+<rect x="272" y="44" width="176" height="312" rx="6" fill="#0d1b2a" opacity="0.6"/>
+
+<!-- Category labels -->
+<text x="60" y="30" fill="#2d3a8c" font-size="13" font-weight="bold" font-family="Georgia,serif">MOTION</text>
+<text x="60" y="170" fill="#2d3a8c" font-size="13" font-weight="bold" font-family="Georgia,serif">ENVIRONMENT</text>
+<text x="580" y="30" fill="#2d3a8c" font-size="13" font-weight="bold" font-family="Georgia,serif">LOCATION</text>
+<text x="580" y="170" fill="#2d3a8c" font-size="13" font-weight="bold" font-family="Georgia,serif">IMAGING</text>
+<text x="580" y="290" fill="#2d3a8c" font-size="13" font-weight="bold" font-family="Georgia,serif">RADIOS</text>
+<text x="60" y="310" fill="#2d3a8c" font-size="13" font-weight="bold" font-family="Georgia,serif">BIOMETRIC</text>
+
+<!-- Motion sensors - left top -->
+<rect x="20" y="42" width="180" height="24" rx="4" fill="#eef1ff" stroke="#c0c8e8" stroke-width="1"/>
+<text x="110" y="58" text-anchor="middle" fill="#2d3a8c" font-size="12" font-family="Consolas,monospace">Accelerometer</text>
+<line x1="200" y1="54" x2="260" y2="100" stroke="#2d3a8c" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="20" y="72" width="180" height="24" rx="4" fill="#eef1ff" stroke="#c0c8e8" stroke-width="1"/>
+<text x="110" y="88" text-anchor="middle" fill="#2d3a8c" font-size="12" font-family="Consolas,monospace">Gyroscope</text>
+<line x1="200" y1="84" x2="260" y2="120" stroke="#2d3a8c" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="20" y="102" width="180" height="24" rx="4" fill="#eef1ff" stroke="#c0c8e8" stroke-width="1"/>
+<text x="110" y="118" text-anchor="middle" fill="#2d3a8c" font-size="12" font-family="Consolas,monospace">Pedometer / Step Counter</text>
+<line x1="200" y1="114" x2="260" y2="140" stroke="#2d3a8c" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<!-- Environment sensors - left middle -->
+<rect x="20" y="182" width="180" height="24" rx="4" fill="#fff8f0" stroke="#e8d8c0" stroke-width="1"/>
+<text x="110" y="198" text-anchor="middle" fill="#c06000" font-size="12" font-family="Consolas,monospace">Barometer</text>
+<line x1="200" y1="194" x2="260" y2="220" stroke="#c06000" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="20" y="212" width="180" height="24" rx="4" fill="#fff8f0" stroke="#e8d8c0" stroke-width="1"/>
+<text x="110" y="228" text-anchor="middle" fill="#c06000" font-size="12" font-family="Consolas,monospace">Ambient Light</text>
+<line x1="200" y1="224" x2="260" y2="240" stroke="#c06000" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="20" y="242" width="180" height="24" rx="4" fill="#fff8f0" stroke="#e8d8c0" stroke-width="1"/>
+<text x="110" y="258" text-anchor="middle" fill="#c06000" font-size="12" font-family="Consolas,monospace">Proximity</text>
+<line x1="200" y1="254" x2="260" y2="60" stroke="#c06000" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<!-- Biometric - left bottom -->
+<rect x="20" y="322" width="180" height="24" rx="4" fill="#f0fff4" stroke="#c0e8c8" stroke-width="1"/>
+<text x="110" y="338" text-anchor="middle" fill="#1a7a3a" font-size="12" font-family="Consolas,monospace">Fingerprint</text>
+<line x1="200" y1="334" x2="260" y2="340" stroke="#1a7a3a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="20" y="352" width="180" height="24" rx="4" fill="#f0fff4" stroke="#c0e8c8" stroke-width="1"/>
+<text x="110" y="368" text-anchor="middle" fill="#1a7a3a" font-size="12" font-family="Consolas,monospace">Face ID / IR Dot Projector</text>
+<line x1="200" y1="364" x2="260" y2="50" stroke="#1a7a3a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<!-- Location sensors - right top -->
+<rect x="520" y="42" width="180" height="24" rx="4" fill="#f0f0ff" stroke="#c0c0e8" stroke-width="1"/>
+<text x="610" y="58" text-anchor="middle" fill="#4a4a8c" font-size="12" font-family="Consolas,monospace">GPS / GNSS</text>
+<line x1="520" y1="54" x2="460" y2="180" stroke="#4a4a8c" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="520" y="72" width="180" height="24" rx="4" fill="#f0f0ff" stroke="#c0c0e8" stroke-width="1"/>
+<text x="610" y="88" text-anchor="middle" fill="#4a4a8c" font-size="12" font-family="Consolas,monospace">Magnetometer</text>
+<line x1="520" y1="84" x2="460" y2="200" stroke="#4a4a8c" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<!-- Imaging - right middle -->
+<rect x="520" y="182" width="180" height="24" rx="4" fill="#fff0f4" stroke="#e8c0c8" stroke-width="1"/>
+<text x="610" y="198" text-anchor="middle" fill="#8c2040" font-size="12" font-family="Consolas,monospace">Rear Camera (multi-lens)</text>
+<line x1="520" y1="194" x2="460" y2="60" stroke="#8c2040" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="520" y="212" width="180" height="24" rx="4" fill="#fff0f4" stroke="#e8c0c8" stroke-width="1"/>
+<text x="610" y="228" text-anchor="middle" fill="#8c2040" font-size="12" font-family="Consolas,monospace">Front Camera</text>
+<line x1="520" y1="224" x2="460" y2="50" stroke="#8c2040" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="520" y="242" width="180" height="24" rx="4" fill="#fff0f4" stroke="#e8c0c8" stroke-width="1"/>
+<text x="610" y="258" text-anchor="middle" fill="#8c2040" font-size="12" font-family="Consolas,monospace">LiDAR / ToF Depth</text>
+<line x1="520" y1="254" x2="460" y2="70" stroke="#8c2040" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<!-- Radios - right bottom -->
+<rect x="520" y="302" width="180" height="24" rx="4" fill="#f0ffff" stroke="#c0e8e8" stroke-width="1"/>
+<text x="610" y="318" text-anchor="middle" fill="#1a6a7a" font-size="12" font-family="Consolas,monospace">WiFi / Bluetooth / NFC</text>
+<line x1="520" y1="314" x2="460" y2="300" stroke="#1a6a7a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="520" y="332" width="180" height="24" rx="4" fill="#f0ffff" stroke="#c0e8e8" stroke-width="1"/>
+<text x="610" y="348" text-anchor="middle" fill="#1a6a7a" font-size="12" font-family="Consolas,monospace">Cellular (5G / LTE)</text>
+<line x1="520" y1="344" x2="460" y2="320" stroke="#1a6a7a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+<rect x="520" y="362" width="180" height="24" rx="4" fill="#f0ffff" stroke="#c0e8e8" stroke-width="1"/>
+<text x="610" y="378" text-anchor="middle" fill="#1a6a7a" font-size="12" font-family="Consolas,monospace">UWB (Ultra-Wideband)</text>
+<line x1="520" y1="374" x2="460" y2="340" stroke="#1a6a7a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+</svg>
+<div class="diagram-caption">Figure 1.1 &#8212; Complete sensor inventory of a modern flagship smartphone, organized by category. Dashed lines indicate approximate physical location within the device.</div>
+</div>
+
+<h2>3. Why This Matters for Mobile Developers</h2>
+
+<p>Desktop applications typically interact with two input devices: a keyboard and a mouse. A web application might add a webcam and microphone. A mobile application, by contrast, has access to a dozen sensors that can tell it about the physical world &#8212; where the device is, how it is oriented, what it can see, what the atmospheric pressure is, and who is holding it.</p>
+
+<p>This sensor richness is what makes mobile development fundamentally different from other platforms. It is also what creates unique engineering challenges:</p>
+
+<table>
+<tr><th>Challenge</th><th>Why It Matters</th></tr>
+<tr><td><strong>Battery drain</strong></td><td>GPS alone can consume 25&#8211;40% of battery per hour if polled continuously. Sensors must be used strategically.</td></tr>
+<tr><td><strong>Permissions</strong></td><td>Every sensor that reveals personal information (location, camera, microphone) requires explicit user consent on both iOS and Android.</td></tr>
+<tr><td><strong>Accuracy vs. cost</strong></td><td>High-precision readings consume more power. Developers must choose the right accuracy level for each use case.</td></tr>
+<tr><td><strong>Sensor fusion</strong></td><td>Real applications combine multiple sensors. Navigation uses GPS + accelerometer + gyroscope + magnetometer together.</td></tr>
+<tr><td><strong>Platform differences</strong></td><td>Not all Android devices have all sensors. iOS devices are more consistent but access patterns differ.</td></tr>
+</table>
+
+<div class="callout">
+<strong>The Tricorder Mindset:</strong> When you pick up your phone, you are holding a device that can sense acceleration, rotation, magnetic fields, atmospheric pressure, light intensity, proximity, precise geographic location, 3D depth, biometric identity, and electromagnetic signals from satellites to nearby payment terminals. The rest of this series explains how each of those sensors works &#8212; physically, electrically, and programmatically.
+</div>
+
+<h2>4. How This Series Is Organized</h2>
+
+<p>Each page in this series follows the same structure. We start with the <strong>Tricorder parallel</strong> &#8212; what the Star Trek device could do in this domain, and how the real sensor compares. Then we explain <strong>how the sensor works physically</strong> &#8212; the actual physics and engineering. Then we cover <strong>how you access it as a developer</strong> through the Expo SDK and React Native APIs. Finally, we note <strong>power and permission implications</strong> that affect real-world app design.</p>
+
+<p>The sensors are grouped into six categories: motion, location, environment, imaging, communication, and biometric. These categories align with how you will think about them as a developer &#8212; which sensors to combine, which permissions to request together, and which trade-offs to navigate.</p>
+
+<div class="nav"><span></span><a href="00_tricorder_index.html">&#8962; Index</a><a href="02_motion_sensors.html">Motion Sensors &#8594;</a></div>
+<div class="foot">CS 402 &#8212; Mobile Application Development &#8212; Spring 2026 &#8212; Boise State University</div>
+</body></html>

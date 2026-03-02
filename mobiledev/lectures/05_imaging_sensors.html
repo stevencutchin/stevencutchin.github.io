@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>CS 402 - Imaging Sensors: Cameras &amp; Depth</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;max-width:860px;margin:0 auto;padding:40px 28px 60px;color:#1a1a2e;background:#fdfdfd;line-height:1.7}.doc-header{text-align:center;margin-bottom:36px;border-bottom:3px solid #2d3a8c;padding-bottom:24px}.doc-header h1{font-size:22px;color:#1a1a2e;margin-bottom:4px}.semester{font-size:13px;color:#666;text-transform:uppercase;letter-spacing:2px}.subtitle{font-size:18px;color:#2d3a8c;margin-top:8px;font-style:italic}h2{font-size:22px;color:#2d3a8c;margin:32px 0 14px;border-bottom:2px solid #e0e0e0;padding-bottom:6px}h3{font-size:17px;color:#333;margin:24px 0 10px}p{margin:0 0 14px}.callout{background:#f0f4ff;border-left:4px solid #2d3a8c;padding:14px 18px;margin:18px 0;border-radius:0 6px 6px 0;font-size:15px}.callout strong{color:#2d3a8c}.callout-warn{background:#fff8f0;border-left:4px solid #e08c4a;padding:14px 18px;margin:18px 0;border-radius:0 6px 6px 0;font-size:15px}.callout-warn strong{color:#c06000}.diagram-container{text-align:center;margin:24px 0;padding:20px;background:#fafafa;border:1px solid #ddd;border-radius:8px}.diagram-caption{font-size:13px;color:#666;font-style:italic;margin-top:10px}code{background:#eef1ff;padding:2px 6px;border-radius:3px;font-size:14px;font-family:Consolas,monospace;color:#2d3a8c}pre{background:#1e1e2e;color:#cdd6f4;padding:16px 20px;border-radius:6px;overflow-x:auto;margin:12px 0 18px;font-size:13.5px;line-height:1.5;font-family:Consolas,monospace}table{width:100%;border-collapse:collapse;margin:16px 0}th{background:#2d3a8c;color:#fff;padding:10px 14px;text-align:left;font-size:14px}td{padding:10px 14px;border-bottom:1px solid #e0e0e0;font-size:14px;vertical-align:top}tr:nth-child(even){background:#f8f9ff}.nav{display:flex;justify-content:space-between;margin-top:40px;padding-top:18px;border-top:2px solid #e0e0e0;flex-wrap:wrap;gap:8px}.nav a{text-decoration:none;color:#2d3a8c;font-size:14px;font-weight:bold}.foot{margin-top:24px;padding-top:14px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center}.tp{display:flex;gap:20px;margin:16px 0;padding:16px;background:#0d1b2a;border-radius:8px;color:#e0e0e0;flex-wrap:wrap}.tp .trek,.tp .phone{flex:1;min-width:220px}.tp h4{font-size:14px;margin-bottom:8px;letter-spacing:1px}.tp .trek h4{color:#f0a500}.tp .phone h4{color:#7ec8e3}.tp p{font-size:13.5px;line-height:1.6;margin:0 0 8px}</style></head><body><div class="doc-header"><h1>CS 402 &#8212; Mobile Application Development</h1><div class="semester">Spring 2026</div><div class="subtitle">Imaging Sensors: Cameras &amp; Depth</div></div>
+<div class="tp">
+<div class="trek"><h4>&#9733; TRICORDER</h4><p>Visual scanning for life signs. Records visual data. Spectral analysis of materials.</p></div>
+<div class="phone"><h4>&#9733; YOUR PHONE</h4><p>Multi-lens rear camera (wide, ultra-wide, telephoto). Front camera with Face ID. LiDAR/ToF for 3D depth sensing. Computational photography rivals dedicated cameras.</p></div>
+</div>
+
+<h2>1. Camera Sensor Basics</h2>
+
+<h3>1.1 The Image Sensor</h3>
+<p>At the heart of every phone camera is a <strong>CMOS image sensor</strong> &#8212; a chip containing millions of photosites (pixels) arranged in a grid. Each photosite is a photodiode that converts incoming photons into an electrical charge. The charge is proportional to light intensity. A color filter array (typically a Bayer pattern of red, green, and green, and blue filters) sits over the photosites so each pixel captures one color channel. Software then interpolates the missing channels in a process called <strong>demosaicing</strong>.</p>
+
+<div class="diagram-container">
+<svg width="440" height="220" viewBox="0 0 440 220" xmlns="http://www.w3.org/2000/svg">
+<text x="220" y="16" text-anchor="middle" fill="#666" font-size="12" font-family="Consolas,monospace">Bayer Color Filter Array</text>
+<!-- Grid -->
+<g transform="translate(130,30)">
+<!-- Row 1 -->
+<rect x="0" y="0" width="40" height="40" fill="#c44" opacity="0.7" stroke="#333" stroke-width="1"/><text x="20" y="25" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">R</text>
+<rect x="40" y="0" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="60" y="25" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<rect x="80" y="0" width="40" height="40" fill="#c44" opacity="0.7" stroke="#333" stroke-width="1"/><text x="100" y="25" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">R</text>
+<rect x="120" y="0" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="140" y="25" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<!-- Row 2 -->
+<rect x="0" y="40" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="20" y="65" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<rect x="40" y="40" width="40" height="40" fill="#44c" opacity="0.7" stroke="#333" stroke-width="1"/><text x="60" y="65" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">B</text>
+<rect x="80" y="40" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="100" y="65" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<rect x="120" y="40" width="40" height="40" fill="#44c" opacity="0.7" stroke="#333" stroke-width="1"/><text x="140" y="65" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">B</text>
+<!-- Row 3 -->
+<rect x="0" y="80" width="40" height="40" fill="#c44" opacity="0.7" stroke="#333" stroke-width="1"/><text x="20" y="105" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">R</text>
+<rect x="40" y="80" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="60" y="105" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<rect x="80" y="80" width="40" height="40" fill="#c44" opacity="0.7" stroke="#333" stroke-width="1"/><text x="100" y="105" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">R</text>
+<rect x="120" y="80" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="140" y="105" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<!-- Row 4 -->
+<rect x="0" y="120" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="20" y="145" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<rect x="40" y="120" width="40" height="40" fill="#44c" opacity="0.7" stroke="#333" stroke-width="1"/><text x="60" y="145" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">B</text>
+<rect x="80" y="120" width="40" height="40" fill="#4a4" opacity="0.7" stroke="#333" stroke-width="1"/><text x="100" y="145" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">G</text>
+<rect x="120" y="120" width="40" height="40" fill="#44c" opacity="0.7" stroke="#333" stroke-width="1"/><text x="140" y="145" text-anchor="middle" fill="#fff" font-size="12" font-family="Consolas,monospace">B</text>
+</g>
+<text x="220" y="200" text-anchor="middle" fill="#555" font-size="11" font-family="Georgia,serif">50% green, 25% red, 25% blue &#8212; mimics the human eye&#8217;s green sensitivity</text>
+</svg>
+<div class="diagram-caption">Figure 5.1 &#8212; Bayer pattern color filter array. Each pixel captures one color; demosaicing reconstructs the full-color image.</div>
+</div>
+
+<h3>1.2 Multi-Lens Systems</h3>
+<p>Modern flagships have 2&#8211;4 rear cameras with different focal lengths: an <strong>ultra-wide</strong> (13mm equivalent, ~120&#176; field of view), a <strong>wide/main</strong> (24&#8211;26mm, the default camera), and optionally a <strong>telephoto</strong> (70&#8211;120mm for optical zoom). Rather than a complex zoom lens mechanism, the phone switches between fixed lenses and uses digital processing to blend the transitions.</p>
+
+<h2>2. Computational Photography</h2>
+<p>The defining revolution in phone cameras is not the hardware &#8212; it is the software. <strong>Computational photography</strong> uses the phone&#8217;s powerful neural processing unit (NPU) to combine multiple exposures, apply machine learning models, and produce images that far exceed what the tiny sensor could capture in a single frame.</p>
+
+<p>Key techniques include <strong>HDR+ (High Dynamic Range)</strong>, which captures a burst of frames at different exposures and merges them to preserve detail in both shadows and highlights; <strong>Night Mode</strong>, which takes long multi-second exposures with software stabilization to produce bright images in near-darkness; and <strong>Portrait Mode</strong>, which uses depth data (from dual cameras or LiDAR) to simulate shallow depth-of-field bokeh.</p>
+
+<h2>3. LiDAR and Time-of-Flight (ToF) Depth Sensors</h2>
+
+<h3>3.1 How LiDAR Works</h3>
+<p>LiDAR (Light Detection and Ranging) projects thousands of infrared laser dots into the scene and measures how long each dot takes to bounce back. The round-trip time, at the speed of light, gives the distance to each point. This creates a <strong>3D point cloud</strong> &#8212; a depth map of the environment.</p>
+
+<p>Apple&#8217;s LiDAR scanner (available on Pro iPhones and iPads) can measure distances up to 5 meters with centimeter accuracy. Time-of-Flight (ToF) sensors on Android phones work similarly but typically with lower resolution.</p>
+
+<div class="callout">
+<strong>AR Connection:</strong> LiDAR is what makes augmented reality on phones practical. It gives the phone real-time understanding of the 3D geometry of a room &#8212; where the floor is, where walls are, the shape of furniture. Without depth sensing, AR objects float unrealistically. With it, a virtual object can sit on a real table and be occluded by a real lamp.
+</div>
+
+<h2>4. As a Developer: Expo Camera and ImagePicker</h2>
+<pre>
+import * as ImagePicker from 'expo-image-picker';
+
+// Pick from gallery or take a photo
+const result = await ImagePicker.launchCameraAsync({
+  allowsEditing: true,
+  aspect: [4, 3],
+  quality: 0.8,
+});
+
+if (!result.canceled) {
+  console.log(result.assets[0].uri); // local file URI
+}
+</pre>
+
+<h2>5. Power and Permission Implications</h2>
+<table>
+<tr><th>Sensor</th><th>Permission</th><th>Battery Impact</th><th>Notes</th></tr>
+<tr><td><strong>Camera</strong></td><td>Camera permission required</td><td>High during active use</td><td>iOS shows green indicator dot when camera is active</td></tr>
+<tr><td><strong>LiDAR / ToF</strong></td><td>Camera permission (bundled)</td><td>Moderate</td><td>Only available on Pro-tier devices; degrades gracefully when absent</td></tr>
+</table>
+<div class="nav"><a href="04_environmental_sensors.html">&#8592; Environmental Sensors</a><a href="00_tricorder_index.html">&#8962; Index</a><a href="06_communication_radios.html">Communication Radios &#8594;</a></div><div class="foot">CS 402 &#8212; Mobile Application Development &#8212; Spring 2026 &#8212; Boise State University</div></body></html>
