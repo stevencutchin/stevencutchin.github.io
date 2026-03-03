@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-File Programs — C Build Process</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-blue: #448aff;
+    --accent-pink: #ff80ab;
+    --code-bg: #0a0f1a;
+
+    --layer-lang: #00e5ff;
+    --layer-runtime: #69f0ae;
+    --layer-machine: #ffab40;
+    --layer-eco: #b388ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-purple); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-purple); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-purple); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(36px, 5.5vw, 60px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 650px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-purple); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  pre .pp { color: var(--accent-pink); }
+  .key-concept { background: linear-gradient(135deg, rgba(179,136,255,0.06), rgba(255,128,171,0.04)); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-purple); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .analogy { background: rgba(179,136,255,0.06); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .analogy strong { color: var(--accent-purple); }
+
+  .layer-badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 3px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .layer-lang { background: rgba(0,229,255,0.15); color: var(--layer-lang); border: 1px solid rgba(0,229,255,0.3); }
+  .layer-runtime { background: rgba(105,240,174,0.15); color: var(--layer-runtime); border: 1px solid rgba(105,240,174,0.3); }
+  .layer-machine { background: rgba(255,171,64,0.15); color: var(--layer-machine); border: 1px solid rgba(255,171,64,0.3); }
+  .layer-eco { background: rgba(179,136,255,0.15); color: var(--layer-eco); border: 1px solid rgba(179,136,255,0.3); }
+
+  /* File tree styling */
+  .file-tree {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    line-height: 2;
+  }
+  .file-tree .dir { color: var(--accent-blue); }
+  .file-tree .h-file { color: var(--accent-cyan); }
+  .file-tree .c-file { color: var(--accent-green); }
+  .file-tree .o-file { color: var(--accent-orange); }
+  .file-tree .exe { color: var(--accent-pink); font-weight: 600; }
+  .file-tree .indent { padding-left: 24px; }
+  .file-tree .indent2 { padding-left: 48px; }
+
+  /* Side-by-side code blocks */
+  .code-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .code-pair pre {
+    margin: 0;
+    font-size: 13px;
+  }
+  .code-pair .file-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 700px) {
+    .code-pair { grid-template-columns: 1fr; }
+    .hero, .content { padding-left: 20px; padding-right: 20px; }
+    .series-bar { padding: 10px 16px; font-size: 11px; }
+    .diagram-container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">Build</span>
+  <span>C Build Process</span>
+  <div class="nav-links">
+    <a href="06-from-source-to-running.html">Simple Build</a>
+    <a href="07-multi-file-programs.html" class="active">Multi-File</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 07</div>
+  <h1>Multi-File <span class="highlight">Programs</span></h1>
+  <p class="subtitle">Real C programs are split across many files. Header files (.h) declare the interface. Source files (.c) define the implementation. Object files (.o) are compiled independently and the linker stitches them together. Here's how — and why.</p>
+</header>
+
+<main class="content">
+
+  <h2>Why Split a Program into Multiple Files?</h2>
+
+  <p>A 200-line program fits comfortably in one file. A 20,000-line program does not. Splitting code into multiple files gives you three critical benefits:</p>
+
+  <p><strong style="color:var(--accent-cyan)">Organization.</strong> Each file has a clear responsibility — one handles math utilities, another handles user input, another handles output formatting. You can navigate the project by looking at filenames rather than scrolling through one enormous file.</p>
+
+  <p><strong style="color:var(--accent-green)">Independent compilation.</strong> If you change <code>math_utils.c</code>, you only need to recompile that one file and re-link. You don't need to recompile the other 50 files that didn't change. On large projects, this saves minutes of build time.</p>
+
+  <p><strong style="color:var(--accent-orange)">Reusability.</strong> A well-designed module (like a math library) can be compiled once and linked into many different programs.</p>
+
+  <h2>An Example Project</h2>
+
+  <p>Let's build a small program split into three source files: a math module, a display module, and a main driver.</p>
+
+  <div class="file-tree">
+    <span class="dir">project/</span><br>
+    <span class="indent"><span class="h-file">math_utils.h</span> — declares the math functions (interface)</span><br>
+    <span class="indent"><span class="c-file">math_utils.c</span> — implements the math functions (code)</span><br>
+    <span class="indent"><span class="h-file">display.h</span> — declares the display functions (interface)</span><br>
+    <span class="indent"><span class="c-file">display.c</span> — implements the display functions (code)</span><br>
+    <span class="indent"><span class="c-file">main.c</span> — the program entry point</span>
+  </div>
+
+  <h2>The Header Files (.h)</h2>
+
+  <p><span class="layer-badge layer-lang">C Language</span> A header file is a <em>promise</em>. It says "these functions exist, and here is how to call them" — but it does <em>not</em> contain the actual implementation. It's the menu, not the kitchen.</p>
+
+  <div class="code-pair">
+    <div>
+      <div class="file-label" style="color: var(--accent-cyan);">math_utils.h</div>
+      <pre><span class="pp">#ifndef MATH_UTILS_H</span>
+<span class="pp">#define MATH_UTILS_H</span>
+
+<span class="comment">// Declarations only — no function bodies</span>
+<span class="type">int</span> <span class="func">square</span>(<span class="type">int</span> n);
+<span class="type">int</span> <span class="func">cube</span>(<span class="type">int</span> n);
+<span class="type">int</span> <span class="func">sum_range</span>(<span class="type">int</span> lo, <span class="type">int</span> hi);
+
+<span class="pp">#endif</span></pre>
+    </div>
+    <div>
+      <div class="file-label" style="color: var(--accent-cyan);">display.h</div>
+      <pre><span class="pp">#ifndef DISPLAY_H</span>
+<span class="pp">#define DISPLAY_H</span>
+
+<span class="comment">// Declarations only</span>
+<span class="kw">void</span> <span class="func">print_result</span>(
+    <span class="kw">const</span> <span class="type">char</span> *label,
+    <span class="type">int</span> value
+);
+<span class="kw">void</span> <span class="func">print_banner</span>(<span class="kw">void</span>);
+
+<span class="pp">#endif</span></pre>
+    </div>
+  </div>
+
+  <div class="key-concept">
+    <strong>Include Guards</strong><br>
+    The <code>#ifndef</code> / <code>#define</code> / <code>#endif</code> pattern is called an <strong>include guard</strong>. It prevents the same header from being included twice in the same compilation unit, which would cause "redefinition" errors. Without guards, if both <code>main.c</code> and <code>display.c</code> include <code>math_utils.h</code>, and one of those files also includes the other, the declarations would be duplicated. The guard ensures each header's contents are processed only once.
+  </div>
+
+  <h2>The Source Files (.c)</h2>
+
+  <p><span class="layer-badge layer-lang">C Language</span> Each <code>.c</code> file includes its own <code>.h</code> header (to ensure its definitions match its declarations) and then provides the actual function bodies.</p>
+
+  <div class="code-pair">
+    <div>
+      <div class="file-label" style="color: var(--accent-green);">math_utils.c</div>
+      <pre><span class="pp">#include "math_utils.h"</span>
+
+<span class="type">int</span> <span class="func">square</span>(<span class="type">int</span> n) {
+    <span class="kw">return</span> n * n;
+}
+
+<span class="type">int</span> <span class="func">cube</span>(<span class="type">int</span> n) {
+    <span class="kw">return</span> n * n * n;
+}
+
+<span class="type">int</span> <span class="func">sum_range</span>(<span class="type">int</span> lo, <span class="type">int</span> hi) {
+    <span class="type">int</span> total = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="type">int</span> i = lo; i &lt;= hi; i++)
+        total += i;
+    <span class="kw">return</span> total;
+}</pre>
+    </div>
+    <div>
+      <div class="file-label" style="color: var(--accent-green);">display.c</div>
+      <pre><span class="pp">#include &lt;stdio.h&gt;</span>
+<span class="pp">#include "display.h"</span>
+
+<span class="kw">void</span> <span class="func">print_result</span>(
+    <span class="kw">const</span> <span class="type">char</span> *label,
+    <span class="type">int</span> value
+) {
+    <span class="func">printf</span>(<span class="str">"  %s: %d\n"</span>,
+           label, value);
+}
+
+<span class="kw">void</span> <span class="func">print_banner</span>(<span class="kw">void</span>) {
+    <span class="func">printf</span>(<span class="str">"=== Results ===\n"</span>);
+}</pre>
+    </div>
+  </div>
+
+  <p>And the main driver that ties them together:</p>
+
+  <pre><span class="comment">// main.c</span>
+<span class="pp">#include "math_utils.h"</span>    <span class="comment">// so we can call square(), cube(), sum_range()</span>
+<span class="pp">#include "display.h"</span>      <span class="comment">// so we can call print_result(), print_banner()</span>
+
+<span class="type">int</span> <span class="func">main</span>(<span class="kw">void</span>) {
+    <span class="type">int</span> x = <span class="num">5</span>;
+
+    <span class="func">print_banner</span>();
+    <span class="func">print_result</span>(<span class="str">"square(5)"</span>, <span class="func">square</span>(x));
+    <span class="func">print_result</span>(<span class="str">"cube(5)"</span>, <span class="func">cube</span>(x));
+    <span class="func">print_result</span>(<span class="str">"sum(1..10)"</span>, <span class="func">sum_range</span>(<span class="num">1</span>, <span class="num">10</span>));
+
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+  <h2>How #include Actually Works</h2>
+
+  <p><span class="layer-badge layer-eco">Dev Ecosystem</span> The <code>#include</code> directive is a preprocessor command — it literally copy-pastes the contents of the named file into your source before the compiler sees it. This is a critical distinction from how imports work in most other languages.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 340" width="100%" height="340">
+      <defs>
+        <marker id="inc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff80ab"/>
+        </marker>
+      </defs>
+
+      <text x="360" y="25" text-anchor="middle" fill="#e8f0fe" font-size="14" font-weight="600">What the preprocessor does to main.c</text>
+
+      <!-- main.c before -->
+      <rect x="20" y="45" width="200" height="185" rx="8" fill="rgba(105,240,174,0.06)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="120" y="38" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">main.c (as you wrote it)</text>
+
+      <text x="35" y="72" fill="#ff80ab" font-size="11">#include "math_utils.h"</text>
+      <text x="35" y="92" fill="#ff80ab" font-size="11">#include "display.h"</text>
+      <line x1="30" y1="102" x2="210" y2="102" stroke="var(--border)" stroke-width="0.5"/>
+      <text x="35" y="122" fill="#c8d6e5" font-size="11">int main(void) {</text>
+      <text x="35" y="140" fill="#c8d6e5" font-size="11">  int x = 5;</text>
+      <text x="35" y="158" fill="#c8d6e5" font-size="11">  print_banner();</text>
+      <text x="35" y="176" fill="#c8d6e5" font-size="11">  print_result(...</text>
+      <text x="35" y="194" fill="#c8d6e5" font-size="11">  ...</text>
+      <text x="35" y="212" fill="#c8d6e5" font-size="11">  return 0;</text>
+      <text x="35" y="224" fill="#c8d6e5" font-size="11">}</text>
+
+      <!-- Arrow -->
+      <path d="M 222 137 L 288 137" stroke="#ff80ab" stroke-width="2" fill="none" marker-end="url(#inc)"/>
+      <text x="255" y="128" text-anchor="middle" fill="#ff80ab" font-size="10">cpp</text>
+
+      <!-- main.c after preprocessing -->
+      <rect x="295" y="45" width="400" height="280" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="495" y="38" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">main.c (after preprocessing)</text>
+
+      <!-- math_utils.h contents pasted in -->
+      <rect x="310" y="55" width="370" height="60" rx="4" fill="rgba(0,229,255,0.06)" stroke="#00e5ff" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="315" y="72" fill="#00e5ff" font-size="10">/* pasted from math_utils.h */</text>
+      <text x="315" y="87" fill="#c8d6e5" font-size="10">int square(int n);</text>
+      <text x="315" y="100" fill="#c8d6e5" font-size="10">int cube(int n);   int sum_range(int lo, int hi);</text>
+
+      <!-- display.h contents pasted in -->
+      <rect x="310" y="122" width="370" height="48" rx="4" fill="rgba(0,229,255,0.06)" stroke="#00e5ff" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="315" y="139" fill="#00e5ff" font-size="10">/* pasted from display.h */</text>
+      <text x="315" y="155" fill="#c8d6e5" font-size="10">void print_result(const char *label, int value);</text>
+
+      <!-- Actual code (unchanged) -->
+      <line x1="310" y1="180" x2="670" y2="180" stroke="var(--border)" stroke-width="0.5"/>
+      <text x="315" y="198" fill="#c8d6e5" font-size="11">int main(void) {</text>
+      <text x="315" y="216" fill="#c8d6e5" font-size="11">    int x = 5;</text>
+      <text x="315" y="234" fill="#c8d6e5" font-size="11">    print_banner();</text>
+      <text x="315" y="252" fill="#c8d6e5" font-size="11">    print_result("square(5)", square(x));</text>
+      <text x="315" y="270" fill="#c8d6e5" font-size="11">    ...</text>
+      <text x="315" y="288" fill="#c8d6e5" font-size="11">    return 0;</text>
+      <text x="315" y="306" fill="#c8d6e5" font-size="11">}</text>
+
+      <!-- Annotation -->
+      <text x="495" y="176" text-anchor="middle" fill="#6b7fa3" font-size="9">↑ headers inserted ↑ your code below ↓</text>
+    </svg>
+    <div class="caption">#include literally copies the header file's contents into the source. The compiler then sees one big file with all declarations at the top.</div>
+  </div>
+
+  <p>This is why the header contains only <em>declarations</em> (function signatures), not <em>definitions</em> (function bodies). If the header contained function bodies, those bodies would be compiled into every <code>.c</code> file that includes it, producing duplicate definitions — and the linker would complain.</p>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    A header file is like a restaurant menu — it tells you what's available and how to order it (function name, parameters, return type). The source file is the kitchen — where the food is actually made. Every diner gets a copy of the menu (<code>#include</code>), but there's only one kitchen (one <code>.c</code> file defining each function).
+  </div>
+
+  <h2>Separate Compilation</h2>
+
+  <p><span class="layer-badge layer-eco">Dev Ecosystem</span> <span class="layer-badge layer-lang">C Language</span> Each <code>.c</code> file is compiled <em>independently</em> into its own <code>.o</code> object file. This is the key to the multi-file build process. The compiler only sees one <code>.c</code> file at a time — it has no knowledge of the other files.</p>
+
+  <pre><span class="comment"># Compile each .c file separately into a .o file:</span>
+$ gcc -c math_utils.c -o math_utils.o
+$ gcc -c display.c    -o display.o
+$ gcc -c main.c       -o main.o</pre>
+
+  <p>When the compiler processes <code>main.c</code>, it sees the <em>declarations</em> from the headers (so it knows <code>square</code> takes an <code>int</code> and returns an <code>int</code>), but it doesn't have the actual code for <code>square</code>. It compiles the call to <code>square</code> as "call a function named <code>square</code> — I trust it exists somewhere" and leaves a placeholder in the object file.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 430" width="100%" height="430">
+      <defs>
+        <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#b388ff"/>
+        </marker>
+        <marker id="la2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#448aff"/>
+        </marker>
+      </defs>
+
+      <text x="360" y="22" text-anchor="middle" fill="#e8f0fe" font-size="15" font-weight="600">The Multi-File Build Pipeline</text>
+
+      <!-- === ROW 1: Source files === -->
+      <!-- Header files (floating above) -->
+      <rect x="15" y="50" width="105" height="32" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="67" y="71" text-anchor="middle" fill="#00e5ff" font-size="10" font-weight="600">math_utils.h</text>
+
+      <rect x="250" y="50" width="95" height="32" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="297" y="71" text-anchor="middle" fill="#00e5ff" font-size="10" font-weight="600">display.h</text>
+
+      <!-- Source files -->
+      <rect x="15" y="100" width="105" height="55" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="67" y="123" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">math_utils.c</text>
+      <text x="67" y="143" text-anchor="middle" fill="#6b7fa3" font-size="9">square, cube, sum_range</text>
+
+      <rect x="145" y="100" width="95" height="55" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="192" y="123" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">display.c</text>
+      <text x="192" y="143" text-anchor="middle" fill="#6b7fa3" font-size="9">print_result, banner</text>
+
+      <rect x="265" y="100" width="80" height="55" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="305" y="123" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">main.c</text>
+      <text x="305" y="143" text-anchor="middle" fill="#6b7fa3" font-size="9">main()</text>
+
+      <!-- Include arrows (header to source) -->
+      <line x1="55" y1="82" x2="55" y2="98" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="80" y1="82" x2="192" y2="98" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+      <line x1="80" y1="82" x2="305" y2="98" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+      <line x1="297" y1="82" x2="192" y2="98" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="297" y1="82" x2="305" y2="98" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+
+      <!-- === ROW 2: gcc -c (compile) arrows === -->
+      <path d="M 67 157 L 67 193" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#ca)"/>
+      <path d="M 192 157 L 192 193" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#ca)"/>
+      <path d="M 305 157 L 305 193" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#ca)"/>
+
+      <text x="67" y="180" text-anchor="start" fill="#b388ff" font-size="9" dx="6">gcc -c</text>
+      <text x="192" y="180" text-anchor="start" fill="#b388ff" font-size="9" dx="6">gcc -c</text>
+      <text x="305" y="180" text-anchor="start" fill="#b388ff" font-size="9" dx="6">gcc -c</text>
+
+      <!-- === ROW 3: Object files === -->
+      <rect x="15" y="198" width="105" height="55" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="2"/>
+      <text x="67" y="221" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">math_utils.o</text>
+      <text x="67" y="241" text-anchor="middle" fill="#69f0ae" font-size="9">✓ square ✓ cube ✓ sum</text>
+
+      <rect x="145" y="198" width="95" height="55" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="2"/>
+      <text x="192" y="221" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">display.o</text>
+      <text x="192" y="241" text-anchor="middle" fill="#69f0ae" font-size="9">✓ print_result ✓ banner</text>
+
+      <rect x="265" y="198" width="80" height="55" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="2"/>
+      <text x="305" y="221" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">main.o</text>
+      <text x="305" y="236" text-anchor="middle" fill="#69f0ae" font-size="8">✓ main</text>
+      <text x="305" y="248" text-anchor="middle" fill="#ff5252" font-size="8">✗ square ✗ print_result...</text>
+
+      <!-- Side annotation: each .o is independent -->
+      <rect x="380" y="100" width="320" height="155" rx="8" fill="rgba(68,138,255,0.04)" stroke="#448aff" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="540" y="125" text-anchor="middle" fill="#448aff" font-size="12" font-weight="600">Each .o is compiled independently</text>
+      <text x="540" y="150" text-anchor="middle" fill="#c8d6e5" font-size="11">The compiler only sees ONE .c file at a time.</text>
+      <text x="540" y="172" text-anchor="middle" fill="#c8d6e5" font-size="11">Headers provide just enough info to</text>
+      <text x="540" y="190" text-anchor="middle" fill="#c8d6e5" font-size="11">check types and generate call instructions.</text>
+      <text x="540" y="215" text-anchor="middle" fill="#c8d6e5" font-size="11">Undefined symbols (✗) are left for the</text>
+      <text x="540" y="233" text-anchor="middle" fill="#c8d6e5" font-size="11">linker to resolve.</text>
+
+      <!-- === ROW 4: Linker === -->
+      <path d="M 67 255 L 270 305" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#ca)"/>
+      <path d="M 192 255 L 270 305" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#ca)"/>
+      <path d="M 305 255 L 305 300" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#ca)"/>
+
+      <!-- CRT and libc feeding into linker too -->
+      <rect x="420" y="280" width="80" height="35" rx="4" fill="rgba(105,240,174,0.06)" stroke="#69f0ae" stroke-width="1"/>
+      <text x="460" y="302" text-anchor="middle" fill="#69f0ae" font-size="9" font-weight="600">crt1.o</text>
+
+      <rect x="515" y="280" width="80" height="35" rx="4" fill="rgba(105,240,174,0.06)" stroke="#69f0ae" stroke-width="1"/>
+      <text x="555" y="302" text-anchor="middle" fill="#69f0ae" font-size="9" font-weight="600">libc.so</text>
+
+      <path d="M 420 297 L 380 315" stroke="#b388ff" stroke-width="1" fill="none" marker-end="url(#ca)"/>
+      <path d="M 515 297 L 380 320" stroke="#b388ff" stroke-width="1" fill="none" marker-end="url(#ca)"/>
+
+      <!-- Linker box -->
+      <rect x="255" y="305" width="120" height="50" rx="8" fill="rgba(179,136,255,0.12)" stroke="#b388ff" stroke-width="2"/>
+      <text x="315" y="328" text-anchor="middle" fill="#b388ff" font-size="13" font-weight="600">LINKER</text>
+      <text x="315" y="346" text-anchor="middle" fill="#6b7fa3" font-size="9">resolves all ✗ symbols</text>
+
+      <!-- Arrow to executable -->
+      <path d="M 315 357 L 315 387" stroke="#448aff" stroke-width="2" fill="none" marker-end="url(#la2)"/>
+
+      <!-- Executable -->
+      <rect x="240" y="392" width="150" height="35" rx="8" fill="rgba(68,138,255,0.1)" stroke="#448aff" stroke-width="2"/>
+      <text x="315" y="415" text-anchor="middle" fill="#448aff" font-size="14" font-weight="600">program</text>
+    </svg>
+    <div class="caption">Each .c file is compiled independently into a .o file. The linker combines all .o files plus the C runtime into a final executable.</div>
+  </div>
+
+  <pre><span class="comment"># Link all object files into the final executable:</span>
+$ gcc math_utils.o display.o main.o -o program
+
+<span class="comment"># Or, do it all in one command (gcc runs all stages):</span>
+$ gcc math_utils.c display.c main.c -o program
+
+<span class="comment"># Run it:</span>
+$ ./program
+=== Results ===
+  square(5): 25
+  cube(5): 125
+  sum(1..10): 55</pre>
+
+  <h2>What the Linker Actually Does</h2>
+
+  <p><span class="layer-badge layer-eco">Dev Ecosystem</span> The linker's job is to resolve every undefined symbol. Each <code>.o</code> file has a symbol table listing what it <em>provides</em> (defined symbols) and what it <em>needs</em> (undefined symbols). The linker matches them up:</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 280" width="100%" height="280">
+      <!-- Symbol tables -->
+      <text x="360" y="20" text-anchor="middle" fill="#e8f0fe" font-size="14" font-weight="600">Symbol Resolution</text>
+
+      <!-- main.o needs -->
+      <rect x="20" y="40" width="200" height="120" rx="6" fill="rgba(255,171,64,0.06)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="120" y="60" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">main.o</text>
+      <text x="35" y="82" fill="#69f0ae" font-size="11">✓ defines: main</text>
+      <text x="35" y="100" fill="#ff5252" font-size="11">✗ needs: square</text>
+      <text x="35" y="115" fill="#ff5252" font-size="11">✗ needs: cube</text>
+      <text x="35" y="130" fill="#ff5252" font-size="11">✗ needs: sum_range</text>
+      <text x="35" y="145" fill="#ff5252" font-size="11">✗ needs: print_result</text>
+
+      <!-- math_utils.o provides -->
+      <rect x="260" y="40" width="200" height="100" rx="6" fill="rgba(255,171,64,0.06)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="360" y="60" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">math_utils.o</text>
+      <text x="275" y="82" fill="#69f0ae" font-size="11">✓ defines: square</text>
+      <text x="275" y="97" fill="#69f0ae" font-size="11">✓ defines: cube</text>
+      <text x="275" y="112" fill="#69f0ae" font-size="11">✓ defines: sum_range</text>
+      <text x="275" y="130" fill="#6b7fa3" font-size="10">(needs nothing external)</text>
+
+      <!-- display.o provides -->
+      <rect x="500" y="40" width="200" height="100" rx="6" fill="rgba(255,171,64,0.06)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="600" y="60" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">display.o</text>
+      <text x="515" y="82" fill="#69f0ae" font-size="11">✓ defines: print_result</text>
+      <text x="515" y="97" fill="#69f0ae" font-size="11">✓ defines: print_banner</text>
+      <text x="515" y="115" fill="#ff5252" font-size="11">✗ needs: printf</text>
+      <text x="515" y="130" fill="#6b7fa3" font-size="10">(printf comes from libc)</text>
+
+      <!-- Resolution arrows -->
+      <defs>
+        <marker id="res" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+      </defs>
+
+      <path d="M 222 100 L 258 82" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#res)"/>
+      <path d="M 222 115 L 258 97" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#res)"/>
+      <path d="M 222 130 L 258 112" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#res)"/>
+      <path d="M 222 145 L 498 82" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#res)"/>
+
+      <!-- Result -->
+      <rect x="140" y="185" width="440" height="75" rx="8" fill="rgba(68,138,255,0.06)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="360" y="210" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">After linking: all symbols resolved ✓</text>
+      <text x="360" y="232" text-anchor="middle" fill="#c8d6e5" font-size="11">Every function call has a concrete address. The executable is complete.</text>
+      <text x="360" y="249" text-anchor="middle" fill="#6b7fa3" font-size="10">main.o's "call square" now jumps to the exact bytes of square's machine code in math_utils.o</text>
+    </svg>
+    <div class="caption">The linker matches undefined symbols with their definitions across object files, filling in the actual addresses.</div>
+  </div>
+
+  <h2>Common Multi-File Errors</h2>
+
+  <p>Now that you understand the process, the most common errors make sense:</p>
+
+  <div class="warning">
+    <strong>"undefined reference to 'square'"</strong><br>
+    This is a <em>linker</em> error. It means <code>main.o</code> calls <code>square</code>, but you didn't provide <code>math_utils.o</code> on the link command. The linker can't find the symbol. Fix: make sure all <code>.o</code> files are included in the final <code>gcc</code> command.
+  </div>
+
+  <div class="warning">
+    <strong>"implicit declaration of function 'square'"</strong><br>
+    This is a <em>compiler</em> warning/error. It means <code>main.c</code> calls <code>square()</code> but hasn't seen a declaration for it — you forgot to <code>#include "math_utils.h"</code>. The compiler doesn't know what arguments <code>square</code> takes or what it returns, so it guesses (badly). Fix: add the <code>#include</code>.
+  </div>
+
+  <div class="warning">
+    <strong>"multiple definition of 'square'"</strong><br>
+    This is a <em>linker</em> error. It means two <code>.o</code> files both define <code>square</code>. This often happens when you accidentally put a function <em>body</em> in a header file — then every <code>.c</code> file that includes that header gets its own copy of the function. Fix: headers should contain only declarations, never definitions (with rare exceptions for <code>static inline</code>).
+  </div>
+
+  <h2>Declaration vs. Definition</h2>
+
+  <p><span class="layer-badge layer-lang">C Language</span> This distinction is the heart of multi-file C. Getting it wrong causes the errors above.</p>
+
+  <pre><span class="comment">// DECLARATION — goes in the .h file</span>
+<span class="comment">// "This function exists somewhere and has this signature."</span>
+<span class="type">int</span> <span class="func">square</span>(<span class="type">int</span> n);           <span class="comment">// note the semicolon — no body</span>
+
+<span class="comment">// DEFINITION — goes in the .c file</span>
+<span class="comment">// "Here is the actual code for this function."</span>
+<span class="type">int</span> <span class="func">square</span>(<span class="type">int</span> n) {         <span class="comment">// note the curly braces — has a body</span>
+    <span class="kw">return</span> n * n;
+}</pre>
+
+  <p>A function can be <em>declared</em> many times (each <code>.c</code> file that includes the header gets a copy of the declaration, and that's fine). But it must be <em>defined</em> exactly once across all the <code>.c</code> files in the program. This is called the <strong>One Definition Rule</strong>.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <!-- Declaration side -->
+      <rect x="30" y="30" width="300" height="140" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="180" y="22" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">Declaration (.h files)</text>
+
+      <text x="50" y="60" fill="#00e5ff" font-size="12">int square(int n);</text>
+      <text x="50" y="85" fill="#c8d6e5" font-size="11">→ Can appear in many files ✓</text>
+      <text x="50" y="107" fill="#c8d6e5" font-size="11">→ Tells the compiler: "trust me,</text>
+      <text x="50" y="125" fill="#c8d6e5" font-size="11">   this function exists"</text>
+      <text x="50" y="150" fill="#c8d6e5" font-size="11">→ No memory allocated</text>
+      <text x="50" y="163" fill="#6b7fa3" font-size="10">Processed at compile time</text>
+
+      <!-- Definition side -->
+      <rect x="380" y="30" width="310" height="140" rx="8" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="535" y="22" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">Definition (.c files)</text>
+
+      <text x="400" y="60" fill="#69f0ae" font-size="12">int square(int n) { return n*n; }</text>
+      <text x="400" y="85" fill="#c8d6e5" font-size="11">→ Must appear in exactly one file ✓</text>
+      <text x="400" y="107" fill="#c8d6e5" font-size="11">→ Contains the actual machine code</text>
+      <text x="400" y="125" fill="#c8d6e5" font-size="11">   that implements the function</text>
+      <text x="400" y="150" fill="#c8d6e5" font-size="11">→ Compiled into the .o file</text>
+      <text x="400" y="163" fill="#6b7fa3" font-size="10">Resolved at link time</text>
+    </svg>
+    <div class="caption">Declarations are promises (many copies OK). Definitions are fulfillments (exactly one copy required).</div>
+  </div>
+
+  <h2>The Build with Make</h2>
+
+  <p><span class="layer-badge layer-eco">Dev Ecosystem</span> Typing three <code>gcc -c</code> commands and one link command gets tedious. A <code>Makefile</code> automates this and — critically — only recompiles files that have changed.</p>
+
+  <pre><span class="comment"># Makefile</span>
+CC = gcc
+CFLAGS = -Wall -g
+
+program: main.o math_utils.o display.o
+	$(CC) $(CFLAGS) -o program main.o math_utils.o display.o
+
+main.o: main.c math_utils.h display.h
+	$(CC) $(CFLAGS) -c main.c
+
+math_utils.o: math_utils.c math_utils.h
+	$(CC) $(CFLAGS) -c math_utils.c
+
+display.o: display.c display.h
+	$(CC) $(CFLAGS) -c display.c
+
+clean:
+	rm -f *.o program</pre>
+
+  <p>Now if you edit only <code>display.c</code> and run <code>make</code>, it only recompiles <code>display.o</code> and re-links. The other <code>.o</code> files are untouched because their source files haven't changed. On a project with hundreds of files, this saves enormous amounts of time.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <text x="360" y="20" text-anchor="middle" fill="#e8f0fe" font-size="14" font-weight="600">Incremental Build: only recompile what changed</text>
+
+      <!-- Unchanged files (grayed out) -->
+      <rect x="30" y="50" width="130" height="45" rx="6" fill="rgba(107,127,163,0.04)" stroke="#6b7fa3" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="95" y="70" text-anchor="middle" fill="#6b7fa3" font-size="11">math_utils.c</text>
+      <text x="95" y="86" text-anchor="middle" fill="#6b7fa3" font-size="9">unchanged</text>
+
+      <rect x="30" y="110" width="130" height="45" rx="6" fill="rgba(107,127,163,0.04)" stroke="#6b7fa3" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="95" y="130" text-anchor="middle" fill="#6b7fa3" font-size="11">main.c</text>
+      <text x="95" y="146" text-anchor="middle" fill="#6b7fa3" font-size="9">unchanged</text>
+
+      <!-- Changed file (highlighted) -->
+      <rect x="190" y="50" width="130" height="45" rx="6" fill="rgba(255,171,64,0.12)" stroke="#ffab40" stroke-width="2"/>
+      <text x="255" y="70" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">display.c</text>
+      <text x="255" y="86" text-anchor="middle" fill="#ffab40" font-size="9">MODIFIED ✎</text>
+
+      <!-- Arrow: only display.c recompiles -->
+      <path d="M 322 72 L 368 72" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#ca)"/>
+      <text x="345" y="62" text-anchor="middle" fill="#ffab40" font-size="9">gcc -c</text>
+
+      <!-- .o files -->
+      <rect x="375" y="40" width="100" height="35" rx="4" fill="rgba(107,127,163,0.04)" stroke="#6b7fa3" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="425" y="63" text-anchor="middle" fill="#6b7fa3" font-size="10">math_utils.o ✓</text>
+
+      <rect x="375" y="82" width="100" height="35" rx="4" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="2"/>
+      <text x="425" y="105" text-anchor="middle" fill="#ffab40" font-size="10" font-weight="600">display.o ↻</text>
+
+      <rect x="375" y="124" width="100" height="35" rx="4" fill="rgba(107,127,163,0.04)" stroke="#6b7fa3" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="425" y="147" text-anchor="middle" fill="#6b7fa3" font-size="10">main.o ✓</text>
+
+      <!-- All feed into linker -->
+      <path d="M 477 57 L 523 95" stroke="#b388ff" stroke-width="1" fill="none" marker-end="url(#ca)"/>
+      <path d="M 477 99 L 523 99" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#ca)"/>
+      <path d="M 477 141 L 523 105" stroke="#b388ff" stroke-width="1" fill="none" marker-end="url(#ca)"/>
+
+      <!-- Linker -->
+      <rect x="528" y="75" width="80" height="48" rx="6" fill="rgba(179,136,255,0.12)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="568" y="104" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">LINK</text>
+
+      <!-- Executable -->
+      <path d="M 610 99 L 638 99" stroke="#448aff" stroke-width="2" fill="none" marker-end="url(#la2)"/>
+      <rect x="643" y="80" width="65" height="38" rx="6" fill="rgba(68,138,255,0.1)" stroke="#448aff" stroke-width="2"/>
+      <text x="675" y="104" text-anchor="middle" fill="#448aff" font-size="11" font-weight="600">program</text>
+
+      <!-- Time savings callout -->
+      <text x="360" y="190" text-anchor="middle" fill="#69f0ae" font-size="12">Only 1 of 3 files recompiled — then re-linked. Make handles this automatically.</text>
+    </svg>
+    <div class="caption">Make tracks file modification times. Only changed source files get recompiled — the rest use their existing .o files.</div>
+  </div>
+
+  <h2>The Big Picture</h2>
+
+  <p>Here's how all the layers participate in a multi-file build:</p>
+
+  <p><span class="layer-badge layer-eco">Dev Ecosystem</span> <strong>gcc</strong> orchestrates the pipeline, <strong>make</strong> decides what needs rebuilding, and the <strong>linker</strong> stitches everything together.</p>
+
+  <p><span class="layer-badge layer-lang">C Language</span> The <strong>compiler</strong> enforces syntax and type rules within each translation unit. <strong>Headers</strong> provide the declarations needed to type-check across file boundaries. The <strong>One Definition Rule</strong> ensures functions are defined exactly once.</p>
+
+  <p><span class="layer-badge layer-machine">Machine Env</span> Each <code>.o</code> file contains real <strong>machine code</strong> for the target CPU. The linker assigns <strong>final memory addresses</strong>. The OS <strong>loads</strong> the executable and creates a process.</p>
+
+  <p><span class="layer-badge layer-runtime">C Runtime</span> The <strong>startup code</strong> (crt1.o) and the <strong>standard library</strong> (libc) are linked in automatically. The runtime initializes the world your code expects — stdio, the stack, argc/argv — before calling <code>main()</code>.</p>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    Multi-file C programs separate <em>interface</em> (.h files with declarations) from <em>implementation</em> (.c files with definitions). Each <code>.c</code> file compiles independently into a <code>.o</code> object file. The linker combines all <code>.o</code> files by matching undefined symbols to their definitions. Headers are the glue — they let the compiler type-check calls to functions defined in other files. This separation enables independent compilation, faster builds, and clean code organization — but it requires understanding the declaration/definition distinction and knowing which errors come from which stage of the build process.
+  </div>
+
+</main>
+</body>
+</html>
