@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Camera Integration and Media Handling</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    color: #2c2c2c;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 32px;
+    background: #fff;
+  }
+  .doc-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 28px;
+    border-bottom: 3px solid #1B3A5C;
+  }
+  .doc-header h1 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 28px; color: #1B3A5C; margin-bottom: 4px; font-weight: 400;
+  }
+  .doc-header .semester { font-size: 15px; color: #888; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .doc-header .subtitle {
+    font-size: 19px; color: #2E5D8A; font-weight: 700; margin-top: 4px;
+  }
+  .doc-header .lesson-meta {
+    margin-top: 12px; font-size: 13px; color: #777;
+    display: flex; justify-content: center; gap: 32px;
+  }
+  .doc-header .lesson-meta span { display: inline-flex; align-items: center; gap: 6px; }
+
+  h2 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 22px; color: #1B3A5C; margin: 40px 0 14px;
+    padding-bottom: 7px; border-bottom: 2px solid #d0dce6; font-weight: 400;
+  }
+  h3 { font-size: 16px; color: #2E5D8A; margin: 22px 0 9px; font-weight: 700; letter-spacing: 0.01em; }
+  p { margin-bottom: 14px; color: #333; }
+
+  .section-intro {
+    font-size: 16px; color: #444; font-style: italic; margin-bottom: 24px;
+    padding: 14px 20px; background: #f7f9fc; border-radius: 6px;
+    border-left: 4px solid #1B3A5C;
+  }
+
+  .callout {
+    margin: 20px 0; padding: 16px 20px; background: #f0f6fb;
+    border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .callout strong { color: #1B3A5C; }
+
+  .warning {
+    margin: 20px 0; padding: 16px 20px; background: #fdf6ec;
+    border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .warning strong { color: #8a5d0a; }
+
+  .tip {
+    margin: 20px 0; padding: 16px 20px; background: #f0fbf4;
+    border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333;
+  }
+  .tip strong { color: #1a5c3a; }
+
+  ul, ol { margin: 10px 0 16px 24px; color: #333; }
+  li { margin-bottom: 6px; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 14px;
+  }
+  th {
+    background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left;
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  code {
+    font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px;
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4; padding: 18px 22px; border-radius: 8px;
+    overflow-x: auto; margin: 12px 0 20px; font-size: 13.5px; line-height: 1.6;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+  }
+  pre .kw  { color: #cba6f7; }
+  pre .fn  { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm  { color: #6c7086; font-style: italic; }
+  pre .num { color: #fab387; }
+  pre .prop{ color: #89dceb; }
+  pre .tag { color: #f38ba8; }
+  pre .jsx { color: #cdd6f4; }
+
+  .diagram-wrap {
+    text-align: center; margin: 24px 0; padding: 0;
+  }
+  .diagram-wrap svg { max-width: 100%; height: auto; }
+  .diagram-caption {
+    font-size: 13px; color: #666; margin-top: 8px; font-style: italic;
+  }
+
+  .two-col {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0 20px;
+  }
+  .card {
+    background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 16px 18px;
+  }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 14px; margin-bottom: 4px; }
+
+  .permissions-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 16px 0 20px;
+  }
+  .perm-card {
+    background: #f0f6fb; border: 1px solid #b8d0e6; border-radius: 8px;
+    padding: 14px 16px; text-align: center;
+  }
+  .perm-card .icon { font-size: 24px; margin-bottom: 6px; }
+  .perm-card .label { font-size: 13px; font-weight: 700; color: #1B3A5C; }
+  .perm-card .desc  { font-size: 12px; color: #555; margin-top: 4px; }
+
+  .step-list { counter-reset: step; list-style: none; margin: 0 0 16px 0; padding: 0; }
+  .step-list li {
+    counter-increment: step; display: flex; align-items: flex-start;
+    gap: 14px; margin-bottom: 12px;
+  }
+  .step-list li::before {
+    content: counter(step);
+    min-width: 28px; height: 28px; background: #1B3A5C; color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+  }
+
+  .media-type-row {
+    display: flex; gap: 16px; margin: 16px 0 20px; flex-wrap: wrap;
+  }
+  .media-badge {
+    background: #1B3A5C; color: #fff; padding: 6px 14px;
+    border-radius: 20px; font-size: 13px; font-weight: 600;
+  }
+  .media-badge.photo { background: #2E5D8A; }
+  .media-badge.video { background: #8a2e5d; }
+  .media-badge.audio { background: #2e8a5d; }
+  .media-badge.file  { background: #8a6b2e; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .callout, .warning, .tip, pre { break-inside: avoid; }
+    .two-col, .permissions-grid { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─────────────────────────────────────────────────────── -->
+<div class="doc-header">
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="semester">Spring 2026 · Boise State University</div>
+  <div class="subtitle">Camera Integration and Media Handling</div>
+  <div class="lesson-meta">
+    <span>📷 Expo Camera SDK</span>
+    <span>🎞 expo-image-picker</span>
+    <span>🔐 Permissions API</span>
+    <span>💾 MediaLibrary</span>
+  </div>
+</div>
+
+<p class="section-intro">
+  The camera is one of the most powerful and user-visible hardware features on a mobile device.
+  In this lesson you'll learn how Expo wraps the native camera hardware into a safe, cross-platform
+  JavaScript API, how to request the permissions that make it all legal, and how to persist, display,
+  and manage the media your app creates.
+</p>
+
+
+<!-- ─── 1. THE BIG PICTURE ─────────────────────────────────────────── -->
+<h2>1. The Big Picture: How Camera Access Works</h2>
+
+<p>
+  Unlike a web browser, a phone camera is deeply integrated with the operating system.
+  Before any app can see a single pixel through that lens, the OS must grant explicit permission,
+  the app must open a native camera view (or invoke the system camera), and the resulting data
+  must be handed back as a file the app can work with. Expo provides three distinct packages
+  that each cover a slice of this workflow.
+</p>
+
+<!-- SVG: System Architecture Diagram -->
+<div class="diagram-wrap">
+<svg viewBox="0 0 760 310" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="760" height="310" fill="#fafbfc" rx="10"/>
+
+  <!-- Layer labels on left -->
+  <text x="14" y="78"  font-size="11" fill="#999" text-anchor="middle" transform="rotate(-90,14,78)">YOUR APP</text>
+  <text x="14" y="178" font-size="11" fill="#999" text-anchor="middle" transform="rotate(-90,14,178)">EXPO SDK</text>
+  <text x="14" y="270" font-size="11" fill="#999" text-anchor="middle" transform="rotate(-90,14,270)">OS / NATIVE</text>
+
+  <!-- Layer bands -->
+  <rect x="28" y="20"  width="720" height="90"  fill="#e8f0fb" rx="6" opacity="0.7"/>
+  <rect x="28" y="120" width="720" height="80"  fill="#d4e8f7" rx="6" opacity="0.7"/>
+  <rect x="28" y="210" width="720" height="80"  fill="#c0d8f0" rx="6" opacity="0.7"/>
+
+  <!-- App layer boxes -->
+  <rect x="60"  y="38" width="130" height="54" fill="#2E5D8A" rx="6"/>
+  <text x="125" y="62" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Your</text>
+  <text x="125" y="79" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Component</text>
+
+  <rect x="230" y="38" width="140" height="54" fill="#2E5D8A" rx="6"/>
+  <text x="300" y="62" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Permission</text>
+  <text x="300" y="79" font-size="12" fill="#d0e8ff" text-anchor="middle">requestAsync()</text>
+
+  <rect x="420" y="38" width="140" height="54" fill="#2E5D8A" rx="6"/>
+  <text x="490" y="62" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">URI / Asset</text>
+  <text x="490" y="79" font-size="12" fill="#d0e8ff" text-anchor="middle">result.assets[0]</text>
+
+  <rect x="610" y="38" width="110" height="54" fill="#2E5D8A" rx="6"/>
+  <text x="665" y="62" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">&lt;Image&gt;</text>
+  <text x="665" y="79" font-size="12" fill="#d0e8ff" text-anchor="middle">Display</text>
+
+  <!-- Expo layer boxes -->
+  <rect x="60"  y="135" width="130" height="50" fill="#1B3A5C" rx="6"/>
+  <text x="125" y="157" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">expo-camera</text>
+  <text x="125" y="174" font-size="11" fill="#a0c0e0" text-anchor="middle">CameraView</text>
+
+  <rect x="230" y="135" width="140" height="50" fill="#1B3A5C" rx="6"/>
+  <text x="300" y="157" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">expo-image-picker</text>
+  <text x="300" y="174" font-size="11" fill="#a0c0e0" text-anchor="middle">launchCameraAsync()</text>
+
+  <rect x="420" y="135" width="140" height="50" fill="#1B3A5C" rx="6"/>
+  <text x="490" y="157" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">expo-media-library</text>
+  <text x="490" y="174" font-size="11" fill="#a0c0e0" text-anchor="middle">saveToLibraryAsync()</text>
+
+  <rect x="610" y="135" width="110" height="50" fill="#1B3A5C" rx="6"/>
+  <text x="665" y="157" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">expo-file-system</text>
+  <text x="665" y="174" font-size="11" fill="#a0c0e0" text-anchor="middle">FileSystem</text>
+
+  <!-- OS layer boxes -->
+  <rect x="80"  y="228" width="180" height="44" fill="#7a9abf" rx="6"/>
+  <text x="170" y="254" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">iOS AVFoundation / Android Camera2</text>
+
+  <rect x="300" y="228" width="180" height="44" fill="#7a9abf" rx="6"/>
+  <text x="390" y="248" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Permission Manager</text>
+  <text x="390" y="264" font-size="11" fill="#d8e8f4" text-anchor="middle">iOS: Info.plist  Android: manifest</text>
+
+  <rect x="520" y="228" width="180" height="44" fill="#7a9abf" rx="6"/>
+  <text x="610" y="248" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">File System / Gallery</text>
+  <text x="610" y="264" font-size="11" fill="#d8e8f4" text-anchor="middle">DCIM / Photos Library</text>
+
+  <!-- Arrows: App → Expo -->
+  <line x1="125" y1="92"  x2="125" y2="132" stroke="#2E5D8A" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="300" y1="92"  x2="300" y2="132" stroke="#2E5D8A" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="490" y1="92"  x2="490" y2="132" stroke="#2E5D8A" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="665" y1="92"  x2="665" y2="132" stroke="#2E5D8A" stroke-width="2" marker-end="url(#arr)"/>
+
+  <!-- Arrows: Expo → OS -->
+  <line x1="170" y1="185" x2="200" y2="225" stroke="#1B3A5C" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="300" y1="185" x2="340" y2="225" stroke="#1B3A5C" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="490" y1="185" x2="540" y2="225" stroke="#1B3A5C" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="665" y1="185" x2="640" y2="225" stroke="#1B3A5C" stroke-width="2" marker-end="url(#arr)"/>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#1B3A5C"/>
+    </marker>
+  </defs>
+</svg>
+<div class="diagram-caption">Figure 1: Three-layer architecture — your React Native code calls Expo SDK wrappers, which in turn call native OS APIs for hardware and permissions.</div>
+</div>
+
+<div class="callout">
+  <strong>Key Insight:</strong> Expo doesn't give you direct access to camera hardware. It gives you
+  a JavaScript interface that talks to native code, which talks to the OS. This indirection is what
+  makes cross-platform development possible — the same <code>launchCameraAsync()</code> call works
+  on both iOS and Android even though the underlying hardware APIs are completely different.
+</div>
+
+
+<!-- ─── 2. PACKAGES ────────────────────────────────────────────────── -->
+<h2>2. The Three Packages You'll Use</h2>
+
+<p>
+  Expo splits camera and media functionality across several focused packages rather than one
+  monolithic library. Understanding what each package is <em>for</em> prevents you from reaching
+  for the wrong tool.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Package</th>
+      <th>What It Does</th>
+      <th>When to Use It</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>expo-camera</code></td>
+      <td>Embeds a live camera preview directly inside your UI as a React component. Gives you frame-level control — zoom, flash, focus, front/back toggle.</td>
+      <td>When you need a <em>custom camera interface</em> baked into your app layout (think Snapchat, scanning QR codes, AR overlays).</td>
+    </tr>
+    <tr>
+      <td><code>expo-image-picker</code></td>
+      <td>Launches the system camera or photo library as a separate modal screen. Returns when the user picks or captures media.</td>
+      <td>When you just need a photo or video from the user and don't care about the capture UI. The simplest path for most apps.</td>
+    </tr>
+    <tr>
+      <td><code>expo-media-library</code></td>
+      <td>Reads from and writes to the device's photo gallery. Lets you save images, list albums, query assets.</td>
+      <td>When your app needs to <em>save</em> photos to the camera roll, or <em>browse</em> existing media.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warning">
+  <strong>Heads up — breaking changes:</strong> <code>expo-camera</code> underwent a major API
+  redesign in Expo SDK 50. The old <code>&lt;Camera&gt;</code> component was replaced by
+  <code>&lt;CameraView&gt;</code>. If you find tutorials using the old API, check their publication
+  date. This course uses <strong>SDK 52</strong>.
+</div>
+
+
+<!-- ─── 3. PERMISSIONS ─────────────────────────────────────────────── -->
+<h2>3. Permissions — The Gate You Must Open First</h2>
+
+<p>
+  Every camera and media operation is gated behind a user-granted permission. If you skip this step,
+  your API calls will silently fail or throw errors. Permissions in Expo follow a consistent
+  pattern across all packages.
+</p>
+
+<div class="permissions-grid">
+  <div class="perm-card">
+    <div class="icon">📷</div>
+    <div class="label">CAMERA</div>
+    <div class="desc">Required to open the camera preview or capture photos/video through <code>expo-camera</code> or <code>expo-image-picker</code></div>
+  </div>
+  <div class="perm-card">
+    <div class="icon">🎤</div>
+    <div class="label">MICROPHONE</div>
+    <div class="desc">Required separately when recording <em>video with audio</em>. Camera permission alone is not enough.</div>
+  </div>
+  <div class="perm-card">
+    <div class="icon">🖼</div>
+    <div class="label">MEDIA LIBRARY</div>
+    <div class="desc">Required to read from or write to the photo gallery. On iOS, "Add Photos Only" is a separate, narrower permission.</div>
+  </div>
+</div>
+
+<h3>The Permission Request Pattern</h3>
+
+<p>Every permission follows the same three-step flow:</p>
+
+<ol class="step-list">
+  <li><strong>Check</strong> — ask the OS what the current permission status is without showing a dialog.</li>
+  <li><strong>Request</strong> — if not yet granted, show the system permission dialog to the user.</li>
+  <li><strong>Handle the result</strong> — act on what the user decided; never assume they said yes.</li>
+</ol>
+
+<pre><span class="kw">import</span> { <span class="prop">useState</span>, <span class="prop">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> * <span class="kw">as</span> <span class="prop">ImagePicker</span> <span class="kw">from</span> <span class="str">'expo-image-picker'</span>;
+
+<span class="kw">export default function</span> <span class="fn">CameraExample</span>() {
+  <span class="kw">const</span> [<span class="prop">hasPermission</span>, <span class="prop">setHasPermission</span>] = <span class="fn">useState</span>(<span class="kw">null</span>);
+
+  <span class="fn">useEffect</span>(() => {
+    (<span class="kw">async</span> () => {
+      <span class="cm">// Step 1 + 2: request permission (checks first automatically)</span>
+      <span class="kw">const</span> { <span class="prop">status</span> } = <span class="kw">await</span> <span class="prop">ImagePicker</span>.<span class="fn">requestCameraPermissionsAsync</span>();
+      <span class="fn">setHasPermission</span>(<span class="prop">status</span> === <span class="str">'granted'</span>);
+    })();
+  }, []);
+
+  <span class="cm">// Step 3: handle result before rendering camera features</span>
+  <span class="kw">if</span> (<span class="prop">hasPermission</span> === <span class="kw">null</span>) <span class="kw">return</span> <span class="tag">&lt;LoadingSpinner /&gt;</span>;
+  <span class="kw">if</span> (<span class="prop">hasPermission</span> === <span class="kw">false</span>) <span class="kw">return</span> <span class="tag">&lt;NoPermissionMessage /&gt;</span>;
+
+  <span class="kw">return</span> <span class="tag">&lt;YourCameraUI /&gt;</span>;
+}</pre>
+
+<div class="tip">
+  <strong>Best practice:</strong> Request permissions <em>at the moment they're needed</em>,
+  not at app startup. If the user opens your app and immediately sees a camera permission dialog
+  with no context, they often deny it. Wait until they tap "Take Photo" — then request permission.
+  The OS will remember their choice for subsequent sessions.
+</div>
+
+<!-- SVG: Permission State Machine -->
+<div class="diagram-wrap">
+<svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
+  <rect width="700" height="200" fill="#fafbfc" rx="10"/>
+
+  <!-- States -->
+  <ellipse cx="100" cy="100" rx="78" ry="34" fill="#e0e8f0" stroke="#1B3A5C" stroke-width="2"/>
+  <text x="100" y="97"  font-size="13" font-weight="700" fill="#1B3A5C" text-anchor="middle">undetermined</text>
+  <text x="100" y="113" font-size="11" fill="#555" text-anchor="middle">(first launch)</text>
+
+  <ellipse cx="350" cy="60" rx="78" ry="34" fill="#d4ecd4" stroke="#2e8a5d" stroke-width="2"/>
+  <text x="350" y="65" font-size="13" font-weight="700" fill="#1a5c3a" text-anchor="middle">granted</text>
+
+  <ellipse cx="350" cy="150" rx="78" ry="34" fill="#fde8e8" stroke="#c04040" stroke-width="2"/>
+  <text x="350" y="155" font-size="13" font-weight="700" fill="#8a1a1a" text-anchor="middle">denied</text>
+
+  <ellipse cx="590" cy="100" rx="88" ry="34" fill="#fdf6ec" stroke="#c8890f" stroke-width="2"/>
+  <text x="590" y="97"  font-size="13" font-weight="700" fill="#8a5d0a" text-anchor="middle">restricted</text>
+  <text x="590" y="113" font-size="11" fill="#555" text-anchor="middle">(parental controls)</text>
+
+  <!-- Arrows -->
+  <!-- undetermined → granted -->
+  <path d="M175,82 Q260,30 270,60" fill="none" stroke="#2e8a5d" stroke-width="2" marker-end="url(#arrowG)"/>
+  <text x="218" y="42" font-size="11" fill="#2e8a5d" text-anchor="middle">user taps Allow</text>
+
+  <!-- undetermined → denied -->
+  <path d="M175,112 Q260,160 270,150" fill="none" stroke="#c04040" stroke-width="2" marker-end="url(#arrowR)"/>
+  <text x="218" y="158" font-size="11" fill="#c04040" text-anchor="middle">user taps Don't Allow</text>
+
+  <!-- denied → settings (iOS) -->
+  <path d="M428,155 Q520,170 500,110" fill="none" stroke="#c8890f" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrowO)"/>
+  <text x="508" y="172" font-size="10" fill="#c8890f" text-anchor="middle">must go to Settings</text>
+
+  <!-- granted self-loop (stays granted) -->
+  <path d="M380,28 Q420,5 385,28" fill="none" stroke="#2e8a5d" stroke-width="1.5"/>
+  <text x="415" y="14" font-size="10" fill="#2e8a5d">persists</text>
+
+  <defs>
+    <marker id="arrowG" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#2e8a5d"/>
+    </marker>
+    <marker id="arrowR" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#c04040"/>
+    </marker>
+    <marker id="arrowO" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#c8890f"/>
+    </marker>
+  </defs>
+</svg>
+<div class="diagram-caption">Figure 2: Permission state machine. Once denied, the app cannot re-prompt — the user must go to device Settings manually.</div>
+</div>
+
+
+<!-- ─── 4. expo-image-picker ───────────────────────────────────────── -->
+<h2>4. expo-image-picker — The Easy Path</h2>
+
+<p>
+  For the vast majority of use cases — profile photos, uploading a receipt, attaching an image
+  to a post — <code>expo-image-picker</code> is the right choice. It leverages the system UI, which
+  users already know, and handles all the complexity of camera modes, flash, and image format
+  negotiation for you.
+</p>
+
+<h3>Installation</h3>
+<pre><span class="cm"># Add to your Expo project</span>
+npx expo install expo-image-picker</pre>
+
+<h3>Launching the Camera vs. the Photo Library</h3>
+<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="prop">ImagePicker</span> <span class="kw">from</span> <span class="str">'expo-image-picker'</span>;
+
+<span class="cm">// ── Option A: Launch camera to take a new photo ──────────────────────</span>
+<span class="kw">const</span> <span class="fn">takePhoto</span> = <span class="kw">async</span> () => {
+  <span class="kw">const</span> <span class="prop">result</span> = <span class="kw">await</span> <span class="prop">ImagePicker</span>.<span class="fn">launchCameraAsync</span>({
+    <span class="prop">mediaTypes</span>: <span class="prop">ImagePicker</span>.<span class="prop">MediaTypeOptions</span>.<span class="prop">Images</span>,
+    <span class="prop">allowsEditing</span>: <span class="kw">true</span>,   <span class="cm">// show crop UI after capture</span>
+    <span class="prop">aspect</span>: [<span class="num">4</span>, <span class="num">3</span>],          <span class="cm">// enforce aspect ratio in crop</span>
+    <span class="prop">quality</span>: <span class="num">0.85</span>,           <span class="cm">// 0–1, affects file size</span>
+  });
+
+  <span class="kw">if</span> (!<span class="prop">result</span>.<span class="prop">canceled</span>) {
+    <span class="kw">const</span> <span class="prop">uri</span> = <span class="prop">result</span>.<span class="prop">assets</span>[<span class="num">0</span>].<span class="prop">uri</span>;  <span class="cm">// local file:// path</span>
+    <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">'Captured photo at:'</span>, <span class="prop">uri</span>);
+  }
+};
+
+<span class="cm">// ── Option B: Pick from existing photo library ───────────────────────</span>
+<span class="kw">const</span> <span class="fn">pickFromLibrary</span> = <span class="kw">async</span> () => {
+  <span class="kw">const</span> <span class="prop">result</span> = <span class="kw">await</span> <span class="prop">ImagePicker</span>.<span class="fn">launchImageLibraryAsync</span>({
+    <span class="prop">mediaTypes</span>: <span class="prop">ImagePicker</span>.<span class="prop">MediaTypeOptions</span>.<span class="prop">All</span>,  <span class="cm">// photos + videos</span>
+    <span class="prop">allowsMultipleSelection</span>: <span class="kw">true</span>,  <span class="cm">// iOS 14+ / Android</span>
+    <span class="prop">selectionLimit</span>: <span class="num">5</span>,
+  });
+
+  <span class="kw">if</span> (!<span class="prop">result</span>.<span class="prop">canceled</span>) {
+    <span class="kw">const</span> <span class="prop">assets</span> = <span class="prop">result</span>.<span class="prop">assets</span>;  <span class="cm">// array of { uri, width, height, type }</span>
+    <span class="prop">assets</span>.<span class="fn">forEach</span>(<span class="prop">asset</span> => <span class="fn">console</span>.<span class="fn">log</span>(<span class="prop">asset</span>.<span class="prop">uri</span>));
+  }
+};</pre>
+
+<div class="callout">
+  <strong>The <code>result.assets</code> array</strong> was introduced in SDK 48. Older code checked
+  <code>result.uri</code> directly. If you see tutorials using the old pattern, they need updating.
+  Always use <code>result.assets[0].uri</code>.
+</div>
+
+<h3>The Asset Object</h3>
+<p>Each item in <code>result.assets</code> contains:</p>
+<table>
+  <thead>
+    <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>uri</code></td><td>string</td><td>Local <code>file://</code> path to the image or video. Use this to display or upload the file.</td></tr>
+    <tr><td><code>width</code></td><td>number</td><td>Pixel width of the media.</td></tr>
+    <tr><td><code>height</code></td><td>number</td><td>Pixel height of the media.</td></tr>
+    <tr><td><code>type</code></td><td>'image' | 'video'</td><td>Media type.</td></tr>
+    <tr><td><code>fileName</code></td><td>string?</td><td>Original filename if available. May be null on some devices.</td></tr>
+    <tr><td><code>fileSize</code></td><td>number?</td><td>File size in bytes.</td></tr>
+    <tr><td><code>duration</code></td><td>number?</td><td>Video duration in milliseconds. Null for images.</td></tr>
+    <tr><td><code>base64</code></td><td>string?</td><td>Only present if <code>base64: true</code> was passed in options. Avoid for large files.</td></tr>
+    <tr><td><code>exif</code></td><td>object?</td><td>EXIF metadata (GPS, exposure, etc.) if <code>exif: true</code> was passed.</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ─── 5. CameraView ──────────────────────────────────────────────── -->
+<h2>5. expo-camera — Embedded Camera Preview</h2>
+
+<p>
+  When you need the camera to live <em>inside</em> your UI — overlaid with your own controls,
+  real-time filters, or information — <code>expo-camera</code> gives you a <code>CameraView</code>
+  component that renders the live feed as a native view element.
+</p>
+
+<h3>Installation</h3>
+<pre>npx expo install expo-camera</pre>
+
+<h3>Basic CameraView with Capture</h3>
+<pre><span class="kw">import</span> { <span class="prop">useRef</span>, <span class="prop">useState</span>, <span class="prop">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="prop">View</span>, <span class="prop">Button</span>, <span class="prop">Image</span>, <span class="prop">StyleSheet</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+<span class="kw">import</span> { <span class="prop">CameraView</span>, <span class="prop">useCameraPermissions</span> } <span class="kw">from</span> <span class="str">'expo-camera'</span>;
+
+<span class="kw">export default function</span> <span class="fn">EmbeddedCamera</span>() {
+  <span class="kw">const</span> [<span class="prop">permission</span>, <span class="prop">requestPermission</span>] = <span class="fn">useCameraPermissions</span>();
+  <span class="kw">const</span> [<span class="prop">photoUri</span>, <span class="prop">setPhotoUri</span>] = <span class="fn">useState</span>(<span class="kw">null</span>);
+  <span class="kw">const</span> <span class="prop">cameraRef</span> = <span class="fn">useRef</span>(<span class="kw">null</span>);
+
+  <span class="kw">if</span> (!<span class="prop">permission</span>)    <span class="kw">return</span> <span class="tag">&lt;View /&gt;</span>;  <span class="cm">// still loading</span>
+  <span class="kw">if</span> (!<span class="prop">permission</span>.<span class="prop">granted</span>) {
+    <span class="kw">return</span> (
+      <span class="tag">&lt;View style=</span>{<span class="prop">styles</span>.<span class="prop">container</span>}<span class="tag">&gt;</span>
+        <span class="tag">&lt;Button</span> <span class="prop">title</span>=<span class="str">"Grant Camera Access"</span>
+                <span class="prop">onPress</span>={<span class="prop">requestPermission</span>} <span class="tag">/&gt;</span>
+      <span class="tag">&lt;/View&gt;</span>
+    );
+  }
+
+  <span class="kw">const</span> <span class="fn">takePicture</span> = <span class="kw">async</span> () => {
+    <span class="kw">if</span> (<span class="prop">cameraRef</span>.<span class="prop">current</span>) {
+      <span class="kw">const</span> <span class="prop">photo</span> = <span class="kw">await</span> <span class="prop">cameraRef</span>.<span class="prop">current</span>.<span class="fn">takePictureAsync</span>({
+        <span class="prop">quality</span>: <span class="num">0.8</span>,
+        <span class="prop">skipProcessing</span>: <span class="kw">false</span>,  <span class="cm">// apply auto-corrections</span>
+      });
+      <span class="fn">setPhotoUri</span>(<span class="prop">photo</span>.<span class="prop">uri</span>);
+    }
+  };
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View style=</span>{<span class="prop">styles</span>.<span class="prop">container</span>}<span class="tag">&gt;</span>
+      <span class="tag">&lt;CameraView</span>
+        <span class="prop">ref</span>={<span class="prop">cameraRef</span>}
+        <span class="prop">style</span>={<span class="prop">styles</span>.<span class="prop">camera</span>}
+        <span class="prop">facing</span>=<span class="str">"back"</span>          <span class="cm">// or "front"</span>
+        <span class="prop">flash</span>=<span class="str">"auto"</span>
+      <span class="tag">/&gt;</span>
+      {<span class="prop">photoUri</span> && <span class="tag">&lt;Image source=</span>{{ <span class="prop">uri</span>: <span class="prop">photoUri</span> }} <span class="prop">style</span>={<span class="prop">styles</span>.<span class="prop">preview</span>} <span class="tag">/&gt;</span>}
+      <span class="tag">&lt;Button</span> <span class="prop">title</span>=<span class="str">"📷 Take Photo"</span> <span class="prop">onPress</span>={<span class="fn">takePicture</span>} <span class="tag">/&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}</pre>
+
+<!-- SVG: CameraView Component Anatomy -->
+<div class="diagram-wrap">
+<svg viewBox="0 0 680 340" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
+  <rect width="680" height="340" fill="#fafbfc" rx="10"/>
+
+  <!-- Phone outline -->
+  <rect x="220" y="20" width="240" height="300" rx="24" fill="#1B3A5C" stroke="#0d2236" stroke-width="3"/>
+  <rect x="230" y="50" width="220" height="240" fill="#0a0a1a"/>
+  <!-- notch -->
+  <rect x="305" y="20" width="70" height="16" rx="8" fill="#0d2236"/>
+
+  <!-- Live camera feed -->
+  <rect x="230" y="50" width="220" height="170" fill="#1a2540"/>
+  <text x="340" y="115" font-size="13" fill="#4a6890" text-anchor="middle">live camera feed</text>
+  <text x="340" y="133" font-size="13" fill="#4a6890" text-anchor="middle">(native render layer)</text>
+  <!-- fake viewfinder lines -->
+  <line x1="290" y1="80" x2="260" y2="80" stroke="#4a8080" stroke-width="1.5"/>
+  <line x1="260" y1="80" x2="260" y2="110" stroke="#4a8080" stroke-width="1.5"/>
+  <line x1="390" y1="80" x2="420" y2="80" stroke="#4a8080" stroke-width="1.5"/>
+  <line x1="420" y1="80" x2="420" y2="110" stroke="#4a8080" stroke-width="1.5"/>
+  <line x1="260" y1="170" x2="260" y2="200" stroke="#4a8080" stroke-width="1.5"/>
+  <line x1="260" y1="200" x2="290" y2="200" stroke="#4a8080" stroke-width="1.5"/>
+  <line x1="420" y1="200" x2="420" y2="170" stroke="#4a8080" stroke-width="1.5"/>
+  <line x1="390" y1="200" x2="420" y2="200" stroke="#4a8080" stroke-width="1.5"/>
+
+  <!-- JSX overlay layer -->
+  <rect x="230" y="195" width="220" height="55" fill="rgba(46,93,138,0.7)" rx="0"/>
+  <text x="340" y="218" font-size="11" fill="#a8c8e8" text-anchor="middle">Your JSX overlay</text>
+  <text x="340" y="236" font-size="10" fill="#7aa8c8" text-anchor="middle">(controls, text, filters)</text>
+
+  <!-- Bottom bar -->
+  <rect x="230" y="250" width="220" height="40" fill="#0d1829" rx="0"/>
+  <circle cx="340" cy="270" r="16" fill="none" stroke="#fff" stroke-width="2.5"/>
+  <circle cx="340" cy="270" r="11" fill="#fff"/>
+  <text x="275" y="274" font-size="11" fill="#7aa8c8">⚡</text>
+  <text x="395" y="274" font-size="11" fill="#7aa8c8">🔄</text>
+
+  <!-- Labels pointing to phone -->
+  <!-- CameraView label -->
+  <line x1="218" y1="135" x2="120" y2="100" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="20" y="80" width="100" height="36" fill="#e0ecf8" rx="5"/>
+  <text x="70" y="96" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="middle">&lt;CameraView&gt;</text>
+  <text x="70" y="110" font-size="10" fill="#555" text-anchor="middle">ref={cameraRef}</text>
+
+  <!-- Overlay label -->
+  <line x1="218" y1="222" x2="120" y2="222" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="20" y="208" width="100" height="28" fill="#e0ecf8" rx="5"/>
+  <text x="70" y="221" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="middle">Your UI</text>
+  <text x="70" y="232" font-size="10" fill="#555" text-anchor="middle">on top</text>
+
+  <!-- Shutter label -->
+  <line x1="460" y1="270" x2="530" y2="270" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="530" y="257" width="130" height="28" fill="#e0ecf8" rx="5"/>
+  <text x="595" y="270" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="middle">takePictureAsync()</text>
+  <text x="595" y="279" font-size="9" fill="#555" text-anchor="middle">called on cameraRef</text>
+
+  <!-- ref label -->
+  <line x1="460" y1="50" x2="530" y2="80" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <rect x="530" y="68" width="125" height="28" fill="#e0ecf8" rx="5"/>
+  <text x="592" y="81" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="middle">useRef() handles</text>
+  <text x="592" y="93" font-size="10" fill="#555" text-anchor="middle">imperative control</text>
+</svg>
+<div class="diagram-caption">Figure 3: The CameraView component renders as a native layer. Your own JSX floats above it. The shutter button calls <code>takePictureAsync()</code> via a ref.</div>
+</div>
+
+<div class="callout">
+  <strong>Why <code>useRef</code>?</strong> <code>takePictureAsync()</code> is an <em>imperative</em>
+  command — "do this now" — rather than something you control through React state. The <code>ref</code>
+  gives you a direct handle to the native camera component so you can call its methods on demand.
+</div>
+
+
+<!-- ─── 6. MEDIA LIBRARY ───────────────────────────────────────────── -->
+<h2>6. expo-media-library — Saving and Reading the Gallery</h2>
+
+<p>
+  Capturing a photo only stores it in a temporary cache directory. If you want the user's
+  photo to survive app restarts and appear in their Photos app, you need to save it to the
+  device's permanent media library.
+</p>
+
+<h3>Installation</h3>
+<pre>npx expo install expo-media-library</pre>
+
+<h3>Saving a Photo to the Camera Roll</h3>
+<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="prop">MediaLibrary</span> <span class="kw">from</span> <span class="str">'expo-media-library'</span>;
+
+<span class="kw">const</span> <span class="fn">savePhoto</span> = <span class="kw">async</span> (<span class="prop">photoUri</span>) => {
+  <span class="cm">// 1. Request permission to access / modify media library</span>
+  <span class="kw">const</span> { <span class="prop">status</span> } = <span class="kw">await</span> <span class="prop">MediaLibrary</span>.<span class="fn">requestPermissionsAsync</span>();
+  <span class="kw">if</span> (<span class="prop">status</span> !== <span class="str">'granted'</span>) {
+    <span class="prop">alert</span>(<span class="str">'Cannot save without photo library permission'</span>);
+    <span class="kw">return</span>;
+  }
+
+  <span class="cm">// 2. Save the temporary URI as a permanent asset</span>
+  <span class="kw">const</span> <span class="prop">asset</span> = <span class="kw">await</span> <span class="prop">MediaLibrary</span>.<span class="fn">createAssetAsync</span>(<span class="prop">photoUri</span>);
+
+  <span class="cm">// 3. Optionally organise into an album</span>
+  <span class="kw">let</span> <span class="prop">album</span> = <span class="kw">await</span> <span class="prop">MediaLibrary</span>.<span class="fn">getAlbumAsync</span>(<span class="str">'MyApp Photos'</span>);
+  <span class="kw">if</span> (<span class="prop">album</span> === <span class="kw">null</span>) {
+    <span class="cm">// First time — create the album with this asset</span>
+    <span class="kw">await</span> <span class="prop">MediaLibrary</span>.<span class="fn">createAlbumAsync</span>(<span class="str">'MyApp Photos'</span>, <span class="prop">asset</span>, <span class="kw">false</span>);
+  } <span class="kw">else</span> {
+    <span class="kw">await</span> <span class="prop">MediaLibrary</span>.<span class="fn">addAssetsToAlbumAsync</span>([<span class="prop">asset</span>], <span class="prop">album</span>, <span class="kw">false</span>);
+  }
+
+  <span class="prop">alert</span>(<span class="str">'Photo saved to your library! 🎉'</span>);
+};</pre>
+
+<!-- SVG: URI Lifecycle -->
+<div class="diagram-wrap">
+<svg viewBox="0 0 700 130" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
+  <rect width="700" height="130" fill="#fafbfc" rx="10"/>
+
+  <!-- Boxes -->
+  <rect x="20"  y="35" width="130" height="60" fill="#1B3A5C" rx="8"/>
+  <text x="85"  y="62" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">takePictureAsync</text>
+  <text x="85"  y="78" font-size="11" fill="#a0c0e0" text-anchor="middle">/ launchCameraAsync</text>
+
+  <rect x="200" y="35" width="130" height="60" fill="#2E5D8A" rx="8"/>
+  <text x="265" y="58" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Temp Cache</text>
+  <text x="265" y="74" font-size="11" fill="#a0c0e0" text-anchor="middle">file:///tmp/...</text>
+  <text x="265" y="88" font-size="10" fill="#e07070" text-anchor="middle">⚠ deleted on restart</text>
+
+  <rect x="380" y="35" width="130" height="60" fill="#2e5d3a" rx="8"/>
+  <text x="445" y="58" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Media Library</text>
+  <text x="445" y="74" font-size="11" fill="#a0e0c0" text-anchor="middle">createAssetAsync()</text>
+  <text x="445" y="88" font-size="10" fill="#80e0a0" text-anchor="middle">✓ permanent</text>
+
+  <rect x="560" y="35" width="120" height="60" fill="#5d3a2e" rx="8"/>
+  <text x="620" y="58" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Upload to</text>
+  <text x="620" y="74" font-size="11" fill="#e0c0a0" text-anchor="middle">Server / CDN</text>
+  <text x="620" y="88" font-size="10" fill="#e0a080" text-anchor="middle">POST with FormData</text>
+
+  <!-- Arrows -->
+  <line x1="150" y1="65" x2="198" y2="65" stroke="#7a9abf" stroke-width="2" marker-end="url(#arrG)"/>
+  <line x1="330" y1="65" x2="378" y2="65" stroke="#7a9abf" stroke-width="2" marker-end="url(#arrG)"/>
+  <line x1="510" y1="65" x2="558" y2="65" stroke="#7a9abf" stroke-width="2" marker-end="url(#arrG)"/>
+
+  <!-- OR labels -->
+  <text x="345" y="62" font-size="11" fill="#888" text-anchor="middle">or</text>
+  <text x="528" y="62" font-size="11" fill="#888" text-anchor="middle">or</text>
+
+  <defs>
+    <marker id="arrG" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#7a9abf"/>
+    </marker>
+  </defs>
+</svg>
+<div class="diagram-caption">Figure 4: A captured photo lands in a temporary cache first. You must explicitly call <code>createAssetAsync()</code> to persist it, or POST the URI to upload it.</div>
+</div>
+
+
+<!-- ─── 7. DISPLAYING MEDIA ────────────────────────────────────────── -->
+<h2>7. Displaying Captured Media</h2>
+
+<p>
+  Once you have a <code>uri</code>, displaying the image is straightforward with React Native's
+  built-in <code>&lt;Image&gt;</code> component. For videos, use
+  <code>expo-av</code>'s <code>&lt;Video&gt;</code> component.
+</p>
+
+<div class="two-col">
+  <div class="card">
+    <h4>📸 Displaying an Image</h4>
+    <pre style="font-size:12px; padding:10px;"><span class="kw">import</span> { <span class="prop">Image</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="tag">&lt;Image</span>
+  <span class="prop">source</span>={{ <span class="prop">uri</span>: <span class="prop">photoUri</span> }}
+  <span class="prop">style</span>={{ <span class="prop">width</span>: <span class="num">300</span>, <span class="prop">height</span>: <span class="num">200</span> }}
+  <span class="prop">resizeMode</span>=<span class="str">"cover"</span>
+<span class="tag">/&gt;</span></pre>
+  </div>
+  <div class="card">
+    <h4>🎬 Playing a Video</h4>
+    <pre style="font-size:12px; padding:10px;"><span class="kw">import</span> { <span class="prop">Video</span> } <span class="kw">from</span> <span class="str">'expo-av'</span>;
+
+<span class="tag">&lt;Video</span>
+  <span class="prop">source</span>={{ <span class="prop">uri</span>: <span class="prop">videoUri</span> }}
+  <span class="prop">style</span>={{ <span class="prop">width</span>: <span class="num">300</span>, <span class="prop">height</span>: <span class="num">200</span> }}
+  <span class="prop">useNativeControls</span>
+  <span class="prop">isLooping</span>
+<span class="tag">/&gt;</span></pre>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>Performance tip:</strong> Don't display full-resolution camera photos at small sizes.
+  If you're showing thumbnails, pass <code>quality: 0.4</code> in <code>launchCameraAsync</code>
+  or use the <code>width</code>/<code>height</code> crop options to resize at capture time.
+  Large images in <code>&lt;FlatList&gt;</code> will cause jank.
+</div>
+
+
+<!-- ─── 8. UPLOADING ───────────────────────────────────────────────── -->
+<h2>8. Uploading Media to a Server</h2>
+
+<p>
+  A local <code>file://</code> URI is only useful on the device that created it. To store media
+  persistently or share it, you need to upload it. The standard approach uses <code>FormData</code>
+  with a <code>fetch</code> POST request.
+</p>
+
+<pre><span class="kw">const</span> <span class="fn">uploadPhoto</span> = <span class="kw">async</span> (<span class="prop">localUri</span>) => {
+  <span class="cm">// Build a multipart form — the server will receive this like a file input</span>
+  <span class="kw">const</span> <span class="prop">formData</span> = <span class="kw">new</span> <span class="fn">FormData</span>();
+  <span class="prop">formData</span>.<span class="fn">append</span>(<span class="str">'photo'</span>, {
+    <span class="prop">uri</span>: <span class="prop">localUri</span>,
+    <span class="prop">name</span>: <span class="str">'upload.jpg'</span>,
+    <span class="prop">type</span>: <span class="str">'image/jpeg'</span>,
+  });
+
+  <span class="kw">const</span> <span class="prop">response</span> = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://your-api.com/photos'</span>, {
+    <span class="prop">method</span>: <span class="str">'POST'</span>,
+    <span class="prop">headers</span>: { <span class="str">'Content-Type'</span>: <span class="str">'multipart/form-data'</span> },
+    <span class="prop">body</span>: <span class="prop">formData</span>,
+  });
+
+  <span class="kw">const</span> <span class="prop">data</span> = <span class="kw">await</span> <span class="prop">response</span>.<span class="fn">json</span>();
+  <span class="fn">console</span>.<span class="fn">log</span>(<span class="str">'Uploaded URL:'</span>, <span class="prop">data</span>.<span class="prop">url</span>);
+};</pre>
+
+<div class="callout">
+  <strong>Expo's <code>FileSystem.uploadAsync()</code></strong> is an alternative to <code>fetch</code>
+  for uploads. It supports progress callbacks, background uploads, and better error handling for
+  large files. Worth knowing about for the final project if you're handling video.
+</div>
+
+
+<!-- ─── 9. APP.JSON CONFIG ─────────────────────────────────────────── -->
+<h2>9. Configuring app.json for Permissions</h2>
+
+<p>
+  Expo's managed workflow configures native permission declarations for you — but only if you
+  tell it what your app needs in <code>app.json</code>. Without these entries, your app will crash
+  when it tries to request camera access on a production build.
+</p>
+
+<pre><span class="cm">// app.json</span>
+{
+  <span class="str">"expo"</span>: {
+    <span class="str">"name"</span>: <span class="str">"My Camera App"</span>,
+    <span class="str">"plugins"</span>: [
+      [
+        <span class="str">"expo-camera"</span>,
+        {
+          <span class="str">"cameraPermission"</span>: <span class="str">"Allow $(PRODUCT_NAME) to access your camera to capture photos."</span>
+        }
+      ],
+      [
+        <span class="str">"expo-image-picker"</span>,
+        {
+          <span class="str">"photosPermission"</span>: <span class="str">"Allow $(PRODUCT_NAME) to access your photos."</span>,
+          <span class="str">"cameraPermission"</span>: <span class="str">"Allow $(PRODUCT_NAME) to open the camera."</span>
+        }
+      ],
+      [
+        <span class="str">"expo-media-library"</span>,
+        {
+          <span class="str">"photosPermission"</span>: <span class="str">"Allow $(PRODUCT_NAME) to access your photo library."</span>,
+          <span class="str">"savePhotosPermission"</span>: <span class="str">"Allow $(PRODUCT_NAME) to save photos to your library."</span>,
+          <span class="str">"isAccessMediaLocationEnabled"</span>: <span class="kw">true</span>
+        }
+      ]
+    ]
+  }
+}</pre>
+
+<div class="warning">
+  <strong>Permission strings matter.</strong> Apple App Store reviewers read these strings.
+  They must explain <em>why</em> your app needs access, not just <em>what</em> it accesses.
+  "Access camera" will get flagged. "Capture photos for your cooking journal" will not.
+</div>
+
+
+<!-- ─── 10. COMMON PITFALLS ────────────────────────────────────────── -->
+<h2>10. Common Pitfalls and How to Avoid Them</h2>
+
+<table>
+  <thead>
+    <tr><th>Pitfall</th><th>Symptom</th><th>Fix</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Permission not requested before API call</td>
+      <td>API returns <code>canceled: true</code> or throws silently</td>
+      <td>Always check/request before calling any camera API. Use the pattern from Section 3.</td>
+    </tr>
+    <tr>
+      <td>Missing <code>app.json</code> plugin config</td>
+      <td>Works in Expo Go but crashes on standalone build</td>
+      <td>Add all required plugin entries with permission strings to <code>app.json</code>.</td>
+    </tr>
+    <tr>
+      <td>Using old <code>result.uri</code> pattern</td>
+      <td><code>undefined</code> URI, images don't display</td>
+      <td>Use <code>result.assets[0].uri</code> — required since SDK 48.</td>
+    </tr>
+    <tr>
+      <td>Trying to upload a <code>file://</code> URI to a browser</td>
+      <td>Broken image URL on web</td>
+      <td>Always upload to a server first; <code>file://</code> paths are device-local only.</td>
+    </tr>
+    <tr>
+      <td>Assuming photo persists between app runs</td>
+      <td>Image missing after app restart</td>
+      <td>Save to MediaLibrary or upload to server if persistence is required.</td>
+    </tr>
+    <tr>
+      <td>Using <code>base64: true</code> for large images</td>
+      <td>App freezes, memory warnings</td>
+      <td>Only use base64 for thumbnails. For uploads, use <code>FormData</code> with the <code>uri</code>.</td>
+    </tr>
+    <tr>
+      <td>Old <code>&lt;Camera&gt;</code> component (pre-SDK 50)</td>
+      <td>Import errors, deprecated warnings</td>
+      <td>Replace with <code>&lt;CameraView&gt;</code> and <code>useCameraPermissions()</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ─── 11. PUTTING IT TOGETHER ───────────────────────────────────── -->
+<h2>11. Putting It All Together — Full Flow Recap</h2>
+
+<!-- SVG: Full Data Flow -->
+<div class="diagram-wrap">
+<svg viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
+  <rect width="760" height="180" fill="#fafbfc" rx="10"/>
+
+  <!-- Steps -->
+  <rect x="20"  y="50" width="100" height="80" fill="#1B3A5C" rx="8"/>
+  <text x="70"  y="85"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">1. Install</text>
+  <text x="70"  y="101" font-size="11" fill="#a0c0e0" text-anchor="middle">npx expo</text>
+  <text x="70"  y="115" font-size="11" fill="#a0c0e0" text-anchor="middle">install</text>
+
+  <rect x="150" y="50" width="100" height="80" fill="#1B3A5C" rx="8"/>
+  <text x="200" y="85"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">2. Config</text>
+  <text x="200" y="101" font-size="11" fill="#a0c0e0" text-anchor="middle">app.json</text>
+  <text x="200" y="115" font-size="11" fill="#a0c0e0" text-anchor="middle">plugins</text>
+
+  <rect x="280" y="50" width="110" height="80" fill="#2E5D8A" rx="8"/>
+  <text x="335" y="85"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">3. Request</text>
+  <text x="335" y="101" font-size="11" fill="#a0c0e0" text-anchor="middle">Permission</text>
+  <text x="335" y="115" font-size="11" fill="#a0c0e0" text-anchor="middle">requestAsync</text>
+
+  <rect x="420" y="50" width="110" height="80" fill="#2E5D8A" rx="8"/>
+  <text x="475" y="85"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">4. Capture</text>
+  <text x="475" y="101" font-size="11" fill="#a0c0e0" text-anchor="middle">launchCamera</text>
+  <text x="475" y="115" font-size="11" fill="#a0c0e0" text-anchor="middle">Async()</text>
+
+  <rect x="560" y="50" width="100" height="80" fill="#2e5d3a" rx="8"/>
+  <text x="610" y="85"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">5. Use URI</text>
+  <text x="610" y="101" font-size="11" fill="#a0e0c0" text-anchor="middle">Display /</text>
+  <text x="610" y="115" font-size="11" fill="#a0e0c0" text-anchor="middle">Save / Upload</text>
+
+  <rect x="688" y="50" width="55" height="80" fill="#5d3a2e" rx="8"/>
+  <text x="715" y="82"  font-size="11" fill="#fff" font-weight="700" text-anchor="middle">6. Persist</text>
+  <text x="715" y="96"  font-size="10" fill="#e0c0a0" text-anchor="middle">Media</text>
+  <text x="715" y="108" font-size="10" fill="#e0c0a0" text-anchor="middle">Library</text>
+  <text x="715" y="120" font-size="10" fill="#e0c0a0" text-anchor="middle">/ Server</text>
+
+  <!-- Arrows -->
+  <line x1="120" y1="90" x2="148" y2="90" stroke="#4a7abf" stroke-width="2.5" marker-end="url(#arrF)"/>
+  <line x1="250" y1="90" x2="278" y2="90" stroke="#4a7abf" stroke-width="2.5" marker-end="url(#arrF)"/>
+  <line x1="390" y1="90" x2="418" y2="90" stroke="#4a7abf" stroke-width="2.5" marker-end="url(#arrF)"/>
+  <line x1="530" y1="90" x2="558" y2="90" stroke="#4a7abf" stroke-width="2.5" marker-end="url(#arrF)"/>
+  <line x1="660" y1="90" x2="686" y2="90" stroke="#4a7abf" stroke-width="2.5" marker-end="url(#arrF)"/>
+
+  <defs>
+    <marker id="arrF" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#4a7abf"/>
+    </marker>
+  </defs>
+</svg>
+<div class="diagram-caption">Figure 5: The complete camera integration workflow. Every step must be completed in order — skipping any one will cause failures.</div>
+</div>
+
+
+<!-- ─── QUICK REFERENCE ────────────────────────────────────────────── -->
+<h2>Quick Reference</h2>
+
+<div class="two-col">
+  <div class="card">
+    <h4>Key APIs — expo-image-picker</h4>
+    <ul>
+      <li><code>requestCameraPermissionsAsync()</code></li>
+      <li><code>requestMediaLibraryPermissionsAsync()</code></li>
+      <li><code>launchCameraAsync(options)</code></li>
+      <li><code>launchImageLibraryAsync(options)</code></li>
+      <li><code>result.assets[0].uri</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Key APIs — expo-camera</h4>
+    <ul>
+      <li><code>useCameraPermissions()</code></li>
+      <li><code>&lt;CameraView ref={ref} facing="back" /&gt;</code></li>
+      <li><code>ref.current.takePictureAsync()</code></li>
+      <li><code>ref.current.recordAsync()</code></li>
+      <li><code>ref.current.stopRecording()</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Key APIs — expo-media-library</h4>
+    <ul>
+      <li><code>requestPermissionsAsync()</code></li>
+      <li><code>createAssetAsync(uri)</code></li>
+      <li><code>getAlbumAsync(name)</code></li>
+      <li><code>createAlbumAsync(name, asset)</code></li>
+      <li><code>addAssetsToAlbumAsync(assets, album)</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>app.json Plugins Needed</h4>
+    <ul>
+      <li><code>"expo-camera"</code> + cameraPermission</li>
+      <li><code>"expo-image-picker"</code> + photosPermission</li>
+      <li><code>"expo-media-library"</code> + savePhotosPermission</li>
+      <li><code>"expo-av"</code> if using video playback</li>
+    </ul>
+  </div>
+</div>
+
+<div class="callout" style="margin-top:32px;">
+  <strong>Looking ahead — Project 4:</strong> The next class introduces the Camera App assignment.
+  You'll be building a working camera application that captures, stores, and displays photos.
+  Everything in this lesson is directly applicable. Pay special attention to the permissions
+  pattern in Section 3 and the temporary-vs-permanent URI distinction in Section 6 — those are
+  the two areas where most students get stuck.
+</div>
+
+</body>
+</html>
