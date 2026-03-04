@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linked Lists Lesson Plan — CS253</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f9f8f6;
+    --border: #e2dfd7;
+    --text: #1e1c1a;
+    --dim: #6b6660;
+    --faint: #aaa8a2;
+    --blue: #1d5fa8;
+    --blue-bg: #eaf1fb;
+    --amber: #7a4200;
+    --amber-bg: #fef3e2;
+    --green: #1a5c35;
+    --green-bg: #eaf4ee;
+    --rule: #e8e5de;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.6; }
+
+  header {
+    background: #1a1815; color: #fff;
+    padding: 20px 40px;
+    display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header .meta { font-size: 13px; color: #999; display: flex; gap: 20px; flex-wrap: wrap; }
+  header .meta strong { color: #fff; }
+
+  .page { max-width: 800px; margin: 0 auto; padding: 36px 40px 80px; }
+
+  .phase-label {
+    display: flex; align-items: center; gap: 12px;
+    margin: 40px 0 4px; padding-bottom: 8px;
+    border-bottom: 2px solid #1a1815;
+  }
+  .phase-label .num {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+    background: #1a1815; color: #fff; padding: 2px 8px; border-radius: 3px;
+  }
+  .phase-label .title { font-size: 16px; font-weight: 700; color: #1a1815; flex: 1; }
+  .phase-label .timing { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--faint); }
+
+  .beats { display: flex; flex-direction: column; }
+  .beat {
+    display: grid; grid-template-columns: 26px 1fr; gap: 0 12px;
+    padding: 11px 0; border-bottom: 1px solid var(--rule); align-items: start;
+  }
+  .beat:last-child { border-bottom: none; }
+
+  .beat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); margin-top: 6px; justify-self: center; }
+  .beat-dot.demo  { background: var(--green); }
+  .beat-dot.warn  { background: var(--amber); }
+  .beat-dot.ask   { background: var(--blue); }
+
+  .action { font-weight: 600; color: var(--text); font-size: 15px; }
+  .detail { color: var(--dim); font-size: 14px; margin-top: 3px; }
+
+  .note { margin-top: 8px; padding: 8px 12px; border-radius: 5px; font-size: 13.5px; line-height: 1.55; }
+  .note.blue  { background: var(--blue-bg);  border-left: 3px solid var(--blue);  color: #1a3a6b; }
+  .note.amber { background: var(--amber-bg); border-left: 3px solid var(--amber); color: var(--amber); }
+  .note.green { background: var(--green-bg); border-left: 3px solid var(--green); color: var(--green); }
+
+  code { font-family: 'IBM Plex Mono', monospace; background: #eeece6; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+  pre {
+    font-family: 'IBM Plex Mono', monospace; background: #eeece6;
+    border-left: 3px solid #ccc; padding: 10px 14px; margin-top: 8px;
+    font-size: 13px; line-height: 1.6; border-radius: 0 4px 4px 0; overflow-x: auto;
+  }
+
+  .legend { display: flex; gap: 20px; margin-bottom: 28px; font-size: 13px; color: var(--dim); align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .ld { width: 8px; height: 8px; border-radius: 50%; }
+
+  @media (max-width: 600px) { .page { padding: 20px 16px; } header { padding: 16px 20px; } }
+  @media print {
+    body { background: white; font-size: 13px; }
+    header { background: #1a1815 !important; -webkit-print-color-adjust: exact; }
+    .phase-label .num { background: #1a1815 !important; -webkit-print-color-adjust: exact; }
+    .page { padding: 12px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lesson Plan — Linked Lists</h1>
+  <div class="meta">
+    <span><strong>CS253</strong></span>
+    <span><strong>Duration:</strong> 75 min</span>
+    <span><strong>Prereqs:</strong> Structs, malloc/free, pointers</span>
+    <span><strong>Student page:</strong> 07-linked-lists.html</span>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="legend">
+    <span>Key:</span>
+    <span class="legend-item"><span class="ld" style="background:var(--faint)"></span> teach</span>
+    <span class="legend-item"><span class="ld" style="background:var(--green)"></span> live code</span>
+    <span class="legend-item"><span class="ld" style="background:var(--amber)"></span> warn / pitfall</span>
+    <span class="legend-item"><span class="ld" style="background:var(--blue)"></span> ask the class</span>
+  </div>
+
+  <!-- ── 1 ── -->
+  <div class="phase-label">
+    <span class="num">1</span>
+    <span class="title">Motivation — Why Not Just Use an Array?</span>
+    <span class="timing">0:00–0:10</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot ask"></span>
+      <div>
+        <div class="action">Ask: what's the cost of inserting an element at the front of an array of 10,000 ints?</div>
+        <div class="detail">Let them think. Answer: you shift every single element one position right — 10,000 moves. Ask what happens when the array is full and you need to grow it.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Establish what arrays are good at and what they aren't.</div>
+        <div class="detail">Arrays are fast at random access — <code>arr[i]</code> in one step. They're expensive at insertion and deletion in the middle because everything has to shuffle. And their size is fixed at allocation time.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Introduce the linked list as the trade-off: give up random access, gain O(1) insert and delete anywhere, and grow freely at runtime.</div>
+        <div class="detail">Neither structure is better — they solve different problems. The skill is knowing which one fits the situation.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 2 ── -->
+  <div class="phase-label">
+    <span class="num">2</span>
+    <span class="title">The Node Struct</span>
+    <span class="timing">0:10–0:20</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain that a linked list is just a chain of heap-allocated structs. Each struct holds the data and a pointer to the next one.</div>
+        <div class="detail">This is nothing new — it's structs and pointers, which they already know. The only new idea is that a struct contains a pointer to another struct of the same type.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write the Node struct. Pause on the self-referential pointer and explain why the tagged form is required here.</div>
+        <pre>typedef struct Node {
+    int          value;
+    struct Node *next;   // can't use typedef name yet — not complete
+} Node;</pre>
+        <div class="note blue">The typedef name <code>Node</code> isn't available inside the definition itself. The tag <code>struct Node</code> is — so you use it for the pointer field. This is the one case where the tagged form isn't just style.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>make_node()</code>. Walk through each line — malloc, NULL check, set fields, return.</div>
+        <pre>Node *make_node(int value) {
+    Node *n = malloc(sizeof(Node));
+    if (!n) return NULL;
+    n->value = value;
+    n->next  = NULL;
+    return n;
+}</pre>
+        <div class="detail">Every node lives on the heap. It needs to outlive the function that creates it — stack allocation would be immediately destroyed on return.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot ask"></span>
+      <div>
+        <div class="action">Ask: what does <code>NULL</code> mean for the <code>next</code> field?</div>
+        <div class="detail">It means "there is no next node — this is the end of the list." NULL is the sentinel that terminates every traversal. Every list operation eventually checks for it.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Draw three nodes on the board — boxes connected by arrows — with the last one pointing to NULL. This diagram is the mental model for everything that follows. Keep it on the board all lecture.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 3 ── -->
+  <div class="phase-label">
+    <span class="num">3</span>
+    <span class="title">Building a List — Prepend and Append</span>
+    <span class="timing">0:20–0:33</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>prepend()</code>. Talk through the two steps out loud while you type.</div>
+        <pre>Node *prepend(Node *head, int value) {
+    Node *n = make_node(value);
+    if (!n) return head;
+    n->next = head;   // step 1: new node points at old head
+    return n;         // step 2: new node IS the new head
+}</pre>
+        <div class="detail">Emphasize the order: set <code>n->next</code> before returning. If you returned first and then tried to set next, you've already handed off the pointer — it's too late.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Build a list live by calling prepend three times. Show the result on the board with arrows updating after each call.</div>
+        <pre>Node *list = NULL;
+list = prepend(list, 3);   // 3 → NULL
+list = prepend(list, 7);   // 7 → 3 → NULL
+list = prepend(list, 2);   // 2 → 7 → 3 → NULL</pre>
+        <div class="note blue">Make the caller pattern explicit: <code>list = prepend(list, ...)</code>. The function returns the new head and the caller must reassign. Students who forget the assignment are a common source of "why doesn't my list change?" bugs.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>append()</code>. Show that it requires walking to the end first, and that the empty list is a special case.</div>
+        <pre>Node *append(Node *head, int value) {
+    Node *n = make_node(value);
+    if (!n) return head;
+    if (head == NULL) return n;       // empty: new node is the list
+
+    Node *cur = head;
+    while (cur->next != NULL)         // walk to last node
+        cur = cur->next;
+
+    cur->next = n;
+    return head;
+}</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot ask"></span>
+      <div>
+        <div class="action">Ask: why does append stop at <code>cur->next != NULL</code> rather than <code>cur != NULL</code>?</div>
+        <div class="detail">Because you need to stop <em>at</em> the last node, not past it — you need to set <code>cur->next</code>, which requires <code>cur</code> to still be valid. Stopping at <code>cur != NULL</code> walks one step too far.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 4 ── -->
+  <div class="phase-label">
+    <span class="num">4</span>
+    <span class="title">Traversal</span>
+    <span class="timing">0:33–0:42</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain the traversal idiom: start a local pointer <code>cur</code> at <code>head</code>, advance it each iteration, stop when it hits NULL. Never touch <code>head</code>.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>print_list()</code> using the for-loop form. This is the canonical traversal — students should memorize this shape.</div>
+        <pre>void print_list(Node *head) {
+    for (Node *cur = head; cur != NULL; cur = cur->next)
+        printf("%d ", cur->value);
+    printf("\n");
+}</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot warn"></span>
+      <div>
+        <div class="action">Point out what happens if you use <code>head</code> directly as the traversal variable.</div>
+        <div class="detail">In a print function, pass-by-value means the caller's <code>head</code> is unaffected — so the bug is invisible here. But if someone does this pattern inside a function that takes <code>Node **head</code> and advances through <code>*head</code>, they destroy the caller's list. The habit of using <code>cur</code> must be reflexive.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>find()</code> to show traversal with an early return.</div>
+        <pre>Node *find(Node *head, int target) {
+    for (Node *cur = head; cur != NULL; cur = cur->next)
+        if (cur->value == target) return cur;
+    return NULL;
+}</pre>
+        <div class="detail">Returning NULL on failure is the standard C idiom for "not found." Callers must always check the return value before using it.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 5 ── -->
+  <div class="phase-label">
+    <span class="num">5</span>
+    <span class="title">Insertion in the Middle</span>
+    <span class="timing">0:42–0:50</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain: to insert between two nodes you need the predecessor — the node <em>before</em> the insertion point. You're rewiring two pointers.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Draw the two-step rewiring on the board before writing any code. Label the steps.</div>
+        <div class="detail">Step 1: <code>n->next = prev->next</code> — new node points at the successor. Step 2: <code>prev->next = n</code> — predecessor points at the new node. Draw arrows changing on the board for each step.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Now write the code, matching the diagram exactly.</div>
+        <pre>void insert_after(Node *prev, int value) {
+    if (!prev) return;
+    Node *n = make_node(value);
+    if (!n) return;
+    n->next    = prev->next;  // step 1
+    prev->next = n;           // step 2
+}</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot warn"></span>
+      <div>
+        <div class="action">Show what happens if you reverse the order of the two steps.</div>
+        <div class="detail"><code>prev->next = n</code> first means <code>prev->next</code> now points to the new node — so <code>n->next = prev->next</code> sets <code>n->next</code> to itself. The tail of the list is gone. Every insertion bug comes from getting this order wrong.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 6 ── -->
+  <div class="phase-label">
+    <span class="num">6</span>
+    <span class="title">Deletion and Freeing Memory</span>
+    <span class="timing">0:50–1:03</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain that deletion has two parts: unlink the node from the chain, then free its memory. Both must happen. Unlinking without freeing is a memory leak. Freeing without unlinking is a dangling pointer in the list.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>delete_front()</code>. Emphasize saving <code>head->next</code> before freeing.</div>
+        <pre>Node *delete_front(Node *head) {
+    if (head == NULL) return NULL;
+    Node *old_head = head;
+    head = head->next;    // advance first
+    free(old_head);       // then free
+    return head;
+}</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot warn"></span>
+      <div>
+        <div class="action">Show the classic read-after-free mistake right now, before writing <code>free_list</code>.</div>
+        <pre>// WRONG:
+free(cur);
+cur = cur->next;   // reading freed memory — undefined behavior
+
+// RIGHT:
+Node *next = cur->next;   // save next BEFORE freeing
+free(cur);
+cur = next;</pre>
+        <div class="note amber">This bug often appears to work — the freed memory hasn't been overwritten yet. It blows up unpredictably later, usually far from the cause. Valgrind catches it immediately.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>free_list()</code> applying the correct pattern.</div>
+        <pre>void free_list(Node *head) {
+    while (head != NULL) {
+        Node *next = head->next;  // save before freeing
+        free(head);
+        head = next;
+    }
+}</pre>
+        <div class="detail">Run this under Valgrind after the demo to show zero leaks. Students are often surprised how clean a properly-freed list looks.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write <code>delete_value()</code> to show the predecessor-tracking pattern for the general case.</div>
+        <pre>Node *delete_value(Node *head, int target) {
+    if (head == NULL) return NULL;
+    if (head->value == target) {        // head is the target
+        Node *next = head->next;
+        free(head);
+        return next;
+    }
+    Node *prev = head;                  // find predecessor
+    while (prev->next != NULL && prev->next->value != target)
+        prev = prev->next;
+    if (prev->next == NULL) return head; // not found
+    Node *to_delete = prev->next;
+    prev->next = to_delete->next;        // unlink
+    free(to_delete);                     // free
+    return head;
+}</pre>
+        <div class="note blue">The head special-case exists because deleting the head requires changing which node the caller holds — there's no predecessor inside the list to update. This pattern recurs constantly. It's worth calling out explicitly.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 7 ── -->
+  <div class="phase-label">
+    <span class="num">7</span>
+    <span class="title">Pitfalls &amp; Wrap-up</span>
+    <span class="timing">1:03–1:15</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot warn"></span>
+      <div>
+        <div class="action">Run through the five bugs they will write — one sentence each.</div>
+        <div class="detail" style="margin-top:8px; display:flex; flex-direction:column; gap:7px;">
+          <div><strong>Losing head:</strong> used head as the traversal pointer. Fix: always use a separate <code>cur</code>.</div>
+          <div><strong>Read after free:</strong> <code>free(cur); cur = cur->next</code>. Fix: save next first, always.</div>
+          <div><strong>Wrong insertion order:</strong> updated <code>prev->next</code> before <code>n->next</code>. Fix: set the new node's next first.</div>
+          <div><strong>Not handling empty list:</strong> dereferenced head without checking NULL. Fix: check NULL at the top of every function.</div>
+          <div><strong>Forgetting to free:</strong> set <code>head = NULL</code> without walking and freeing nodes. Fix: always call <code>free_list()</code> before discarding a list.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Close with the three rules that prevent most bugs.</div>
+        <div class="detail" style="margin-top:6px; display:flex; flex-direction:column; gap:5px;">
+          <div><strong>1. Never advance head.</strong> Use a local <code>cur</code> for traversal.</div>
+          <div><strong>2. Save next before free.</strong> <code>Node *next = cur->next; free(cur); cur = next;</code></div>
+          <div><strong>3. When inserting, wire the new node's next before updating the predecessor.</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Bridge forward: everything built here — a node with a next pointer — is the foundation for trees, graphs, hash table chaining, and every other pointer-based data structure. The pattern scales.</div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+</body>
+</html>

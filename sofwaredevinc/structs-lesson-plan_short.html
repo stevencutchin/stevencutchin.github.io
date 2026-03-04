@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Structs Lesson Plan — CS253</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f9f8f6;
+    --surface: #ffffff;
+    --border: #e2dfd7;
+    --text: #1e1c1a;
+    --dim: #6b6660;
+    --faint: #aaa8a2;
+    --blue: #1d5fa8;
+    --blue-bg: #eaf1fb;
+    --amber: #7a4200;
+    --amber-bg: #fef3e2;
+    --green: #1a5c35;
+    --green-bg: #eaf4ee;
+    --rule: #e8e5de;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: #1a1815;
+    color: #fff;
+    padding: 20px 40px;
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header .meta { font-size: 13px; color: #999; display: flex; gap: 20px; flex-wrap: wrap; }
+  header .meta strong { color: #fff; }
+
+  .page { max-width: 800px; margin: 0 auto; padding: 36px 40px 80px; }
+
+  .phase-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 40px 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1a1815;
+  }
+  .phase-label .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    background: #1a1815;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .phase-label .title { font-size: 16px; font-weight: 700; color: #1a1815; flex: 1; }
+  .phase-label .timing { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--faint); }
+
+  .beats { display: flex; flex-direction: column; }
+
+  .beat {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 0 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: start;
+  }
+  .beat:last-child { border-bottom: none; }
+
+  .beat-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--faint);
+    margin-top: 6px;
+    justify-self: center;
+  }
+  .beat-dot.demo  { background: var(--green); }
+  .beat-dot.warn  { background: var(--amber); }
+  .beat-dot.ask   { background: var(--blue); }
+
+  .action { font-weight: 600; color: var(--text); font-size: 15px; }
+  .detail { color: var(--dim); font-size: 14px; margin-top: 3px; }
+
+  .note {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+  .note.blue  { background: var(--blue-bg);  border-left: 3px solid var(--blue);  color: #1a3a6b; }
+  .note.amber { background: var(--amber-bg); border-left: 3px solid var(--amber); color: var(--amber); }
+  .note.green { background: var(--green-bg); border-left: 3px solid var(--green); color: var(--green); }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #eeece6;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+
+  pre {
+    font-family: 'IBM Plex Mono', monospace;
+    background: #eeece6;
+    border-left: 3px solid #ccc;
+    padding: 10px 14px;
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    border-radius: 0 4px 4px 0;
+    overflow-x: auto;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 28px;
+    font-size: 13px;
+    color: var(--dim);
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .ld { width: 8px; height: 8px; border-radius: 50%; }
+
+  @media (max-width: 600px) {
+    .page { padding: 20px 16px; }
+    header { padding: 16px 20px; }
+  }
+  @media print {
+    body { background: white; font-size: 13px; }
+    header { background: #1a1815 !important; -webkit-print-color-adjust: exact; }
+    .phase-label .num { background: #1a1815 !important; -webkit-print-color-adjust: exact; }
+    .page { padding: 12px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lesson Plan — C Structs</h1>
+  <div class="meta">
+    <span><strong>CS253</strong></span>
+    <span><strong>Duration:</strong> 75 min</span>
+    <span><strong>Student page:</strong> 06-structs.html</span>
+  </div>
+</header>
+
+<main class="page">
+
+  <div class="legend">
+    <span>Key:</span>
+    <span class="legend-item"><span class="ld" style="background:var(--faint)"></span> teach</span>
+    <span class="legend-item"><span class="ld" style="background:var(--green)"></span> live code</span>
+    <span class="legend-item"><span class="ld" style="background:var(--amber)"></span> warn / pitfall</span>
+    <span class="legend-item"><span class="ld" style="background:var(--blue)"></span> ask the class</span>
+  </div>
+
+  <!-- ── 1 ── -->
+  <div class="phase-label">
+    <span class="num">1</span>
+    <span class="title">Motivation</span>
+    <span class="timing">0:00–0:08</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot ask"></span>
+      <div>
+        <div class="action">Ask: how would you store 35 students without structs?</div>
+        <div class="detail">Let them answer. Write the four-parallel-arrays version on the board.</div>
+        <pre>char   names[35][64];
+int    ids[35];
+double gpas[35];
+int    enrolled[35];</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain the problem: these four arrays belong together but the language doesn't know that.</div>
+        <div class="detail">What happens when you pass "one student" to a function? When you sort by GPA — all four arrays have to stay in sync. Nothing enforces it.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Introduce the struct: group the fields under one name and one type.</div>
+        <pre>typedef struct {
+    char   name[64];
+    int    id;
+    double gpa;
+    int    enrolled;
+} Student;</pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 2 ── -->
+  <div class="phase-label">
+    <span class="num">2</span>
+    <span class="title">Declaration, Access, and Memory Layout</span>
+    <span class="timing">0:08–0:22</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain: the struct definition is a blueprint — no memory yet. Declaring a variable is when storage is reserved.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Show declaration with a designated initializer. Explain why this is preferred.</div>
+        <pre>Student s = { .name = "Alice", .id = 1001, .gpa = 3.8, .enrolled = 1 };</pre>
+        <div class="note blue">Order-independent, self-documenting, and unnamed fields zero-initialize automatically. Use this by default.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Show field access with dot. Read and write a field.</div>
+        <pre>printf("%s: %.2f\n", s.name, s.gpa);
+s.gpa = 3.9;</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Print <code>sizeof(Student)</code>. Ask the class what they expect. Show it's larger than the sum of the fields.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain padding: each type must start at an address divisible by its own size. The compiler inserts invisible bytes to satisfy that.</div>
+        <div class="detail">One-sentence takeaway: <strong>always use sizeof — never add up field sizes yourself.</strong></div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Show the <code>struct Tag</code> form alongside typedef. Same layout, different syntax — typedef removes the need to write <code>struct</code> at every use site.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 3 ── -->
+  <div class="phase-label">
+    <span class="num">3</span>
+    <span class="title">Arrays of Structs</span>
+    <span class="timing">0:22–0:35</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain: an array of structs is a normal array where the element type is a struct. Same mechanics, stride is <code>sizeof(Student)</code>.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Declare a small stack array, populate with compound literals, iterate and print.</div>
+        <pre>Student roster[4];
+roster[0] = (Student){ .name = "Alice", .id = 1001, .gpa = 3.8 };
+
+for (int i = 0; i < 4; i++)
+    printf("%s %.2f\n", roster[i].name, roster[i].gpa);</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Show the heap version. Point out that usage after malloc is identical — same dot, same loop.</div>
+        <pre>Student *roster = malloc(n * sizeof(Student));
+roster[2].gpa = 3.9;
+free(roster);</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot warn"></span>
+      <div>
+        <div class="action">Call out the most common malloc mistake before they make it.</div>
+        <div class="detail">Students write <code>malloc(n * sizeof(Student*))</code> — thinking "I'm making a pointer, use the pointer type." Wrong. The argument to malloc is the size of <em>what you're storing</em>. <code>sizeof(Student*)</code> is always 8 regardless of struct size.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot ask"></span>
+      <div>
+        <div class="action">Ask: given <code>Student *roster</code>, how does the CPU find <code>roster[2]</code> in memory?</div>
+        <div class="detail">Walk through: base address + 2 × sizeof(Student). Connects pointer arithmetic, sizeof, and struct access in one question.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 4 ── -->
+  <div class="phase-label">
+    <span class="num">4</span>
+    <span class="title">Passing Structs to Functions</span>
+    <span class="timing">0:35–0:55</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Write a function that takes a Student by value and modifies GPA. Call it, then print the original — unchanged.</div>
+        <pre>void bad_curve(Student s) { s.gpa += 0.1; }
+
+Student alice = { .name = "Alice", .gpa = 3.8 };
+bad_curve(alice);
+printf("%.2f\n", alice.gpa);  // still 3.8</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot ask"></span>
+      <div>
+        <div class="action">Ask the class why the GPA didn't change. Let them diagnose before you explain.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain: C always passes by value. The entire struct was copied — every field. The function's copy was destroyed on return.</div>
+        <div class="detail">Draw two boxes: one in main's frame, one in the function's frame. The function's box is gone on return.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Rewrite with <code>Student *s</code> parameter, <code>&amp;alice</code> at call site, <code>s-&gt;gpa</code> inside. Show it works.</div>
+        <pre>void good_curve(Student *s) { s->gpa += 0.1; }
+
+good_curve(&alice);
+printf("%.2f\n", alice.gpa);  // 3.9 ✓</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Explain the arrow operator: <code>s-&gt;gpa</code> is exactly <code>(*s).gpa</code> — dereference then dot, collapsed into an arrow.</div>
+        <div class="detail">Write both forms on the board. Then state the rule: <strong>dot when you have a struct, arrow when you have a pointer to a struct.</strong></div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot ask"></span>
+      <div>
+        <div class="action">Quick drill — show these one at a time, class calls out dot or arrow to access <code>gpa</code>.</div>
+        <pre>Student   s;           // → s.gpa
+Student  *p;           // → p->gpa
+Student   arr[10];     // → arr[3].gpa
+Student  *heap = ...;  // → heap->gpa  or  heap[0].gpa</pre>
+        <div class="note blue">The last two rows are the tricky ones. <code>arr[i]</code> and <code>heap[i]</code> are struct values — indexing already did the dereferencing, so you use dot.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Show <code>const Student *s</code> for read-only access. Explain: callers know nothing will be modified.</div>
+        <pre>void print_student(const Student *s) {
+    printf("%s: %.2f\n", s->name, s->gpa);
+}</pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 5 ── -->
+  <div class="phase-label">
+    <span class="num">5</span>
+    <span class="title">Creating Structs Inside Functions</span>
+    <span class="timing">0:55–1:05</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Show a factory function returning by value. The struct is copied to the caller on return.</div>
+        <pre>Student make_student(const char *name, int id, double gpa) {
+    Student s = { .id = id, .gpa = gpa, .enrolled = 1 };
+    strncpy(s.name, name, sizeof(s.name) - 1);
+    return s;
+}
+Student alice = make_student("Alice", 1001, 3.8);</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot demo"></span>
+      <div>
+        <div class="action">Show the heap version: malloc inside, return the pointer. Caller owns the memory and must free.</div>
+        <pre>Student *make_student_heap(const char *name, int id, double gpa) {
+    Student *s = malloc(sizeof(Student));
+    if (!s) return NULL;
+    s->id = id;  s->gpa = gpa;  s->enrolled = 1;
+    strncpy(s->name, name, sizeof(s->name) - 1);
+    return s;
+}</pre>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot warn"></span>
+      <div>
+        <div class="action">Show the bug students will definitely write: returning the address of a local variable.</div>
+        <pre>Student *bad(void) {
+    Student s = { .id = 1 };
+    return &s;   // ← ALWAYS WRONG
+}</pre>
+        <div class="note amber">Often appears to work in debug builds because the stack memory hasn't been overwritten yet. Silently corrupts in release or under load. The frame is gone — the pointer is a lie.</div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">State the decision rule: does the struct need to outlive the function? → heap. Otherwise return by value.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── 6 ── -->
+  <div class="phase-label">
+    <span class="num">6</span>
+    <span class="title">Pitfalls &amp; Wrap-up</span>
+    <span class="timing">1:05–1:15</span>
+  </div>
+  <div class="beats">
+
+    <div class="beat">
+      <span class="beat-dot warn"></span>
+      <div>
+        <div class="action">Run through the five bugs they will write — one sentence each.</div>
+        <div class="detail" style="margin-top:8px; display:flex; flex-direction:column; gap:7px;">
+          <div><strong>Wrong operator:</strong> compiler error "not a structure." Used <code>.</code> on a pointer. Fix: use <code>-&gt;</code>.</div>
+          <div><strong>Modifying a copy:</strong> function ran, nothing changed. Passed by value. Fix: <code>Student *s</code> + <code>&amp;var</code>.</div>
+          <div><strong>Stack pointer return:</strong> works in debug, corrupts elsewhere. Returned <code>&amp;localVar</code>. Fix: return by value or malloc.</div>
+          <div><strong>Uninitialized fields:</strong> fields contain garbage. Fix: designated initializer or <code>memset(&amp;s, 0, sizeof(s))</code>.</div>
+          <div><strong>Shallow copy:</strong> one struct's string randomly changes. Struct has a <code>char *</code> field. Fix: use <code>char name[64]</code> inside the struct.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Close with the three decisions they make every time they write a struct function.</div>
+        <div class="detail" style="margin-top:6px; display:flex; flex-direction:column; gap:5px;">
+          <div><strong>1. Does it need to modify the struct?</strong> → pointer parameter. Otherwise by value is fine.</div>
+          <div><strong>2. Does the struct need to outlive the function?</strong> → heap. Otherwise return by value.</div>
+          <div><strong>3. Do I have a struct or a pointer?</strong> → dot or arrow.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="beat">
+      <span class="beat-dot"></span>
+      <div>
+        <div class="action">Bridge: structs with a pointer to the same struct type — linked lists, trees, graphs. Everything today is the foundation for every non-trivial data structure in C.</div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+</body>
+</html>

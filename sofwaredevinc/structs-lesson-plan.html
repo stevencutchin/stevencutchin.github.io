@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson Plan: C Structs — CS253 Instructor Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --surface2: #f4f3ef;
+    --border: #e0ddd5;
+    --border-strong: #c5c0b4;
+    --text: #2a2825;
+    --text-dim: #6b6660;
+    --text-faint: #9b9590;
+    --heading: #1a1815;
+    --accent: #2563a8;
+    --accent-light: #e8f0fb;
+    --green: #1a6b3a;
+    --green-bg: #edf7f1;
+    --amber: #92500a;
+    --amber-bg: #fef6e8;
+    --red: #8b1a1a;
+    --red-bg: #fdf0f0;
+    --purple: #5b2d8e;
+    --purple-bg: #f3edfb;
+    --rule: #d5d0c8;
+    --code-bg: #f0efea;
+    --time-col: 120px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.7;
+  }
+
+  /* ── Top bar ── */
+  .doc-header {
+    background: var(--heading);
+    color: #fff;
+    padding: 28px 48px 24px;
+  }
+  .doc-header .course-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 8px;
+  }
+  .doc-header h1 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .doc-header .meta {
+    display: flex;
+    gap: 32px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #bbb;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .doc-header .meta span strong {
+    color: #fff;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 48px 80px;
+  }
+
+  /* ── Typography ── */
+  h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--heading);
+    margin: 52px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border-strong);
+  }
+  h2 .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-faint);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 32px 0 10px;
+  }
+
+  p { margin-bottom: 16px; }
+  p:last-child { margin-bottom: 0; }
+
+  strong { color: var(--heading); }
+
+  em { font-style: italic; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 14px;
+    color: #333;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-strong);
+    border-radius: 0 5px 5px 0;
+    padding: 16px 20px;
+    margin: 16px 0;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text);
+  }
+
+  /* ── Overview table ── */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+  .overview-cell {
+    background: var(--surface);
+    padding: 18px 20px;
+  }
+  .overview-cell .label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .overview-cell .value {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--heading);
+  }
+
+  /* ── Objectives list ── */
+  .objectives {
+    list-style: none;
+    margin: 16px 0;
+    padding: 0;
+  }
+  .objectives li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 16px;
+  }
+  .objectives li:last-child { border-bottom: none; }
+  .objectives li .check {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .objectives li .check svg {
+    display: none;
+  }
+
+  /* ── Timing block ── */
+  .timing-block {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 24px 0;
+  }
+  .timing-block .timing-header {
+    display: grid;
+    grid-template-columns: var(--time-col) 1fr;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-faint);
+    gap: 16px;
+  }
+  .timing-row {
+    display: grid;
+    grid-template-columns: var(--time-col) 1fr;
+    gap: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rule);
+    align-items: start;
+  }
+  .timing-row:last-child { border-bottom: none; }
+  .timing-row:hover { background: var(--surface2); }
+  .timing-row .time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+    padding-top: 2px;
+    white-space: nowrap;
+  }
+  .timing-row .activity {
+    font-size: 15.5px;
+  }
+  .timing-row .activity .act-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--heading);
+    margin-bottom: 3px;
+  }
+  .timing-row .activity .act-note {
+    color: var(--text-dim);
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* ── Phase blocks ── */
+  .phase {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 28px 0;
+  }
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--heading);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .phase-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--heading);
+    flex: 1;
+  }
+  .phase-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+    white-space: nowrap;
+  }
+  .phase-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .phase-body p { margin-bottom: 0; }
+
+  /* ── Callout boxes ── */
+  .callout {
+    padding: 14px 18px;
+    border-radius: 6px;
+    border-left: 3px solid;
+    font-size: 15px;
+  }
+  .callout-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .callout p { font-size: 15px; }
+
+  .callout.pedagogy {
+    background: var(--accent-light);
+    border-color: var(--accent);
+  }
+  .callout.pedagogy .callout-label { color: var(--accent); }
+
+  .callout.watchout {
+    background: var(--amber-bg);
+    border-color: var(--amber);
+  }
+  .callout.watchout .callout-label { color: var(--amber); }
+
+  .callout.demo {
+    background: var(--green-bg);
+    border-color: var(--green);
+  }
+  .callout.demo .callout-label { color: var(--green); }
+
+  .callout.question {
+    background: var(--purple-bg);
+    border-color: var(--purple);
+  }
+  .callout.question .callout-label { color: var(--purple); }
+
+  .callout.note {
+    background: var(--surface2);
+    border-color: var(--border-strong);
+  }
+  .callout.note .callout-label { color: var(--text-dim); }
+
+  /* ── Q&A pairs ── */
+  .qa-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin: 16px 0;
+  }
+  .qa-item {}
+  .qa-q {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--purple);
+    margin-bottom: 5px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .qa-q::before { content: "Q:"; flex-shrink: 0; }
+  .qa-a {
+    font-size: 15px;
+    color: var(--text);
+    padding-left: 22px;
+    border-left: 2px solid var(--border);
+    margin-left: 2px;
+  }
+
+  /* ── Live coding step list ── */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 15.5px;
+  }
+  .steps li::before {
+    content: counter(step);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--heading);
+    color: #fff;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── Pitfall table ── */
+  .pitfall-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    margin: 16px 0;
+  }
+  .pitfall-table th {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 9px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    text-align: left;
+  }
+  .pitfall-table td {
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    vertical-align: top;
+  }
+  .pitfall-table tr:nth-child(even) td { background: var(--surface2); }
+  .pitfall-table .symptom { color: var(--red); font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .pitfall-table .cause { color: var(--text); }
+  .pitfall-table .fix { color: var(--green); font-size: 13.5px; }
+
+  /* ── Materials list ── */
+  .materials {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 16px 0;
+  }
+  .material-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+  .material-item .mat-icon {
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .material-item .mat-name { font-weight: 600; color: var(--heading); }
+  .material-item .mat-desc { color: var(--text-dim); margin-left: 6px; }
+
+  /* ── Lab ideas ── */
+  .lab-ideas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .lab-card {
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 0 0 8px 8px;
+    padding: 16px 18px;
+    background: var(--surface);
+  }
+  .lab-card .lab-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--heading);
+    margin-bottom: 6px;
+  }
+  .lab-card .lab-body {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ── Print ── */
+  @media print {
+    .doc-header { background: #1a1815 !important; -webkit-print-color-adjust: exact; }
+    .phase-number { background: #1a1815 !important; -webkit-print-color-adjust: exact; }
+    body { font-size: 13px; }
+    .page { padding: 24px 32px; }
+    h2 { margin-top: 32px; }
+  }
+
+  @media (max-width: 650px) {
+    .page { padding: 24px 20px; }
+    .doc-header { padding: 20px 24px; }
+    .overview-grid { grid-template-columns: 1fr; }
+    .lab-ideas { grid-template-columns: 1fr; }
+    .timing-row { grid-template-columns: 80px 1fr; }
+    :root { --time-col: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <div class="course-tag">CS253 — Instructor Guide</div>
+  <h1>Lesson Plan: C Structs</h1>
+  <div class="meta">
+    <span><strong>Unit:</strong> Memory Concepts Series</span>
+    <span><strong>Follows:</strong> Pointers, Arrays, malloc/free</span>
+    <span><strong>Duration:</strong> 75–80 min (one lecture)</span>
+    <span><strong>Student resource:</strong> 06-structs.html</span>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Overview</span>At a Glance</h2>
+
+  <div class="overview-grid">
+    <div class="overview-cell">
+      <div class="label">Prerequisite Knowledge</div>
+      <div class="value">Pointers, arrays, malloc/free, stack vs. heap</div>
+    </div>
+    <div class="overview-cell">
+      <div class="label">Central Skill</div>
+      <div class="value">Grouping data; struct pointer patterns</div>
+    </div>
+    <div class="overview-cell">
+      <div class="label">Follow-on Topics</div>
+      <div class="value">Linked lists, function design, file I/O records</div>
+    </div>
+  </div>
+
+  <p>This lesson introduces structs as the mechanism by which C programs organize related data into named, typed units. Students have already met pointers, arrays, and heap allocation — structs are the natural next move: now they can group the pieces together. The hardest conceptual shift is not the struct syntax itself but the <strong>dot-vs-arrow discipline</strong> and the consistent habit of passing structs by pointer when mutation is intended.</p>
+
+  <p>Students who struggle with this lesson almost always have one of two underlying gaps: they haven't fully internalized pass-by-value (so they don't understand <em>why</em> the pointer pattern is needed), or they're confused about what <code>&amp;</code> does in different contexts. Surface these early.</p>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Objectives</span>Learning Objectives</h2>
+
+  <p>By the end of this lesson, students should be able to:</p>
+  <ul class="objectives">
+    <li><span class="check"></span>Declare a struct type with <code>struct</code> and <code>typedef</code>, and explain the difference</li>
+    <li><span class="check"></span>Declare struct variables, initialize them with designated initializers, and access fields with <code>.</code></li>
+    <li><span class="check"></span>Explain why struct fields are not necessarily contiguous and why <code>sizeof</code> is required</li>
+    <li><span class="check"></span>Declare and iterate over arrays of structs, on both the stack and the heap</li>
+    <li><span class="check"></span>Pass a struct to a function both by value and by pointer, and articulate when each is appropriate</li>
+    <li><span class="check"></span>Use the <code>-&gt;</code> operator correctly and explain its equivalence to <code>(*p).</code></li>
+    <li><span class="check"></span>Write a factory function that returns a struct by value and one that returns a heap-allocated pointer</li>
+    <li><span class="check"></span>Identify the five most common struct-related bugs by their symptoms</li>
+  </ul>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Schedule</span>Lecture Schedule (75 min)</h2>
+
+  <div class="timing-block">
+    <div class="timing-header">
+      <span>Time</span>
+      <span>Activity</span>
+    </div>
+    <div class="timing-row">
+      <div class="time">0:00–0:07</div>
+      <div class="activity">
+        <div class="act-title">Hook &amp; Motivation</div>
+        <div class="act-note">The problem structs solve; why primitive types aren't enough</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="time">0:07–0:20</div>
+      <div class="activity">
+        <div class="act-title">Part 1 — Declaration &amp; Memory Layout</div>
+        <div class="act-note">struct / typedef, field access, padding, sizeof</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="time">0:20–0:33</div>
+      <div class="activity">
+        <div class="act-title">Part 2 — Arrays of Structs</div>
+        <div class="act-note">Stack arrays, heap arrays, iteration patterns</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="time">0:33–0:52</div>
+      <div class="activity">
+        <div class="act-title">Part 3 — Functions: Passing, Modifying, Creating</div>
+        <div class="act-note">By-value vs. by-pointer; dot vs. arrow; factory functions; returning from functions</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="time">0:52–1:05</div>
+      <div class="activity">
+        <div class="act-title">Part 4 — Live Coding: Student Roster</div>
+        <div class="act-note">End-to-end demo that uses all patterns in one small program</div>
+      </div>
+    </div>
+    <div class="timing-row">
+      <div class="time">1:05–1:15</div>
+      <div class="activity">
+        <div class="act-title">Part 5 — Common Pitfalls &amp; Wrap-up</div>
+        <div class="act-note">Top bugs, cheat-sheet summary, lab preview</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Part 1 · 13 min</span>Declaration, Memory, and Access</h2>
+
+  <!-- Hook -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Hook</span>
+      <span class="phase-title">The Problem Structs Solve</span>
+      <span class="phase-time">0:00–0:07</span>
+    </div>
+    <div class="phase-body">
+      <p>Open with a concrete, slightly uncomfortable scenario. Ask the class: suppose you need to track 35 students. Each student has a name, an ID, a GPA, and an enrollment status. Write on the board what that looks like <em>without</em> structs:</p>
+
+<pre>char  names[35][64];
+int   ids[35];
+double gpas[35];
+int   enrolled[35];</pre>
+
+      <p>Ask: what happens when you write a function to "work on one student"? You have to pass four separate parameters. What happens when you need to sort by GPA? All four arrays have to move together. The data <em>belongs together</em> but the language has no way to express that — yet.</p>
+
+      <p>Then write the struct version. Students will visually see the grouping. That's the entire conceptual case for structs made in two minutes.</p>
+
+      <div class="callout pedagogy">
+        <div class="callout-label">Pedagogy</div>
+        <p>Don't frame structs as "making things easier." Frame them as making <em>the relationships in the problem visible in the code</em>. Students who understand the conceptual point will generalize to every data structure they encounter for the rest of their careers.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Declaration -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Teach</span>
+      <span class="phase-title">Declaration, typedef, and Field Access</span>
+      <span class="phase-time">0:07–0:14</span>
+    </div>
+    <div class="phase-body">
+      <p>Show the two syntactic forms side by side — the tagged struct and the typedef form. Explain that the definition is a <strong>blueprint</strong>: it describes layout but uses no memory. Declaring a variable is when storage is reserved. This maps directly to the blueprint/building analogy in the reference page.</p>
+
+      <p>Demonstrate designated initializers (<code>.field = value</code> syntax). Emphasize this is C99 and it should be their default: it's self-documenting, order-independent, and initializes unnamed fields to zero automatically.</p>
+
+      <p>Show field access with <code>.</code>. Also show <code>sizeof(Student)</code> and print the result — students are typically surprised it isn't the naive sum of the fields.</p>
+
+      <div class="callout watchout">
+        <div class="callout-label">Common confusion</div>
+        <p>Students often think <code>typedef struct {...} Student</code> and <code>struct Student {...}</code> are the same thing. They produce the same layout, but with the tagged form you still need the <code>struct</code> keyword at every use site unless you also add a <code>typedef</code>. Show both; then pick one for the rest of the lesson and stick with it.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Memory layout -->
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Teach</span>
+      <span class="phase-title">Memory Layout and Padding</span>
+      <span class="phase-time">0:14–0:20</span>
+    </div>
+    <div class="phase-body">
+      <p>Draw the memory layout diagram on the board (or show the one in the reference page). The key points:</p>
+
+      <ul class="steps">
+        <li>Fields are laid out in declaration order.</li>
+        <li>Each type has an <em>alignment requirement</em> — it must start at an address divisible by its own size (<code>double</code> at multiples of 8, <code>int</code> at multiples of 4, etc.).</li>
+        <li>The compiler inserts invisible padding bytes to satisfy those requirements.</li>
+        <li>Therefore <code>sizeof(struct)</code> can be larger than the sum of field sizes.</li>
+      </ul>
+
+      <p>Demonstrate live: print <code>sizeof</code> and the <code>offsetof</code> of each field. Then reorder the fields (largest first) and show the size shrink. You don't need to teach this as an optimization — the goal is that students understand <strong>why they must use sizeof and not hand-calculate struct sizes</strong>.</p>
+
+      <div class="callout note">
+        <div class="callout-label">Depth calibration</div>
+        <p>Don't go deep into alignment rules — this isn't a systems architecture course. The takeaway is one sentence: <em>"Always use sizeof. Never add up field sizes yourself."</em> If a student asks why, the padding explanation is the answer.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Part 2 · 13 min</span>Arrays of Structs</h2>
+
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Teach</span>
+      <span class="phase-title">Stack Arrays, Heap Arrays, and Iteration</span>
+      <span class="phase-time">0:20–0:33</span>
+    </div>
+    <div class="phase-body">
+      <p>An array of structs is conceptually nothing new — it's the same array mechanics they already know, with a struct as the element type. Make this explicit. The elements are contiguous; the stride between them is <code>sizeof(Student)</code>; indexing still works identically.</p>
+
+      <p>Show the stack version first: <code>Student roster[35]</code>. Then show initialization using a loop with compound literals. Then show the heap version using <code>malloc(n * sizeof(Student))</code>. Emphasize that the usage after malloc is <em>identical</em> — the same dot notation, the same loop — just with a different origin of the pointer.</p>
+
+      <div class="callout demo">
+        <div class="callout-label">Live demo</div>
+        <p>Declare a small array of 4–5 students. Use a range-based for loop to print them. Then do a linear search by ID. Then sort them by GPA using <code>qsort</code> with a comparator. The comparator forces students to cast <code>void*</code> back to <code>Student*</code> — good foreshadowing of the pointer discipline they'll need throughout the course.</p>
+      </div>
+
+      <div class="callout watchout">
+        <div class="callout-label">The sizeof trap</div>
+        <p>Students almost always write <code>malloc(n * sizeof(Student *))</code> instead of <code>malloc(n * sizeof(Student))</code> — they're thinking "I'm going to use a pointer" and reach for the pointer type. Point this out preemptively: the argument to malloc is the size of <em>what you're storing</em>, not the size of the pointer to it. On a 64-bit system, <code>sizeof(Student*)</code> is always 8 regardless of how large the struct is.</p>
+      </div>
+
+      <div class="callout question">
+        <div class="callout-label">Discussion prompt</div>
+        <p>"If I have a <code>Student *roster</code> pointing to malloc'd memory, and I do <code>roster[2].gpa = 3.9</code>, how does the CPU know where <code>roster[2]</code> starts in memory? Walk me through the arithmetic." — A good two-minute group question that forces students to connect pointer arithmetic, sizeof, and struct field access into one mental model.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Part 3 · 19 min</span>Functions: Passing, Modifying, and Creating Structs</h2>
+
+  <p>This is the heart of the lesson. Expect to spend the most time here and to get the most questions.</p>
+
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Teach</span>
+      <span class="phase-title">Pass by Value — The Copy Problem</span>
+      <span class="phase-time">0:33–0:39</span>
+    </div>
+    <div class="phase-body">
+      <p>Write a function that takes a <code>Student</code> by value and tries to modify the GPA. Call it, then print the original. The GPA hasn't changed. Ask students why before explaining. Most will know theoretically ("because it's a copy") but haven't seen it this starkly.</p>
+
+      <p>Draw the memory diagram: two separate struct-sized boxes, one in main's frame and one in the function's frame. The function's box is destroyed on return. This is the diagram in the reference page — reproduce it on the board, or project the page.</p>
+
+      <div class="callout pedagogy">
+        <div class="callout-label">Pedagogy</div>
+        <p>Pass-by-value is the <em>reason</em> the pointer pattern exists. Students who understand the reason will remember the pattern; students who just memorize "pass a pointer" will forget it or apply it inconsistently. Take 60 extra seconds to make the causal connection explicit: <em>"The only reason we're about to use a pointer here is that we want to reach across the function boundary into the caller's data."</em></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Teach</span>
+      <span class="phase-title">Pass by Pointer — The Arrow Operator</span>
+      <span class="phase-time">0:39–0:47</span>
+    </div>
+    <div class="phase-body">
+      <p>Rewrite the function to take <code>Student *s</code>. Show that the call site needs <code>&amp;student</code>. Show the modification with <code>s-&gt;gpa = ...</code>. Demonstrate that the original now reflects the change.</p>
+
+      <p>Explain the <code>-&gt;</code> operator carefully. It is not new syntax — it is exactly <code>(*s).gpa</code> with the parentheses and dereference collapsed into an arrow. Write both forms on the board and circle the equivalence. Then make the rule concrete:</p>
+
+      <blockquote style="margin: 12px 0 12px 20px; padding-left: 16px; border-left: 3px solid var(--border-strong); font-style: italic; color: var(--text-dim); font-size: 16px;">
+        "Dot when you have the struct. Arrow when you have a pointer to the struct."
+      </blockquote>
+
+      <p>Write three one-line examples on the board and have students call out "dot" or "arrow" before you type each one. This takes 90 seconds and is the single most effective exercise for ingraining the rule.</p>
+
+      <div class="callout demo">
+        <div class="callout-label">Quick drill</div>
+        <p>Show these declarations one at a time. Ask the class which operator to use to access <code>gpa</code>:</p>
+        <pre>Student   s;       // → ?
+Student  *p;       // → ?
+Student **pp;      // → ? (trick: (*pp)->gpa)
+Student   arr[10]; // → arr[3].gpa
+Student  *heap = malloc(sizeof(Student)); // → ?</pre>
+        <p>The double-pointer row is for the curious students who'll ask — not required curriculum.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Teach</span>
+      <span class="phase-title">Creating Structs Inside Functions</span>
+      <span class="phase-time">0:47–0:52</span>
+    </div>
+    <div class="phase-body">
+      <p>Cover the two patterns for factory functions:</p>
+
+      <ul class="steps">
+        <li><strong>Return by value.</strong> The struct is local to the function; C copies it to the caller on return. Modern compilers optimize this to zero copies (RVO), but the semantics are "caller gets a fresh copy." This is fine for structs of reasonable size.</li>
+        <li><strong>Return a heap pointer.</strong> malloc inside the function, return the pointer. The struct outlives the function. The caller owns the memory and must call free.</li>
+      </ul>
+
+      <p>Write both side by side, then write the one pattern students must <strong>never</strong> use:</p>
+      <pre>Student *bad(void) {
+    Student s = { .id = 1 };
+    return &s;   // ← ALWAYS WRONG — stack frame destroyed on return
+}</pre>
+
+      <div class="callout watchout">
+        <div class="callout-label">Why this hurts so much</div>
+        <p>The "return stack address" bug often appears to <em>work</em> in debug builds because the stack memory hasn't been overwritten yet by the time the caller uses it. It silently fails in optimized builds, under heavier load, or in a slightly different call sequence. Students will encounter it, be baffled that it "worked before," and waste hours. Inoculate them now with the explanation: the frame is gone. The pointer is a lie.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Part 4 · 13 min</span>Live Coding: Student Roster</h2>
+
+  <p>This section ties all the pieces together in a single 50–80 line program written from scratch. Build it incrementally so students can see each concept in context. Keep your editor font large. Narrate everything you type.</p>
+
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Demo</span>
+      <span class="phase-title">Full Roster Program</span>
+      <span class="phase-time">0:52–1:05</span>
+    </div>
+    <div class="phase-body">
+
+      <p><strong>Build order:</strong></p>
+      <ul class="steps">
+        <li>Declare the <code>Student</code> typedef with <code>char name[64]</code>, <code>int id</code>, <code>double gpa</code>, <code>int enrolled</code>.</li>
+        <li>Write <code>make_student()</code> that returns by value. Show the designated initializer and <code>strncpy</code> for the name field.</li>
+        <li>Write <code>print_student()</code> that takes a <code>const Student *</code>. Emphasize <code>const</code> — it says "I'm looking, not touching," and the caller knows nothing will be modified. Use <code>-&gt;</code> to access fields.</li>
+        <li>Write <code>apply_curve(Student *students, int n, double delta)</code>. Loop, modify <code>students[i].gpa</code>, clamp to 4.0. Point out: the array-of-structs accessed through the pointer uses <code>.</code> on each element because <code>students[i]</code> is a <code>Student</code> value, not a pointer.</li>
+        <li>In <code>main</code>: allocate a small heap array of 5 students, populate it using <code>make_student()</code> calls, print, curve, print again, free.</li>
+      </ul>
+
+      <div class="callout watchout">
+        <div class="callout-label">Anticipated stumble</div>
+        <p>When you write <code>students[i].gpa</code> in <code>apply_curve</code> (after receiving a <code>Student *</code>), students who just learned <code>-&gt;</code> will expect you to use it. Stop and explain: <code>students</code> is a pointer, but <code>students[i]</code> is the struct value at that index — the indexing has already done the dereferencing. <code>students[i].gpa</code> and <code>(students + i)-&gt;gpa</code> are identical. Write both forms side by side.</p>
+      </div>
+
+      <div class="callout pedagogy">
+        <div class="callout-label">Deliberate mistake technique</div>
+        <p>At some point during the demo, intentionally write the function to take <code>Student s</code> by value, call it, and show the output didn't change. Ask the class what's wrong. Let them diagnose it before you fix it. This embeds the "I need a pointer" decision as a debugging reflex rather than a rule to memorize.</p>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Part 5 · 10 min</span>Common Pitfalls &amp; Wrap-up</h2>
+
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Synthesis</span>
+      <span class="phase-title">The Bugs They Will Definitely Write</span>
+      <span class="phase-time">1:05–1:13</span>
+    </div>
+    <div class="phase-body">
+
+      <p>Close with a rapid-fire bugs walkthrough. Don't spend more than 90 seconds per row. The goal is recognition, not deep diagnosis. Students should leave able to say "oh, that's the copy problem" or "oh, that's the stack pointer bug."</p>
+
+      <table class="pitfall-table">
+        <thead>
+          <tr>
+            <th>Symptom the student sees</th>
+            <th>The actual cause</th>
+            <th>One-line fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="symptom">Compiler error: "request for member in something not a structure"</td>
+            <td class="cause">Used <code>.</code> on a pointer to a struct instead of <code>-&gt;</code></td>
+            <td class="fix">Change <code>s.field</code> to <code>s-&gt;field</code></td>
+          </tr>
+          <tr>
+            <td class="symptom">Function ran but the struct wasn't modified</td>
+            <td class="cause">Passed struct by value; function modified the copy</td>
+            <td class="fix">Change param to <code>Student *s</code>, pass <code>&amp;var</code></td>
+          </tr>
+          <tr>
+            <td class="symptom">Works in debug, crashes or gives garbage in release</td>
+            <td class="cause">Returned <code>&amp;</code> of a local struct variable</td>
+            <td class="fix">Return by value, or malloc and return the pointer</td>
+          </tr>
+          <tr>
+            <td class="symptom">Segfault immediately after malloc</td>
+            <td class="cause">malloc returned NULL (or wrote <code>sizeof(Student*)</code>); no NULL check</td>
+            <td class="fix">Check <code>if (!p) return;</code> and verify sizeof argument</td>
+          </tr>
+          <tr>
+            <td class="symptom">One struct's string field randomly changes</td>
+            <td class="cause">Struct with <code>char *</code> field was copied; both point to same buffer</td>
+            <td class="fix">Use <code>char name[64]</code> inside the struct, or implement a deep copy</td>
+          </tr>
+          <tr>
+            <td class="symptom">Fields contain garbage on first use</td>
+            <td class="cause">Struct declared but not initialized; stack contents are arbitrary</td>
+            <td class="fix">Use designated initializer or <code>memset(&s, 0, sizeof(s))</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header">
+      <span class="phase-number">Close</span>
+      <span class="phase-title">Summary and Bridge to Next Topic</span>
+      <span class="phase-time">1:13–1:15</span>
+    </div>
+    <div class="phase-body">
+      <p>Close with the three decisions a programmer makes every time they write a struct function:</p>
+      <ul class="steps">
+        <li><strong>Does this function need to modify the struct?</strong> → Pass by pointer. Otherwise, by value is fine for small structs.</li>
+        <li><strong>Does the struct need to outlive this function?</strong> → Put it on the heap, return the pointer. Otherwise, return by value.</li>
+        <li><strong>Am I holding a struct or a pointer to one?</strong> → Dot or arrow. Read your declaration if you're unsure.</li>
+      </ul>
+
+      <p>Bridge forward: structs become far more powerful when combined with pointers <em>to other structs</em>. The <code>Node</code> pattern — a struct with a <code>next</code> pointer to the same type — is how every linked list, tree, and graph in C is built. That's the next step.</p>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Anticipate</span>Frequently Asked Student Questions</h2>
+
+  <div class="qa-list">
+    <div class="qa-item">
+      <div class="qa-q">What's the actual difference between <code>struct Student</code> and the typedef version? When should I use which?</div>
+      <div class="qa-a">They produce identical memory layout. The typedef is stylistic convenience — you skip the <code>struct</code> keyword at every use site. In your own code, typedef is usually cleaner. In system headers (POSIX, kernel code) you'll see the tagged form everywhere because it's more explicit about what type it is. Either is correct; the important habit is consistency within a codebase.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">Why does <code>students[i].gpa</code> use dot when <code>students</code> is a pointer?</div>
+      <div class="qa-a">Because <code>students[i]</code> is the <em>element</em> at position i — a <code>Student</code> value, not a pointer. The pointer arithmetic is already done by the indexing. <code>students[i].gpa</code> and <code>(students + i)-&gt;gpa</code> compile to identical machine code. The rule is about what you have at the moment of access: if the expression to the left of the dot/arrow is a struct value, use dot; if it's a pointer, use arrow.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">Can I compare two structs with <code>==</code>?</div>
+      <div class="qa-a">No. C does not define <code>==</code> for struct types. You must compare field-by-field, or use <code>memcmp</code> if (and only if) there is guaranteed to be no padding and no pointer fields. In practice, write an explicit comparison function. This is a common surprise for students coming from Python or Java.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">Can a struct contain a pointer to another struct of the same type?</div>
+      <div class="qa-a">Yes — and this is exactly how linked lists work. You use the <em>tagged</em> form: <code>struct Node { int val; struct Node *next; }</code>. You cannot use the typedef name inside the definition because the typedef isn't yet complete, but the tag is available immediately. This is one of the rare cases where the tagged form is mandatory.</div>
+    </div>
+    <div class="qa-item">
+      <div class="qa-q">If structs are copied when passed by value, should I always pass pointers for efficiency?</div>
+      <div class="qa-a">For the sizes we deal with in this course — a few hundred bytes at most — the copy is nearly free on modern hardware. Correctness matters far more than micro-optimization. Use by-value when the function should not modify the caller's data and the struct is small. Use pointers when modification is intended. Never pass a pointer to avoid a copy unless profiling has shown the copy is actually a bottleneck.</div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Labs</span>Lab Ideas &amp; Exercises</h2>
+
+  <div class="lab-ideas">
+    <div class="lab-card">
+      <div class="lab-title">Student Records CRUD</div>
+      <div class="lab-body">Implement <code>make_student</code>, <code>print_student</code>, <code>find_by_id</code>, and <code>update_gpa</code> for a heap-allocated array. Forces all four function patterns and the dot/arrow distinction within a single coherent program.</div>
+    </div>
+    <div class="lab-card">
+      <div class="lab-title">Struct Sorting with qsort</div>
+      <div class="lab-body">Given an array of structs, sort by different fields (GPA ascending, name alphabetical) by writing comparator functions. Reinforces pointer-to-void casting and the array-of-structs mental model.</div>
+    </div>
+    <div class="lab-card">
+      <div class="lab-title">sizeof Detective</div>
+      <div class="lab-body">Given 4–5 struct definitions with varying field orderings, predict their sizeof before running. Print offsetof for each field. Students learn padding intuitively and develop the "never hand-calculate struct sizes" habit.</div>
+    </div>
+    <div class="lab-card">
+      <div class="lab-title">Bug Hunt</div>
+      <div class="lab-body">Provide a 40-line program with 4 seeded struct bugs (wrong operator, copy instead of pointer, stack pointer return, uninitialized field). Students must find and fix all four. Effective consolidation exercise.</div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2><span class="section-num">Materials</span>Reference Materials</h2>
+
+  <div class="materials">
+    <div class="material-item">
+      <span class="mat-icon">📄</span>
+      <span class="mat-name">06-structs.html</span>
+      <span class="mat-desc">— Student-facing reference page. Matches this lesson exactly. Share before class or after.</span>
+    </div>
+    <div class="material-item">
+      <span class="mat-icon">📄</span>
+      <span class="mat-name">01-pointers.html</span>
+      <span class="mat-desc">— Review if students are shaky on &amp; and * operators before the pointer-to-struct section.</span>
+    </div>
+    <div class="material-item">
+      <span class="mat-icon">📄</span>
+      <span class="mat-name">04-stack-and-heap.html</span>
+      <span class="mat-desc">— Use to reinforce the "don't return a stack address" section.</span>
+    </div>
+    <div class="material-item">
+      <span class="mat-icon">🔧</span>
+      <span class="mat-name">Live coding template</span>
+      <span class="mat-desc">— Start with a stub file containing just the includes and an empty main to avoid setup time in front of the class.</span>
+    </div>
+    <div class="material-item">
+      <span class="mat-icon">🔧</span>
+      <span class="mat-name">Valgrind</span>
+      <span class="mat-desc">— Run the live demo under Valgrind at the end to demonstrate clean memory. Effective closing move that previews tooling.</span>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>

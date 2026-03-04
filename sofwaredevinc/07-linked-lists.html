@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Linked Lists — C Memory Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-pink: #ff80ab;
+    --accent-blue: #448aff;
+    --accent-main: #00e5ff;
+    --code-bg: #0a0f1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+
+  .page-grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  .series-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+
+  .series-bar .chip {
+    background: var(--accent-main);
+    color: var(--bg);
+    padding: 2px 10px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+
+  .hero .number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--accent-main);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(40px, 6vw, 64px);
+    color: var(--heading);
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  h1 .highlight {
+    background: linear-gradient(135deg, var(--accent-main), var(--accent-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 640px; line-height: 1.6; }
+
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--heading);
+    margin: 60px 0 24px;
+    padding-top: 20px;
+  }
+
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    color: var(--accent-main);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 40px 0 16px;
+  }
+
+  p { margin-bottom: 20px; }
+
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 32px 0;
+    overflow-x: auto;
+  }
+
+  .diagram-container .caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 16px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 15px;
+    color: var(--accent-green);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  pre .kw     { color: var(--accent-purple); }
+  pre .type   { color: var(--accent-cyan); }
+  pre .str    { color: var(--accent-green); }
+  pre .comment{ color: var(--text-dim); font-style: italic; }
+  pre .num    { color: var(--accent-orange); }
+  pre .func   { color: var(--accent-orange); }
+  pre .field  { color: var(--accent-yellow); }
+  pre .sname  { color: var(--accent-main); }
+
+  .key-concept {
+    background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(68,138,255,0.04));
+    border-left: 3px solid var(--accent-main);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .key-concept strong { color: var(--accent-main); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .warning {
+    background: rgba(255,82,82,0.06);
+    border-left: 3px solid var(--accent-red);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .warning strong { color: var(--accent-red); }
+
+  .analogy {
+    background: rgba(179,136,255,0.06);
+    border-left: 3px solid var(--accent-purple);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .analogy strong { color: var(--accent-purple); }
+
+  .tip {
+    background: rgba(105,240,174,0.05);
+    border-left: 3px solid var(--accent-green);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .tip strong { color: var(--accent-green); }
+
+  /* vs table */
+  .vs-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 28px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+  }
+  .vs-table th {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    color: var(--text-dim);
+    font-weight: 600;
+    text-align: left;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .vs-table td {
+    border: 1px solid var(--border);
+    padding: 11px 16px;
+    color: var(--text);
+    vertical-align: top;
+  }
+  .vs-table tr:hover td { background: rgba(0,229,255,0.02); }
+  .good { color: var(--accent-green); }
+  .bad  { color: var(--accent-red); }
+
+  /* pitfalls */
+  .pitfalls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+  .pitfall-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent-red);
+    border-radius: 0 0 10px 10px;
+    padding: 20px;
+  }
+  .pitfall-card .pitfall-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent-red); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .pitfall-card .pitfall-title { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: var(--heading); margin-bottom: 10px; }
+  .pitfall-card .pitfall-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+  @media (max-width: 700px) {
+    .hero, .content { padding-left: 20px; padding-right: 20px; }
+    .series-bar { padding: 10px 16px; font-size: 11px; }
+    .series-bar .nav-links { display: none; }
+    .diagram-container { padding: 16px; }
+    .pitfalls { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">7 / 7</span>
+  <span>C Memory Concepts</span>
+  <div class="nav-links">
+    <a href="01-pointers.html">Pointers</a>
+    <a href="02-arrays-are-pointers.html">Arrays</a>
+    <a href="03-malloc-free.html">malloc &amp; free</a>
+    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+    <a href="05-garbage-collection.html">GC</a>
+    <a href="06-structs.html">Structs</a>
+    <a href="07-linked-lists.html" class="active">Linked Lists</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 07</div>
+  <h1><span class="highlight">Linked Lists</span></h1>
+  <p class="subtitle">A linked list is a chain of heap-allocated structs, each holding a value and a pointer to the next. It's the simplest data structure you can build from what you already know — and the foundation for nearly every other one.</p>
+</header>
+
+<main class="content">
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Arrays vs. Linked Lists</h2>
+
+  <p>You already know arrays. They're a contiguous block of memory — all elements side by side, instantly reachable by index. Linked lists solve a different problem: when you need to grow and shrink a collection at runtime without knowing the final size, and when you need fast insertion and deletion anywhere in the sequence.</p>
+
+  <table class="vs-table">
+    <thead>
+      <tr>
+        <th>Operation</th>
+        <th>Array</th>
+        <th>Linked List</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Access element by index</td>
+        <td class="good">O(1) — direct address calculation</td>
+        <td class="bad">O(n) — must walk from head</td>
+      </tr>
+      <tr>
+        <td>Insert at front</td>
+        <td class="bad">O(n) — shift all elements right</td>
+        <td class="good">O(1) — rewire one pointer</td>
+      </tr>
+      <tr>
+        <td>Insert at arbitrary position</td>
+        <td class="bad">O(n) — shift elements</td>
+        <td class="good">O(1) once you have the position</td>
+      </tr>
+      <tr>
+        <td>Delete from front</td>
+        <td class="bad">O(n) — shift all elements left</td>
+        <td class="good">O(1) — rewire one pointer</td>
+      </tr>
+      <tr>
+        <td>Memory layout</td>
+        <td class="good">Contiguous — cache-friendly</td>
+        <td class="bad">Scattered — pointer chasing</td>
+      </tr>
+      <tr>
+        <td>Size known at compile time?</td>
+        <td class="bad">Required for stack arrays</td>
+        <td class="good">Grows and shrinks at runtime</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    An array is a row of numbered seats in a theater — you can go directly to seat 12 in one step, but adding a new seat in the middle means moving everyone. A linked list is a treasure hunt — each clue tells you where the next one is. You can't jump to clue 5 without reading 1 through 4, but you can insert a new clue anywhere by changing two pieces of paper.
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>The Node: Building Block of Every List</h2>
+
+  <p>A linked list is built from <strong>nodes</strong>. Each node is a struct with two things: the <em>data</em> it holds, and a <em>pointer to the next node</em>. That self-referential pointer — a struct pointing to another struct of the same type — is the key to the whole pattern.</p>
+
+  <pre><span class="kw">typedef struct</span> <span class="sname">Node</span> {
+    <span class="type">int</span>          <span class="field">value</span>;       <span class="comment">// the data this node holds</span>
+    <span class="kw">struct</span> <span class="sname">Node</span> *<span class="field">next</span>;        <span class="comment">// pointer to the next node (or NULL)</span>
+} <span class="sname">Node</span>;</pre>
+
+  <p>Notice the tagged struct form here — <code>struct Node *next</code> must use the tag because the <code>typedef</code> name <code>Node</code> isn't complete yet when the field is declared. This is the one situation where the tagged form is not just stylistic — it's required.</p>
+
+  <p>The last node in the list sets its <code>next</code> to <code>NULL</code>. That's how you know you've reached the end. Every operation on a linked list eventually checks for <code>NULL</code>.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 180" width="100%" height="180">
+      <defs>
+        <marker id="ll" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+      </defs>
+
+      <!-- head pointer -->
+      <rect x="20" y="60" width="80" height="60" rx="5" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="60" y="86" text-anchor="middle" fill="#6b7fa3" font-size="11">head</text>
+      <text x="60" y="106" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">0x4000</text>
+      <path d="M 100 90 L 148 90" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ll)"/>
+
+      <!-- Node A -->
+      <rect x="150" y="50" width="140" height="80" rx="6" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="2"/>
+      <text x="220" y="44" text-anchor="middle" fill="#ffab40" font-size="10">0x4000</text>
+      <line x1="220" y1="90" x2="220" y2="92" stroke="#444" stroke-width="1"/>
+      <line x1="150" y1="90" x2="290" y2="90" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="185" y="78" text-anchor="middle" fill="#6b7fa3" font-size="10">value</text>
+      <text x="185" y="110" text-anchor="middle" fill="#ffd740" font-size="18" font-weight="700">3</text>
+      <text x="255" y="78" text-anchor="middle" fill="#6b7fa3" font-size="10">next</text>
+      <text x="255" y="110" text-anchor="middle" fill="#00e5ff" font-size="11">0x4060</text>
+      <path d="M 290 90 L 338 90" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ll)"/>
+
+      <!-- Node B -->
+      <rect x="340" y="50" width="140" height="80" rx="6" fill="rgba(255,215,64,0.06)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="410" y="44" text-anchor="middle" fill="#ffab40" font-size="10">0x4060</text>
+      <line x1="340" y1="90" x2="480" y2="90" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="375" y="78" text-anchor="middle" fill="#6b7fa3" font-size="10">value</text>
+      <text x="375" y="110" text-anchor="middle" fill="#ffd740" font-size="18" font-weight="700">7</text>
+      <text x="445" y="78" text-anchor="middle" fill="#6b7fa3" font-size="10">next</text>
+      <text x="445" y="110" text-anchor="middle" fill="#00e5ff" font-size="11">0x40C0</text>
+      <path d="M 480 90 L 528 90" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ll)"/>
+
+      <!-- Node C -->
+      <rect x="530" y="50" width="140" height="80" rx="6" fill="rgba(255,215,64,0.06)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="600" y="44" text-anchor="middle" fill="#ffab40" font-size="10">0x40C0</text>
+      <line x1="530" y1="90" x2="670" y2="90" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="565" y="78" text-anchor="middle" fill="#6b7fa3" font-size="10">value</text>
+      <text x="565" y="110" text-anchor="middle" fill="#ffd740" font-size="18" font-weight="700">2</text>
+      <text x="635" y="78" text-anchor="middle" fill="#6b7fa3" font-size="10">next</text>
+      <text x="635" y="110" text-anchor="middle" fill="#6b7fa3" font-size="11">NULL</text>
+
+      <text x="360" y="158" text-anchor="middle" fill="#6b7fa3" font-size="11">Each node is malloc'd independently — they may be anywhere in heap memory</text>
+    </svg>
+    <div class="caption">A three-node linked list: 3 → 7 → 2 → NULL. The head pointer is the entry point. NULL marks the end.</div>
+  </div>
+
+  <h3>Creating a Node</h3>
+  <p>Every node lives on the heap — it needs to outlive the function that creates it. The pattern is always the same: <code>malloc</code>, check for NULL, set fields, set <code>next</code> to NULL.</p>
+
+  <pre><span class="sname">Node</span> *<span class="func">make_node</span>(<span class="type">int</span> value) {
+    <span class="sname">Node</span> *n = <span class="func">malloc</span>(<span class="kw">sizeof</span>(<span class="sname">Node</span>));
+    <span class="kw">if</span> (!n) <span class="kw">return</span> <span class="num">NULL</span>;    <span class="comment">// always check</span>
+    n-&gt;<span class="field">value</span> = value;
+    n-&gt;<span class="field">next</span>  = <span class="num">NULL</span>;
+    <span class="kw">return</span> n;
+}</pre>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Building a List</h2>
+
+  <h3>Prepend — Insert at the Front</h3>
+  <p>Inserting at the front is the simplest and fastest operation: create a new node, point its <code>next</code> at the current head, then update head. Two pointer assignments. Order matters — if you update head first, you lose the list.</p>
+
+  <pre><span class="sname">Node</span> *<span class="func">prepend</span>(<span class="sname">Node</span> *head, <span class="type">int</span> value) {
+    <span class="sname">Node</span> *n = <span class="func">make_node</span>(value);
+    <span class="kw">if</span> (!n) <span class="kw">return</span> head;   <span class="comment">// allocation failed — leave list unchanged</span>
+    n-&gt;<span class="field">next</span> = head;        <span class="comment">// step 1: new node points at old head</span>
+    <span class="kw">return</span> n;              <span class="comment">// step 2: new node IS the new head</span>
+}
+
+<span class="sname">Node</span> *list = <span class="num">NULL</span>;                 <span class="comment">// empty list</span>
+list = <span class="func">prepend</span>(list, <span class="num">3</span>);          <span class="comment">// 3 → NULL</span>
+list = <span class="func">prepend</span>(list, <span class="num">7</span>);          <span class="comment">// 7 → 3 → NULL</span>
+list = <span class="func">prepend</span>(list, <span class="num">2</span>);          <span class="comment">// 2 → 7 → 3 → NULL</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 280" width="100%" height="280">
+      <defs>
+        <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+        <marker id="pg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+      </defs>
+
+      <!-- Step 1 label -->
+      <text x="180" y="20" text-anchor="middle" fill="#6b7fa3" font-size="12">Before: list → [3] → NULL</text>
+
+      <!-- Existing node 3 -->
+      <rect x="260" y="35" width="120" height="60" rx="5" fill="rgba(255,215,64,0.06)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="320" y="60" text-anchor="middle" fill="#ffd740" font-size="16" font-weight="700">3</text>
+      <text x="320" y="78" text-anchor="middle" fill="#6b7fa3" font-size="11">next: NULL</text>
+
+      <!-- head pointer (before) -->
+      <rect x="100" y="50" width="80" height="30" rx="4" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1"/>
+      <text x="140" y="70" text-anchor="middle" fill="#00e5ff" font-size="11">head → 3</text>
+      <path d="M 180 65 L 258 65" stroke="#00e5ff" stroke-width="1.5" fill="none" marker-end="url(#pa)" stroke-dasharray="5,3"/>
+
+      <!-- New node being created -->
+      <rect x="100" y="140" width="120" height="60" rx="5" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="160" y="165" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="700">7</text>
+      <text x="160" y="185" text-anchor="middle" fill="#6b7fa3" font-size="11">new node</text>
+      <text x="50" y="172" fill="#69f0ae" font-size="11">make_node(7)</text>
+
+      <!-- Step 1: new->next = head -->
+      <path d="M 220 170 Q 290 170 290 100" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#pg)"/>
+      <text x="300" y="145" fill="#69f0ae" font-size="11">n-&gt;next = head</text>
+      <text x="300" y="160" fill="#6b7fa3" font-size="10">(step 1)</text>
+
+      <!-- Step 2: return n as new head -->
+      <text x="360" y="230" text-anchor="middle" fill="#ffd740" font-size="12">After: list → [7] → [3] → NULL</text>
+      <rect x="260" y="245" width="120" height="30" rx="4" fill="rgba(105,240,174,0.06)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="320" y="266" text-anchor="middle" fill="#69f0ae" font-size="11">head now = n  (step 2)</text>
+    </svg>
+    <div class="caption">Prepend in two steps: point the new node at the old head, then return the new node as the new head.</div>
+  </div>
+
+  <h3>Append — Insert at the End</h3>
+  <p>Appending is slower — you have to walk to the last node first, then attach the new one. Always handle the empty list case separately.</p>
+
+  <pre><span class="sname">Node</span> *<span class="func">append</span>(<span class="sname">Node</span> *head, <span class="type">int</span> value) {
+    <span class="sname">Node</span> *n = <span class="func">make_node</span>(value);
+    <span class="kw">if</span> (!n) <span class="kw">return</span> head;
+
+    <span class="kw">if</span> (head == <span class="num">NULL</span>) <span class="kw">return</span> n;   <span class="comment">// was empty: new node is the list</span>
+
+    <span class="sname">Node</span> *cur = head;
+    <span class="kw">while</span> (cur-&gt;<span class="field">next</span> != <span class="num">NULL</span>)     <span class="comment">// walk to the last node</span>
+        cur = cur-&gt;<span class="field">next</span>;
+
+    cur-&gt;<span class="field">next</span> = n;               <span class="comment">// attach at the end</span>
+    <span class="kw">return</span> head;
+}</pre>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Traversal</h2>
+
+  <p>Traversal is the foundation of everything else you do with a linked list. The idiom is always the same: start at <code>head</code>, use a local pointer <code>cur</code> to walk, stop when <code>cur</code> is <code>NULL</code>.</p>
+
+  <pre><span class="kw">void</span> <span class="func">print_list</span>(<span class="sname">Node</span> *head) {
+    <span class="kw">for</span> (<span class="sname">Node</span> *cur = head; cur != <span class="num">NULL</span>; cur = cur-&gt;<span class="field">next</span>) {
+        <span class="func">printf</span>(<span class="str">"%d "</span>, cur-&gt;<span class="field">value</span>);
+    }
+    <span class="func">printf</span>(<span class="str">"\n"</span>);
+}
+
+<span class="type">int</span> <span class="func">length</span>(<span class="sname">Node</span> *head) {
+    <span class="type">int</span> count = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="sname">Node</span> *cur = head; cur != <span class="num">NULL</span>; cur = cur-&gt;<span class="field">next</span>)
+        count++;
+    <span class="kw">return</span> count;
+}
+
+<span class="sname">Node</span> *<span class="func">find</span>(<span class="sname">Node</span> *head, <span class="type">int</span> target) {
+    <span class="kw">for</span> (<span class="sname">Node</span> *cur = head; cur != <span class="num">NULL</span>; cur = cur-&gt;<span class="field">next</span>)
+        <span class="kw">if</span> (cur-&gt;<span class="field">value</span> == target) <span class="kw">return</span> cur;
+    <span class="kw">return</span> <span class="num">NULL</span>;   <span class="comment">// not found</span>
+}</pre>
+
+  <div class="key-concept">
+    <strong>Key Pattern</strong><br>
+    Never modify <code>head</code> during traversal. Use a separate <code>cur</code> pointer that walks the list. Losing <code>head</code> means losing the entire list — you have no other way to reach the first node.
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Insertion in the Middle</h2>
+
+  <p>To insert after a specific node, you need a pointer to the node <em>before</em> the insertion point — the predecessor. You re-wire two pointers: the new node points to the successor, and the predecessor points to the new node. The order matters.</p>
+
+  <pre><span class="comment">// Insert 'value' after the node pointed to by 'prev'</span>
+<span class="kw">void</span> <span class="func">insert_after</span>(<span class="sname">Node</span> *prev, <span class="type">int</span> value) {
+    <span class="kw">if</span> (!prev) <span class="kw">return</span>;
+    <span class="sname">Node</span> *n = <span class="func">make_node</span>(value);
+    <span class="kw">if</span> (!n) <span class="kw">return</span>;
+
+    n-&gt;<span class="field">next</span>    = prev-&gt;<span class="field">next</span>;  <span class="comment">// step 1: new node points to successor</span>
+    prev-&gt;<span class="field">next</span> = n;            <span class="comment">// step 2: predecessor points to new node</span>
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 260" width="100%" height="260">
+      <defs>
+        <marker id="ia" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+        <marker id="ig" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+        <marker id="iy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffd740"/>
+        </marker>
+      </defs>
+
+      <!-- Before -->
+      <text x="300" y="20" text-anchor="middle" fill="#6b7fa3" font-size="12">Inserting 99 between [3] and [7]</text>
+
+      <!-- Node 3 (prev) -->
+      <rect x="60" y="40" width="110" height="60" rx="5" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="2"/>
+      <text x="115" y="66" text-anchor="middle" fill="#ffd740" font-size="16" font-weight="700">3</text>
+      <text x="115" y="84" text-anchor="middle" fill="#6b7fa3" font-size="10">prev</text>
+
+      <!-- old arrow: 3 → 7 (before, shown dashed) -->
+      <path d="M 170 70 L 278 70" stroke="#6b7fa3" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#ia)"/>
+      <text x="224" y="62" text-anchor="middle" fill="#6b7fa3" font-size="10">was: prev-&gt;next</text>
+
+      <!-- Node 7 (successor) -->
+      <rect x="280" y="40" width="110" height="60" rx="5" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="335" y="66" text-anchor="middle" fill="#ffd740" font-size="16" font-weight="700">7</text>
+
+      <!-- Node 99 (new) -->
+      <rect x="170" y="155" width="110" height="60" rx="5" fill="rgba(105,240,174,0.09)" stroke="#69f0ae" stroke-width="2.5"/>
+      <text x="225" y="181" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="700">99</text>
+      <text x="225" y="199" text-anchor="middle" fill="#69f0ae" font-size="10">new node</text>
+
+      <!-- Step 1: n->next = prev->next (new → 7) -->
+      <path d="M 280 185 Q 335 185 335 102" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#ig)"/>
+      <text x="390" y="155" fill="#69f0ae" font-size="11">① n-&gt;next =</text>
+      <text x="390" y="172" fill="#69f0ae" font-size="11">   prev-&gt;next</text>
+
+      <!-- Step 2: prev->next = n (3 → new) -->
+      <path d="M 115 100 Q 115 185 168 185" stroke="#ffd740" stroke-width="2" fill="none" marker-end="url(#iy)"/>
+      <text x="20" y="155" fill="#ffd740" font-size="11">② prev-&gt;next</text>
+      <text x="20" y="172" fill="#ffd740" font-size="11">   = n</text>
+
+      <text x="360" y="240" text-anchor="middle" fill="#6b7fa3" font-size="11">Result: [3] → [99] → [7] — order of steps is critical</text>
+    </svg>
+    <div class="caption">Always set the new node's next pointer BEFORE updating the predecessor. Reverse the order and you lose the tail of the list.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Deletion</h2>
+
+  <p>Deleting a node requires two things: unlinking it from the chain by re-wiring the predecessor's <code>next</code>, and then <code>free</code>-ing the node's memory. You need the predecessor again, which is why deletion often requires tracking both the current node and the one behind it.</p>
+
+  <h3>Delete from the Front</h3>
+  <pre><span class="sname">Node</span> *<span class="func">delete_front</span>(<span class="sname">Node</span> *head) {
+    <span class="kw">if</span> (head == <span class="num">NULL</span>) <span class="kw">return</span> <span class="num">NULL</span>;   <span class="comment">// empty list</span>
+    <span class="sname">Node</span> *old_head = head;
+    head = head-&gt;<span class="field">next</span>;               <span class="comment">// advance head first</span>
+    <span class="func">free</span>(old_head);                    <span class="comment">// then free the old head</span>
+    <span class="kw">return</span> head;
+}</pre>
+
+  <h3>Delete by Value</h3>
+  <pre><span class="sname">Node</span> *<span class="func">delete_value</span>(<span class="sname">Node</span> *head, <span class="type">int</span> target) {
+    <span class="kw">if</span> (head == <span class="num">NULL</span>) <span class="kw">return</span> <span class="num">NULL</span>;
+
+    <span class="comment">// special case: target is the head node</span>
+    <span class="kw">if</span> (head-&gt;<span class="field">value</span> == target) {
+        <span class="sname">Node</span> *next = head-&gt;<span class="field">next</span>;
+        <span class="func">free</span>(head);
+        <span class="kw">return</span> next;
+    }
+
+    <span class="comment">// general case: find the predecessor</span>
+    <span class="sname">Node</span> *prev = head;
+    <span class="kw">while</span> (prev-&gt;<span class="field">next</span> != <span class="num">NULL</span> &amp;&amp; prev-&gt;<span class="field">next</span>-&gt;<span class="field">value</span> != target)
+        prev = prev-&gt;<span class="field">next</span>;
+
+    <span class="kw">if</span> (prev-&gt;<span class="field">next</span> == <span class="num">NULL</span>) <span class="kw">return</span> head;  <span class="comment">// not found</span>
+
+    <span class="sname">Node</span> *to_delete = prev-&gt;<span class="field">next</span>;
+    prev-&gt;<span class="field">next</span> = to_delete-&gt;<span class="field">next</span>;        <span class="comment">// bypass the node</span>
+    <span class="func">free</span>(to_delete);                        <span class="comment">// release its memory</span>
+    <span class="kw">return</span> head;
+}</pre>
+
+  <div class="warning">
+    <strong>Free the node — but never free a node you still need to read from.</strong><br>
+    The classic mistake is writing <code>free(cur); cur = cur-&gt;next;</code>. After <code>free(cur)</code>, reading <code>cur-&gt;next</code> is undefined behavior — the memory may have already been reused. Always save <code>cur-&gt;next</code> into a temporary variable before calling <code>free</code>.
+  </div>
+
+  <h3>Free the Entire List</h3>
+  <p>When you're done with a list, every node must be freed. Walk the list, saving <code>next</code> before freeing each node.</p>
+
+  <pre><span class="kw">void</span> <span class="func">free_list</span>(<span class="sname">Node</span> *head) {
+    <span class="sname">Node</span> *cur = head;
+    <span class="kw">while</span> (cur != <span class="num">NULL</span>) {
+        <span class="sname">Node</span> *next = cur-&gt;<span class="field">next</span>;  <span class="comment">// save next BEFORE freeing</span>
+        <span class="func">free</span>(cur);
+        cur = next;
+    }
+}</pre>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Passing Lists to Functions</h2>
+
+  <p>A linked list is always handled as a pointer to its first node — <code>Node *head</code>. Passing this to a function gives the function access to the entire list by traversal. But there's a subtlety: if a function might change <em>which node is the head</em> (prepend, delete_front), the caller's <code>head</code> variable won't be updated unless you return the new head or pass a pointer-to-pointer.</p>
+
+  <pre><span class="comment">// Pattern 1: Return the new head — clean and idiomatic</span>
+<span class="sname">Node</span> *list = <span class="num">NULL</span>;
+list = <span class="func">prepend</span>(list, <span class="num">5</span>);      <span class="comment">// caller re-assigns head</span>
+list = <span class="func">delete_front</span>(list);
+
+<span class="comment">// Pattern 2: Pointer-to-pointer — lets the function update head directly</span>
+<span class="kw">void</span> <span class="func">prepend_pp</span>(<span class="sname">Node</span> **head, <span class="type">int</span> value) {
+    <span class="sname">Node</span> *n = <span class="func">make_node</span>(value);
+    <span class="kw">if</span> (!n) <span class="kw">return</span>;
+    n-&gt;<span class="field">next</span> = *head;
+    *head = n;                  <span class="comment">// modifies caller's head variable</span>
+}
+
+<span class="sname">Node</span> *list = <span class="num">NULL</span>;
+<span class="func">prepend_pp</span>(&amp;list, <span class="num">5</span>);         <span class="comment">// list updated in-place</span></pre>
+
+  <div class="key-concept">
+    <strong>Which pattern to use?</strong><br>
+    Returning the new head (Pattern 1) is simpler to read and less error-prone. Use pointer-to-pointer (Pattern 2) when working with more complex structures like doubly-linked lists or when the API design requires it. Both are idiomatic C.
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Variations</h2>
+
+  <h3>Doubly-Linked List</h3>
+  <p>Add a <code>prev</code> pointer to each node and you can walk the list in both directions. Useful when you need to delete a node without finding its predecessor, or implement a deque. The cost is an extra pointer per node and double the pointer updates on every insert/delete.</p>
+
+  <pre><span class="kw">typedef struct</span> <span class="sname">DNode</span> {
+    <span class="type">int</span>           <span class="field">value</span>;
+    <span class="kw">struct</span> <span class="sname">DNode</span> *<span class="field">prev</span>;
+    <span class="kw">struct</span> <span class="sname">DNode</span> *<span class="field">next</span>;
+} <span class="sname">DNode</span>;</pre>
+
+  <h3>Circular List</h3>
+  <p>The last node's <code>next</code> points back to the head instead of <code>NULL</code>. Used in round-robin schedulers, ring buffers, and anywhere you need to cycle continuously. The termination condition in traversal changes from <code>cur != NULL</code> to <code>cur != head</code>.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 160" width="100%" height="160">
+      <defs>
+        <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#b388ff"/>
+        </marker>
+      </defs>
+
+      <!-- Nodes -->
+      <rect x="100" y="50" width="100" height="60" rx="6" fill="rgba(179,136,255,0.07)" stroke="#b388ff" stroke-width="2"/>
+      <text x="150" y="86" text-anchor="middle" fill="#b388ff" font-size="20" font-weight="700">A</text>
+
+      <rect x="310" y="50" width="100" height="60" rx="6" fill="rgba(179,136,255,0.07)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="360" y="86" text-anchor="middle" fill="#b388ff" font-size="20" font-weight="700">B</text>
+
+      <rect x="520" y="50" width="100" height="60" rx="6" fill="rgba(179,136,255,0.07)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="570" y="86" text-anchor="middle" fill="#b388ff" font-size="20" font-weight="700">C</text>
+
+      <!-- Forward arrows -->
+      <path d="M 200 80 L 308 80" stroke="#b388ff" stroke-width="2" fill="none" marker-end="url(#ca)"/>
+      <path d="M 410 80 L 518 80" stroke="#b388ff" stroke-width="2" fill="none" marker-end="url(#ca)"/>
+
+      <!-- Circular back arrow -->
+      <path d="M 620 80 Q 680 80 680 130 Q 680 148 360 148 Q 40 148 40 130 Q 40 80 98 80"
+            stroke="#b388ff" stroke-width="2" fill="none" marker-end="url(#ca)" stroke-dasharray="6,3"/>
+      <text x="360" y="145" text-anchor="middle" fill="#b388ff" font-size="11">C.next → A  (wraps around)</text>
+
+      <!-- head label -->
+      <text x="150" y="42" text-anchor="middle" fill="#6b7fa3" font-size="11">head</text>
+    </svg>
+    <div class="caption">Circular list: the last node's next wraps back to head. Traversal stops when cur == head again.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <h2>Common Problems</h2>
+
+  <div class="pitfalls">
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 01</div>
+      <div class="pitfall-title">Losing the Head Pointer</div>
+      <div class="pitfall-desc">Using <code>head</code> itself as the traversal pointer — advancing it through the list — means you can never get back to the start. The entire list is now unreachable. Always use a separate <code>cur</code> pointer for walking.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 02</div>
+      <div class="pitfall-title">Reading After free()</div>
+      <div class="pitfall-desc">Writing <code>free(cur); cur = cur-&gt;next;</code> reads <code>next</code> from freed memory. Save <code>cur-&gt;next</code> in a temp variable <em>before</em> calling <code>free</code>. This applies equally in <code>free_list</code> and in deletion.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 03</div>
+      <div class="pitfall-title">Wrong Insertion Order</div>
+      <div class="pitfall-desc">When inserting in the middle, updating <code>prev-&gt;next = n</code> before <code>n-&gt;next = prev-&gt;next</code> severs the tail — you've lost every node after the insertion point. Set the new node's <code>next</code> first, always.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 04</div>
+      <div class="pitfall-title">Not Handling the Empty List</div>
+      <div class="pitfall-desc">Every list operation must handle <code>head == NULL</code> as a special case. Append without the empty-list check immediately dereferences a NULL pointer. Deletion without it crashes. Check NULL first — always.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 05</div>
+      <div class="pitfall-title">Memory Leak on Deletion</div>
+      <div class="pitfall-desc">Unlinking a node (<code>prev-&gt;next = cur-&gt;next</code>) without calling <code>free(cur)</code> leaks the node. The node is no longer reachable but its memory is never returned. Valgrind will catch this — and so will your heap at scale.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 06</div>
+      <div class="pitfall-title">Not Updating Head After Deletion</div>
+      <div class="pitfall-desc">Deleting the head node but not returning or updating the caller's <code>head</code> variable leaves the caller with a dangling pointer to freed memory. Functions that may change which node is the head must either return the new head or take a <code>Node **</code>.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 07</div>
+      <div class="pitfall-title">Off-by-One in Traversal</div>
+      <div class="pitfall-desc">Stopping the loop at <code>cur-&gt;next != NULL</code> versus <code>cur != NULL</code> gives you different end positions — the last node vs. past the last node. Which you want depends on the operation. Get it wrong and you'll either skip the last element or dereference NULL.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 08</div>
+      <div class="pitfall-title">Forgetting to Free the Whole List</div>
+      <div class="pitfall-desc">When a list goes out of scope or is no longer needed, every node must be individually freed. There's no garbage collector. Setting <code>head = NULL</code> without walking and freeing each node first leaks every node in the list.</div>
+    </div>
+
+  </div>
+
+  <h3>The Two Worst Bugs Illustrated</h3>
+
+  <pre><span class="comment">/* ── Pitfall 1: clobbering head ──────────────────────── */</span>
+<span class="kw">void</span> <span class="func">bad_print</span>(<span class="sname">Node</span> *head) {
+    <span class="kw">while</span> (head != <span class="num">NULL</span>) {       <span class="comment">// ✗ advancing head itself</span>
+        <span class="func">printf</span>(<span class="str">"%d "</span>, head-&gt;<span class="field">value</span>);
+        head = head-&gt;<span class="field">next</span>;
+    }
+}   <span class="comment">// caller's head is unchanged (pass by value saved us here)</span>
+    <span class="comment">// but if head were Node**, this destroys the caller's list</span>
+
+<span class="kw">void</span> <span class="func">good_print</span>(<span class="sname">Node</span> *head) {
+    <span class="kw">for</span> (<span class="sname">Node</span> *cur = head; cur != <span class="num">NULL</span>; cur = cur-&gt;<span class="field">next</span>)  <span class="comment">// ✓</span>
+        <span class="func">printf</span>(<span class="str">"%d "</span>, cur-&gt;<span class="field">value</span>);
+}
+
+<span class="comment">/* ── Pitfall 2: reading after free ───────────────────── */</span>
+<span class="kw">void</span> <span class="func">bad_free</span>(<span class="sname">Node</span> *head) {
+    <span class="kw">while</span> (head != <span class="num">NULL</span>) {
+        <span class="func">free</span>(head);               <span class="comment">// ✗ freed!</span>
+        head = head-&gt;<span class="field">next</span>;      <span class="comment">// ✗ reading freed memory — UB</span>
+    }
+}
+
+<span class="kw">void</span> <span class="func">good_free</span>(<span class="sname">Node</span> *head) {
+    <span class="kw">while</span> (head != <span class="num">NULL</span>) {
+        <span class="sname">Node</span> *next = head-&gt;<span class="field">next</span>;  <span class="comment">// ✓ save next first</span>
+        <span class="func">free</span>(head);
+        head = next;
+    }
+}</pre>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    A linked list is a chain of heap-allocated nodes, each containing data and a pointer to the next. Every node is individually <code>malloc</code>'d and must be individually <code>free</code>'d. The head pointer is your only entry to the list — protect it. Use a separate traversal pointer. Save <code>next</code> before freeing. Handle <code>NULL</code> at every operation. When inserting, set the new node's <code>next</code> pointer before rewiring the predecessor.
+  </div>
+
+</main>
+</body>
+</html>

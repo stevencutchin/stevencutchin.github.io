@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Structs — C Memory Concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-pink: #ff80ab;
+    --accent-blue: #448aff;
+    --accent-main: #ffd740;
+    --code-bg: #0a0f1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+
+  .page-grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  .series-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+
+  .series-bar .chip {
+    background: var(--accent-main);
+    color: var(--bg);
+    padding: 2px 10px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; flex-wrap: wrap; }
+  .series-bar .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+
+  .hero {
+    padding: 80px 40px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero .number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--accent-main);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(40px, 6vw, 64px);
+    color: var(--heading);
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  h1 .highlight {
+    background: linear-gradient(135deg, var(--accent-main), var(--accent-orange));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 20px;
+    color: var(--text-dim);
+    max-width: 640px;
+    line-height: 1.6;
+  }
+
+  .content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 40px 100px;
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--heading);
+    margin: 60px 0 24px;
+    padding-top: 20px;
+  }
+
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    color: var(--accent-main);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 40px 0 16px;
+  }
+
+  p { margin-bottom: 20px; }
+
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 32px 0;
+    overflow-x: auto;
+  }
+
+  .diagram-container .caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 16px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 15px;
+    color: var(--accent-green);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  pre .kw  { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str  { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num  { color: var(--accent-orange); }
+  pre .func { color: var(--accent-orange); }
+  pre .field { color: var(--accent-main); }
+  pre .struct-name { color: var(--accent-yellow); }
+
+  .key-concept {
+    background: linear-gradient(135deg, rgba(255,215,64,0.06), rgba(255,171,64,0.04));
+    border-left: 3px solid var(--accent-main);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .key-concept strong {
+    color: var(--accent-main);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .warning {
+    background: rgba(255,82,82,0.06);
+    border-left: 3px solid var(--accent-red);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .warning strong { color: var(--accent-red); }
+
+  .analogy {
+    background: rgba(179,136,255,0.06);
+    border-left: 3px solid var(--accent-purple);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .analogy strong { color: var(--accent-purple); }
+
+  .tip {
+    background: rgba(0,229,255,0.05);
+    border-left: 3px solid var(--accent-cyan);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+  .tip strong { color: var(--accent-cyan); }
+
+  /* Operator comparison table */
+  .op-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 28px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+  }
+  .op-table th {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    color: var(--text-dim);
+    font-weight: 600;
+    text-align: left;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  .op-table td {
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    color: var(--text);
+    vertical-align: top;
+  }
+  .op-table tr:hover td { background: rgba(255,215,64,0.03); }
+  .op-table .op-sym {
+    color: var(--accent-main);
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* Pitfalls grid */
+  .pitfalls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 32px 0;
+  }
+  .pitfall-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent-red);
+    border-radius: 0 0 10px 10px;
+    padding: 20px;
+  }
+  .pitfall-card .pitfall-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-red);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .pitfall-card .pitfall-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--heading);
+    margin-bottom: 10px;
+  }
+  .pitfall-card .pitfall-desc {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 700px) {
+    .hero, .content { padding-left: 20px; padding-right: 20px; }
+    .series-bar { padding: 10px 16px; font-size: 11px; }
+    .series-bar .nav-links { display: none; }
+    .diagram-container { padding: 16px; }
+    .pitfalls { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">6 / 6</span>
+  <span>C Memory Concepts</span>
+  <div class="nav-links">
+    <a href="01-pointers.html">Pointers</a>
+    <a href="02-arrays-are-pointers.html">Arrays</a>
+    <a href="03-malloc-free.html">malloc &amp; free</a>
+    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+    <a href="05-garbage-collection.html">GC</a>
+    <a href="06-structs.html" class="active">Structs</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 06</div>
+  <h1>C <span class="highlight">Structs</span></h1>
+  <p class="subtitle">A struct is how C lets you group related data under one name. It's the closest thing C has to an object — and understanding it unlocks every serious data structure in the language.</p>
+</header>
+
+<main class="content">
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>What Is a Struct?</h2>
+
+  <p>C's primitive types — <code>int</code>, <code>char</code>, <code>double</code> — each hold one value. A struct lets you define a new type that holds <em>multiple</em> named values together, called <strong>fields</strong> (or members). Once defined, a struct behaves like any other type: you can declare variables of it, pass it to functions, put it in arrays, and point at it with pointers.</p>
+
+  <pre><span class="kw">struct</span> <span class="struct-name">Point</span> {
+    <span class="type">double</span> <span class="field">x</span>;
+    <span class="type">double</span> <span class="field">y</span>;
+};
+
+<span class="kw">struct</span> <span class="struct-name">Student</span> {
+    <span class="type">char</span>   <span class="field">name</span>[<span class="num">64</span>];
+    <span class="type">int</span>    <span class="field">id</span>;
+    <span class="type">double</span> <span class="field">gpa</span>;
+    <span class="type">int</span>    <span class="field">enrolled</span>;   <span class="comment">// used as a boolean</span>
+};</pre>
+
+  <p>The <code>struct</code> keyword followed by a tag name defines the layout. Fields can be any type — including other structs — but not the struct itself (you can have a <em>pointer</em> to the same struct type, which is how linked lists work).</p>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    Think of a struct definition as a <span style="color:var(--accent-purple)">blueprint</span> — it describes what fields exist and their types, but uses no memory. Declaring a <code>struct Student s</code> is like constructing a building from that blueprint: now real memory is reserved with slots for <code>name</code>, <code>id</code>, <code>gpa</code>, and <code>enrolled</code>.
+  </div>
+
+  <h3>typedef — Losing the Keyword</h3>
+
+  <p>Writing <code>struct Student</code> everywhere is verbose. Using <code>typedef</code>, you can create an alias so the word <code>struct</code> is no longer needed:</p>
+
+  <pre><span class="kw">typedef struct</span> {
+    <span class="type">char</span>   <span class="field">name</span>[<span class="num">64</span>];
+    <span class="type">int</span>    <span class="field">id</span>;
+    <span class="type">double</span> <span class="field">gpa</span>;
+} <span class="struct-name">Student</span>;
+
+<span class="comment">// Now you can write:</span>
+<span class="struct-name">Student</span> s;          <span class="comment">// instead of: struct Student s;</span></pre>
+
+  <p>Both styles appear in real C code. System headers tend to use the <code>struct Tag</code> form; application code often uses <code>typedef</code>. Either is fine — pick one and be consistent.</p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Structs in Memory</h2>
+
+  <p>The fields of a struct are laid out in memory in the order you declare them, one after another. The total size is at least the sum of the field sizes — but the compiler may insert <strong>padding</strong> bytes between fields to satisfy alignment requirements. Each type prefers to start at an address that is a multiple of its own size.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 340" width="100%" height="340">
+      <defs>
+        <marker id="s-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffd740"/>
+        </marker>
+      </defs>
+
+      <!-- Title row -->
+      <text x="360" y="22" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">struct Student — layout in memory</text>
+
+      <!-- Field: name[64] — 64 bytes -->
+      <rect x="30" y="40" width="220" height="60" rx="5" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="140" y="66" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">name[64]</text>
+      <text x="140" y="86" text-anchor="middle" fill="#6b7fa3" font-size="11">64 bytes (char[64])</text>
+      <text x="32" y="34" fill="#ffab40" font-size="10">+0</text>
+
+      <!-- Field: id — 4 bytes -->
+      <rect x="250" y="40" width="80" height="60" rx="5" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="290" y="66" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">id</text>
+      <text x="290" y="86" text-anchor="middle" fill="#6b7fa3" font-size="11">4 bytes (int)</text>
+      <text x="252" y="34" fill="#ffab40" font-size="10">+64</text>
+
+      <!-- Field: gpa — 8 bytes -->
+      <rect x="330" y="40" width="130" height="60" rx="5" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="395" y="66" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">gpa</text>
+      <text x="395" y="86" text-anchor="middle" fill="#6b7fa3" font-size="11">8 bytes (double)</text>
+      <text x="332" y="34" fill="#ffab40" font-size="10">+68 → +72*</text>
+
+      <!-- Padding between id and gpa -->
+      <rect x="330" y="40" width="12" height="60" rx="0" fill="rgba(255,82,82,0.12)" stroke="#ff5252" stroke-width="0.5" stroke-dasharray="3,2"/>
+      <text x="336" y="74" fill="#ff5252" font-size="8" transform="rotate(-90, 336, 74)">pad</text>
+
+      <!-- Field: enrolled — 4 bytes -->
+      <rect x="460" y="40" width="80" height="60" rx="5" fill="rgba(179,136,255,0.07)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="500" y="63" text-anchor="middle" fill="#b388ff" font-size="12" font-weight="600">enrolled</text>
+      <text x="500" y="79" text-anchor="middle" fill="#6b7fa3" font-size="11">4 bytes (int)</text>
+      <text x="462" y="34" fill="#ffab40" font-size="10">+80</text>
+
+      <!-- Trailing pad -->
+      <rect x="540" y="40" width="30" height="60" rx="5" fill="rgba(255,82,82,0.07)" stroke="#ff5252" stroke-width="0.5" stroke-dasharray="3,2"/>
+      <text x="555" y="73" fill="#ff5252" font-size="9" text-anchor="middle">pad</text>
+      <text x="542" y="34" fill="#ffab40" font-size="10">+84</text>
+
+      <!-- Total -->
+      <text x="575" y="60" fill="#ffd740" font-size="13" font-weight="600">→ sizeof</text>
+      <text x="575" y="78" fill="#ffd740" font-size="13" font-weight="600">   = 88</text>
+
+      <!-- Padding explanation -->
+      <line x1="30" y1="130" x2="570" y2="130" stroke="var(--border)" stroke-width="1"/>
+      <text x="360" y="155" text-anchor="middle" fill="#6b7fa3" font-size="13">Why padding?</text>
+
+      <!-- Alignment diagram -->
+      <text x="60" y="185" fill="#text-dim" font-size="12">double must start at an address divisible by 8.</text>
+      <text x="60" y="205" fill="#6b7fa3" font-size="12">After name[64] + id(4) = byte 68 — not divisible by 8.</text>
+      <text x="60" y="225" fill="#6b7fa3" font-size="12">Compiler inserts 4 padding bytes → gpa starts at byte 72. ✓</text>
+
+      <!-- Rule of thumb -->
+      <rect x="30" y="248" width="660" height="60" rx="8" fill="rgba(255,215,64,0.04)" stroke="#ffd740" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="360" y="273" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">Rule of thumb: declare fields largest → smallest to minimize padding.</text>
+      <text x="360" y="296" text-anchor="middle" fill="#6b7fa3" font-size="11">double(8) · int(4) · int(4) · char[64] = zero padding, smaller total size.</text>
+    </svg>
+    <div class="caption">Struct fields are laid out in declaration order. Alignment rules may cause the compiler to insert invisible padding bytes between fields.</div>
+  </div>
+
+  <div class="key-concept">
+    <strong>Key Concept</strong><br>
+    Never assume the size of a struct by adding up its fields. Always use <code>sizeof(Student)</code>. Padding can make the real size larger — and it varies by platform and compiler.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Creating and Accessing Structs</h2>
+
+  <pre><span class="struct-name">Student</span> s;                        <span class="comment">// declare — fields uninitialized</span>
+
+<span class="comment">// Designated initializer (C99+) — preferred, safe, clear</span>
+<span class="struct-name">Student</span> s = {
+    .<span class="field">name</span> = <span class="str">"Alice"</span>,
+    .<span class="field">id</span>   = <span class="num">12345</span>,
+    .<span class="field">gpa</span>  = <span class="num">3.8</span>,
+    .<span class="field">enrolled</span> = <span class="num">1</span>
+};
+
+<span class="comment">// Access fields with the dot operator</span>
+<span class="func">printf</span>(<span class="str">"%s has a %.1f GPA\n"</span>, s.<span class="field">name</span>, s.<span class="field">gpa</span>);
+
+<span class="comment">// Modify fields directly</span>
+s.<span class="field">gpa</span> = <span class="num">3.9</span>;
+s.<span class="field">enrolled</span> = <span class="num">0</span>;</pre>
+
+  <h3>Nested Structs</h3>
+  <p>A struct field can itself be a struct. Access chained fields with repeated dot operators:</p>
+
+  <pre><span class="kw">typedef struct</span> {
+    <span class="type">double</span> <span class="field">x</span>, <span class="field">y</span>;
+} <span class="struct-name">Point</span>;
+
+<span class="kw">typedef struct</span> {
+    <span class="struct-name">Point</span>  <span class="field">position</span>;
+    <span class="struct-name">Point</span>  <span class="field">velocity</span>;
+    <span class="type">double</span> <span class="field">mass</span>;
+} <span class="struct-name">Particle</span>;
+
+<span class="struct-name">Particle</span> p = { .<span class="field">position</span> = {<span class="num">0.0</span>, <span class="num">0.0</span>}, .<span class="field">velocity</span> = {<span class="num">1.5</span>, <span class="num">-2.0</span>}, .<span class="field">mass</span> = <span class="num">1.0</span> };
+
+p.<span class="field">position</span>.<span class="field">x</span> += p.<span class="field">velocity</span>.<span class="field">x</span>;   <span class="comment">// advance position by velocity</span></pre>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Arrays of Structs</h2>
+
+  <p>An array of structs is exactly what it sounds like — the structs are packed one after another in memory, each <code>sizeof(StudentType)</code> bytes apart. This is one of the most common patterns in C programs.</p>
+
+  <pre><span class="struct-name">Student</span> roster[<span class="num">35</span>];               <span class="comment">// 35 students, stack-allocated</span>
+
+<span class="comment">// Initialize one by one:</span>
+<span class="func">strcpy</span>(roster[<span class="num">0</span>].<span class="field">name</span>, <span class="str">"Alice"</span>);
+roster[<span class="num">0</span>].<span class="field">id</span>  = <span class="num">1001</span>;
+roster[<span class="num">0</span>].<span class="field">gpa</span> = <span class="num">3.8</span>;
+
+<span class="comment">// Or with a compound literal:</span>
+roster[<span class="num">1</span>] = (<span class="struct-name">Student</span>){ .<span class="field">name</span> = <span class="str">"Bob"</span>, .<span class="field">id</span> = <span class="num">1002</span>, .<span class="field">gpa</span> = <span class="num">3.2</span> };
+
+<span class="comment">// Iterate:</span>
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; <span class="num">35</span>; i++) {
+    <span class="func">printf</span>(<span class="str">"%d: %-20s %.2f\n"</span>, roster[i].<span class="field">id</span>, roster[i].<span class="field">name</span>, roster[i].<span class="field">gpa</span>);
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 240" width="100%" height="240">
+      <!-- Header -->
+      <text x="360" y="22" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">Student roster[3] — contiguous in memory</text>
+
+      <!-- roster[0] -->
+      <rect x="30" y="40" width="200" height="120" rx="6" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="2"/>
+      <text x="130" y="36" text-anchor="middle" fill="#ffab40" font-size="10">0x2000</text>
+      <text x="130" y="62" text-anchor="middle" fill="#ffd740" font-size="12" font-weight="600">roster[0]</text>
+      <text x="130" y="84" text-anchor="middle" fill="#69f0ae" font-size="11">name: "Alice"</text>
+      <text x="130" y="102" text-anchor="middle" fill="#00e5ff" font-size="11">id:   1001</text>
+      <text x="130" y="120" text-anchor="middle" fill="#ffd740" font-size="11">gpa:  3.8</text>
+      <text x="130" y="138" text-anchor="middle" fill="#b388ff" font-size="11">enrolled: 1</text>
+      <text x="130" y="174" text-anchor="middle" fill="#6b7fa3" font-size="10">+0 → +87</text>
+
+      <!-- roster[1] -->
+      <rect x="260" y="40" width="200" height="120" rx="6" fill="rgba(255,215,64,0.05)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="360" y="36" text-anchor="middle" fill="#ffab40" font-size="10">0x2058 (+88)</text>
+      <text x="360" y="62" text-anchor="middle" fill="#ffd740" font-size="12" font-weight="600">roster[1]</text>
+      <text x="360" y="84" text-anchor="middle" fill="#69f0ae" font-size="11">name: "Bob"</text>
+      <text x="360" y="102" text-anchor="middle" fill="#00e5ff" font-size="11">id:   1002</text>
+      <text x="360" y="120" text-anchor="middle" fill="#ffd740" font-size="11">gpa:  3.2</text>
+      <text x="360" y="138" text-anchor="middle" fill="#b388ff" font-size="11">enrolled: 1</text>
+      <text x="360" y="174" text-anchor="middle" fill="#6b7fa3" font-size="10">+88 → +175</text>
+
+      <!-- roster[2] -->
+      <rect x="490" y="40" width="200" height="120" rx="6" fill="rgba(255,215,64,0.05)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="590" y="36" text-anchor="middle" fill="#ffab40" font-size="10">0x20B0 (+176)</text>
+      <text x="590" y="62" text-anchor="middle" fill="#ffd740" font-size="12" font-weight="600">roster[2]</text>
+      <text x="590" y="84" text-anchor="middle" fill="#69f0ae" font-size="11">name: "Carol"</text>
+      <text x="590" y="102" text-anchor="middle" fill="#00e5ff" font-size="11">id:   1003</text>
+      <text x="590" y="120" text-anchor="middle" fill="#ffd740" font-size="11">gpa:  3.9</text>
+      <text x="590" y="138" text-anchor="middle" fill="#b388ff" font-size="11">enrolled: 1</text>
+      <text x="590" y="174" text-anchor="middle" fill="#6b7fa3" font-size="10">+176 → +263</text>
+
+      <!-- Pointer arithmetic annotation -->
+      <text x="360" y="210" text-anchor="middle" fill="#6b7fa3" font-size="11">roster[i]  ≡  *(roster + i)  —  each step advances by sizeof(Student) bytes</text>
+    </svg>
+    <div class="caption">Each element in the array occupies sizeof(Student) bytes. Pointer arithmetic steps by exactly that amount.</div>
+  </div>
+
+  <h3>Dynamic Arrays of Structs</h3>
+  <p>When you don't know the count at compile time, allocate on the heap with <code>malloc</code>:</p>
+
+  <pre><span class="type">int</span> n = <span class="num">35</span>;  <span class="comment">// or read from user / config</span>
+
+<span class="struct-name">Student</span> *roster = <span class="func">malloc</span>(n * <span class="kw">sizeof</span>(<span class="struct-name">Student</span>));
+<span class="kw">if</span> (!roster) { <span class="comment">/* handle failure */</span> }
+
+<span class="comment">// Use exactly like a stack array:</span>
+roster[<span class="num">0</span>].<span class="field">id</span> = <span class="num">1001</span>;
+roster[<span class="num">1</span>].<span class="field">gpa</span> = <span class="num">3.2</span>;
+
+<span class="func">free</span>(roster);</pre>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Passing Structs to Functions</h2>
+
+  <p>C is a <em>pass-by-value</em> language. When you pass a struct to a function, the <strong>entire struct is copied</strong> — every field, every byte. The function works on its own private copy. This is safe but potentially expensive for large structs, and it means the function cannot modify the caller's original.</p>
+
+  <pre><span class="kw">void</span> <span class="func">print_student</span>(<span class="struct-name">Student</span> s) {      <span class="comment">// receives a COPY of the struct</span>
+    <span class="func">printf</span>(<span class="str">"%s — GPA: %.2f\n"</span>, s.<span class="field">name</span>, s.<span class="field">gpa</span>);
+    s.<span class="field">gpa</span> = <span class="num">0.0</span>;                      <span class="comment">// only modifies the local copy</span>
+}
+
+<span class="struct-name">Student</span> alice = { .<span class="field">name</span> = <span class="str">"Alice"</span>, .<span class="field">gpa</span> = <span class="num">3.8</span> };
+<span class="func">print_student</span>(alice);
+<span class="comment">// alice.gpa is still 3.8 — untouched</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <defs>
+        <marker id="copy-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffd740"/>
+        </marker>
+      </defs>
+
+      <!-- main side -->
+      <rect x="30" y="20" width="270" height="160" rx="8" fill="rgba(105,240,174,0.03)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="165" y="14" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">main()</text>
+      <rect x="55" y="45" width="220" height="110" rx="5" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="165" y="68" text-anchor="middle" fill="#ffd740" font-size="12" font-weight="600">alice (original)</text>
+      <text x="165" y="90" text-anchor="middle" fill="#69f0ae" font-size="11">name: "Alice"</text>
+      <text x="165" y="108" text-anchor="middle" fill="#ffd740" font-size="11">gpa: 3.8  ← unchanged</text>
+      <text x="165" y="126" text-anchor="middle" fill="#00e5ff" font-size="11">id: 1001</text>
+      <text x="165" y="167" text-anchor="middle" fill="#6b7fa3" font-size="10">sizeof(Student) bytes on stack</text>
+
+      <!-- Arrow: copy -->
+      <path d="M 300 100 L 420 100" stroke="#ffd740" stroke-width="2.5" fill="none" marker-end="url(#copy-arr)"/>
+      <text x="360" y="90" text-anchor="middle" fill="#ffd740" font-size="11" font-weight="600">COPY</text>
+      <text x="360" y="115" text-anchor="middle" fill="#6b7fa3" font-size="10">all fields duplicated</text>
+
+      <!-- function side -->
+      <rect x="420" y="20" width="270" height="160" rx="8" fill="rgba(0,229,255,0.03)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="555" y="14" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">print_student()</text>
+      <rect x="445" y="45" width="220" height="110" rx="5" fill="rgba(255,82,82,0.06)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="555" y="68" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">s (local copy)</text>
+      <text x="555" y="90" text-anchor="middle" fill="#69f0ae" font-size="11">name: "Alice"</text>
+      <text x="555" y="108" text-anchor="middle" fill="#ff5252" font-size="11">gpa: 0.0  ← modified here only</text>
+      <text x="555" y="126" text-anchor="middle" fill="#00e5ff" font-size="11">id: 1001</text>
+      <text x="555" y="167" text-anchor="middle" fill="#6b7fa3" font-size="10">destroyed when function returns</text>
+    </svg>
+    <div class="caption">Passing a struct by value copies every byte. The function's modifications never reach the caller's original.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Modifying Structs in Functions: Use a Pointer</h2>
+
+  <p>To let a function modify the caller's struct — or to avoid copying a large struct on every call — pass a <strong>pointer to the struct</strong>. This is the idiomatic C pattern.</p>
+
+  <pre><span class="kw">void</span> <span class="func">update_gpa</span>(<span class="struct-name">Student</span> *<span class="field">s</span>, <span class="type">double</span> new_gpa) {  <span class="comment">// pointer — no copy</span>
+    s-&gt;<span class="field">gpa</span> = new_gpa;    <span class="comment">// arrow operator: dereference + field access</span>
+}
+
+<span class="struct-name">Student</span> alice = { .<span class="field">name</span> = <span class="str">"Alice"</span>, .<span class="field">gpa</span> = <span class="num">3.8</span> };
+<span class="func">update_gpa</span>(&amp;alice, <span class="num">3.95</span>);
+<span class="comment">// alice.gpa is now 3.95 ✓</span></pre>
+
+  <p>The <strong>arrow operator</strong> <code>-&gt;</code> is the key. When you have a pointer to a struct, <code>s-&gt;gpa</code> means "follow the pointer <code>s</code>, then access the <code>gpa</code> field." It is exactly equivalent to writing <code>(*s).gpa</code>, just without the parentheses and dereference noise.</p>
+
+  <table class="op-table">
+    <thead>
+      <tr>
+        <th>Operator</th>
+        <th>Used when</th>
+        <th>Example</th>
+        <th>Equivalent to</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="op-sym">.</td>
+        <td>You have a <strong>struct value</strong> (not a pointer)</td>
+        <td><code>alice.gpa</code></td>
+        <td>Direct field access</td>
+      </tr>
+      <tr>
+        <td class="op-sym">-&gt;</td>
+        <td>You have a <strong>pointer to a struct</strong></td>
+        <td><code>s-&gt;gpa</code></td>
+        <td><code>(*s).gpa</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <defs>
+        <marker id="ptr-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+      </defs>
+
+      <!-- main side -->
+      <rect x="30" y="20" width="270" height="160" rx="8" fill="rgba(105,240,174,0.03)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="165" y="14" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">main()</text>
+      <rect x="55" y="45" width="220" height="110" rx="5" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="2"/>
+      <text x="165" y="68" text-anchor="middle" fill="#ffd740" font-size="12" font-weight="600">alice (original)</text>
+      <text x="165" y="90" text-anchor="middle" fill="#69f0ae" font-size="11">name: "Alice"</text>
+      <text x="165" y="108" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">gpa: 3.95  ← updated!</text>
+      <text x="165" y="126" text-anchor="middle" fill="#00e5ff" font-size="11">id: 1001</text>
+      <text x="165" y="167" text-anchor="middle" fill="#ffab40" font-size="10">lives at 0x3000</text>
+
+      <!-- Arrow: pointer (just an address, thin) -->
+      <path d="M 300 100 L 420 100" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ptr-arr)" stroke-dasharray="7,4"/>
+      <text x="360" y="90" text-anchor="middle" fill="#00e5ff" font-size="11" font-weight="600">&amp;alice</text>
+      <text x="360" y="115" text-anchor="middle" fill="#6b7fa3" font-size="10">8-byte address only</text>
+
+      <!-- function side -->
+      <rect x="420" y="20" width="270" height="160" rx="8" fill="rgba(0,229,255,0.03)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="555" y="14" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">update_gpa()</text>
+      <rect x="445" y="45" width="220" height="60" rx="5" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="555" y="68" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">s  (pointer)</text>
+      <text x="555" y="88" text-anchor="middle" fill="#ffab40" font-size="12">0x3000 → alice</text>
+      <text x="555" y="130" text-anchor="middle" fill="#ffd740" font-size="12">s-&gt;gpa = 3.95</text>
+      <text x="555" y="150" text-anchor="middle" fill="#6b7fa3" font-size="10">writes through pointer into main</text>
+    </svg>
+    <div class="caption">Passing a pointer copies only the 8-byte address. The function writes directly into the caller's struct through s->field.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Creating Structs Inside Functions</h2>
+
+  <p>Sometimes a function's whole job is to build a struct and return it. C gives you two ways to do this, with very different lifetimes.</p>
+
+  <h3>Return by Value (Stack)</h3>
+  <p>You can return a struct directly. C copies the return value back to the caller. This is simple and safe for reasonably-sized structs, and modern compilers often optimize away the copy entirely (Return Value Optimization).</p>
+
+  <pre><span class="struct-name">Student</span> <span class="func">make_student</span>(<span class="type">const</span> <span class="type">char</span> *name, <span class="type">int</span> id, <span class="type">double</span> gpa) {
+    <span class="struct-name">Student</span> s = {
+        .<span class="field">id</span>       = id,
+        .<span class="field">gpa</span>      = gpa,
+        .<span class="field">enrolled</span> = <span class="num">1</span>
+    };
+    <span class="func">strncpy</span>(s.<span class="field">name</span>, name, <span class="kw">sizeof</span>(s.<span class="field">name</span>) - <span class="num">1</span>);
+    <span class="kw">return</span> s;    <span class="comment">// struct is copied into the caller's variable</span>
+}
+
+<span class="struct-name">Student</span> alice = <span class="func">make_student</span>(<span class="str">"Alice"</span>, <span class="num">1001</span>, <span class="num">3.8</span>);</pre>
+
+  <h3>Return by Pointer (Heap)</h3>
+  <p>When the struct needs to outlive the function in a complex way, or when it's very large, allocate it on the heap and return the pointer. The caller is then responsible for <code>free</code>-ing it.</p>
+
+  <pre><span class="struct-name">Student</span> *<span class="func">make_student_heap</span>(<span class="type">const</span> <span class="type">char</span> *name, <span class="type">int</span> id, <span class="type">double</span> gpa) {
+    <span class="struct-name">Student</span> *s = <span class="func">malloc</span>(<span class="kw">sizeof</span>(<span class="struct-name">Student</span>));
+    <span class="kw">if</span> (!s) <span class="kw">return</span> <span class="num">NULL</span>;
+
+    s-&gt;<span class="field">id</span>       = id;
+    s-&gt;<span class="field">gpa</span>      = gpa;
+    s-&gt;<span class="field">enrolled</span> = <span class="num">1</span>;
+    <span class="func">strncpy</span>(s-&gt;<span class="field">name</span>, name, <span class="kw">sizeof</span>(s-&gt;<span class="field">name</span>) - <span class="num">1</span>);
+
+    <span class="kw">return</span> s;   <span class="comment">// caller must free(s) when done</span>
+}
+
+<span class="struct-name">Student</span> *alice = <span class="func">make_student_heap</span>(<span class="str">"Alice"</span>, <span class="num">1001</span>, <span class="num">3.8</span>);
+<span class="comment">// ...use alice...</span>
+<span class="func">free</span>(alice);</pre>
+
+  <div class="warning">
+    <strong>The Classic Mistake: Returning a Stack Pointer</strong><br>
+    <em>Never</em> return a pointer to a local struct variable. The struct lives on the function's stack frame, which is destroyed the moment the function returns. The pointer immediately becomes dangling.
+    <br><br>
+    <code>Student *bad() { Student s = {...}; return &amp;s; }  // ← UNDEFINED BEHAVIOR</code>
+    <br><br>
+    If you need to return a pointer, <code>malloc</code> the struct. If you can return by value, do that instead.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Passing Arrays of Structs to Functions</h2>
+
+  <p>Like all arrays in C, an array of structs decays into a pointer when passed to a function. The function receives a pointer to the first element and must be told the count separately.</p>
+
+  <pre><span class="kw">void</span> <span class="func">print_roster</span>(<span class="struct-name">Student</span> *students, <span class="type">int</span> count) {
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; count; i++) {
+        <span class="func">printf</span>(<span class="str">"%4d  %-20s  %.2f\n"</span>,
+               students[i].<span class="field">id</span>,
+               students[i].<span class="field">name</span>,
+               students[i].<span class="field">gpa</span>);
+    }
+}
+
+<span class="kw">void</span> <span class="func">apply_curve</span>(<span class="struct-name">Student</span> *students, <span class="type">int</span> count, <span class="type">double</span> bonus) {
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; count; i++) {
+        students[i].<span class="field">gpa</span> += bonus;          <span class="comment">// modifies originals directly</span>
+        <span class="kw">if</span> (students[i].<span class="field">gpa</span> &gt; <span class="num">4.0</span>) students[i].<span class="field">gpa</span> = <span class="num">4.0</span>;
+    }
+}
+
+<span class="struct-name">Student</span> roster[<span class="num">35</span>];
+<span class="comment">// ... fill roster ...</span>
+<span class="func">print_roster</span>(roster, <span class="num">35</span>);
+<span class="func">apply_curve</span>(roster, <span class="num">35</span>, <span class="num">0.1</span>);</pre>
+
+  <p>Notice that <code>apply_curve</code> modifies the array elements directly — no extra <code>&amp;</code> needed. That's because the array already decayed to a pointer, so <code>students[i].gpa</code> is writing through that pointer into the original memory.</p>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Struct Pointers: The Full Picture</h2>
+
+  <p>Struct pointers are used pervasively in C. Linked lists, trees, hash tables, file handles — every significant data structure in C is built with struct pointers. Here's a linked list node to see how it all fits together:</p>
+
+  <pre><span class="kw">typedef struct</span> <span class="struct-name">Node</span> {
+    <span class="type">int</span>          <span class="field">value</span>;
+    <span class="kw">struct</span> <span class="struct-name">Node</span> *<span class="field">next</span>;   <span class="comment">// pointer to same type — linked list!</span>
+} <span class="struct-name">Node</span>;
+
+<span class="struct-name">Node</span> *<span class="func">make_node</span>(<span class="type">int</span> val) {
+    <span class="struct-name">Node</span> *n = <span class="func">malloc</span>(<span class="kw">sizeof</span>(<span class="struct-name">Node</span>));
+    n-&gt;<span class="field">value</span> = val;
+    n-&gt;<span class="field">next</span>  = <span class="num">NULL</span>;
+    <span class="kw">return</span> n;
+}
+
+<span class="comment">// Build 3 → 2 → 1 → NULL</span>
+<span class="struct-name">Node</span> *head = <span class="func">make_node</span>(<span class="num">3</span>);
+head-&gt;<span class="field">next</span> = <span class="func">make_node</span>(<span class="num">2</span>);
+head-&gt;<span class="field">next</span>-&gt;<span class="field">next</span> = <span class="func">make_node</span>(<span class="num">1</span>);
+
+<span class="comment">// Traverse</span>
+<span class="kw">for</span> (<span class="struct-name">Node</span> *p = head; p != <span class="num">NULL</span>; p = p-&gt;<span class="field">next</span>) {
+    <span class="func">printf</span>(<span class="str">"%d "</span>, p-&gt;<span class="field">value</span>);
+}</pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <defs>
+        <marker id="ll-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
+        </marker>
+      </defs>
+
+      <!-- head pointer -->
+      <rect x="20" y="70" width="80" height="60" rx="5" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="60" y="96" text-anchor="middle" fill="#6b7fa3" font-size="11">head</text>
+      <text x="60" y="114" text-anchor="middle" fill="#00e5ff" font-size="11">0x4000</text>
+      <path d="M 100 100 L 148 100" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ll-arr)"/>
+
+      <!-- Node 1: value=3 -->
+      <rect x="150" y="60" width="140" height="80" rx="6" fill="rgba(255,215,64,0.08)" stroke="#ffd740" stroke-width="2"/>
+      <text x="220" y="55" text-anchor="middle" fill="#ffab40" font-size="10">0x4000</text>
+      <text x="175" y="92" fill="#6b7fa3" font-size="11">value:</text>
+      <text x="245" y="92" fill="#ffd740" font-size="14" font-weight="600">3</text>
+      <text x="175" y="114" fill="#6b7fa3" font-size="11">next:</text>
+      <text x="245" y="114" fill="#00e5ff" font-size="11">0x4060</text>
+      <path d="M 290 100 L 338 100" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ll-arr)"/>
+
+      <!-- Node 2: value=2 -->
+      <rect x="340" y="60" width="140" height="80" rx="6" fill="rgba(255,215,64,0.06)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="410" y="55" text-anchor="middle" fill="#ffab40" font-size="10">0x4060</text>
+      <text x="365" y="92" fill="#6b7fa3" font-size="11">value:</text>
+      <text x="435" y="92" fill="#ffd740" font-size="14" font-weight="600">2</text>
+      <text x="365" y="114" fill="#6b7fa3" font-size="11">next:</text>
+      <text x="435" y="114" fill="#00e5ff" font-size="11">0x40C0</text>
+      <path d="M 480 100 L 528 100" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#ll-arr)"/>
+
+      <!-- Node 3: value=1 -->
+      <rect x="530" y="60" width="140" height="80" rx="6" fill="rgba(255,215,64,0.06)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="600" y="55" text-anchor="middle" fill="#ffab40" font-size="10">0x40C0</text>
+      <text x="555" y="92" fill="#6b7fa3" font-size="11">value:</text>
+      <text x="625" y="92" fill="#ffd740" font-size="14" font-weight="600">1</text>
+      <text x="555" y="114" fill="#6b7fa3" font-size="11">next:</text>
+      <text x="625" y="114" fill="#6b7fa3" font-size="11">NULL</text>
+
+      <text x="360" y="170" text-anchor="middle" fill="#6b7fa3" font-size="11">p-&gt;next advances through the list — each node malloc'd independently</text>
+    </svg>
+    <div class="caption">A linked list: each Node is heap-allocated. The next pointer chains them. head->next->next = 0x40C0.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <h2>Common Difficulties with Structs</h2>
+
+  <p>Structs are not hard conceptually, but several specific patterns trip up almost every C developer — including experienced ones. Here are the ones you'll encounter most.</p>
+
+  <div class="pitfalls">
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 01</div>
+      <div class="pitfall-title">Dot vs. Arrow Confusion</div>
+      <div class="pitfall-desc">Using <code>.</code> when you have a pointer, or <code>-&gt;</code> when you have a value. The rule is simple: do you hold the struct itself, or a pointer to one? If you're ever unsure, read the variable's declaration.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 02</div>
+      <div class="pitfall-title">Modifying a Copy Instead of the Original</div>
+      <div class="pitfall-desc">Passing a struct by value and wondering why your changes don't stick. If a function must modify a struct, the parameter must be <code>StructType *s</code>, and callers must pass <code>&amp;myStruct</code>.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 03</div>
+      <div class="pitfall-title">Returning a Pointer to a Local Struct</div>
+      <div class="pitfall-desc"><code>return &amp;localVar</code> from a function is always wrong — the local variable's stack frame is destroyed on return. Either return by value, or <code>malloc</code> the struct and return that pointer.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 04</div>
+      <div class="pitfall-title">Forgetting NULL Check After malloc</div>
+      <div class="pitfall-desc"><code>malloc</code> can return NULL if memory is exhausted. Writing <code>s-&gt;id = 5</code> immediately after a failed malloc is a segfault waiting to happen. Always check: <code>if (!s) { /* handle */ }</code>.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 05</div>
+      <div class="pitfall-title">Using sizeof on a Pointer to a Struct</div>
+      <div class="pitfall-desc"><code>sizeof(Student *)</code> is always 8 (pointer size), not the size of the struct. If you're allocating with <code>malloc</code>, write <code>malloc(sizeof(Student))</code> — or the idiomatic and safer <code>malloc(sizeof(*ptr))</code>.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 06</div>
+      <div class="pitfall-title">Shallow Copy of Pointer Fields</div>
+      <div class="pitfall-desc">If a struct contains a <code>char *name</code> pointer field, assigning one struct to another copies the pointer — not the string it points to. Both structs now share the same string; freeing one corrupts the other.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 07</div>
+      <div class="pitfall-title">String Fields: char[] vs char*</div>
+      <div class="pitfall-desc">A <code>char name[64]</code> field stores the string inside the struct. A <code>char *name</code> field stores only a pointer — you need to separately allocate the string. Forgetting this leads to dangling pointers or writing to string literals.</div>
+    </div>
+
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 08</div>
+      <div class="pitfall-title">Uninitialized Fields</div>
+      <div class="pitfall-desc"><code>Student s;</code> without an initializer leaves all fields containing whatever bytes were previously on the stack. Always initialize — use designated initializers <code>= {.id = 0}</code> or <code>memset(&amp;s, 0, sizeof(s))</code> for a guaranteed zero state.</div>
+    </div>
+
+  </div>
+
+  <h3>Pitfalls 1 &amp; 2 in Code: The Canonical Mistakes</h3>
+
+  <pre><span class="comment">/* ── Pitfall 1: dot vs. arrow ─────────────────────────── */</span>
+<span class="struct-name">Student</span> *ptr = <span class="func">malloc</span>(<span class="kw">sizeof</span>(<span class="struct-name">Student</span>));
+
+ptr.<span class="field">gpa</span> = <span class="num">3.8</span>;       <span class="comment">// ✗ COMPILE ERROR — ptr is a pointer, use -&gt;</span>
+ptr-&gt;<span class="field">gpa</span> = <span class="num">3.8</span>;      <span class="comment">// ✓</span>
+
+<span class="struct-name">Student</span> val = *ptr;
+val-&gt;<span class="field">gpa</span> = <span class="num">3.8</span>;      <span class="comment">// ✗ COMPILE ERROR — val is a struct, use .</span>
+val.<span class="field">gpa</span> = <span class="num">3.8</span>;       <span class="comment">// ✓</span>
+
+<span class="comment">/* ── Pitfall 2: copy vs. pointer ──────────────────────── */</span>
+<span class="kw">void</span> <span class="func">bad_curve</span>(<span class="struct-name">Student</span> s)    { s.<span class="field">gpa</span> += <span class="num">0.1</span>; }  <span class="comment">// ✗ modifies copy</span>
+<span class="kw">void</span> <span class="func">good_curve</span>(<span class="struct-name">Student</span> *s)  { s-&gt;<span class="field">gpa</span> += <span class="num">0.1</span>; } <span class="comment">// ✓ modifies original</span>
+
+<span class="struct-name">Student</span> alice = { .<span class="field">gpa</span> = <span class="num">3.8</span> };
+<span class="func">bad_curve</span>(alice);          <span class="comment">// compiles but does nothing to alice</span>
+<span class="func">good_curve</span>(&amp;alice);        <span class="comment">// alice.gpa becomes 3.9 ✓</span></pre>
+
+  <h3>Pitfall 6: Shallow Copy Deep-Dive</h3>
+
+  <pre><span class="kw">typedef struct</span> {
+    <span class="type">char</span> *<span class="field">name</span>;   <span class="comment">// pointer field — not an array!</span>
+    <span class="type">int</span>   <span class="field">id</span>;
+} <span class="struct-name">BadStudent</span>;
+
+<span class="struct-name">BadStudent</span> a, b;
+a.<span class="field">name</span> = <span class="func">malloc</span>(<span class="num">64</span>);
+<span class="func">strcpy</span>(a.<span class="field">name</span>, <span class="str">"Alice"</span>);
+
+b = a;              <span class="comment">// struct copy — copies the pointer, NOT the string!</span>
+                    <span class="comment">// a.name and b.name now point to the SAME buffer</span>
+
+<span class="func">free</span>(a.<span class="field">name</span>);      <span class="comment">// frees the buffer</span>
+<span class="func">printf</span>(<span class="str">"%s\n"</span>, b.<span class="field">name</span>);  <span class="comment">// ✗ use-after-free! b.name is now dangling</span>
+
+<span class="comment">/* ── Safe deep copy ─────────────────────────────────── */</span>
+b.<span class="field">name</span> = <span class="func">malloc</span>(<span class="func">strlen</span>(a.<span class="field">name</span>) + <span class="num">1</span>);
+<span class="func">strcpy</span>(b.<span class="field">name</span>, a.<span class="field">name</span>);   <span class="comment">// ✓ independent copy of the string</span></pre>
+
+  <div class="tip">
+    <strong>Pro Tip: Use char[] for Fixed-Size Strings in Structs</strong><br>
+    If you use <code>char name[64]</code> instead of <code>char *name</code>, the string is embedded directly in the struct — no separate allocation, no shallow-copy hazard, and struct assignment does the right thing automatically. The trade-off is a fixed maximum size. For most student/record-style structs, this is the right default.
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    A struct groups related fields into one named type. Use <code>.</code> to access fields on a value; use <code>-&gt;</code> to access fields through a pointer. Pass structs by pointer when functions need to modify them or when the struct is large. Return by value for small structs; <code>malloc</code> and return a pointer for large or long-lived ones. The most common traps are using the wrong access operator, accidentally modifying a copy, and returning a pointer to a stack-allocated local.
+  </div>
+
+</main>
+</body>
+</html>
