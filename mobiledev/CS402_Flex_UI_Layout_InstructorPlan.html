@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Instructor Plan: Flex Layout and Modular UI Composition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 0.85in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.75; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { margin-bottom: 36px; padding-bottom: 24px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #c8890f; text-transform: uppercase; margin-bottom: 6px; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .subtitle { font-size: 17px; color: #2E5D8A; font-weight: 700; margin-bottom: 16px; }
+  .doc-header .meta-row { display: flex; flex-wrap: wrap; gap: 22px; font-size: 13px; color: #555; padding-top: 14px; border-top: 1px solid #e0e8f0; }
+  .doc-header .meta-row span { display: flex; align-items: center; gap: 5px; }
+  .doc-header .meta-row strong { color: #1B3A5C; }
+
+  /* ── Typography ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; color: #1B3A5C; margin: 38px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 15px; color: #2E5D8A; margin: 20px 0 8px; font-weight: 700; }
+  p  { margin-bottom: 12px; color: #333; }
+  ul, ol { margin: 8px 0 14px 24px; color: #333; }
+  li { margin-bottom: 6px; }
+
+  /* ── Callouts ── */
+  .callout         { margin: 16px 0; padding: 14px 18px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; }
+  .callout strong  { color: #1B3A5C; }
+  .instructor-note { margin: 16px 0; padding: 14px 18px; background: #fffbf0; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; }
+  .instructor-note strong { color: #8a5d0a; }
+  .danger          { margin: 16px 0; padding: 14px 18px; background: #fdf0f0; border-left: 4px solid #c04040; border-radius: 0 6px 6px 0; }
+  .danger strong   { color: #8a1a1a; }
+  .demo-block      { margin: 16px 0; padding: 14px 18px; background: #f0faf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; }
+  .demo-block strong { color: #1a5c3a; }
+  .discussion      { margin: 16px 0; padding: 14px 18px; background: #f5f0fa; border-left: 4px solid #7c5cbf; border-radius: 0 6px 6px 0; }
+  .discussion strong { color: #4a3580; }
+
+  /* ── Segment containers ── */
+  .segment { margin: 32px 0 0; border: 1.5px solid #d0dce6; border-radius: 10px; overflow: hidden; }
+  .segment-header { display: flex; align-items: stretch; background: #1B3A5C; }
+  .segment-num { background: #0d2236; font-size: 22px; font-weight: 700; padding: 14px 20px; min-width: 60px; text-align: center; font-family: 'DM Serif Display', Georgia, serif; color: #fff; display: flex; align-items: center; justify-content: center; }
+  .segment-title-block { padding: 10px 18px; flex: 1; }
+  .segment-title    { font-size: 16px; font-weight: 700; color: #fff; }
+  .segment-subtitle { font-size: 12px; color: #a0c0e0; margin-top: 2px; }
+  .segment-time     { padding: 10px 20px; font-size: 13px; color: #a0c0e0; white-space: nowrap; display: flex; align-items: center; }
+  .segment-body     { padding: 20px 24px; }
+
+  /* ── Timing bar ── */
+  .timing-overview { margin: 20px 0 30px; border: 1.5px solid #d0dce6; border-radius: 8px; overflow: hidden; }
+  .timing-header   { background: #1B3A5C; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 16px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .timing-bar      { display: flex; height: 40px; }
+  .timing-seg      { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; padding: 0 4px; text-align: center; line-height: 1.3; }
+  .t1 { background: #1B3A5C; }
+  .t2 { background: #2E5D8A; }
+  .t3 { background: #3a6a9a; }
+  .t4 { background: #2e5d3a; }
+  .t5 { background: #5a3a7a; }
+  .t6 { background: #7a5d1a; }
+  .t7 { background: #1a5a4a; }
+  .t8 { background: #5a1a3a; }
+  .timing-legend   { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #f7f9fc; border-top: 1px solid #e0e8f0; }
+  .legend-item     { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; }
+  .legend-dot      { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── Talking points ── */
+  .talking-points   { list-style: none; margin: 0 0 14px; padding: 0; }
+  .talking-points li { padding: 5px 0 5px 22px; position: relative; color: #333; border-bottom: 1px dotted #e0e8f0; }
+  .talking-points li:last-child { border-bottom: none; }
+  .talking-points li::before   { content: "›"; position: absolute; left: 4px; color: #2E5D8A; font-size: 18px; line-height: 1.3; font-weight: 700; }
+
+  /* ── CFU ── */
+  .cfu { background: #f7f9fc; border: 1px solid #c8d8e8; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .cfu .cfu-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 8px; }
+  .cfu ol  { margin: 0 0 0 20px; }
+  .cfu li  { font-size: 14px; margin-bottom: 8px; }
+  .cfu .answer { color: #666; font-style: italic; font-size: 13px; margin-top: 3px; }
+
+  /* ── Activity / Whiteboard ── */
+  .activity { background: #f0faf4; border: 1.5px solid #7abf9a; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .activity .act-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2e8a5d; margin-bottom: 8px; }
+  .whiteboard { background: #fffef0; border: 1.5px dashed #c8b80f; border-radius: 8px; padding: 14px 18px; margin: 14px 0; }
+  .whiteboard .wb-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #8a7a0a; margin-bottom: 6px; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre  { background: #1e1e2e; color: #cdd6f4; padding: 14px 18px; border-radius: 8px; overflow-x: auto; margin: 10px 0 14px; font-size: 12.5px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 9px 13px; text-align: left; }
+  td { padding: 8px 13px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  /* ── Two-col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0 16px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 14px 16px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 13px; margin-bottom: 4px; }
+
+  /* ── Objectives ── */
+  .obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .obj-item { background: #f0f6fb; border-radius: 6px; padding: 12px 14px; border-left: 3px solid #2E5D8A; font-size: 14px; color: #333; }
+  .obj-item .bloom { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 4px; }
+
+  /* ── Bug spotlight ── */
+  .bug-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .bug-card { border-radius: 8px; padding: 14px 16px; border: 1.5px solid; }
+  .bug-bad  { background: #fdf0f0; border-color: #c04040; }
+  .bug-bad  h4 { font-size: 13px; font-weight: 700; color: #8a1a1a; margin-bottom: 6px; }
+  .bug-good { background: #f0faf4; border-color: #2e8a5d; }
+  .bug-good h4 { font-size: 13px; font-weight: 700; color: #1a5a2a; margin-bottom: 6px; }
+
+  /* ── Footer ── */
+  .doc-footer { margin-top: 48px; padding-top: 18px; border-top: 2px solid #d0dce6; font-size: 12px; color: #888; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .segment, .timing-overview, .obj-grid, .two-col, .bug-row { break-inside: avoid; }
+    .callout, .instructor-note, .danger, .demo-block, .discussion, .cfu, .activity, .whiteboard { break-inside: avoid; }
+    pre { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ───────────────────────────────────────────────────── -->
+<div class="doc-header">
+  <div class="eyebrow">📋 Instructor Lesson Plan</div>
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="subtitle">Flex Layout and Modular UI Composition</div>
+  <div class="meta-row">
+    <span>🕐 <strong>Total time:</strong> 75 minutes</span>
+    <span>📅 <strong>Semester:</strong> Spring 2026</span>
+    <span>🎓 <strong>Type:</strong> Code-heavy / Live demo throughout</span>
+    <span>📄 <strong>Student doc:</strong> CS402_Flex_UI_Layout.html</span>
+    <span>🔙 <strong>Prior context:</strong> Theme 2 covered Flexbox basics</span>
+    <span>🔜 <strong>Next class:</strong> Final Project Introduction</span>
+  </div>
+</div>
+
+
+<!-- ─── OVERVIEW ─────────────────────────────────────────────────── -->
+<h2>Lesson Overview</h2>
+
+<p>
+  This is the second time students encounter Flexbox in the course — but for many, it's the
+  first time it will <em>make sense</em>. The Theme 2 introduction gave them the property
+  names. This lecture gives them the mental model that makes those properties predictable.
+  The central shift is from memorising properties to understanding the axis system — after
+  which every Flexbox behavior becomes deducible rather than guessable.
+</p>
+<p>
+  The second half of the lecture introduces modular component design through the Atomic Design
+  framework. This transition from layout mechanics to design discipline is the most conceptually
+  demanding part of the session. Budget the first half of class for building confident Flexbox
+  intuition, then use that foundation to motivate why structure matters as components grow.
+</p>
+<p>
+  This lecture comes just before the Final Project Introduction, which makes it the last major
+  technical foundation session before students scope their own work. Ending with the modular
+  design checklist gives them a framework to apply immediately when planning their final project
+  component structure.
+</p>
+
+<h3>What Makes This Lecture Different</h3>
+<ul>
+  <li><strong>Students have prior exposure but fragile understanding.</strong> Most can copy-paste Flexbox properties that work. Far fewer can explain <em>why</em> a layout broke or predict what a change will do. The goal is closing that gap.</li>
+  <li><strong>Live coding is essential.</strong> Flexbox is a visual system. Describing properties verbally is the least effective way to teach it. Every major concept needs a running code demo students can watch break and fix in real time.</li>
+  <li><strong>The flex: 1 chain bug is universal.</strong> Every student in the room has seen their layout collapse to zero height at least once. Opening with a live demo of that specific bug and its fix creates immediate buy-in.</li>
+  <li><strong>Atomic design is new vocabulary for existing instincts.</strong> Students already know that big components feel wrong. This lecture gives them the language and a principled framework to act on that instinct.</li>
+</ul>
+
+<h3>Learning Objectives</h3>
+<div class="obj-grid">
+  <div class="obj-item">
+    <div class="bloom">Explain</div>
+    Describe how the main axis and cross axis work in Flexbox and identify which properties control each.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Predict</div>
+    Given a set of Flexbox properties, predict how children will be positioned and sized without running the code.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Build the header/scroll/footer layout pattern correctly, including the full <code>flex: 1</code> ancestor chain.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Write responsive layouts using <code>useWindowDimensions</code> that adapt column count or layout pattern to screen width.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Analyse</div>
+    Decompose a given screen design into atomic layers (atoms, molecules, organisms, screens).
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Separate layout concerns from content concerns when composing components, using the <code>children</code> prop and layout component patterns.
+  </div>
+</div>
+
+<h3>Prerequisites Students Should Have</h3>
+<ul>
+  <li>Basic Flexbox exposure from Theme 2: <code>flexDirection</code>, <code>justifyContent</code>, <code>alignItems</code>, <code>flex</code></li>
+  <li>Props and component composition from lectures 4–5</li>
+  <li><code>StyleSheet.create()</code> and the difference between React Native styling and CSS</li>
+  <li>At least one completed assignment where layout bugs were encountered — the more frustrated they were, the more receptive to this lecture</li>
+</ul>
+
+<div class="instructor-note">
+  <strong>⚙️ Prep required before class:</strong> Create a bare Expo project with a single
+  screen containing a broken layout — specifically the <code>flex: 1</code> chain bug where
+  a <code>ScrollView</code> collapses to zero height because a parent is missing
+  <code>flex: 1</code>. This will be your opening live demo. Also prepare a second file
+  containing the four canonical layout patterns from Section 3 of the student doc,
+  ready to toggle between. Demoing from pre-built files rather than typing from scratch
+  keeps the energy up and eliminates typo-induced detours.
+</div>
+
+
+<!-- ─── TIMING OVERVIEW ──────────────────────────────────────────── -->
+<h2>Session Timing at a Glance</h2>
+
+<div class="timing-overview">
+  <div class="timing-header">75-Minute Session — Proportional Breakdown</div>
+  <div class="timing-bar">
+    <div class="timing-seg t1" style="width:9%">Hook<br>7 min</div>
+    <div class="timing-seg t2" style="width:16%">Axis Model<br>12 min</div>
+    <div class="timing-seg t3" style="width:13%">flex Math<br>10 min</div>
+    <div class="timing-seg t4" style="width:17%">Patterns<br>13 min</div>
+    <div class="timing-seg t5" style="width:11%">Responsive<br>8 min</div>
+    <div class="timing-seg t6" style="width:9%">Absolute<br>7 min</div>
+    <div class="timing-seg t7" style="width:16%">Atomic Design<br>12 min</div>
+    <div class="timing-seg t8" style="width:9%">Composition<br>6 min</div>
+  </div>
+  <div class="timing-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Hook &amp; The Classic Bug (7 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>The Axis Model (12 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3a6a9a"></div>flex / flexGrow / flexShrink Math (10 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e5d3a"></div>Four Canonical Layout Patterns (13 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5a3a7a"></div>Responsive Layouts (8 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7a5d1a"></div>Absolute Positioning (7 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1a5a4a"></div>Atomic Design (12 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5a1a3a"></div>Composition Patterns + Close (6 min)</div>
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 1 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">1</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Hook — The Layout Bug Everyone Has Hit</div>
+      <div class="segment-subtitle">Open with a live demo of the most common Flexbox failure before explaining anything</div>
+    </div>
+    <div class="segment-time">⏱ 7 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>Start with the broken code, not the explanation. Students who have hit this bug — and nearly all of them have — will lean forward immediately when they recognise it.</p>
+
+    <div class="demo-block">
+      <strong>🖥️ Open the pre-built broken project. Show this on screen:</strong>
+      A screen with a header, a <code>ScrollView</code> that should fill the middle, and a
+      footer pinned at the bottom. The ScrollView is invisible — collapsed to zero height.
+      The footer is floating up against the header. Ask the class: "Who has seen this before?"
+      Then: "Who knows why it's happening?"
+    </div>
+
+    <ul class="talking-points">
+      <li>Let silence sit for 10–15 seconds after "who knows why?" Students who think they know will volunteer. Students who don't will become curious. Both are useful states to be in.</li>
+      <li>Don't fix it yet. Instead, use the brokenness to motivate the axis model: "To understand why this is broken, you need to understand how Flexbox actually calculates where things go. That's what the first part of today is about. We'll come back and fix this in about fifteen minutes."</li>
+      <li>Frame the session goal clearly: "By the end of today you should be able to look at any layout bug and explain in one sentence why it's happening. Right now most of you are guessing. That ends today."</li>
+    </ul>
+
+    <div class="discussion">
+      <strong>💬 Quick poll before moving on:</strong> "Show of hands — how many of you have solved a Flexbox layout problem by randomly adding <code>flex: 1</code> to things until it worked?" Most hands will go up. Acknowledge it without judgment: "That's the sign of someone who knows the properties but not the model. Today we fix the model."
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 2 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">2</div>
+    <div class="segment-title-block">
+      <div class="segment-title">The Axis Model</div>
+      <div class="segment-subtitle">Main axis vs. cross axis, flexDirection, justifyContent, alignItems</div>
+    </div>
+    <div class="segment-time">⏱ 12 min</div>
+  </div>
+  <div class="segment-body">
+
+    <div class="whiteboard">
+      <div class="wb-label">🖊 Draw before showing the diagram</div>
+      Draw two rectangles side by side on the board — one labeled "column" (arrow pointing down),
+      one labeled "row" (arrow pointing right). Label the arrows "MAIN AXIS." Draw a perpendicular
+      arrow on each and label it "CROSS AXIS." Then write: <code>justifyContent</code> = main,
+      <code>alignItems</code> = cross. This takes 60 seconds and gives students a spatial anchor
+      before you project Figure 1 from the student doc.
+    </div>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li>The single most important sentence in this lecture: <strong>"justifyContent controls the main axis. alignItems controls the cross axis. Those axes swap when you change flexDirection."</strong> Say it, write it on the board, and say it again after the diagram. This one sentence explains 80% of Flexbox layout decisions.</li>
+      <li>React Native defaults to <code>flexDirection: 'column'</code> — so the main axis points <em>down</em> by default. This is the opposite of web CSS, where <code>flexDirection</code> defaults to <code>'row'</code>. Students coming from any web background will have this reflex burned in wrong. Name it explicitly.</li>
+      <li>Walk through Figure 2 (justifyContent variants) from the student doc. For each value, ask students to predict the result before revealing it. <code>space-between</code> and <code>space-around</code> are consistently confused — give the mnemonic: "between pins to edges, around wraps each item."</li>
+      <li><code>alignItems: 'stretch'</code> is the default and the source of the "all my children are the same height even though they have different content" question. Name it. It stretches all children to fill the cross axis dimension of the tallest sibling.</li>
+      <li><code>alignSelf</code> on a child overrides the parent's <code>alignItems</code> for that child only. Quick to mention, occasionally very useful.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥️ Live demo — toggle flexDirection in a running app:</strong>
+      Have three colored boxes inside a <code>View</code>. Toggle <code>flexDirection</code>
+      between <code>'column'</code> and <code>'row'</code> live. Then keep it on <code>'row'</code>
+      and toggle <code>justifyContent</code> through all six values. Students watching the boxes
+      move in real time internalise the model faster than any diagram. Keep this under 4 minutes —
+      it's a demonstration, not a deep dive.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding</div>
+      <ol>
+        <li>"I have <code>flexDirection: 'row'</code> and I want my children centered vertically. Which property do I use?"
+          <div class="answer">→ <code>alignItems: 'center'</code> — because when direction is row, the cross axis is vertical.</div>
+        </li>
+        <li>"I have <code>flexDirection: 'column'</code> and I want equal space between children but no space at the edges. Which justifyContent value?"
+          <div class="answer">→ <code>'space-between'</code> — pins items to the edges of the main axis with equal gaps between.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 3 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">3</div>
+    <div class="segment-title-block">
+      <div class="segment-title">flex, flexGrow, flexShrink, flexBasis — The Distribution Math</div>
+      <div class="segment-subtitle">What flex: 1 actually does, and why the chain must be unbroken</div>
+    </div>
+    <div class="segment-time">⏱ 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>This is the segment that resolves the bug from Segment 1. Keep the broken code visible in a corner of the screen throughout this explanation — students should be able to see exactly how what you're explaining maps to what's broken.</p>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li>Establish the mental model for <code>flex: 1</code> before anything else: "Flex: 1 means 'take up my share of whatever space is left over after fixed-size siblings are placed.' If there is no space left over, there is nothing to claim." This is the key to understanding why a container with no height produces invisible children.</li>
+      <li>Walk through Figure 3 from the student doc: three siblings with <code>flex: 1</code>, <code>flex: 2</code>, <code>flex: 1</code>. Total parts = 4. The middle child gets 2/4 = half the available space. This arithmetic is all Flexbox is doing under the hood.</li>
+      <li>Introduce the flex chain rule: for any child to fill available height, <em>every ancestor</em> up to the screen root must have either a defined height or <code>flex: 1</code>. An ancestor with neither has zero computed height, which means its children have zero space to claim, which means <code>flex: 1</code> children inside it are zero height. Draw this as a chain of containers on the board — break one link and the whole chain fails.</li>
+      <li>Keep <code>flexGrow</code>, <code>flexShrink</code>, <code>flexBasis</code> brief. Students almost never need to set them separately. The message: <code>flex: 1</code> is shorthand for <code>{ flexGrow: 1, flexShrink: 1, flexBasis: 0 }</code>, which means "start from zero, grow proportionally, shrink proportionally." That's it.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥️ Fix the broken layout from Segment 1 live:</strong>
+      Return to the broken project. Add <code>flex: 1</code> to the screen root. Still broken?
+      Show that the intermediate container also needed it. Add it. Fixed. This two-step fix —
+      and watching the layout snap into place — is more instructive than ten minutes of
+      explanation. Students remember the fix because they watched it happen.
+    </div>
+
+    <div class="danger">
+      <strong>⚠️ The contentContainerStyle trap:</strong> Students frequently put <code>flex: 1</code>
+      on <code>contentContainerStyle</code> in a <code>ScrollView</code> instead of on the
+      <code>style</code> prop. This silently disables scrolling — the content container expands
+      to fill available space and never overflows, so there is nothing to scroll. Mention this
+      explicitly. It is one of the most time-consuming bugs to diagnose without knowing to look
+      for it.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding</div>
+      <ol>
+        <li>"Three sibling Views have flex values of 1, 3, and 1. The parent is 500px tall. How tall is the middle View?"
+          <div class="answer">→ Total parts = 5. Middle gets 3/5 × 500 = 300px.</div>
+        </li>
+        <li>"A View with flex: 1 inside a View with no height set and no flex. What happens?"
+          <div class="answer">→ The parent has zero height (nothing forces it taller). The child has flex: 1 = "a share of zero available space" = 0px. Both are invisible.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 4 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">4</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Four Canonical Layout Patterns</div>
+      <div class="segment-subtitle">Header/scroll/footer, sidebar/content, grid, card row — and when to use each</div>
+    </div>
+    <div class="segment-time">⏱ 13 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>This segment is the payoff for the axis model work. Students should be able to recognize each pattern, name the Flexbox properties that produce it, and know which pattern to reach for in a given design situation. Demo all four from the pre-built file — switching between them is far faster than building each one.</p>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li><strong>Header / Scroll / Footer:</strong> The most common mobile screen structure. Root is <code>flex: 1, flexDirection: 'column'</code>. Header and footer are sized by their own content (no flex). The middle <code>ScrollView</code> has <code>flex: 1</code> — it claims all remaining space. Project Figure 4 from the student doc and point to each zone.</li>
+      <li><strong>Sidebar / Content:</strong> Root is <code>flex: 1, flexDirection: 'row'</code>. The sidebar has a fixed width (no flex). The content area has <code>flex: 1</code>. This is the tablet layout pattern and also common for master-detail navigation on larger phones in landscape.</li>
+      <li><strong>Grid:</strong> Two approaches: <code>FlatList</code> with <code>numColumns</code> (handles virtualization for large datasets), or <code>flexWrap: 'wrap'</code> with percentage widths on items (simpler, better for small fixed grids). If the dataset could grow large, always use <code>FlatList</code>. Remind students that <code>numColumns</code> requires a <code>key</code> prop change when the column count changes, or React will not re-render correctly.</li>
+      <li><strong>Card row (avatar + content):</strong> A card with an inner <code>flexDirection: 'row'</code>. The avatar has a fixed width. The text content column has <code>flex: 1</code>. This is the list item pattern that appears in almost every app — contact lists, message threads, notification feeds.</li>
+    </ul>
+
+    <div class="activity">
+      <div class="act-label">📱 Prediction exercise — 3 minutes</div>
+      Project a screenshot of a real app screen (Instagram feed, Settings, or Maps — something
+      students recognise). Ask: "What layout pattern is the root of this screen? What's the
+      flexDirection of the list items? Where do you see flex: 1 happening?" Give them 90 seconds
+      to discuss with a neighbor, then cold-call 2–3 pairs. This makes pattern recognition
+      active rather than passive.
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 Connect to the final project explicitly:</strong> Say directly:
+      "Next class you're getting your Final Project brief. Every screen you design will be
+      one of these four patterns or a combination. Before you write any code, sketch the screen
+      and label the pattern. It takes 30 seconds and saves an hour of debugging."
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding</div>
+      <ol>
+        <li>"You're building a chat app. Each message bubble has a user avatar on the left and message text on the right. What pattern and flexDirection do you use inside each message component?"
+          <div class="answer">→ Card row pattern. <code>flexDirection: 'row'</code> inside the message. Avatar has fixed width; text container has <code>flex: 1</code> to fill remaining space.</div>
+        </li>
+        <li>"You have a grid of photos. The dataset comes from an API and could be thousands of items. Should you use flexWrap or FlatList numColumns?"
+          <div class="answer">→ FlatList with numColumns. flexWrap renders all items at once; FlatList virtualizes and only renders what's on screen. For large datasets, flexWrap will crash or freeze the app.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 5 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">5</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Responsive Layouts</div>
+      <div class="segment-subtitle">useWindowDimensions, adapting column count, and handling rotation</div>
+    </div>
+    <div class="segment-time">⏱ 8 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>Keep this segment tight. The concept is straightforward once the pattern is demonstrated — students don't need to master responsive design today, they need to know it's achievable and know the right hook to reach for.</p>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li>Hard-coded pixel widths are the enemy of responsive layout. Show the specific failure: a <code>width: 300</code> that looks perfect on iPhone 15 and overflows on iPhone SE. Width should almost always be a percentage, <code>flex: 1</code>, or calculated from <code>useWindowDimensions</code>.</li>
+      <li><code>useWindowDimensions()</code> is a hook that returns <code>{ width, height }</code> and re-renders the component when the device rotates or the window size changes. It's the correct tool inside components. <code>Dimensions.get('window')</code> is the static version — use it outside components, in <code>StyleSheet.create()</code> or utility functions, but it won't update on rotation.</li>
+      <li>The column count pattern from Section 4 of the student doc: calculate <code>numColumns</code> based on width threshold, then calculate <code>itemSize</code> as <code>(width - padding) / numColumns</code>. Simple arithmetic that produces a grid that always fits. The <code>key={numColumns}</code> on FlatList is easy to forget — without it, React doesn't know to rebuild the grid when columns change.</li>
+      <li>Breakpoint heuristic for this course: under 600dp = phone layout, over 600dp = tablet layout. Students don't need a full responsive design system for their projects — a single breakpoint covers all practical cases.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥️ Quick demo — rotate the simulator:</strong>
+      If using a simulator, rotate it while a <code>useWindowDimensions</code> demo is
+      running. Students watching the layout reflow in real time on rotation — especially
+      a grid changing from 2 to 3 columns — makes the concept immediately concrete.
+      This takes under 2 minutes and is worth doing even if you skip other demos.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 6 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">6</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Absolute Positioning and Overlays</div>
+      <div class="segment-subtitle">FABs, badges, overlays — when to step outside the flow</div>
+    </div>
+    <div class="segment-time">⏱ 7 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>Absolute positioning is a narrow but important tool. Students frequently reach for it too early (trying to solve layout problems that flex handles better) or too late (not knowing it exists when they genuinely need an overlay). The goal here is calibrating when it's the right choice.</p>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li>Absolute positioning removes an element from the normal flow. Its siblings don't know it exists — it doesn't push them or take space from them. It sits at coordinates relative to the nearest parent with <code>position: 'relative'</code> (which is every <code>View</code> by default).</li>
+      <li>The three canonical use cases: (1) Floating Action Button — pinned to a corner of the screen over everything else. (2) Notification badge — small indicator overlaid on an icon. (3) Loading overlay — semi-transparent cover over a screen while data loads.</li>
+      <li>The four positioning properties — <code>top</code>, <code>right</code>, <code>bottom</code>, <code>left</code> — are offsets from the corresponding edge of the containing parent, not the screen. Students often expect them to be screen coordinates and are confused when nothing moves where expected.</li>
+      <li>Shadow properties: <code>elevation</code> for Android, <code>shadowColor</code>/<code>shadowOffset</code>/<code>shadowOpacity</code>/<code>shadowRadius</code> for iOS. You need both. Mention this clearly — "I guarantee someone's final project will have shadows on one platform and not the other."</li>
+    </ul>
+
+    <div class="bug-row">
+      <div class="bug-card bug-bad">
+        <h4>❌ Common mistake — position without dimensions</h4>
+        <pre style="font-size:11px; padding:8px; margin:0;"><span class="cm">// Forgot width and height —</span>
+<span class="cm">// the FAB is 0×0 and invisible</span>
+fab: {
+  <span class="prop">position</span>: <span class="str">'absolute'</span>,
+  <span class="prop">bottom</span>: <span class="num">24</span>,
+  <span class="prop">right</span>: <span class="num">24</span>,
+  <span class="cm">// no width, no height!</span>
+}</pre>
+      </div>
+      <div class="bug-card bug-good">
+        <h4>✅ Correct — explicit dimensions required</h4>
+        <pre style="font-size:11px; padding:8px; margin:0;"><span class="cm">// Absolute elements must define</span>
+<span class="cm">// their own size — no parent to</span>
+<span class="cm">// stretch or constrain them</span>
+fab: {
+  <span class="prop">position</span>: <span class="str">'absolute'</span>,
+  <span class="prop">bottom</span>: <span class="num">24</span>, <span class="prop">right</span>: <span class="num">24</span>,
+  <span class="prop">width</span>: <span class="num">56</span>, <span class="prop">height</span>: <span class="num">56</span>,
+  <span class="prop">borderRadius</span>: <span class="num">28</span>,
+}</pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 7 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">7</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Atomic Design — Thinking in Layers</div>
+      <div class="segment-subtitle">Atoms, molecules, organisms, templates, screens — and the discipline of decomposition</div>
+    </div>
+    <div class="segment-time">⏱ 12 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>
+      This is the conceptual pivot of the lecture — from "how does layout work" to "how do I
+      structure components as my app grows." The transition should be made explicitly: "Now that
+      you understand how to lay things out, let's talk about how to organise what you're laying out."
+      Students who are engaged with the layout content will carry that energy into this section.
+    </p>
+
+    <div class="whiteboard">
+      <div class="wb-label">🖊 Draw the hierarchy before projecting Figure 7</div>
+      Write five boxes left to right on the board: Atoms → Molecules → Organisms → Templates → Screens.
+      Ask students to predict what might belong in each level before you fill them in.
+      Most students can correctly guess "screens" and "atoms" — the middle three are where
+      interesting discussion happens. Let them argue about whether a SearchBar is an atom or
+      a molecule. (It's a molecule — it combines a TextInput atom with an Icon atom.)
+    </div>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li><strong>Atoms</strong> are single-purpose primitives: a <code>Text</code> styled as a heading, a circular <code>Avatar</code>, an <code>Icon</code> button, a <code>Divider</code>. They can't be meaningfully broken down further. They take props, they render a single thing, they know nothing about the app's data structure.</li>
+      <li><strong>Molecules</strong> combine 2–4 atoms into a unit with a single clear purpose. A <code>SearchBar</code> combines a TextInput and a search icon. A <code>UserTag</code> combines Avatar, name Text, and timestamp Text. The rule of thumb: if you can name what it does in two words, it's a molecule.</li>
+      <li><strong>Organisms</strong> are the first components that manage their own state. A <code>PostCard</code> knows how to display a post. A <code>NavBar</code> knows about routes. A <code>CommentThread</code> fetches and renders its own data. Organisms are the primary reusable building blocks of screens.</li>
+      <li><strong>Templates</strong> are layout scaffolds with no data — a two-column layout, a modal structure, an auth screen frame. They accept organisms as <code>children</code> and define where things go without caring what those things are.</li>
+      <li><strong>Screens</strong> are the top level. They fetch data, wire it to organisms, and handle navigation. A screen component should be thin — mostly composition, minimal rendering logic of its own.</li>
+      <li>Project the PostCard decomposition diagram (Figure 8). Walk through each layer. Ask: where would you add a "like count" to this component hierarchy? (Into the ActionBar molecule — it already groups the action icons.) Where would you add a "promoted post" badge? (Probably the PostCard organism — it knows the post type.)</li>
+    </ul>
+
+    <div class="discussion">
+      <strong>💬 Discussion prompt:</strong> "Think of a screen you've already built in this course.
+      Pick one component that's doing too much — more than one job. What would you split it into?
+      Name the two new components." Give students 90 seconds, then collect 3–4 answers.
+      This grounds the abstract framework in their own code immediately.
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 Don't let this become a purity debate.</strong> Students occasionally latch
+      onto atomic design as a strict taxonomy and start arguing about whether something is a
+      molecule or an organism. Redirect: "The lines between levels are less important than
+      the habit of asking the question. If you're asking 'should this be its own component,'
+      you're already thinking the right way. The framework is a guide, not a rule set."
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 8 ─────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">8</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Composition Patterns and Close</div>
+      <div class="segment-subtitle">The children prop, layout vs. content separation, and bridge to Final Project</div>
+    </div>
+    <div class="segment-time">⏱ 6 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>This segment is deliberately short — a fast synthesis and bridge rather than new material. Students are absorbing a lot today; the goal is to land two concrete takeaways before the final project introduction next class.</p>
+
+    <h3>The Two Patterns Worth Naming Today</h3>
+    <ul class="talking-points">
+      <li><strong>The children prop (slot pattern):</strong> Briefly demonstrate that a <code>Card</code> component that accepts <code>children</code> and renders them inside a styled container is infinitely reusable. The card never changes; the content slot does. This is the single most useful pattern for building a consistent visual language across a project.</li>
+      <li><strong>Layout vs. content separation:</strong> A component that knows about position/spacing and a component that knows about data are better kept separate. The quick test: "Can I drop this component into a different screen without editing it?" If yes — it's cleanly separated. If no — layout concerns have leaked into it.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥️ 90-second demo — the children prop:</strong>
+      Show a <code>Card</code> component with <code>{children}</code> being used twice on the same
+      screen with completely different inner content. The visual consistency without code duplication
+      is immediately obvious. Students who have been repeating card-shaped styling across their
+      projects will have a small revelation.
+    </div>
+
+    <h3>Bridge to Next Class</h3>
+    <div class="callout">
+      <strong>🔜 Next class — Final Project Introduction:</strong> Students will receive the
+      final project brief and begin scoping their apps. Connect today's material directly:
+      "Before you write any code for your final project, I want you to sketch your main screens
+      and label: (1) which canonical layout pattern each screen uses, and (2) what your
+      organisms are — the 3–5 self-contained components that do the real work. Bring that
+      sketch to the next class."
+    </div>
+
+    <div class="discussion">
+      <strong>💬 Exit question (cold call 1–2 students):</strong>
+      "Name one component in your existing project code that you would restructure based on
+      today's lecture. What would you split it into, and why?"
+      This closes the learning loop between new concepts and prior work, and seeds the
+      mindset they'll need for final project planning.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── DIFFERENTIATION ──────────────────────────────────────────── -->
+<h2>Differentiation and Pacing Notes</h2>
+
+<div class="two-col">
+  <div class="card">
+    <h4>If class is running ahead of schedule</h4>
+    <ul>
+      <li>Extend the pattern recognition exercise from Segment 4 — give students a second, more complex screen (e.g. a Settings screen with sections and grouped rows) and ask them to identify all the layout patterns present simultaneously</li>
+      <li>Introduce the <code>gap</code> property (React Native 0.71+) as a cleaner alternative to <code>marginBottom</code> on list items — quick and immediately useful</li>
+      <li>Show <code>Platform.select()</code> for cross-platform style differences — shadow properties are a natural example since they were just covered in Segment 6</li>
+      <li>Introduce the design token pattern from Section 8 of the student doc — creating a shared <code>tokens</code> object for colours and spacing as a precursor to the final project</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>If class is running behind schedule</h4>
+    <ul>
+      <li>Cut Segment 6 (absolute positioning) entirely — it's important but not foundational; direct students to Section 5 of the student doc and the FAB code example as self-study</li>
+      <li>Abbreviate Segment 5 (responsive layouts) to just the key hook: <code>useWindowDimensions</code> exists, it updates on rotation, use the width to calculate column count; skip the demo</li>
+      <li>In Segment 7, cover only Atoms, Molecules, and Organisms — skip Templates and give Screens a one-sentence treatment; the hierarchy table in the student doc covers the rest</li>
+      <li>Combine Segments 7 and 8 into a single 10-minute block, skipping the discussion prompt and going straight to the bridge to final project</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Students who are ahead / want to go deeper</h4>
+    <ul>
+      <li>Challenge: refactor an existing project component file using the atomic design hierarchy — document which components are atoms, molecules, and organisms in a comment header</li>
+      <li>Explore: <code>react-native-reusables</code> or NativeBase as examples of published component libraries built on exactly these patterns</li>
+      <li>Research: Brad Frost's original Atomic Design methodology (atomicdesign.bradfrost.com) — the framework behind Figure 7</li>
+      <li>Implement: the full design token pattern from Section 8 of the student doc across a project, then measure how many files needed to change when one colour value was updated</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Students who are struggling</h4>
+    <ul>
+      <li>Ground every flex concept in a physical metaphor: the main axis is a conveyor belt; justifyContent decides the spacing between boxes on the belt; alignItems decides how tall each box is relative to the tallest</li>
+      <li>For the flex: 1 chain, suggest they always add it from the root downward — "start at the screen root, confirm it has flex: 1, then work inward" — rather than hunting for the missing link bottom-up</li>
+      <li>Defer atomic design to independent reading; focus all available time on ensuring the axis model and the four canonical patterns are solid, since those unblock immediate project work</li>
+      <li>Recommend the Flexbox Froggy web game (flexboxfroggy.com) as a 20-minute reinforcement exercise — it teaches the same axis model through puzzles in a way that complements today's lecture well</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ─── COMMON BUGS TO ANTICIPATE ────────────────────────────────── -->
+<h2>Common Bugs to Anticipate in Student Work</h2>
+
+<p>
+  These are the layout bugs that will appear in student projects and office hours in the
+  days following this lecture. Being able to diagnose them by description speeds up
+  debugging help significantly.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Student's description</th><th>Likely cause</th><th>Quick diagnosis</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>"My ScrollView doesn't scroll"</td>
+      <td><code>flex: 1</code> on <code>contentContainerStyle</code> instead of <code>style</code>, OR parent has no height</td>
+      <td>Check that <code>style={{ flex: 1 }}</code> is on the ScrollView itself, not contentContainerStyle. Check the flex: 1 ancestor chain.</td>
+    </tr>
+    <tr>
+      <td>"My layout looks fine on my phone but broken on the grader's phone"</td>
+      <td>Hard-coded pixel widths, or fixed heights that assume a specific screen size</td>
+      <td>Search the codebase for numeric width/height values. Replace with <code>flex</code>, <code>'%'</code>, or <code>useWindowDimensions</code> calculations.</td>
+    </tr>
+    <tr>
+      <td>"My footer is floating in the middle of the screen"</td>
+      <td>ScrollView between header and footer is missing <code>flex: 1</code></td>
+      <td>Classic flex: 1 chain bug. The ScrollView needs flex: 1 to push the footer down.</td>
+    </tr>
+    <tr>
+      <td>"My grid items are different widths"</td>
+      <td>Using <code>flexWrap</code> with percentage widths and forgetting to account for padding/gap in the calculation</td>
+      <td>Item width should be <code>(screenWidth - horizontalPadding * 2 - gap * (cols - 1)) / cols</code>.</td>
+    </tr>
+    <tr>
+      <td>"My absolute-positioned FAB is invisible"</td>
+      <td>Missing explicit <code>width</code> and <code>height</code> on the absolutely positioned View</td>
+      <td>Absolute elements must define their own dimensions — no parent to stretch or constrain them.</td>
+    </tr>
+    <tr>
+      <td>"My component is 500 lines and I don't know where to start refactoring"</td>
+      <td>No decomposition discipline — everything is in one file</td>
+      <td>Apply the modular design checklist from Section 6. Find the first JSX block that could have a one-sentence description and extract it.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ─── MATERIALS ─────────────────────────────────────────────────── -->
+<h2>Materials and Resources</h2>
+
+<table>
+  <thead><tr><th>Item</th><th>Format</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>CS402_Flex_UI_Layout.html</td><td>Student reference doc</td><td>Primary reading; all 8 SVG diagrams, code examples, layout patterns, atomic design hierarchy, and modular design checklist</td></tr>
+    <tr><td>Pre-built broken layout project</td><td>Expo code</td><td>Opening hook (Segment 1) and live fix (Segment 3) — the flex: 1 chain bug. Build this before class.</td></tr>
+    <tr><td>Pre-built four-pattern demo file</td><td>Expo code</td><td>Segment 4 — switchable between the four canonical patterns. Saves live-coding time for a demo that benefits from speed.</td></tr>
+    <tr><td>App screenshot for pattern recognition</td><td>Image / phone</td><td>Segment 4 prediction exercise — pick any well-known app; something students use daily works best</td></tr>
+    <tr><td>Simulator with rotation enabled</td><td>Dev environment</td><td>Segment 5 — rotating to show useWindowDimensions in action. Alternatively, a second physical device of a different size.</td></tr>
+    <tr><td>Final Project brief (next class)</td><td>Assignment doc</td><td>Not needed today, but knowing the assignment allows you to make the bridge in Segment 8 concrete rather than abstract</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ─── FOOTER ─────────────────────────────────────────────────────── -->
+<div class="doc-footer">
+  <span>CS 402 · Spring 2026 · Boise State University</span>
+  <span>Instructor Copy — Not for Student Distribution</span>
+  <span>Paired doc: CS402_Flex_UI_Layout.html</span>
+</div>
+
+</body>
+</html>
