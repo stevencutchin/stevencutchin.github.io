@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Project 4: Camera App &amp; the Photo Gallery</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.8; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .semester { font-size: 14px; color: #888; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .doc-header .subtitle { font-size: 20px; color: #2E5D8A; font-weight: 700; margin-top: 4px; }
+  .doc-header .lesson-meta { margin-top: 14px; font-size: 13px; color: #777; display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; }
+
+  /* ── Section headers ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; color: #1B3A5C; margin: 44px 0 14px; padding-bottom: 7px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 16px; color: #2E5D8A; margin: 22px 0 9px; font-weight: 700; }
+  p  { margin-bottom: 14px; color: #333; }
+  ul, ol { margin: 10px 0 16px 26px; color: #333; }
+  li { margin-bottom: 7px; }
+
+  /* ── Callout boxes ── */
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 28px; padding: 14px 20px; background: #f7f9fc; border-radius: 6px; border-left: 4px solid #1B3A5C; }
+  .callout { margin: 20px 0; padding: 15px 20px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .warning { margin: 20px 0; padding: 15px 20px; background: #fdf6ec; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .warning strong { color: #8a5d0a; }
+  .tip    { margin: 20px 0; padding: 15px 20px; background: #f0fbf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .tip strong { color: #1a5c3a; }
+  .assignment-box { margin: 20px 0; padding: 18px 22px; background: #fdf0f8; border-left: 4px solid #9a3a6a; border-radius: 0 6px 6px 0; color: #333; }
+  .assignment-box strong { color: #6a1a4a; }
+
+  /* ── Diagrams ── */
+  .diagram-wrap { text-align: center; margin: 28px 0; padding: 20px 16px; background: #fafbfc; border: 1px solid #e0e8f0; border-radius: 10px; }
+  .diagram-wrap svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .diagram-caption { font-size: 13px; color: #666; margin-top: 10px; font-style: italic; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left; }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre  { background: #1e1e2e; color: #cdd6f4; padding: 18px 22px; border-radius: 8px; overflow-x: auto; margin: 12px 0 20px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+  pre .cls  { color: #f9e2af; }
+
+  /* ── Two-col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0 20px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 16px 18px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card p { margin-bottom: 0; font-size: 14px; }
+
+  /* ── Requirement rubric grid ── */
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0 24px; }
+  .req-card { border-radius: 8px; padding: 14px 16px; border: 1.5px solid; }
+  .req-card h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .req-card ul { margin: 0 0 0 16px; }
+  .req-card li { font-size: 13px; margin-bottom: 4px; }
+  .req-core     { background: #eef4fb; border-color: #4a80b5; }
+  .req-core h4  { color: #1B3A5C; }
+  .req-persist  { background: #f0fbf4; border-color: #2e8a5d; }
+  .req-persist h4 { color: #1a5c3a; }
+  .req-gallery  { background: #f5f0fb; border-color: #7a5abf; }
+  .req-gallery h4 { color: #4a2a8a; }
+  .req-extra    { background: #fdf6ec; border-color: #c8890f; }
+  .req-extra h4 { color: #7a4a00; }
+
+  /* ── Extension vs wrapping strip ── */
+  .ext-strip { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 0; margin: 18px 0 24px; align-items: center; }
+  .ext-box { border-radius: 8px; padding: 16px 18px; }
+  .ext-arrow { text-align: center; font-size: 24px; color: #2E5D8A; font-weight: 700; }
+  .ext-before { background: #fdf6ec; border: 1.5px solid #c8890f; }
+  .ext-before h4 { color: #7a4a00; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .ext-after  { background: #eef4fb; border: 1.5px solid #2E5D8A; }
+  .ext-after h4  { color: #1B3A5C; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+
+  /* ── Step chips ── */
+  .step-row { display: flex; align-items: flex-start; gap: 14px; margin: 12px 0; }
+  .step-num { background: #1B3A5C; color: #fff; font-weight: 700; font-size: 13px; min-width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; flex-shrink: 0; }
+  .step-content { flex: 1; }
+  .step-content strong { color: #1B3A5C; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .diagram-wrap, .two-col, .req-grid { break-inside: avoid; }
+    pre, .callout, .warning, .tip, .assignment-box { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ HEADER ══ -->
+<header class="doc-header">
+  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+  <h1>Project 4: The Camera App</h1>
+  <div class="subtitle">Extending VirtualList to Build a Photo Gallery</div>
+  <div class="lesson-meta">
+    <span>📸 Assignment Introduction</span>
+    <span>⏱ 75 min lecture</span>
+    <span>🔗 Prerequisite: Camera &amp; Sensors, Composable Components, FlatList</span>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════ PROJECT OVERVIEW ══ -->
+<h2>What You Are Building</h2>
+<p class="section-intro">
+  Project 4 brings together everything you have learned so far: camera access, persistent
+  storage, composable component design, and virtual list rendering. You will build a
+  self-contained photo gallery app — one that captures images, saves them permanently,
+  and displays them in a scrollable, interactive grid.
+</p>
+
+<div class="assignment-box">
+  <strong>📋 Assignment 4 — Camera App &nbsp;|&nbsp; 100 points &nbsp;|&nbsp; Due: end of Phase D</strong><br><br>
+  Build a React Native app using Expo that lets users capture photos with the device
+  camera, stores them to the device's media library, and displays them in a photo
+  gallery view. The gallery must use a virtualized list (wrapped <code>FlatList</code>)
+  and must survive app restarts — photos captured in one session must still appear the
+  next time the app is opened.
+</div>
+
+<div class="req-grid">
+  <div class="req-card req-core">
+    <h4>📸 Camera Capture</h4>
+    <ul>
+      <li>Permission request at moment of use</li>
+      <li>Working shutter via <code>launchCameraAsync()</code></li>
+      <li>Handles cancel gracefully (no crash)</li>
+      <li>Shows captured photo immediately</li>
+    </ul>
+  </div>
+  <div class="req-card req-persist">
+    <h4>💾 Persistence</h4>
+    <ul>
+      <li>Photo saved to MediaLibrary</li>
+      <li>Photo URI index stored in AsyncStorage or SQLite</li>
+      <li>Gallery survives full app restart</li>
+      <li>Media library permission requested separately</li>
+    </ul>
+  </div>
+  <div class="req-card req-gallery">
+    <h4>🖼 Gallery View</h4>
+    <ul>
+      <li>Grid layout using <code>FlatList</code> with <code>numColumns</code></li>
+      <li>Wrapped in a composable <code>PhotoGallery</code> component</li>
+      <li>Empty state when no photos exist</li>
+      <li>Floating action button to launch camera</li>
+    </ul>
+  </div>
+  <div class="req-card req-extra">
+    <h4>⭐ Stretch Goals</h4>
+    <ul>
+      <li>Tap a photo to view it full-screen</li>
+      <li>Long-press to enter selection mode</li>
+      <li>Delete selected photos</li>
+      <li>Display capture date below each thumbnail</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ DIAGRAM 1: App Mockup ══ -->
+<h2>What the App Looks Like</h2>
+
+<div class="diagram-wrap">
+  <svg viewBox="0 0 780 360" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect x="0" y="0" width="780" height="360" rx="10" fill="#fafbfc"/>
+    <text x="390" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">Photo Gallery App — Key Screens</text>
+
+    <!-- ── SCREEN 1: Gallery ── -->
+    <rect x="30" y="40" width="210" height="300" rx="14" fill="#1e1e2e" stroke="#444" stroke-width="2"/>
+    <!-- status bar -->
+    <rect x="30" y="40" width="210" height="24" rx="14" fill="#2a2a3e"/>
+    <rect x="30" y="53" width="210" height="11" fill="#2a2a3e"/>
+    <text x="135" y="51" text-anchor="middle" font-size="8" fill="#888">9:41 AM</text>
+    <!-- toolbar -->
+    <rect x="30" y="64" width="210" height="36" fill="#1B3A5C"/>
+    <text x="135" y="86" text-anchor="middle" font-size="11" font-weight="700" fill="white">My Photos</text>
+    <!-- photo grid: 2 cols -->
+    <rect x="36" y="106" width="95" height="95" rx="4" fill="#2E5D8A" opacity="0.7"/>
+    <text x="83" y="158" text-anchor="middle" font-size="20" fill="white">🌄</text>
+    <rect x="139" y="106" width="95" height="95" rx="4" fill="#3a7a5d" opacity="0.7"/>
+    <text x="186" y="158" text-anchor="middle" font-size="20" fill="white">🌲</text>
+    <rect x="36" y="207" width="95" height="95" rx="4" fill="#7a5d2E" opacity="0.7"/>
+    <text x="83" y="259" text-anchor="middle" font-size="20" fill="white">🏙️</text>
+    <rect x="139" y="207" width="95" height="95" rx="4" fill="#5d2E7a" opacity="0.7"/>
+    <text x="186" y="259" text-anchor="middle" font-size="20" fill="white">🌅</text>
+    <!-- FAB -->
+    <circle cx="210" cy="318" r="18" fill="#2E5D8A" stroke="#fff" stroke-width="2"/>
+    <text x="210" y="323" text-anchor="middle" font-size="16" fill="white">📷</text>
+    <!-- label -->
+    <text x="135" y="350" text-anchor="middle" font-size="11" fill="#555">Gallery View</text>
+
+    <!-- ── SCREEN 2: Empty State ── -->
+    <rect x="285" y="40" width="210" height="300" rx="14" fill="#1e1e2e" stroke="#444" stroke-width="2"/>
+    <rect x="285" y="40" width="210" height="24" rx="14" fill="#2a2a3e"/>
+    <rect x="285" y="53" width="210" height="11" fill="#2a2a3e"/>
+    <text x="390" y="51" text-anchor="middle" font-size="8" fill="#888">9:41 AM</text>
+    <rect x="285" y="64" width="210" height="36" fill="#1B3A5C"/>
+    <text x="390" y="86" text-anchor="middle" font-size="11" font-weight="700" fill="white">My Photos</text>
+    <!-- Empty state -->
+    <text x="390" y="175" text-anchor="middle" font-size="32" fill="#555">📷</text>
+    <text x="390" y="210" text-anchor="middle" font-size="12" font-weight="700" fill="#888">No photos yet</text>
+    <text x="390" y="227" text-anchor="middle" font-size="11" fill="#666">Tap the button below</text>
+    <text x="390" y="241" text-anchor="middle" font-size="11" fill="#666">to take your first photo</text>
+    <!-- FAB -->
+    <circle cx="465" cy="318" r="18" fill="#2E5D8A" stroke="#fff" stroke-width="2"/>
+    <text x="465" y="323" text-anchor="middle" font-size="16" fill="white">📷</text>
+    <text x="390" y="350" text-anchor="middle" font-size="11" fill="#555">Empty State</text>
+
+    <!-- ── SCREEN 3: Full-screen view (stretch) ── -->
+    <rect x="540" y="40" width="210" height="300" rx="14" fill="#000" stroke="#444" stroke-width="2"/>
+    <rect x="540" y="40" width="210" height="24" rx="14" fill="#111"/>
+    <rect x="540" y="53" width="210" height="11" fill="#111"/>
+    <text x="645" y="51" text-anchor="middle" font-size="8" fill="#555">9:41 AM</text>
+    <!-- back button -->
+    <text x="558" y="82" text-anchor="middle" font-size="11" fill="#aac4de">‹ Back</text>
+    <!-- full image -->
+    <rect x="540" y="64" width="210" height="276" fill="#2E5D8A" opacity="0.6"/>
+    <text x="645" y="205" text-anchor="middle" font-size="48" fill="white">🌄</text>
+    <!-- metadata bar -->
+    <rect x="540" y="290" width="210" height="50" fill="#000" opacity="0.7"/>
+    <text x="645" y="310" text-anchor="middle" font-size="10" fill="white">Feb 18, 2026 · 10:42 AM</text>
+    <text x="645" y="326" text-anchor="middle" font-size="10" fill="#888">📍 Boise, Idaho</text>
+    <!-- delete icon -->
+    <text x="720" y="80" text-anchor="middle" font-size="14" fill="#f38ba8">🗑</text>
+    <text x="645" y="350" text-anchor="middle" font-size="11" fill="#555">Detail View (stretch goal)</text>
+  </svg>
+  <p class="diagram-caption">
+    The three screens of the completed app: a photo grid gallery, an empty state for first-time users,
+    and a full-screen detail view (stretch goal). All three live within a single
+    <code>PhotoGallery</code> module.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════ THE CORE INSIGHT ══ -->
+<h2>The Core Insight: A Gallery Is a Virtual List</h2>
+<p>
+  The photo gallery you need to build is, at its heart, a <code>FlatList</code>. You already
+  know <code>FlatList</code>. The job of this assignment is not to learn a new list component
+  — it is to <em>extend</em> the one you have into a purpose-built gallery module using
+  the composable component techniques from the previous lecture.
+</p>
+
+<div class="ext-strip">
+  <div class="ext-box ext-before">
+    <h4>📋 Raw FlatList</h4>
+    <p style="font-size:13px; color:#555;">General-purpose. Accepts any data, any row. Knows nothing about photos. No empty state. No camera integration. No persistence.</p>
+  </div>
+  <div class="ext-arrow">→</div>
+  <div class="ext-box ext-after">
+    <h4>🖼 PhotoGallery Module</h4>
+    <p style="font-size:13px; color:#555;">Wraps FlatList. Owns photo-shaped data. Provides a grid layout by default. Has an empty state. Has a camera FAB. Persists its data across restarts.</p>
+  </div>
+</div>
+
+<p>
+  <strong>Wrapping, not subclassing.</strong> React Native components can't be traditionally
+  subclassed the way you might extend a class in Java. Instead, you <em>wrap</em>
+  <code>FlatList</code> inside a new component, supply it with the default configuration
+  that makes sense for a photo grid, and expose only the props that callers actually need
+  to vary. The inner <code>FlatList</code> is an implementation detail.
+</p>
+
+<!-- ══════════════════════════════════════ DIAGRAM 2: Wrapping FlatList ══ -->
+<h2>Wrapping FlatList — The Extension Architecture</h2>
+
+<div class="diagram-wrap">
+  <svg viewBox="0 0 780 380" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect x="0" y="0" width="780" height="380" rx="10" fill="#fafbfc"/>
+    <text x="390" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">PhotoGallery — Wrapping FlatList With Purpose-Built Defaults</text>
+
+    <!-- ── PHOTO GALLERY MODULE (outer) ── -->
+    <rect x="16" y="36" width="748" height="326" rx="10" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="390" y="56" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C">PhotoGallery (Module — Level 4)</text>
+    <text x="390" y="71" text-anchor="middle" font-size="10" fill="#555">Owns: photos[ ] state, persistence, camera action</text>
+
+    <!-- ── FLAT LIST WRAPPER (inner) ── -->
+    <rect x="36" y="82" width="480" height="260" rx="8" fill="#d8e8f4" stroke="#4a80b5" stroke-width="1.5"/>
+    <text x="276" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">FlatList (the virtual engine — unchanged)</text>
+
+    <!-- FlatList fixed props -->
+    <rect x="52" y="110" width="448" height="112" rx="6" fill="#fff" stroke="#4a80b5" stroke-width="1" stroke-dasharray="5,3"/>
+    <text x="276" y="128" text-anchor="middle" font-size="10" font-weight="700" fill="#2E5D8A">Fixed / defaulted props (PhotoGallery always sets these)</text>
+    <text x="68" y="148" font-size="10" fill="#444">data          = photos            <tspan fill="#6c7086">← from module state</tspan></text>
+    <text x="68" y="163" font-size="10" fill="#444">keyExtractor  = (item) =&gt; item.id  <tspan fill="#6c7086">← uuid, always</tspan></text>
+    <text x="68" y="178" font-size="10" fill="#444">numColumns    = 2                  <tspan fill="#6c7086">← grid default</tspan></text>
+    <text x="68" y="193" font-size="10" fill="#444">renderItem    = PhotoThumb         <tspan fill="#6c7086">← composable — overridable via render prop</tspan></text>
+    <text x="68" y="208" font-size="10" fill="#444">ListEmptyComponent = &lt;EmptyState /&gt; <tspan fill="#6c7086">← named slot or default</tspan></text>
+
+    <!-- FlatList pass-through props -->
+    <rect x="52" y="232" width="448" height="96" rx="6" fill="#f0f6fb" stroke="#4a80b5" stroke-width="1"/>
+    <text x="276" y="250" text-anchor="middle" font-size="10" font-weight="700" fill="#2E5D8A">Pass-through props (caller may override)</text>
+    <text x="68" y="268" font-size="10" fill="#444">onEndReached      <tspan fill="#6c7086">← for pagination / infinite scroll</tspan></text>
+    <text x="68" y="283" font-size="10" fill="#444">contentContainerStyle <tspan fill="#6c7086">← grid padding, gutters</tspan></text>
+    <text x="68" y="298" font-size="10" fill="#444">refreshControl    <tspan fill="#6c7086">← pull-to-refresh if syncing from cloud</tspan></text>
+    <text x="68" y="313" font-size="10" fill="#444">...rest           <tspan fill="#6c7086">← spread any other FlatList props through</tspan></text>
+
+    <!-- ── RIGHT PANEL: what PhotoGallery adds ── -->
+    <rect x="534" y="82" width="214" height="260" rx="8" fill="#f0fbf4" stroke="#2e8a5d" stroke-width="1.5"/>
+    <text x="641" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#1a5c3a">PhotoGallery adds</text>
+
+    <!-- additions list -->
+    <rect x="546" y="110" width="190" height="30" rx="5" fill="#fff" stroke="#2e8a5d" stroke-width="1"/>
+    <text x="641" y="129" text-anchor="middle" font-size="10" fill="#1a5c3a">📦 photos[ ] state + loader</text>
+
+    <rect x="546" y="148" width="190" height="30" rx="5" fill="#fff" stroke="#2e8a5d" stroke-width="1"/>
+    <text x="641" y="167" text-anchor="middle" font-size="10" fill="#1a5c3a">💾 loadPhotos() on mount</text>
+
+    <rect x="546" y="186" width="190" height="30" rx="5" fill="#fff" stroke="#2e8a5d" stroke-width="1"/>
+    <text x="641" y="205" text-anchor="middle" font-size="10" fill="#1a5c3a">📷 capturePhoto() → FAB</text>
+
+    <rect x="546" y="224" width="190" height="30" rx="5" fill="#fff" stroke="#2e8a5d" stroke-width="1"/>
+    <text x="641" y="243" text-anchor="middle" font-size="10" fill="#1a5c3a">📐 grid gap via stylesheet</text>
+
+    <rect x="546" y="262" width="190" height="30" rx="5" fill="#fff" stroke="#2e8a5d" stroke-width="1"/>
+    <text x="641" y="281" text-anchor="middle" font-size="10" fill="#1a5c3a">🗑 deletePhoto(id) action</text>
+
+    <rect x="546" y="300" width="190" height="34" rx="5" fill="#1B3A5C"/>
+    <text x="641" y="322" text-anchor="middle" font-size="10" font-weight="700" fill="white">onPhotoAdded callback out</text>
+
+    <!-- Connector: FlatList → additions -->
+    <line x1="516" y1="210" x2="534" y2="210" stroke="#2e8a5d" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+    <!-- Public API label at bottom -->
+    <rect x="36" y="348" width="708" height="10" rx="5" fill="#1B3A5C" opacity="0.12"/>
+    <text x="390" y="357" text-anchor="middle" font-size="10" font-weight="700" fill="#1B3A5C">Public API: initialPhotos?, onPhotoAdded?, renderItem?, emptyState?, columns?</text>
+  </svg>
+  <p class="diagram-caption">
+    <code>PhotoGallery</code> wraps <code>FlatList</code> with sensible photo-grid defaults,
+    adds state management, persistence, and camera integration, then exposes only the props
+    that genuinely vary between use sites. <code>FlatList</code> itself is untouched.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════ THE DATA SHAPE ══ -->
+<h2>The Photo Record — Your Data Shape</h2>
+<p>
+  Before writing any component code, define what a single photo record looks like.
+  Every photo in the gallery is an object in the <code>photos</code> array.
+  Agreeing on this shape up front means the rest of your code can be written
+  against a stable contract.
+</p>
+
+<pre><span class="cm">// The shape of a single photo record — define this in types.js or at the top of PhotoGallery</span>
+<span class="kw">const</span> photoRecord = {
+  id:          <span class="str">'uuid-v4-string'</span>,    <span class="cm">// unique, stable identifier</span>
+  uri:         <span class="str">'file:///...'</span>,       <span class="cm">// MediaLibrary permanent URI (not the temp capture URI)</span>
+  capturedAt:  <span class="num">1711830400000</span>,        <span class="cm">// Date.now() at capture time — for display and sorting</span>
+  width:       <span class="num">4032</span>,                 <span class="cm">// native pixel dimensions (from asset.width)</span>
+  height:      <span class="num">3024</span>,                 <span class="cm">// used to compute aspect ratio for the thumbnail</span>
+  location:    { latitude: <span class="num">43.61</span>, longitude: <span class="num">-116.20</span> },  <span class="cm">// optional — if exif: true was set</span>
+};</pre>
+
+<div class="callout">
+  <strong>Two different URIs to understand:</strong>
+  <code>launchCameraAsync()</code> returns a <em>temporary cache URI</em> like
+  <code>file:///var/mobile/tmp/...</code>. This URI is valid right now but will disappear
+  after the app restarts. You must call <code>MediaLibrary.createAssetAsync(tempUri)</code>
+  to save it permanently, then store the <em>asset's</em> URI — that permanent one — in your
+  record. Never persist the temp URI.
+</div>
+
+<h3>Generating a Unique ID</h3>
+<p>
+  Every photo needs a stable ID so <code>FlatList</code>'s <code>keyExtractor</code> and
+  your delete operations work correctly. Two common approaches:
+</p>
+
+<pre><span class="cm">// Option A — use expo-crypto (recommended for production)</span>
+<span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Crypto</span> <span class="kw">from</span> <span class="str">'expo-crypto'</span>;
+<span class="kw">const</span> id = <span class="kw">await</span> <span class="cls">Crypto</span>.<span class="fn">randomUuidAsync</span>();
+
+<span class="cm">// Option B — simple timestamp + random suffix (fine for this assignment)</span>
+<span class="kw">const</span> id = <span class="str">`photo_</span>${<span class="cls">Date</span>.<span class="fn">now</span>()}<span class="str">_</span>${<span class="cls">Math</span>.<span class="fn">random</span>().<span class="fn">toString</span>(<span class="num">36</span>).<span class="fn">slice</span>(<span class="num">2</span>)}<span class="str">`</span>;</pre>
+
+<!-- ══════════════════════════════════════ DIAGRAM 3: Data Flow ══ -->
+<h2>Data Flow — Capture to Persistent Gallery</h2>
+
+<div class="diagram-wrap">
+  <svg viewBox="0 0 780 300" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect x="0" y="0" width="780" height="300" rx="10" fill="#fafbfc"/>
+    <text x="390" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">Photo Lifecycle — From Shutter Tap to Persistent Gallery Entry</text>
+
+    <defs>
+      <marker id="flarr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#2E5D8A"/>
+      </marker>
+      <marker id="redarr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#c8890f"/>
+      </marker>
+      <marker id="grnarr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#2e8a5d"/>
+      </marker>
+    </defs>
+
+    <!-- Step 1: User taps FAB -->
+    <rect x="20" y="50" width="130" height="60" rx="8" fill="#1B3A5C"/>
+    <text x="85" y="75" text-anchor="middle" font-size="11" font-weight="700" fill="white">User taps</text>
+    <text x="85" y="91" text-anchor="middle" font-size="11" fill="#aac4de">Camera FAB</text>
+
+    <!-- arrow 1 -->
+    <line x1="150" y1="80" x2="188" y2="80" stroke="#2E5D8A" stroke-width="2" marker-end="url(#flarr)"/>
+
+    <!-- Step 2: launchCameraAsync -->
+    <rect x="190" y="50" width="140" height="60" rx="8" fill="#2E5D8A"/>
+    <text x="260" y="72" text-anchor="middle" font-size="10" font-weight="700" fill="white">launchCameraAsync()</text>
+    <text x="260" y="86" text-anchor="middle" font-size="10" fill="#a0c4e0">OS camera opens</text>
+    <text x="260" y="100" text-anchor="middle" font-size="9" fill="#7a9abf">returns temp URI</text>
+
+    <!-- arrow 2 -->
+    <line x1="330" y1="80" x2="368" y2="80" stroke="#2E5D8A" stroke-width="2" marker-end="url(#flarr)"/>
+    <text x="349" y="73" text-anchor="middle" font-size="9" fill="#c8890f">⚠ TEMP</text>
+
+    <!-- Step 3: createAssetAsync -->
+    <rect x="370" y="50" width="150" height="60" rx="8" fill="#3a7ab5"/>
+    <text x="445" y="72" text-anchor="middle" font-size="10" font-weight="700" fill="white">MediaLibrary</text>
+    <text x="445" y="86" text-anchor="middle" font-size="10" fill="#c0d8ef">createAssetAsync()</text>
+    <text x="445" y="100" text-anchor="middle" font-size="9" fill="#a0c4e0">saves to device gallery</text>
+
+    <!-- arrow 3 -->
+    <line x1="520" y1="80" x2="558" y2="80" stroke="#2e8a5d" stroke-width="2" marker-end="url(#grnarr)"/>
+    <text x="539" y="73" text-anchor="middle" font-size="9" fill="#2e8a5d">✓ PERM</text>
+
+    <!-- Step 4: photo record built -->
+    <rect x="560" y="50" width="190" height="60" rx="8" fill="#2e7a5d"/>
+    <text x="655" y="69" text-anchor="middle" font-size="10" font-weight="700" fill="white">Build photo record</text>
+    <text x="655" y="84" text-anchor="middle" font-size="9.5" fill="#a0d8bf">{ id, uri: asset.uri,</text>
+    <text x="655" y="97" text-anchor="middle" font-size="9.5" fill="#a0d8bf">  capturedAt, width, height }</text>
+
+    <!-- Down arrow from record to two storage paths -->
+    <line x1="655" y1="110" x2="655" y2="140" stroke="#2e7a5d" stroke-width="2"/>
+
+    <!-- Persistence layer -->
+    <rect x="440" y="142" width="220" height="50" rx="8" fill="#f0fbf4" stroke="#2e8a5d" stroke-width="2"/>
+    <text x="550" y="162" text-anchor="middle" font-size="11" font-weight="700" fill="#1a5c3a">AsyncStorage / SQLite</text>
+    <text x="550" y="178" text-anchor="middle" font-size="10" fill="#555">store photo record as JSON</text>
+
+    <!-- React state box -->
+    <rect x="100" y="142" width="220" height="50" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="210" y="162" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">React State: photos[ ]</text>
+    <text x="210" y="178" text-anchor="middle" font-size="10" fill="#555">setPhotos([newRecord, ...photos])</text>
+
+    <!-- arrow: record → state -->
+    <line x1="550" y1="142" x2="335" y2="167" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#flarr)"/>
+    <!-- arrow: record → storage -->
+    <line x1="655" y1="140" x2="610" y2="142" stroke="#2e8a5d" stroke-width="1.5" marker-end="url(#grnarr)"/>
+
+    <!-- FlatList re-renders -->
+    <rect x="100" y="220" width="220" height="44" rx="8" fill="#1B3A5C"/>
+    <text x="210" y="241" text-anchor="middle" font-size="11" font-weight="700" fill="white">FlatList re-renders</text>
+    <text x="210" y="257" text-anchor="middle" font-size="10" fill="#aac4de">new photo appears in grid</text>
+
+    <!-- arrow: state → FlatList -->
+    <line x1="210" y1="192" x2="210" y2="220" stroke="#2E5D8A" stroke-width="2" marker-end="url(#flarr)"/>
+
+    <!-- On Restart arrow -->
+    <rect x="440" y="220" width="220" height="44" rx="8" fill="#f0fbf4" stroke="#2e8a5d" stroke-width="2"/>
+    <text x="550" y="241" text-anchor="middle" font-size="11" font-weight="700" fill="#1a5c3a">On app restart</text>
+    <text x="550" y="257" text-anchor="middle" font-size="10" fill="#555">loadPhotos() reads storage</text>
+    <line x1="550" y1="192" x2="550" y2="220" stroke="#2e8a5d" stroke-width="2" marker-end="url(#grnarr)"/>
+
+    <!-- arrow: restart → state -->
+    <line x1="440" y1="242" x2="335" y2="242" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#flarr)"/>
+  </svg>
+  <p class="diagram-caption">
+    Every photo takes two persistence paths simultaneously: the file goes to the device's
+    MediaLibrary; the record metadata goes to AsyncStorage or SQLite. On restart,
+    <code>loadPhotos()</code> reads the record index, restores the <code>photos</code> array,
+    and <code>FlatList</code> renders from it.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════ BUILDING THE COMPONENT ══ -->
+<h2>Building PhotoGallery Step by Step</h2>
+
+<h3>Step 1 — The Persistence Layer</h3>
+<p>
+  Write your persistence helpers first, before touching any UI. This gives you
+  a clean, testable layer that the component will call into.
+</p>
+
+<pre><span class="cm">// utils/photoStorage.js — the persistence contract</span>
+<span class="kw">import</span> <span class="cls">AsyncStorage</span> <span class="kw">from</span> <span class="str">'@react-native-async-storage/async-storage'</span>;
+
+<span class="kw">const</span> STORAGE_KEY = <span class="str">'@cs402_photos'</span>;
+
+<span class="kw">export async function</span> <span class="fn">loadPhotos</span>() {
+  <span class="kw">try</span> {
+    <span class="kw">const</span> raw = <span class="kw">await</span> <span class="cls">AsyncStorage</span>.<span class="fn">getItem</span>(STORAGE_KEY);
+    <span class="kw">return</span> raw ? <span class="cls">JSON</span>.<span class="fn">parse</span>(raw) : [];
+  } <span class="kw">catch</span> {
+    <span class="kw">return</span> [];   <span class="cm">// always return an array, never throw to the UI</span>
+  }
+}
+
+<span class="kw">export async function</span> <span class="fn">savePhotos</span>(photos) {
+  <span class="kw">await</span> <span class="cls">AsyncStorage</span>.<span class="fn">setItem</span>(STORAGE_KEY, <span class="cls">JSON</span>.<span class="fn">stringify</span>(photos));
+}
+
+<span class="kw">export async function</span> <span class="fn">addPhoto</span>(newRecord) {
+  <span class="kw">const</span> existing = <span class="kw">await</span> <span class="fn">loadPhotos</span>();
+  <span class="kw">const</span> updated  = [newRecord, ...existing];  <span class="cm">// newest first</span>
+  <span class="kw">await</span> <span class="fn">savePhotos</span>(updated);
+  <span class="kw">return</span> updated;
+}
+
+<span class="kw">export async function</span> <span class="fn">removePhoto</span>(id) {
+  <span class="kw">const</span> existing = <span class="kw">await</span> <span class="fn">loadPhotos</span>();
+  <span class="kw">const</span> updated  = existing.<span class="fn">filter</span>(p => p.id !== id);
+  <span class="kw">await</span> <span class="fn">savePhotos</span>(updated);
+  <span class="kw">return</span> updated;
+}</pre>
+
+<div class="tip">
+  <strong>💡 Why write this as a separate file?</strong> If you later switch from AsyncStorage
+  to SQLite (or even a cloud backend), only this file changes. Your component code
+  — <code>PhotoGallery.js</code> — stays identical. This is the separation of concerns
+  principle from the architecture lectures applied directly.
+</div>
+
+<h3>Step 2 — The Camera Capture Helper</h3>
+<p>
+  Extract the camera work into its own async function. Keeping this out of the component
+  body makes it easier to test and reuse.
+</p>
+
+<pre><span class="cm">// utils/capturePhoto.js</span>
+<span class="kw">import</span> * <span class="kw">as</span> <span class="cls">ImagePicker</span>   <span class="kw">from</span> <span class="str">'expo-image-picker'</span>;
+<span class="kw">import</span> * <span class="kw">as</span> <span class="cls">MediaLibrary</span>  <span class="kw">from</span> <span class="str">'expo-media-library'</span>;
+
+<span class="kw">export async function</span> <span class="fn">captureAndSavePhoto</span>() {
+  <span class="cm">// 1. Request camera permission (shows dialog only once if undetermined)</span>
+  <span class="kw">const</span> camPerm = <span class="kw">await</span> <span class="cls">ImagePicker</span>.<span class="fn">requestCameraPermissionsAsync</span>();
+  <span class="kw">if</span> (camPerm.status !== <span class="str">'granted'</span>) <span class="kw">return null</span>;
+
+  <span class="cm">// 2. Request media library permission (separate from camera)</span>
+  <span class="kw">const</span> libPerm = <span class="kw">await</span> <span class="cls">MediaLibrary</span>.<span class="fn">requestPermissionsAsync</span>();
+  <span class="kw">if</span> (libPerm.status !== <span class="str">'granted'</span>) <span class="kw">return null</span>;
+
+  <span class="cm">// 3. Launch the camera — this hands control to the OS</span>
+  <span class="kw">const</span> result = <span class="kw">await</span> <span class="cls">ImagePicker</span>.<span class="fn">launchCameraAsync</span>({
+    quality:       <span class="num">0.8</span>,
+    exif:          <span class="kw">false</span>,
+    allowsEditing: <span class="kw">false</span>,
+  });
+
+  <span class="kw">if</span> (result.canceled) <span class="kw">return null</span>;   <span class="cm">// user pressed Cancel</span>
+
+  <span class="kw">const</span> tempUri = result.assets[<span class="num">0</span>].uri;  <span class="cm">// ⚠ temporary — must save now</span>
+
+  <span class="cm">// 4. Save to device MediaLibrary — this makes the file permanent</span>
+  <span class="kw">const</span> asset = <span class="kw">await</span> <span class="cls">MediaLibrary</span>.<span class="fn">createAssetAsync</span>(tempUri);
+
+  <span class="cm">// 5. Build and return the photo record — use the permanent asset URI</span>
+  <span class="kw">return</span> {
+    id:         <span class="str">`photo_</span>${<span class="cls">Date</span>.<span class="fn">now</span>()}<span class="str">_</span>${<span class="cls">Math</span>.<span class="fn">random</span>().<span class="fn">toString</span>(<span class="num">36</span>).<span class="fn">slice</span>(<span class="num">2</span>)}<span class="str">`</span>,
+    uri:        asset.uri,         <span class="cm">// permanent MediaLibrary URI ✓</span>
+    capturedAt: <span class="cls">Date</span>.<span class="fn">now</span>(),
+    width:      result.assets[<span class="num">0</span>].width,
+    height:     result.assets[<span class="num">0</span>].height,
+  };
+}</pre>
+
+<h3>Step 3 — The PhotoThumbnail Atom</h3>
+<p>
+  The row component that <code>FlatList</code> renders for each photo. Keep it simple —
+  just the image, a timestamp label, and an optional press handler. This is a Level 1 atom.
+</p>
+
+<pre><span class="cm">// components/PhotoThumbnail.js</span>
+<span class="kw">import</span> { Image, Text, TouchableOpacity, StyleSheet, Dimensions } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">const</span> SCREEN_WIDTH = <span class="cls">Dimensions</span>.<span class="fn">get</span>(<span class="str">'window'</span>).width;
+<span class="kw">const</span> COLUMNS     = <span class="num">2</span>;
+<span class="kw">const</span> GAP         = <span class="num">4</span>;
+<span class="kw">const</span> THUMB_SIZE  = (SCREEN_WIDTH - GAP * (COLUMNS + <span class="num">1</span>)) / COLUMNS;
+
+<span class="kw">export default function</span> <span class="fn">PhotoThumbnail</span>({ photo, onPress, onLongPress }) {
+  <span class="kw">const</span> date = <span class="kw">new</span> <span class="cls">Date</span>(photo.capturedAt).<span class="fn">toLocaleDateString</span>();
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;TouchableOpacity</span>
+      <span class="prop">onPress</span>={() => <span class="fn">onPress</span>?.(photo)}
+      <span class="prop">onLongPress</span>={() => <span class="fn">onLongPress</span>?.(photo)}
+      <span class="prop">style</span>={styles.container}
+    <span class="tag">&gt;</span>
+      <span class="tag">&lt;Image</span>
+        <span class="prop">source</span>={{ uri: photo.uri }}
+        <span class="prop">style</span>={styles.image}
+        <span class="prop">resizeMode</span>=<span class="str">"cover"</span>
+      <span class="tag">/&gt;</span>
+      <span class="tag">&lt;Text</span> <span class="prop">style</span>={styles.date}<span class="tag">&gt;</span>{date}<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;/TouchableOpacity&gt;</span>
+  );
+}
+
+<span class="kw">const</span> styles = <span class="cls">StyleSheet</span>.<span class="fn">create</span>({
+  container: { width: THUMB_SIZE, margin: GAP / <span class="num">2</span> },
+  image:     { width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: <span class="num">6</span> },
+  date:      { fontSize: <span class="num">11</span>, color: <span class="str">'#666'</span>, marginTop: <span class="num">4</span>, textAlign: <span class="str">'center'</span> },
+});</pre>
+
+<h3>Step 4 — The PhotoGallery Module</h3>
+<p>
+  Now assemble everything. The module owns state, handles camera capture, manages
+  persistence, and wraps <code>FlatList</code> with photo-grid defaults.
+</p>
+
+<pre><span class="cm">// modules/PhotoGallery.js — the full composable module</span>
+<span class="kw">import</span> React, { <span class="fn">useState</span>, <span class="fn">useEffect</span>, <span class="fn">useCallback</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { FlatList, View, TouchableOpacity, Text, StyleSheet, ActivityIndicator } <span class="kw">from</span> <span class="str">'react-native'</span>;
+<span class="kw">import</span> PhotoThumbnail             <span class="kw">from</span> <span class="str">'../components/PhotoThumbnail'</span>;
+<span class="kw">import</span> { <span class="fn">captureAndSavePhoto</span> }   <span class="kw">from</span> <span class="str">'../utils/capturePhoto'</span>;
+<span class="kw">import</span> { <span class="fn">loadPhotos</span>, <span class="fn">addPhoto</span>, <span class="fn">removePhoto</span> } <span class="kw">from</span> <span class="str">'../utils/photoStorage'</span>;
+
+<span class="kw">export default function</span> <span class="fn">PhotoGallery</span>({
+  <span class="cm">// ── Data slots ──</span>
+  initialPhotos,       <span class="cm">// optional seed data (for testing)</span>
+  <span class="fn">onPhotoAdded</span>,        <span class="cm">// (photo) => void — notify parent of additions</span>
+
+  <span class="cm">// ── Composition slots ──</span>
+  <span class="fn">renderItem</span>,          <span class="cm">// render prop — override the default thumbnail</span>
+  emptyState,          <span class="cm">// named slot — custom empty view</span>
+
+  <span class="cm">// ── Config ──</span>
+  columns = <span class="num">2</span>,         <span class="cm">// grid columns — 2 or 3</span>
+  showDates = <span class="kw">true</span>,   <span class="cm">// whether thumbnails show capture date</span>
+}) {
+  <span class="kw">const</span> [photos,  <span class="fn">setPhotos</span>]  = <span class="fn">useState</span>(initialPhotos || []);
+  <span class="kw">const</span> [loading, <span class="fn">setLoading</span>] = <span class="fn">useState</span>(!initialPhotos);
+
+  <span class="cm">// Load persisted photos on mount</span>
+  <span class="fn">useEffect</span>(() => {
+    <span class="kw">if</span> (initialPhotos) <span class="kw">return</span>;      <span class="cm">// skip if seed data was provided</span>
+    <span class="fn">loadPhotos</span>().<span class="fn">then</span>(saved => {
+      <span class="fn">setPhotos</span>(saved);
+      <span class="fn">setLoading</span>(<span class="kw">false</span>);
+    });
+  }, []);
+
+  <span class="cm">// Camera capture action — wired to the FAB</span>
+  <span class="kw">const</span> <span class="fn">handleCapture</span> = <span class="fn">useCallback</span>(<span class="kw">async</span> () => {
+    <span class="kw">const</span> record = <span class="kw">await</span> <span class="fn">captureAndSavePhoto</span>();
+    <span class="kw">if</span> (!record) <span class="kw">return</span>;            <span class="cm">// canceled or permission denied</span>
+
+    <span class="kw">const</span> updated = <span class="kw">await</span> <span class="fn">addPhoto</span>(record);   <span class="cm">// persist and get full updated list</span>
+    <span class="fn">setPhotos</span>(updated);                        <span class="cm">// update state → FlatList re-renders</span>
+    <span class="fn">onPhotoAdded</span>?.(record);                    <span class="cm">// notify parent if it cares</span>
+  }, [onPhotoAdded]);
+
+  <span class="cm">// Delete action — called by long-press handler or selection mode</span>
+  <span class="kw">const</span> <span class="fn">handleDelete</span> = <span class="fn">useCallback</span>(<span class="kw">async</span> (id) => {
+    <span class="kw">const</span> updated = <span class="kw">await</span> <span class="fn">removePhoto</span>(id);
+    <span class="fn">setPhotos</span>(updated);
+  }, []);
+
+  <span class="kw">if</span> (loading) {
+    <span class="kw">return</span> <span class="tag">&lt;ActivityIndicator</span> <span class="prop">style</span>={styles.loader} <span class="prop">size</span>=<span class="str">"large"</span> <span class="tag">/&gt;</span>;
+  }
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View</span> <span class="prop">style</span>={styles.container}<span class="tag">&gt;</span>
+
+      {<span class="cm">/* ── The Virtual List ── */</span>}
+      <span class="tag">&lt;FlatList</span>
+        <span class="prop">data</span>={photos}
+        <span class="prop">keyExtractor</span>={(item) => item.id}
+        <span class="prop">numColumns</span>={columns}            <span class="cm">// grid layout</span>
+        <span class="prop">contentContainerStyle</span>={styles.grid}
+        <span class="prop">ListEmptyComponent</span>={              <span class="cm">// named slot with default</span>
+          emptyState || (
+            <span class="tag">&lt;View</span> <span class="prop">style</span>={styles.empty}<span class="tag">&gt;</span>
+              <span class="tag">&lt;Text</span> <span class="prop">style</span>={styles.emptyText}<span class="tag">&gt;</span>📷 No photos yet<span class="tag">&lt;/Text&gt;</span>
+              <span class="tag">&lt;Text</span> <span class="prop">style</span>={styles.emptyHint}<span class="tag">&gt;</span>Tap the button to take your first photo<span class="tag">&lt;/Text&gt;</span>
+            <span class="tag">&lt;/View&gt;</span>
+          )
+        }
+        <span class="prop">renderItem</span>={({ item }) =>       <span class="cm">// render prop with default thumbnail</span>
+          <span class="fn">renderItem</span>
+            ? <span class="fn">renderItem</span>(item, { <span class="fn">onDelete</span>: handleDelete })
+            : <span class="tag">&lt;PhotoThumbnail</span>
+                <span class="prop">photo</span>={item}
+                <span class="prop">showDate</span>={showDates}
+                <span class="prop">onLongPress</span>={() => <span class="fn">handleDelete</span>(item.id)}
+              <span class="tag">/&gt;</span>
+        }
+      <span class="tag">/&gt;</span>
+
+      {<span class="cm">/* ── Floating Action Button ── */</span>}
+      <span class="tag">&lt;TouchableOpacity</span> <span class="prop">style</span>={styles.fab} <span class="prop">onPress</span>={handleCapture}<span class="tag">&gt;</span>
+        <span class="tag">&lt;Text</span> <span class="prop">style</span>={styles.fabIcon}<span class="tag">&gt;</span>📷<span class="tag">&lt;/Text&gt;</span>
+      <span class="tag">&lt;/TouchableOpacity&gt;</span>
+
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}
+
+<span class="kw">const</span> styles = <span class="cls">StyleSheet</span>.<span class="fn">create</span>({
+  container: { flex: <span class="num">1</span> },
+  grid:      { padding: <span class="num">2</span> },
+  loader:    { flex: <span class="num">1</span>, justifyContent: <span class="str">'center'</span> },
+  empty:     { flex: <span class="num">1</span>, alignItems: <span class="str">'center'</span>, marginTop: <span class="num">80</span> },
+  emptyText: { fontSize: <span class="num">20</span>, color: <span class="str">'#888'</span>, marginBottom: <span class="num">12</span> },
+  emptyHint: { fontSize: <span class="num">14</span>, color: <span class="str">'#aaa'</span>, textAlign: <span class="str">'center'</span> },
+  fab:       { position: <span class="str">'absolute'</span>, bottom: <span class="num">24</span>, right: <span class="num">24</span>,
+               width: <span class="num">60</span>, height: <span class="num">60</span>, borderRadius: <span class="num">30</span>,
+               backgroundColor: <span class="str">'#2E5D8A'</span>, alignItems: <span class="str">'center'</span>,
+               justifyContent: <span class="str">'center'</span>, elevation: <span class="num">6</span>, shadowOpacity: <span class="num">0.3</span> },
+  fabIcon:   { fontSize: <span class="num">26</span> },
+});</pre>
+
+<!-- ══════════════════════════════════════ DIAGRAM 4: Full Architecture ══ -->
+<h2>Full App Architecture</h2>
+
+<div class="diagram-wrap">
+  <svg viewBox="0 0 780 420" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect x="0" y="0" width="780" height="420" rx="10" fill="#fafbfc"/>
+    <text x="390" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">Complete App Component Tree &amp; Data Flow</text>
+
+    <defs>
+      <marker id="da" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L7,3 z" fill="#2E5D8A"/>
+      </marker>
+      <marker id="ga2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L7,3 z" fill="#2e8a5d"/>
+      </marker>
+    </defs>
+
+    <!-- App root -->
+    <rect x="280" y="36" width="220" height="50" rx="8" fill="#1B3A5C"/>
+    <text x="390" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="white">App.js (root)</text>
+    <text x="390" y="75" text-anchor="middle" font-size="10" fill="#aac4de">Expo Router / NavigationContainer</text>
+    <line x1="390" y1="86" x2="390" y2="110" stroke="#2E5D8A" stroke-width="2" marker-end="url(#da)"/>
+
+    <!-- GalleryScreen -->
+    <rect x="200" y="112" width="380" height="52" rx="8" fill="#2E5D8A"/>
+    <text x="390" y="134" text-anchor="middle" font-size="13" font-weight="700" fill="white">GalleryScreen.js</text>
+    <text x="390" y="150" text-anchor="middle" font-size="10" fill="#aac4de">Thin screen — just mounts PhotoGallery, sets title</text>
+
+    <!-- GalleryScreen → PhotoGallery -->
+    <line x1="390" y1="164" x2="390" y2="188" stroke="#2E5D8A" stroke-width="2" marker-end="url(#da)"/>
+
+    <!-- PhotoGallery MODULE -->
+    <rect x="60" y="190" width="660" height="140" rx="10" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+    <text x="390" y="210" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C">PhotoGallery (Module)</text>
+    <text x="390" y="224" text-anchor="middle" font-size="10" fill="#555">state: photos[ ], loading  ·  actions: handleCapture, handleDelete</text>
+
+    <!-- FlatList inside -->
+    <rect x="76" y="234" width="380" height="86" rx="7" fill="#d8e8f4" stroke="#4a80b5" stroke-width="1.5"/>
+    <text x="266" y="252" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">FlatList (virtual engine)</text>
+    <text x="266" y="268" font-size="10" fill="#555" text-anchor="middle">data={photos}  numColumns={2}  keyExtractor={(p) =&gt; p.id}</text>
+    <!-- renderItem -->
+    <rect x="90" y="276" width="180" height="36" rx="5" fill="#fff" stroke="#4a80b5" stroke-width="1"/>
+    <text x="180" y="290" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2E5D8A">renderItem → PhotoThumbnail</text>
+    <text x="180" y="305" text-anchor="middle" font-size="9" fill="#555">image + date label</text>
+    <!-- ListEmptyComponent -->
+    <rect x="280" y="276" width="168" height="36" rx="5" fill="#fff" stroke="#4a80b5" stroke-width="1"/>
+    <text x="364" y="290" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2E5D8A">ListEmptyComponent</text>
+    <text x="364" y="305" text-anchor="middle" font-size="9" fill="#555">EmptyState slot or default</text>
+
+    <!-- FAB -->
+    <rect x="472" y="234" width="232" height="86" rx="7" fill="#f0fbf4" stroke="#2e8a5d" stroke-width="1.5"/>
+    <text x="588" y="252" text-anchor="middle" font-size="11" font-weight="700" fill="#1a5c3a">Floating Action Button</text>
+    <text x="588" y="270" text-anchor="middle" font-size="10" fill="#555">onPress → handleCapture()</text>
+    <text x="588" y="286" text-anchor="middle" font-size="9" fill="#888">→ requestPermissions</text>
+    <text x="588" y="300" text-anchor="middle" font-size="9" fill="#888">→ launchCameraAsync</text>
+    <text x="588" y="313" text-anchor="middle" font-size="9" fill="#888">→ createAssetAsync (save)</text>
+
+    <!-- Utils layer -->
+    <rect x="60" y="348" width="300" height="52" rx="8" fill="#fffbf0" stroke="#c8890f" stroke-width="1.5"/>
+    <text x="210" y="368" text-anchor="middle" font-size="11" font-weight="700" fill="#7a4a00">utils/photoStorage.js</text>
+    <text x="210" y="383" text-anchor="middle" font-size="10" fill="#555">loadPhotos · savePhotos · addPhoto · removePhoto</text>
+
+    <rect x="420" y="348" width="300" height="52" rx="8" fill="#f5f0fb" stroke="#7a5abf" stroke-width="1.5"/>
+    <text x="570" y="368" text-anchor="middle" font-size="11" font-weight="700" fill="#4a2a8a">utils/capturePhoto.js</text>
+    <text x="570" y="383" text-anchor="middle" font-size="10" fill="#555">requestPermissions · launchCamera · createAsset</text>
+
+    <!-- Storage icons -->
+    <rect x="60" y="410" width="130" height="6" rx="3" fill="#c8890f" opacity="0.4"/>
+    <text x="125" y="423" text-anchor="middle" font-size="10" fill="#7a4a00">AsyncStorage</text>
+    <rect x="200" y="410" width="160" height="6" rx="3" fill="#c8890f" opacity="0.4"/>
+    <text x="280" y="423" text-anchor="middle" font-size="10" fill="#7a4a00">MediaLibrary (device gallery)</text>
+
+    <!-- Connector arrows: Module → utils -->
+    <line x1="210" y1="330" x2="210" y2="348" stroke="#c8890f" stroke-width="1.5" marker-end="url(#ga2)"/>
+    <line x1="570" y1="330" x2="570" y2="348" stroke="#7a5abf" stroke-width="1.5" marker-end="url(#da)"/>
+  </svg>
+  <p class="diagram-caption">
+    The screen is thin — it just mounts <code>PhotoGallery</code>. The module owns all state
+    and wires to two utility modules: one for persistence, one for camera capture.
+    <code>FlatList</code> renders the grid; the FAB triggers the full capture pipeline.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════ WHY VIRTUALLIST ══ -->
+<h2>Why FlatList (Virtual List) — Not ScrollView</h2>
+<p>
+  A photo gallery can easily contain hundreds of images. On a mobile device with limited
+  RAM, rendering all of them simultaneously would be catastrophic. This is exactly the
+  problem <code>FlatList</code> — a virtual list — solves.
+</p>
+
+<div class="two-col">
+  <div class="card">
+    <h4>❌ ScrollView — All in memory</h4>
+    <p>Every item rendered and held in memory simultaneously. 200 photos × average thumbnail
+    size = the entire gallery in GPU texture memory. Smooth on 5 items, jank and crash on 100.</p>
+  </div>
+  <div class="card">
+    <h4>✅ FlatList — Only visible items</h4>
+    <p>Only the items visible on screen plus a small buffer are rendered. As the user scrolls,
+    off-screen items are recycled. Memory usage stays roughly constant regardless of gallery size.</p>
+  </div>
+</div>
+
+<p>
+  <code>FlatList</code> adds two specific behaviors that matter for a photo grid:
+</p>
+
+<ul>
+  <li><strong><code>numColumns</code></strong> — renders items in a grid instead of a single
+    column. Set this to 2 or 3 for a photo gallery. When using <code>numColumns &gt; 1</code>,
+    each item must have a fixed width (not <code>flex: 1</code>), calculated from the screen
+    width divided by the column count.</li>
+  <li><strong><code>onEndReached</code></strong> — called when the user scrolls near the bottom
+    of the list. Use this for pagination if your app eventually loads photos from a cloud
+    backend — it's the hook point for "load more."</li>
+</ul>
+
+<div class="warning">
+  <strong>⚠ numColumns and item width:</strong> When you use <code>numColumns={2}</code>,
+  <code>FlatList</code> lays items out in rows of two. Each item must have an explicit
+  pixel width or it will fill the full row. Calculate the thumbnail size like this:
+  <code>const thumbSize = (screenWidth - gap * (columns + 1)) / columns</code>.
+  Using <code>flex: 1</code> on items inside a multi-column <code>FlatList</code> produces
+  layout bugs that are frustrating to debug.
+</div>
+
+<!-- ══════════════════════════════════════ STRETCH: SELECTION MODE ══ -->
+<h2>Stretch Goal — Selection Mode</h2>
+<p>
+  The selection mode (long-press to select, then delete) is the most architecturally
+  interesting stretch goal. It demonstrates a pattern you will use in many real apps:
+  a <em>mode variable</em> that changes what UI elements render and what gestures do.
+</p>
+
+<pre><span class="cm">// Inside PhotoGallery — add a selection mode state</span>
+<span class="kw">const</span> [selectedIds, <span class="fn">setSelectedIds</span>] = <span class="fn">useState</span>(<span class="kw">new</span> <span class="cls">Set</span>());
+<span class="kw">const</span> isSelecting = selectedIds.size > <span class="num">0</span>;   <span class="cm">// true when any photo is selected</span>
+
+<span class="kw">const</span> <span class="fn">toggleSelect</span> = (id) => {
+  <span class="fn">setSelectedIds</span>(prev => {
+    <span class="kw">const</span> next = <span class="kw">new</span> <span class="cls">Set</span>(prev);
+    next.has(id) ? next.<span class="fn">delete</span>(id) : next.<span class="fn">add</span>(id);
+    <span class="kw">return</span> next;
+  });
+};
+
+<span class="kw">const</span> <span class="fn">deleteSelected</span> = <span class="kw">async</span> () => {
+  <span class="kw">let</span> updated = [...photos];
+  <span class="kw">for</span> (<span class="kw">const</span> id <span class="kw">of</span> selectedIds) {
+    updated = <span class="kw">await</span> <span class="fn">removePhoto</span>(id);
+  }
+  <span class="fn">setPhotos</span>(updated);
+  <span class="fn">setSelectedIds</span>(<span class="kw">new</span> <span class="cls">Set</span>());
+};
+
+<span class="cm">// In renderItem — pass mode context to each thumbnail:</span>
+<span class="cm">// onPress:     isSelecting ? toggleSelect : navigate to detail</span>
+<span class="cm">// onLongPress: enter selection mode by toggling first item</span></pre>
+
+<div class="tip">
+  <strong>💡 Using a Set for selections:</strong>
+  A JavaScript <code>Set</code> is the right data structure here — it guarantees uniqueness,
+  has O(1) <code>has()</code> and <code>add()</code>, and <code>size</code> tells you instantly
+  whether you're in selection mode. The only caveat: React doesn't know a Set mutated, so
+  always create a <code>new Set(prev)</code> when updating state.
+</div>
+
+<!-- ══════════════════════════════════════ PROJECT TIPS ══ -->
+<h2>Implementation Tips &amp; Common Mistakes</h2>
+
+<table>
+  <thead>
+    <tr><th>Trap</th><th>Symptom</th><th>Fix</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Persisting the temp capture URI</td>
+      <td>Gallery is empty after app restarts; stored URI is gone</td>
+      <td>Always call <code>createAssetAsync(tempUri)</code> and store <code>asset.uri</code>, not <code>result.assets[0].uri</code></td>
+    </tr>
+    <tr>
+      <td>Using <code>flex: 1</code> on thumbnails with <code>numColumns</code></td>
+      <td>Items stretch to full row width; grid breaks</td>
+      <td>Set explicit pixel width: <code>(screenWidth - gaps) / columns</code></td>
+    </tr>
+    <tr>
+      <td>Not handling <code>result.canceled</code></td>
+      <td>App crashes when user backs out of the camera</td>
+      <td>Check <code>if (result.canceled) return null</code> before accessing <code>result.assets</code></td>
+    </tr>
+    <tr>
+      <td>Forgetting the MediaLibrary permission</td>
+      <td><code>createAssetAsync()</code> silently fails; no photo saved</td>
+      <td>Request both <code>requestCameraPermissionsAsync()</code> AND <code>requestPermissionsAsync()</code> from MediaLibrary</td>
+    </tr>
+    <tr>
+      <td>Creating emitter or storage calls on every render</td>
+      <td>Infinite re-render loop; storage read on every keystroke</td>
+      <td>Put <code>loadPhotos()</code> in <code>useEffect([], [])</code>; wrap action handlers in <code>useCallback</code></td>
+    </tr>
+    <tr>
+      <td>Passing <code>numColumns</code> as dynamic state that changes</td>
+      <td>React Native <code>FlatList</code> error: numColumns cannot change on the fly without remounting</td>
+      <td>If you need a column toggle, unmount and remount <code>FlatList</code> with a <code>key</code> change</td>
+    </tr>
+    <tr>
+      <td>Not testing with a cold app restart</td>
+      <td>Photos appear during the session but vanish when grader reopens the app</td>
+      <td>Test persistence explicitly: capture → force-quit app → reopen → gallery should be populated</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ══════════════════════════════════════ HOW TO START ══ -->
+<h2>Recommended Starting Order</h2>
+<p>
+  Don't try to build the whole app at once. This sequence gets you to a working
+  demo as fast as possible, then adds features incrementally.
+</p>
+
+<div class="step-row">
+  <div class="step-num">1</div>
+  <div class="step-content"><strong>Get a photo to appear on screen.</strong> Write only <code>captureAndSavePhoto()</code> and a single <code>Image</code> component. Don't worry about lists yet. Just prove the camera works and returns a persistent URI.</div>
+</div>
+<div class="step-row">
+  <div class="step-num">2</div>
+  <div class="step-content"><strong>Add persistence for a single photo.</strong> Call <code>addPhoto()</code> after capture, <code>loadPhotos()</code> in <code>useEffect</code>. Prove the URI survives a restart before building the list.</div>
+</div>
+<div class="step-row">
+  <div class="step-num">3</div>
+  <div class="step-content"><strong>Build the raw FlatList.</strong> Add <code>FlatList</code> with <code>numColumns={2}</code> and a simple image-only render. Get the grid rendering correctly with your persisted photos array.</div>
+</div>
+<div class="step-row">
+  <div class="step-num">4</div>
+  <div class="step-content"><strong>Wrap into <code>PhotoGallery</code>.</strong> Move the FlatList, FAB, and state into the module component. Add the empty state. This is the composable component extraction step.</div>
+</div>
+<div class="step-row">
+  <div class="step-num">5</div>
+  <div class="step-content"><strong>Polish and stretch goals.</strong> Add the timestamp label to thumbnails, add the full-screen detail view, implement selection and delete. These only make sense once the core flow is solid.</div>
+</div>
+
+<div class="callout">
+  <strong>You should be able to demo a working version of steps 1–3 in the next class session.</strong>
+  Come to office hours early if you hit the permission or URI lifecycle issues — those are
+  the two most common blockers, and both have quick fixes once you know what to look for.
+</div>
+
+<!-- ══════════════════════════════════════ SUMMARY ══ -->
+<h2>Summary</h2>
+<p>
+  Project 4 is not just a camera assignment — it is a composition exercise built on a
+  virtual list. Everything you need is already in your toolkit:
+</p>
+<ul>
+  <li>A <strong>photo gallery is a <code>FlatList</code></strong> with grid defaults and photo-shaped data — wrap it, don't rewrite it.</li>
+  <li>The <strong>persistence layer</strong> is a two-part system: <code>MediaLibrary</code> saves the file permanently; AsyncStorage or SQLite saves the record index. Both are required for true persistence.</li>
+  <li>The <strong>temp URI trap</strong> is the single most common mistake — always <code>createAssetAsync()</code> before storing anything.</li>
+  <li><strong>Composable design</strong> pays off here: <code>photoStorage.js</code>, <code>capturePhoto.js</code>, <code>PhotoThumbnail</code>, and <code>PhotoGallery</code> are each independently understandable, testable, and replaceable.</li>
+  <li>Build in order: <strong>camera first, persistence second, list third, module wrapper fourth</strong>. Don't skip steps.</li>
+  <li><code>FlatList</code>'s <strong><code>numColumns</code></strong> requires explicit item widths — calculate from screen width, not <code>flex: 1</code>.</li>
+</ul>
+
+</body>
+</html>

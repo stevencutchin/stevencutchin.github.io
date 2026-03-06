@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – The Virtual DOM, the Shadow DOM, and the Performance Question</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.8; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .semester { font-size: 14px; color: #888; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .doc-header .subtitle { font-size: 20px; color: #2E5D8A; font-weight: 700; margin-top: 4px; }
+  .doc-header .lesson-meta { margin-top: 14px; font-size: 13px; color: #777; display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; }
+
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; color: #1B3A5C; margin: 44px 0 14px; padding-bottom: 7px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 16px; color: #2E5D8A; margin: 22px 0 9px; font-weight: 700; }
+  p  { margin-bottom: 14px; color: #333; }
+  ul, ol { margin: 10px 0 16px 26px; color: #333; }
+  li { margin-bottom: 7px; }
+
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 28px; padding: 14px 20px; background: #f7f9fc; border-radius: 6px; border-left: 4px solid #1B3A5C; }
+  .callout { margin: 20px 0; padding: 15px 20px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .warning { margin: 20px 0; padding: 15px 20px; background: #fdf6ec; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .warning strong { color: #8a5d0a; }
+  .tip { margin: 20px 0; padding: 15px 20px; background: #f0fbf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .tip strong { color: #1a5c3a; }
+
+  /* Myth-busting callout — distinct orange-red */
+  .myth { margin: 20px 0; padding: 15px 20px; background: #fef2f2; border-left: 4px solid #b91c1c; border-radius: 0 6px 6px 0; color: #333; }
+  .myth strong { color: #7f1d1d; }
+
+  .chapter-label {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: #1B3A5C; color: #fff; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 5px 14px; border-radius: 20px; margin-bottom: 10px;
+  }
+  .chapter-label .ch-num { background: #fff; color: #1B3A5C; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+  .chapter-label.debate { background: #7f1d1d; }
+  .chapter-label.debate .ch-num { color: #7f1d1d; }
+
+  .diagram-wrap { text-align: center; margin: 28px 0; padding: 20px 16px; background: #fafbfc; border: 1px solid #e0e8f0; border-radius: 10px; }
+  .diagram-wrap svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .diagram-caption { font-size: 13px; color: #666; margin-top: 10px; font-style: italic; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left; }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 18px 22px; border-radius: 8px; overflow-x: auto; margin: 12px 0 20px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0 20px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 16px 18px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card p  { margin-bottom: 0; font-size: 14px; }
+  .card.red { background: #fef2f2; border-color: #fca5a5; }
+  .card.red h4 { color: #7f1d1d; }
+  .card.green { background: #f0fbf4; border-color: #86efac; }
+  .card.green h4 { color: #14532d; }
+
+  .step-row { display: flex; align-items: flex-start; gap: 14px; margin: 10px 0; }
+  .step-num { background: #2E5D8A; color: #fff; font-weight: 700; font-size: 12px; min-width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 2px; flex-shrink: 0; }
+  .step-content { flex: 1; }
+  .step-content strong { color: #1B3A5C; }
+
+  /* debate section */
+  .debate-section { background: #fef9f9; border: 2px solid #b91c1c; border-radius: 10px; padding: 24px 28px; margin: 32px 0; }
+  .debate-section h2 { color: #7f1d1d; border-bottom-color: #fca5a5; }
+  .debate-section h3 { color: #991b1b; }
+
+  /* terminology distinction box */
+  .term-box { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 20px 0; border: 1px solid #d0dce6; border-radius: 10px; overflow: hidden; }
+  .term-box .term-left { background: #1B3A5C; padding: 16px 20px; }
+  .term-box .term-right { background: #2E5D8A; padding: 16px 20px; }
+  .term-box h4 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .term-box p { color: #c0daf0; font-size: 13.5px; margin-bottom: 0; }
+
+  .doc-footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid #d0dce6; display: flex; justify-content: space-between; font-size: 12px; color: #999; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .diagram-wrap, .two-col, .three-col { break-inside: avoid; }
+    .callout, .warning, .tip, .myth { break-inside: avoid; }
+    .debate-section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<header class="doc-header">
+  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+  <h1>The Virtual DOM, the Shadow DOM, and the Performance Question</h1>
+  <div class="subtitle">Two Different Ideas That Share a Confusing Name — and One Persistent Myth</div>
+  <div class="lesson-meta">
+    <span>🌳 Theme 2 — Building</span>
+    <span>⚙️ React Architecture</span>
+    <span>🏛 LO-5 · LO-7</span>
+  </div>
+</header>
+
+
+<!-- ══ OVERVIEW ════════════════════════════════════════════════════════════ -->
+<h2>Two Things Called "DOM," One Persistent Misunderstanding</h2>
+
+<p class="section-intro">
+  "Virtual DOM" and "Shadow DOM" sound like they belong to the same idea. They don't.
+  One is a React implementation strategy for managing UI updates. The other is a
+  browser platform feature for component encapsulation. They operate at different levels,
+  solve different problems, and are only related in that both keep some representation
+  of structure separate from the main document tree.
+</p>
+
+<p>
+  This document untangles the two concepts, shows how each one works, and then tackles
+  a widely repeated claim that deserves direct scrutiny: the idea that the Virtual DOM
+  makes React applications inherently faster. It doesn't — and understanding exactly why
+  will make you a more thoughtful developer.
+</p>
+
+<div class="term-box">
+  <div class="term-left">
+    <h4>Virtual DOM</h4>
+    <p>A React (and React Native) implementation detail. A lightweight JavaScript
+    object tree that mirrors your component tree. React uses it to decide the minimum
+    set of changes to apply to the real UI. You never create or touch it directly.</p>
+  </div>
+  <div class="term-right">
+    <h4>Shadow DOM</h4>
+    <p>A browser platform API. Lets a component own a private subtree of the document
+    that is isolated from the rest of the page — its own styles, its own event scope.
+    Used for Web Components. Not a React concept at all.</p>
+  </div>
+</div>
+
+
+<!-- ══ CHAPTER 1 — THE REAL DOM ════════════════════════════════════════════ -->
+<h2>Chapter 1 — The Real DOM: What We're Working Around</h2>
+
+<div class="chapter-label"><div class="ch-num">1</div>The Real DOM</div>
+
+<p>
+  To understand the Virtual DOM and Shadow DOM you first need a clear picture of the
+  thing they're both reacting to: the Document Object Model, or DOM.
+</p>
+
+<p>
+  When a browser parses HTML, it builds a tree of live objects in memory — one object
+  per element. This tree is the DOM. JavaScript can read and modify it. Every time
+  you change a node's text, add a child, or remove an element, the browser
+  immediately reflects that change — which may trigger a chain of expensive work.
+</p>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 780 340" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+  <rect x="0" y="0" width="780" height="340" rx="10" fill="#fafbfc"/>
+  <text x="390" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">The Real DOM — A Live Tree of Objects in Browser Memory</text>
+
+  <defs>
+    <marker id="tree-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="#999"/>
+    </marker>
+  </defs>
+
+  <!-- Document node -->
+  <rect x="310" y="38" width="160" height="36" rx="6" fill="#1B3A5C"/>
+  <text x="390" y="61" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">document</text>
+
+  <!-- html -->
+  <line x1="390" y1="74" x2="390" y2="94" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+  <rect x="310" y="96" width="160" height="34" rx="6" fill="#2E5D8A"/>
+  <text x="390" y="118" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">&lt;html&gt;</text>
+
+  <!-- head and body branches -->
+  <line x1="350" y1="130" x2="230" y2="158" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+  <line x1="430" y1="130" x2="550" y2="158" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+
+  <!-- head -->
+  <rect x="160" y="160" width="140" height="34" rx="6" fill="#1B3A5C" opacity="0.6"/>
+  <text x="230" y="182" text-anchor="middle" font-size="11" fill="#fff">&lt;head&gt;</text>
+
+  <!-- body -->
+  <rect x="480" y="160" width="140" height="34" rx="6" fill="#2E5D8A"/>
+  <text x="550" y="182" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">&lt;body&gt;</text>
+
+  <!-- body children -->
+  <line x1="510" y1="194" x2="370" y2="224" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+  <line x1="550" y1="194" x2="550" y2="224" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+  <line x1="590" y1="194" x2="700" y2="224" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+
+  <!-- nav -->
+  <rect x="295" y="226" width="150" height="34" rx="6" fill="#3a5a1a"/>
+  <text x="370" y="248" text-anchor="middle" font-size="11" fill="#fff">&lt;nav&gt;</text>
+
+  <!-- main -->
+  <rect x="470" y="226" width="160" height="34" rx="6" fill="#1B3A5C"/>
+  <text x="550" y="248" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">&lt;main&gt;</text>
+
+  <!-- footer -->
+  <rect x="645" y="226" width="120" height="34" rx="6" fill="#3a5a1a"/>
+  <text x="705" y="248" text-anchor="middle" font-size="11" fill="#fff">&lt;footer&gt;</text>
+
+  <!-- main children -->
+  <line x1="520" y1="260" x2="440" y2="288" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+  <line x1="550" y1="260" x2="550" y2="288" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+  <line x1="580" y1="260" x2="650" y2="288" stroke="#999" stroke-width="1.5" marker-end="url(#tree-arrow)"/>
+
+  <rect x="385" y="290" width="110" height="30" rx="5" fill="#2E5D8A" opacity="0.7"/>
+  <text x="440" y="309" text-anchor="middle" font-size="10" fill="#fff">&lt;h1&gt;</text>
+
+  <rect x="505" y="290" width="90" height="30" rx="5" fill="#2E5D8A" opacity="0.7"/>
+  <text x="550" y="309" text-anchor="middle" font-size="10" fill="#fff">&lt;ul&gt;</text>
+
+  <rect x="605" y="290" width="100" height="30" rx="5" fill="#2E5D8A" opacity="0.7"/>
+  <text x="655" y="309" text-anchor="middle" font-size="10" fill="#fff">&lt;button&gt;</text>
+
+  <!-- Right side annotation -->
+  <rect x="20" y="80" width="160" height="200" rx="8" fill="#fff" stroke="#d0dce6" stroke-width="1"/>
+  <text x="100" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Each node is a</text>
+  <text x="100" y="116" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">live JS object</text>
+  <text x="100" y="140" text-anchor="middle" font-size="10" fill="#555">• Properties</text>
+  <text x="100" y="156" text-anchor="middle" font-size="10" fill="#555">• Event listeners</text>
+  <text x="100" y="172" text-anchor="middle" font-size="10" fill="#555">• Style references</text>
+  <text x="100" y="188" text-anchor="middle" font-size="10" fill="#555">• Child list</text>
+  <text x="100" y="210" text-anchor="middle" font-size="10" fill="#b91c1c" font-weight="700">Mutate any node →</text>
+  <text x="100" y="226" text-anchor="middle" font-size="10" fill="#b91c1c">browser may recalc</text>
+  <text x="100" y="242" text-anchor="middle" font-size="10" fill="#b91c1c">styles, reflow, repaint</text>
+  <text x="100" y="260" text-anchor="middle" font-size="10" fill="#b91c1c">immediately</text>
+</svg>
+<p class="diagram-caption">
+  The DOM is a live, mutable tree. Every node is a JavaScript object the browser keeps
+  synchronized with what's on screen. Changes are reflected immediately —
+  which means the browser may have to do layout and paint work after each one.
+</p>
+</div>
+
+<h3>Why DOM Operations Have a Cost</h3>
+
+<p>
+  Changing a DOM node is not like changing a variable. When you write
+  <code>element.textContent = "hello"</code>, the browser may need to:
+</p>
+
+<div class="step-row"><div class="step-num">1</div><div class="step-content"><strong>Recalculate styles.</strong> Does the new content affect how other elements should look? CSS rules are reevaluated for any elements that might be affected.</div></div>
+<div class="step-row"><div class="step-num">2</div><div class="step-content"><strong>Reflow (layout).</strong> Has the content change affected the size or position of this element or its neighbors? The browser may need to recalculate the geometry of a subtree — or the entire page.</div></div>
+<div class="step-row"><div class="step-num">3</div><div class="step-content"><strong>Repaint.</strong> Pixels need to be drawn for any region whose appearance changed.</div></div>
+<div class="step-row"><div class="step-num">4</div><div class="step-content"><strong>Composite.</strong> The painted layers are composited into the final frame that appears on screen.</div></div>
+
+<p>
+  Not every change triggers all four steps — changing a color skips reflow, for instance.
+  But in a complex application where state changes trigger many DOM updates in quick
+  succession, these costs add up. The browser is doing real work, and doing it
+  synchronously in response to your JavaScript.
+</p>
+
+<div class="callout">
+  <strong>The fundamental tension:</strong> UI frameworks want to express the entire
+  desired state of the UI and have it reflected on screen. The DOM wants to be told
+  exactly which nodes to change, one at a time. Bridging those two mental models —
+  "here's what I want" versus "here's what to do" — is what both the Virtual DOM
+  and React Native's native bridge are trying to solve.
+</div>
+
+
+<!-- ══ CHAPTER 2 — THE VIRTUAL DOM ════════════════════════════════════════ -->
+<h2>Chapter 2 — The Virtual DOM: React's Diffing Strategy</h2>
+
+<div class="chapter-label"><div class="ch-num">2</div>Virtual DOM</div>
+
+<p>
+  The Virtual DOM is React's answer to the question: <em>given that DOM manipulation
+  is expensive, how do we minimize it?</em>
+</p>
+
+<p>
+  The approach is elegant. Instead of applying every state change directly to the DOM
+  as it happens, React maintains a lightweight JavaScript object tree — the Virtual DOM —
+  that mirrors the component hierarchy. When state changes, React re-renders the
+  affected components into a <em>new</em> Virtual DOM tree, compares it against the
+  <em>previous</em> one, and only applies the differences to the real DOM.
+  This comparison process is called <strong>reconciliation</strong> or <strong>diffing</strong>.
+</p>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 780 420" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+  <rect x="0" y="0" width="780" height="420" rx="10" fill="#fafbfc"/>
+  <text x="390" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">React Reconciliation — The Virtual DOM Diffing Cycle</text>
+
+  <defs>
+    <marker id="cycle-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2E5D8A"/>
+    </marker>
+    <marker id="red-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#b91c1c"/>
+    </marker>
+  </defs>
+
+  <!-- Step 1: State change -->
+  <rect x="20" y="50" width="160" height="60" rx="8" fill="#1B3A5C"/>
+  <text x="100" y="76" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">① State Change</text>
+  <text x="100" y="94" text-anchor="middle" font-size="10" fill="#aac4de">setState() / useState</text>
+  <text x="100" y="110" text-anchor="middle" font-size="10" fill="#aac4de">hook dispatch</text>
+
+  <!-- Arrow right -->
+  <line x1="180" y1="80" x2="220" y2="80" stroke="#2E5D8A" stroke-width="2" marker-end="url(#cycle-arrow)"/>
+
+  <!-- Step 2: Render to new vdom -->
+  <rect x="222" y="50" width="170" height="60" rx="8" fill="#2E5D8A"/>
+  <text x="307" y="73" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">② Re-render</text>
+  <text x="307" y="89" text-anchor="middle" font-size="10" fill="#c0daf0">Components re-run as</text>
+  <text x="307" y="105" text-anchor="middle" font-size="10" fill="#c0daf0">pure JS functions →</text>
+  <text x="307" y="120" text-anchor="middle" font-size="10" fill="#c0daf0">new VDOM tree (objects)</text>
+
+  <!-- Arrow right -->
+  <line x1="392" y1="80" x2="430" y2="80" stroke="#2E5D8A" stroke-width="2" marker-end="url(#cycle-arrow)"/>
+
+  <!-- Step 3: Diff -->
+  <rect x="432" y="50" width="160" height="60" rx="8" fill="#3a5a1a"/>
+  <text x="512" y="73" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">③ Diff</text>
+  <text x="512" y="89" text-anchor="middle" font-size="10" fill="#c0f0a0">Compare new tree</text>
+  <text x="512" y="105" text-anchor="middle" font-size="10" fill="#c0f0a0">against previous tree</text>
+  <text x="512" y="120" text-anchor="middle" font-size="10" fill="#c0f0a0">O(n) heuristic algorithm</text>
+
+  <!-- Arrow right -->
+  <line x1="592" y1="80" x2="630" y2="80" stroke="#2E5D8A" stroke-width="2" marker-end="url(#cycle-arrow)"/>
+
+  <!-- Step 4: Commit -->
+  <rect x="632" y="50" width="130" height="60" rx="8" fill="#7a3030"/>
+  <text x="697" y="73" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">④ Commit</text>
+  <text x="697" y="89" text-anchor="middle" font-size="10" fill="#f0c0c0">Apply minimal</text>
+  <text x="697" y="105" text-anchor="middle" font-size="10" fill="#f0c0c0">changes to real</text>
+  <text x="697" y="120" text-anchor="middle" font-size="10" fill="#f0c0c0">DOM / native UI</text>
+
+  <!-- The two vdom trees diagram -->
+  <!-- Previous VDOM -->
+  <rect x="20" y="165" width="340" height="190" rx="8" fill="#f0f4f8" stroke="#2E5D8A" stroke-width="1.5"/>
+  <text x="190" y="186" text-anchor="middle" font-size="11" font-weight="700" fill="#2E5D8A">Previous Virtual DOM Tree</text>
+
+  <rect x="150" y="196" width="80" height="26" rx="4" fill="#1B3A5C"/>
+  <text x="190" y="213" text-anchor="middle" font-size="10" fill="#fff">App</text>
+
+  <line x1="165" y1="222" x2="100" y2="248" stroke="#999" stroke-width="1.2"/>
+  <line x1="215" y1="222" x2="280" y2="248" stroke="#999" stroke-width="1.2"/>
+
+  <rect x="50" y="250" width="100" height="26" rx="4" fill="#2E5D8A"/>
+  <text x="100" y="267" text-anchor="middle" font-size="10" fill="#fff">Header</text>
+
+  <rect x="230" y="250" width="100" height="26" rx="4" fill="#2E5D8A"/>
+  <text x="280" y="267" text-anchor="middle" font-size="10" fill="#fff">List (3 items)</text>
+
+  <line x1="60" y1="276" x2="60" y2="300" stroke="#999" stroke-width="1.2"/>
+  <line x1="100" y1="276" x2="100" y2="300" stroke="#999" stroke-width="1.2"/>
+
+  <rect x="30" y="302" width="58" height="24" rx="4" fill="#2E5D8A" opacity="0.7"/>
+  <text x="59" y="318" text-anchor="middle" font-size="9" fill="#fff">Logo</text>
+  <rect x="72" y="302" width="58" height="24" rx="4" fill="#2E5D8A" opacity="0.7"/>
+  <text x="101" y="318" text-anchor="middle" font-size="9" fill="#fff">Nav</text>
+
+  <!-- Arrow between trees -->
+  <text x="390" y="268" text-anchor="middle" font-size="28" fill="#3a5a1a">⇄</text>
+  <text x="390" y="288" text-anchor="middle" font-size="10" fill="#3a5a1a" font-weight="700">DIFF</text>
+
+  <!-- New VDOM -->
+  <rect x="420" y="165" width="340" height="190" rx="8" fill="#f0f4f8" stroke="#b91c1c" stroke-width="1.5"/>
+  <text x="590" y="186" text-anchor="middle" font-size="11" font-weight="700" fill="#b91c1c">New Virtual DOM Tree (after state change)</text>
+
+  <rect x="550" y="196" width="80" height="26" rx="4" fill="#1B3A5C"/>
+  <text x="590" y="213" text-anchor="middle" font-size="10" fill="#fff">App</text>
+
+  <line x1="565" y1="222" x2="500" y2="248" stroke="#999" stroke-width="1.2"/>
+  <line x1="615" y1="222" x2="680" y2="248" stroke="#999" stroke-width="1.2"/>
+
+  <rect x="450" y="250" width="100" height="26" rx="4" fill="#2E5D8A"/>
+  <text x="500" y="267" text-anchor="middle" font-size="10" fill="#fff">Header</text>
+
+  <!-- Changed node highlighted -->
+  <rect x="628" y="246" width="114" height="34" rx="4" fill="#b91c1c"/>
+  <text x="685" y="261" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">List (4 items) ←</text>
+  <text x="685" y="274" text-anchor="middle" font-size="9" fill="#fca5a5">CHANGED</text>
+
+  <line x1="460" y1="276" x2="460" y2="300" stroke="#999" stroke-width="1.2"/>
+  <line x1="500" y1="276" x2="500" y2="300" stroke="#999" stroke-width="1.2"/>
+
+  <rect x="430" y="302" width="58" height="24" rx="4" fill="#2E5D8A" opacity="0.7"/>
+  <text x="459" y="318" text-anchor="middle" font-size="9" fill="#fff">Logo</text>
+  <rect x="472" y="302" width="58" height="24" rx="4" fill="#2E5D8A" opacity="0.7"/>
+  <text x="501" y="318" text-anchor="middle" font-size="9" fill="#fff">Nav</text>
+
+  <!-- Bottom: only one DOM write -->
+  <rect x="200" y="370" width="380" height="38" rx="8" fill="#7a3030"/>
+  <text x="390" y="386" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Only one DOM write: append new &lt;li&gt; to the list</text>
+  <text x="390" y="400" text-anchor="middle" font-size="9" fill="#fca5a5">Header, Logo, Nav untouched — no needless DOM operations</text>
+
+  <line x1="280" y1="356" x2="280" y2="368" stroke="#7a3030" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <line x1="685" y1="280" x2="685" y2="360" stroke="#b91c1c" stroke-width="2" marker-end="url(#red-arrow)"/>
+  <line x1="685" y1="360" x2="500" y2="368" stroke="#b91c1c" stroke-width="2"/>
+</svg>
+<p class="diagram-caption">
+  React compares two plain JavaScript object trees — not two DOM trees.
+  That comparison is fast. Only the differences are then written to the real DOM,
+  which is slow. The Virtual DOM is a staging area, not an acceleration layer.
+</p>
+</div>
+
+<h3>What the Virtual DOM Actually Is</h3>
+
+<p>
+  A Virtual DOM node is a plain JavaScript object. It looks something like this
+  (simplified):
+</p>
+
+<pre><span class="cm">// A Virtual DOM node — just a JS object</span>
+{
+  <span class="prop">type</span>: <span class="str">'ul'</span>,
+  <span class="prop">props</span>: { <span class="prop">className</span>: <span class="str">'todo-list'</span> },
+  <span class="prop">children</span>: [
+    { <span class="prop">type</span>: <span class="str">'li'</span>, <span class="prop">props</span>: { <span class="prop">key</span>: <span class="str">'a'</span> }, <span class="prop">children</span>: [<span class="str">'Buy groceries'</span>] },
+    { <span class="prop">type</span>: <span class="str">'li'</span>, <span class="prop">props</span>: { <span class="prop">key</span>: <span class="str">'b'</span> }, <span class="prop">children</span>: [<span class="str">'Walk dog'</span>] },
+  ]
+}</pre>
+
+<p>
+  Creating and comparing these objects is cheap — it's just allocating memory and
+  reading properties. There are no style calculations, no layout passes, no pixel
+  drawing. The Virtual DOM is entirely in JavaScript's world; it only crosses into
+  the browser's rendering world when React commits the final changes.
+</p>
+
+<div class="callout">
+  <strong>Key mental model:</strong> The Virtual DOM is a <em>description</em> of what the
+  UI should look like, expressed as plain data. React is the engine that compares two
+  descriptions and translates the difference into the smallest possible set of real UI
+  operations. In React Native, "real UI operations" means calls to native iOS or Android
+  view system APIs — not HTML DOM writes.
+</div>
+
+<h3>The Diffing Algorithm</h3>
+
+<p>
+  Comparing two arbitrary trees optimally is an O(n³) problem — prohibitively
+  expensive for a UI framework. React's diffing algorithm instead uses a set of
+  heuristics that reduce it to O(n):
+</p>
+
+<ul>
+  <li>If two nodes have different <em>types</em> (e.g. <code>&lt;div&gt;</code> becomes <code>&lt;span&gt;</code>), tear down the old subtree entirely and build a new one.</li>
+  <li>If two nodes have the same type, update only the changed attributes and recurse into children.</li>
+  <li>When diffing lists of children, the <code>key</code> prop lets React match old and new items by identity rather than position — which is why removing the wrong <code>key</code> causes weird UI behavior.</li>
+</ul>
+
+<p>
+  These heuristics mean the algorithm occasionally does more work than strictly necessary
+  (tearing down a subtree when a smarter comparison might reuse it) but it is fast
+  enough in practice that the overhead rarely matters in real applications.
+</p>
+
+
+<!-- ══ CHAPTER 3 — THE SHADOW DOM ═════════════════════════════════════════ -->
+<h2>Chapter 3 — The Shadow DOM: Encapsulation, Not Performance</h2>
+
+<div class="chapter-label"><div class="ch-num">3</div>Shadow DOM</div>
+
+<p>
+  The Shadow DOM is a completely different concept — a browser platform feature
+  that has nothing to do with React or Virtual DOM diffing. It is part of the
+  <strong>Web Components</strong> specification and its purpose is
+  <strong>encapsulation</strong>, not performance optimization.
+</p>
+
+<p>
+  The idea is that a component — say, a custom <code>&lt;video-player&gt;</code> element —
+  might want its internal structure (the play button, progress bar, volume slider)
+  to be invisible to the rest of the page's CSS and JavaScript. The Shadow DOM
+  provides a private subtree that is attached to the host element but whose internals
+  are scoped away from the main document.
+</p>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 780 360" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+  <rect x="0" y="0" width="780" height="360" rx="10" fill="#fafbfc"/>
+  <text x="390" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">Shadow DOM — A Private Subtree Attached to a Host Element</text>
+
+  <defs>
+    <marker id="sa" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="#999"/>
+    </marker>
+    <marker id="sa2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="#4a1a6a"/>
+    </marker>
+  </defs>
+
+  <!-- Light DOM (main document) -->
+  <rect x="20" y="40" width="380" height="290" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+  <text x="210" y="62" text-anchor="middle" font-size="11" font-weight="700" fill="#2E5D8A">Light DOM (main document)</text>
+
+  <rect x="150" y="74" width="120" height="28" rx="5" fill="#1B3A5C"/>
+  <text x="210" y="92" text-anchor="middle" font-size="11" fill="#fff">&lt;body&gt;</text>
+
+  <line x1="160" y1="102" x2="110" y2="126" stroke="#999" stroke-width="1.2" marker-end="url(#sa)"/>
+  <line x1="260" y1="102" x2="310" y2="126" stroke="#999" stroke-width="1.2" marker-end="url(#sa)"/>
+
+  <rect x="50" y="128" width="120" height="28" rx="5" fill="#2E5D8A"/>
+  <text x="110" y="146" text-anchor="middle" font-size="11" fill="#fff">&lt;h1&gt;Title&lt;/h1&gt;</text>
+
+  <!-- Host element -->
+  <rect x="238" y="122" width="150" height="42" rx="5" fill="#4a1a6a"/>
+  <text x="313" y="140" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">&lt;video-player&gt;</text>
+  <text x="313" y="156" text-anchor="middle" font-size="9" fill="#d0a0f0">Shadow Host</text>
+
+  <line x1="110" y1="156" x2="110" y2="180" stroke="#999" stroke-width="1.2" marker-end="url(#sa)"/>
+  <rect x="50" y="182" width="120" height="28" rx="5" fill="#2E5D8A" opacity="0.7"/>
+  <text x="110" y="200" text-anchor="middle" font-size="10" fill="#fff">&lt;p&gt;text…&lt;/p&gt;</text>
+
+  <text x="210" y="285" text-anchor="middle" font-size="10" fill="#2E5D8A">CSS from this document</text>
+  <text x="210" y="302" text-anchor="middle" font-size="10" fill="#2E5D8A">cannot reach inside</text>
+  <text x="210" y="318" text-anchor="middle" font-size="10" fill="#2E5D8A">the shadow boundary →</text>
+
+  <!-- Boundary marker -->
+  <line x1="420" y1="55" x2="420" y2="330" stroke="#4a1a6a" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="414" y="200" text-anchor="middle" font-size="9" fill="#4a1a6a" font-weight="700" transform="rotate(-90 414 200)">SHADOW BOUNDARY — styles and JS don't cross</text>
+
+  <!-- Shadow DOM -->
+  <rect x="430" y="40" width="330" height="290" rx="8" fill="#f5eefa" stroke="#4a1a6a" stroke-width="2"/>
+  <text x="595" y="62" text-anchor="middle" font-size="11" font-weight="700" fill="#4a1a6a">Shadow DOM (private subtree)</text>
+
+  <rect x="520" y="74" width="150" height="28" rx="5" fill="#4a1a6a"/>
+  <text x="595" y="92" text-anchor="middle" font-size="11" fill="#fff">Shadow Root</text>
+
+  <line x1="540" y1="102" x2="490" y2="126" stroke="#4a1a6a" stroke-width="1.2" marker-end="url(#sa2)"/>
+  <line x1="640" y1="102" x2="680" y2="126" stroke="#4a1a6a" stroke-width="1.2" marker-end="url(#sa2)"/>
+
+  <rect x="438" y="128" width="100" height="28" rx="5" fill="#6a3a8a"/>
+  <text x="488" y="146" text-anchor="middle" font-size="10" fill="#fff">&lt;div.controls&gt;</text>
+
+  <rect x="638" y="128" width="100" height="28" rx="5" fill="#6a3a8a"/>
+  <text x="688" y="146" text-anchor="middle" font-size="10" fill="#fff">&lt;video&gt;</text>
+
+  <line x1="448" y1="156" x2="448" y2="180" stroke="#4a1a6a" stroke-width="1.2" marker-end="url(#sa2)"/>
+  <line x1="488" y1="156" x2="488" y2="180" stroke="#4a1a6a" stroke-width="1.2" marker-end="url(#sa2)"/>
+  <line x1="528" y1="156" x2="528" y2="180" stroke="#4a1a6a" stroke-width="1.2" marker-end="url(#sa2)"/>
+
+  <rect x="430" y="182" width="64" height="26" rx="4" fill="#8a5aaa" opacity="0.9"/>
+  <text x="462" y="199" text-anchor="middle" font-size="9" fill="#fff">▶ play</text>
+
+  <rect x="500" y="182" width="64" height="26" rx="4" fill="#8a5aaa" opacity="0.9"/>
+  <text x="532" y="199" text-anchor="middle" font-size="9" fill="#fff">progress</text>
+
+  <rect x="570" y="182" width="64" height="26" rx="4" fill="#8a5aaa" opacity="0.9"/>
+  <text x="602" y="199" text-anchor="middle" font-size="9" fill="#fff">🔊 vol</text>
+
+  <text x="595" y="240" text-anchor="middle" font-size="10" fill="#4a1a6a">Scoped &lt;style&gt; rules live here</text>
+  <text x="595" y="256" text-anchor="middle" font-size="10" fill="#4a1a6a">and only affect this subtree.</text>
+  <text x="595" y="278" text-anchor="middle" font-size="10" fill="#4a1a6a">External selectors cannot</text>
+  <text x="595" y="294" text-anchor="middle" font-size="10" fill="#4a1a6a">accidentally style the buttons.</text>
+
+  <!-- Host element connects to shadow root -->
+  <line x1="388" y1="143" x2="430" y2="143" stroke="#4a1a6a" stroke-width="2.5" marker-end="url(#sa2)" stroke-dasharray="5,3"/>
+  <text x="409" y="136" text-anchor="middle" font-size="8" fill="#4a1a6a">hosts</text>
+</svg>
+<p class="diagram-caption">
+  The Shadow DOM creates an encapsulation boundary. Styles and JavaScript from the
+  main document cannot reach inside; the component's internal structure is private.
+  This is a modularity feature, not a performance feature.
+</p>
+</div>
+
+<h3>When You Encounter Shadow DOM in Practice</h3>
+
+<p>
+  You have almost certainly used Shadow DOM without knowing it. Browser-native form
+  elements — <code>&lt;input type="range"&gt;</code>, <code>&lt;video&gt;</code>,
+  <code>&lt;select&gt;</code> — all use Shadow DOM internally. The slider thumb and
+  track you see for a range input are shadow DOM nodes; that is why it is difficult
+  to style them without special pseudo-selectors like <code>::-webkit-slider-thumb</code>.
+</p>
+
+<p>
+  In React Native specifically, the Shadow DOM as a browser API is largely irrelevant
+  because there is no HTML browser DOM at all. React Native renders to native iOS and
+  Android view trees, not to HTML. React Native does have its own internal concept
+  sometimes called a "shadow tree" — a representation of the layout hierarchy maintained
+  in C++ by the Yoga layout engine — but that is a different and unrelated use of the word.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Feature</th><th>Virtual DOM</th><th>Browser Shadow DOM</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>What it is</strong></td><td>React's internal JS object tree</td><td>Browser API for component encapsulation</td></tr>
+    <tr><td><strong>Purpose</strong></td><td>Minimize real DOM writes via diffing</td><td>Isolate styles and DOM structure</td></tr>
+    <tr><td><strong>Who creates it</strong></td><td>React, automatically, behind the scenes</td><td>You, explicitly, via <code>attachShadow()</code></td></tr>
+    <tr><td><strong>React Native relevance</strong></td><td>Core to how React Native works</td><td>Not applicable — no browser DOM</td></tr>
+    <tr><td><strong>Performance claim</strong></td><td>Often overstated (see Chapter 4)</td><td>No performance claim made</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ══ CHAPTER 4 — THE PERFORMANCE MYTH ══════════════════════════════════ -->
+<div class="debate-section">
+
+<h2>Chapter 4 — The Virtual DOM Performance Myth</h2>
+
+<div class="chapter-label debate"><div class="ch-num">4</div>Technical Debate</div>
+
+<p>
+  React's original documentation described the Virtual DOM as a mechanism that made
+  apps "fast by default." That framing, repeated in blog posts and tutorials for years,
+  has calcified into a widely held belief: the Virtual DOM is fast, and that is why
+  you should use React.
+</p>
+
+<p>
+  This is worth examining carefully, because it is not quite right — and understanding
+  where the claim breaks down is actually more useful than accepting it uncritically.
+</p>
+
+<div class="myth">
+  <strong>The myth:</strong> "The Virtual DOM is faster than direct DOM manipulation
+  because it batches updates and avoids unnecessary DOM writes."
+</div>
+
+<h3>What the Claim Gets Right</h3>
+
+<p>
+  The claim is not entirely wrong. Compared to the most naive possible approach —
+  re-rendering the entire page from scratch on every state change by replacing
+  <code>innerHTML</code> wholesale — the Virtual DOM diffing strategy does perform
+  significantly better. If that were the baseline, the claim would be fair.
+</p>
+
+<p>
+  The batching observation is also partially correct. React does batch multiple state
+  updates that happen in the same event handler into a single re-render pass, which
+  reduces the number of reconciliation cycles. This is a genuine, measurable benefit.
+</p>
+
+<h3>What the Claim Gets Wrong</h3>
+
+<p>
+  The comparison that matters is not "Virtual DOM vs. naively replacing everything."
+  It is "Virtual DOM vs. carefully written direct DOM manipulation." And there, the
+  picture is quite different.
+</p>
+
+<div class="two-col">
+  <div class="card green">
+    <h4>What the Virtual DOM actually does well</h4>
+    <p>It makes the <em>developer's</em> job easier. You express what the UI should
+    look like and React figures out the changes. You don't have to track which
+    elements need updating — React does that for you. This is a productivity and
+    correctness win, not a raw performance win.</p>
+  </div>
+  <div class="card red">
+    <h4>What the Virtual DOM adds as overhead</h4>
+    <p>Every render creates new JavaScript objects for the entire component subtree.
+    Those objects must be allocated, populated, and then compared with the previous
+    ones. On large, frequently-updating UIs, this diffing overhead is real and
+    measurable — and can be <em>worse</em> than targeted direct updates.</p>
+  </div>
+</div>
+
+<p>
+  A developer who knows exactly which DOM node needs to change and writes
+  <code>listElement.appendChild(newItem)</code> directly is performing zero diffing,
+  zero object allocation for a VDOM representation, and exactly one DOM operation.
+  That is categorically faster than React creating a new virtual tree, comparing it
+  against the old one, determining that one <code>&lt;li&gt;</code> needs to be appended,
+  and then performing the same appendChild. React's path involves more work to arrive
+  at the same outcome.
+</p>
+
+<div class="diagram-wrap" style="background:#fef9f9; border-color:#fca5a5;">
+<svg viewBox="0 0 780 280" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+  <rect x="0" y="0" width="780" height="280" rx="10" fill="#fef9f9"/>
+  <text x="390" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#7f1d1d">Operation Count: Targeted Direct Update vs. Virtual DOM Cycle</text>
+
+  <!-- Direct DOM column -->
+  <rect x="30" y="44" width="330" height="218" rx="8" fill="#f0fbf4" stroke="#86efac" stroke-width="1.5"/>
+  <text x="195" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d">Targeted Direct DOM Manipulation</text>
+
+  <rect x="50" y="76" width="290" height="30" rx="5" fill="#2E5D8A"/>
+  <text x="195" y="96" text-anchor="middle" font-size="10" fill="#fff">1. Calculate which element to change</text>
+
+  <rect x="50" y="114" width="290" height="30" rx="5" fill="#2E5D8A"/>
+  <text x="195" y="134" text-anchor="middle" font-size="10" fill="#fff">2. Call one DOM API method</text>
+
+  <rect x="50" y="152" width="290" height="30" rx="5" fill="#3a5a1a"/>
+  <text x="195" y="172" text-anchor="middle" font-size="10" fill="#c0f0a0">3. Browser updates screen ✓</text>
+
+  <text x="195" y="224" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">3 steps</text>
+  <text x="195" y="244" text-anchor="middle" font-size="10" fill="#555">Requires developer to know</text>
+  <text x="195" y="258" text-anchor="middle" font-size="10" fill="#555">what changed and where</text>
+
+  <!-- VDOM column -->
+  <rect x="420" y="44" width="330" height="218" rx="8" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="585" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="#7f1d1d">Virtual DOM Cycle (same end result)</text>
+
+  <rect x="440" y="76" width="290" height="22" rx="4" fill="#b91c1c" opacity="0.7"/>
+  <text x="585" y="91" text-anchor="middle" font-size="9" fill="#fff">1. Re-run component function → new JS objects</text>
+  <rect x="440" y="102" width="290" height="22" rx="4" fill="#b91c1c" opacity="0.7"/>
+  <text x="585" y="117" text-anchor="middle" font-size="9" fill="#fff">2. Allocate VDOM nodes for entire subtree</text>
+  <rect x="440" y="128" width="290" height="22" rx="4" fill="#b91c1c" opacity="0.7"/>
+  <text x="585" y="143" text-anchor="middle" font-size="9" fill="#fff">3. Walk old tree node-by-node</text>
+  <rect x="440" y="154" width="290" height="22" rx="4" fill="#b91c1c" opacity="0.7"/>
+  <text x="585" y="169" text-anchor="middle" font-size="9" fill="#fff">4. Walk new tree node-by-node, compare</text>
+  <rect x="440" y="180" width="290" height="22" rx="4" fill="#3a5a1a"/>
+  <text x="585" y="195" text-anchor="middle" font-size="9" fill="#c0f0a0">5. Determine delta → call same DOM API ✓</text>
+
+  <text x="585" y="224" text-anchor="middle" font-size="12" font-weight="700" fill="#7f1d1d">5 steps</text>
+  <text x="585" y="244" text-anchor="middle" font-size="10" fill="#555">Developer is free from tracking</text>
+  <text x="585" y="258" text-anchor="middle" font-size="10" fill="#555">what changed — React handles it</text>
+</svg>
+<p class="diagram-caption" style="color:#7f1d1d;">
+  For any individual update, the Virtual DOM cycle does strictly more work than a
+  targeted direct DOM operation arriving at the exact same outcome. The overhead
+  is the cost of the developer abstraction.
+</p>
+</div>
+
+<h3>So Why Use It?</h3>
+
+<p>
+  Because the relevant comparison is almost never one operation in isolation.
+  In a real application:
+</p>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong>Tracking what changed is hard and error-prone.</strong> As applications grow, the logic of "when this state changes, update these five DOM nodes but not those three" becomes a maintenance problem. Developers make mistakes. React's model — always declare the full desired state, let the framework figure out changes — trades some raw performance for correctness and maintainability. That is almost always the right trade.</div></div>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong>React's diffing is often fast enough that the overhead doesn't matter.</strong> The VDOM object allocation and comparison, while not free, happens entirely in JavaScript memory and takes microseconds for typical component trees. The DOM writes it defers are the expensive part. If your app is not experiencing rendering performance problems, there is nothing to optimize.</div></div>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong>The batching benefit is real in specific scenarios.</strong> When many state updates happen synchronously, React's ability to batch them into one render pass does avoid redundant layout work. This matters most in high-frequency update scenarios like drag interactions or animation-driven state.</div></div>
+
+<h3>The Evidence: Frameworks That Skip the Virtual DOM</h3>
+
+<p>
+  Perhaps the strongest evidence that the Virtual DOM is not inherently fast is the
+  success of frameworks that eliminate it entirely.
+</p>
+
+<p>
+  <strong>Svelte</strong>, created in 2016, compiles components to highly targeted
+  imperative DOM update code at build time. There is no Virtual DOM at runtime — no
+  diffing, no object allocation. When state changes, Svelte-generated code makes the
+  precise, pre-calculated DOM writes and nothing else. Svelte applications consistently
+  outperform React in benchmark comparisons for raw update throughput.
+</p>
+
+<p>
+  <strong>Solid.js</strong> similarly avoids a Virtual DOM, instead using fine-grained
+  reactivity to track exactly which DOM expressions depend on which state values.
+  When state changes, only the specific DOM expressions that reference it update.
+  No tree comparison required.
+</p>
+
+<div class="myth">
+  <strong>The honest framing:</strong> The Virtual DOM is a <em>programming model trade-off</em>,
+  not a performance optimization. It trades some computational overhead for a simpler
+  developer mental model: "describe what you want, not how to get there."
+  Whether that trade-off is worth making depends on your team, your application's
+  complexity, and your actual performance requirements — not on an inherent speed advantage
+  that doesn't exist.
+</div>
+
+<h3>What Actually Determines Rendering Performance</h3>
+
+<p>
+  If the Virtual DOM isn't the key lever, what is? The factors that actually drive
+  mobile UI rendering performance, in rough order of impact:
+</p>
+
+<table>
+  <thead><tr><th>Factor</th><th>Why It Matters</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Number of DOM / native view mutations per frame</strong></td>
+      <td>Each mutation may trigger layout recalculation. Batching mutations — whether via VDOM or manually — reduces this. Targeting ≤ 16ms per frame (60fps) is the goal.</td>
+    </tr>
+    <tr>
+      <td><strong>Layout complexity</strong></td>
+      <td>Deeply nested Flexbox trees and elements that force repeated layout passes cost more than shallow, simple structures. Flattening your component hierarchy is often the highest-impact optimization.</td>
+    </tr>
+    <tr>
+      <td><strong>Render frequency</strong></td>
+      <td>Components that re-render more than necessary — because parent state changed or because key props are recreated on every render — waste both VDOM diffing time and any resulting native updates. <code>React.memo</code>, <code>useMemo</code>, and <code>useCallback</code> address this.</td>
+    </tr>
+    <tr>
+      <td><strong>List virtualization</strong></td>
+      <td>Rendering 10,000 list items into the view tree at once — regardless of framework — is catastrophic. <code>FlatList</code> in React Native only renders visible items; this matters far more than any VDOM optimization.</td>
+    </tr>
+    <tr>
+      <td><strong>JS thread blocking</strong></td>
+      <td>In React Native's architecture, heavy JS work blocks the thread that runs React's reconciler. This delays UI updates regardless of how efficient the VDOM diffing is. Moving heavy computation off the main thread (Worklets, native modules) fixes this.</td>
+    </tr>
+  </tbody>
+</table>
+
+</div><!-- end debate-section -->
+
+
+<!-- ══ CHAPTER 5 — REACT NATIVE'S SHADOW TREE ════════════════════════════ -->
+<h2>Chapter 5 — React Native's "Shadow Tree" (A Third Thing)</h2>
+
+<div class="chapter-label"><div class="ch-num">5</div>React Native Specifics</div>
+
+<p>
+  React Native introduces a third use of "shadow" terminology that is worth clarifying
+  before it causes confusion.
+</p>
+
+<p>
+  In React Native's architecture — both the legacy architecture and the newer Fabric
+  renderer — there is a C++ data structure sometimes called the <strong>shadow tree</strong>.
+  This is an internal representation of the component hierarchy maintained by the Yoga
+  layout engine on the native (non-JavaScript) side of the bridge. It is used to
+  calculate layout — Flexbox dimensions, positions, sizes — before those values are
+  applied to real native views.
+</p>
+
+<div class="diagram-wrap">
+<svg viewBox="0 0 780 300" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+  <rect x="0" y="0" width="780" height="300" rx="10" fill="#fafbfc"/>
+  <text x="390" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">React Native — Three Trees, Three Worlds</text>
+
+  <defs>
+    <marker id="bridge-arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#888"/>
+    </marker>
+  </defs>
+
+  <!-- JS World -->
+  <rect x="20" y="46" width="218" height="230" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="2"/>
+  <text x="129" y="66" text-anchor="middle" font-size="11" font-weight="700" fill="#2E5D8A">JavaScript World</text>
+
+  <rect x="40" y="78" width="178" height="44" rx="6" fill="#2E5D8A"/>
+  <text x="129" y="97" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Virtual DOM (VDOM)</text>
+  <text x="129" y="113" text-anchor="middle" font-size="9" fill="#c0daf0">JS objects — React's diff target</text>
+
+  <text x="129" y="148" text-anchor="middle" font-size="10" fill="#555">Your components render</text>
+  <text x="129" y="164" text-anchor="middle" font-size="10" fill="#555">here as JS functions.</text>
+  <text x="129" y="180" text-anchor="middle" font-size="10" fill="#555">Reconciler diffs VDOM</text>
+  <text x="129" y="196" text-anchor="middle" font-size="10" fill="#555">trees and produces a</text>
+  <text x="129" y="212" text-anchor="middle" font-size="10" fill="#555">list of mutations to send</text>
+  <text x="129" y="228" text-anchor="middle" font-size="10" fill="#555">across the bridge.</text>
+
+  <!-- Bridge -->
+  <rect x="252" y="110" width="100" height="90" rx="6" fill="#444"/>
+  <text x="302" y="145" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">JS ↔ Native</text>
+  <text x="302" y="161" text-anchor="middle" font-size="10" fill="#ccc">Bridge</text>
+  <text x="302" y="177" text-anchor="middle" font-size="9" fill="#aaa">(or JSI / Fabric)</text>
+
+  <line x1="238" y1="155" x2="252" y2="155" stroke="#888" stroke-width="2" marker-end="url(#bridge-arrow)"/>
+  <line x1="352" y1="155" x2="366" y2="155" stroke="#888" stroke-width="2" marker-end="url(#bridge-arrow)"/>
+
+  <!-- C++ World -->
+  <rect x="368" y="46" width="210" height="230" rx="8" fill="#f0fbf4" stroke="#2e8a5d" stroke-width="2"/>
+  <text x="473" y="66" text-anchor="middle" font-size="11" font-weight="700" fill="#2e8a5d">C++ / Native Modules</text>
+
+  <rect x="386" y="78" width="174" height="44" rx="6" fill="#2e8a5d"/>
+  <text x="473" y="97" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Shadow Tree</text>
+  <text x="473" y="113" text-anchor="middle" font-size="9" fill="#c0f0d0">Yoga layout engine input</text>
+
+  <text x="473" y="148" text-anchor="middle" font-size="10" fill="#555">Mutations arrive here.</text>
+  <text x="473" y="164" text-anchor="middle" font-size="10" fill="#555">Yoga runs Flexbox layout</text>
+  <text x="473" y="180" text-anchor="middle" font-size="10" fill="#555">calculations (off the JS</text>
+  <text x="473" y="196" text-anchor="middle" font-size="10" fill="#555">thread) to determine</text>
+  <text x="473" y="212" text-anchor="middle" font-size="10" fill="#555">exact px positions/sizes.</text>
+
+  <line x1="578" y1="155" x2="616" y2="155" stroke="#888" stroke-width="2" marker-end="url(#bridge-arrow)"/>
+
+  <!-- Native World -->
+  <rect x="618" y="46" width="144" height="230" rx="8" fill="#fdf6ec" stroke="#c8890f" stroke-width="2"/>
+  <text x="690" y="66" text-anchor="middle" font-size="11" font-weight="700" fill="#8a5d0a">Native UI</text>
+
+  <rect x="636" y="78" width="108" height="44" rx="6" fill="#c8890f"/>
+  <text x="690" y="97" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Native Views</text>
+  <text x="690" y="113" text-anchor="middle" font-size="9" fill="#fff">UIView / Android View</text>
+
+  <text x="690" y="154" text-anchor="middle" font-size="10" fill="#555">Layout values applied</text>
+  <text x="690" y="170" text-anchor="middle" font-size="10" fill="#555">to real iOS / Android</text>
+  <text x="690" y="186" text-anchor="middle" font-size="10" fill="#555">view objects.</text>
+  <text x="690" y="202" text-anchor="middle" font-size="10" fill="#555">Pixels drawn by the</text>
+  <text x="690" y="218" text-anchor="middle" font-size="10" fill="#555">OS compositor.</text>
+
+  <!-- Labels at bottom -->
+  <text x="129" y="268" text-anchor="middle" font-size="10" fill="#2E5D8A" font-weight="700">VDOM lives here</text>
+  <text x="473" y="268" text-anchor="middle" font-size="10" fill="#2e8a5d" font-weight="700">"Shadow tree" lives here</text>
+  <text x="690" y="268" text-anchor="middle" font-size="10" fill="#8a5d0a" font-weight="700">Real UI lives here</text>
+</svg>
+<p class="diagram-caption">
+  Three distinct data structures, each in a different world. "Shadow tree" in React Native
+  refers to the C++ layout tree — nothing to do with the browser's Shadow DOM API or
+  React's Virtual DOM.
+</p>
+</div>
+
+<div class="warning">
+  <strong>Terminology summary to keep straight:</strong> The Virtual DOM is React's
+  JS diffing structure. The browser Shadow DOM is a Web Components encapsulation API.
+  React Native's shadow tree is the C++ layout calculation input. All three are different
+  things that happen to use the word "shadow" or "virtual" in proximity to "DOM."
+  No wonder it's confusing.
+</div>
+
+
+<!-- ══ CHAPTER 6 — WHAT THIS MEANS FOR YOU ════════════════════════════════ -->
+<h2>Chapter 6 — What This Means in Practice</h2>
+
+<div class="chapter-label"><div class="ch-num">6</div>Takeaways</div>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong>The Virtual DOM is a developer ergonomics tool, not a speed tool.</strong> React lets you write declarative components that say "here is what the UI should look like" rather than "here is what to change." That is the actual value. Performance is a consequence of doing less unnecessary work, not an inherent property of the mechanism.</div></div>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong>When you have a performance problem, profile first.</strong> React DevTools' profiler shows which components re-render and how long each render takes. The answer is almost never "the Virtual DOM overhead" — it is usually unnecessary re-renders, deep tree structures, or unvirtualized long lists.</div></div>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong>Keys matter more than most developers realize.</strong> The <code>key</code> prop is how React's diffing algorithm preserves component identity across re-renders. Using an array index as a key is almost always wrong for dynamic lists because index keys break the algorithm's ability to match old and new items correctly, causing unnecessary unmounting and remounting.</div></div>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong><code>React.memo</code> and <code>useMemo</code> are the real performance levers.</strong> Preventing unnecessary re-renders at the component level reduces the number of VDOM diffing cycles. This is more impactful than anything about the diffing algorithm itself.</div></div>
+
+<div class="step-row"><div class="step-num">✦</div><div class="step-content"><strong>The Shadow DOM (browser API) is not part of React Native's model.</strong> It is a useful concept for understanding Web Components and why styling native browser elements is tricky, but it does not directly affect how you write React Native code.</div></div>
+
+<div class="tip">
+  <strong>The honest summary:</strong> React is not fast because of the Virtual DOM —
+  React is fast enough for most applications because modern hardware is fast,
+  because React's rendering model avoids the worst-case naive update patterns,
+  and because the React team has invested heavily in making the critical paths efficient.
+  The Virtual DOM is the mechanism that makes the programming model work,
+  not the reason for the performance.
+</div>
+
+
+<!-- ══ FOOTER ═══════════════════════════════════════════════════════════════ -->
+<footer class="doc-footer">
+  <span>CS 402 · Mobile Application Development · Spring 2026</span>
+  <span>Virtual DOM, Shadow DOM &amp; the Performance Question</span>
+  <span>Boise State University</span>
+</footer>
+
+</body>
+</html>

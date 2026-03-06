@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Instructor Plan: Event &amp; Listener Patterns</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 0.85in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.75; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { margin-bottom: 36px; padding-bottom: 24px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header .eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+    color: #c8890f; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .subtitle { font-size: 17px; color: #2E5D8A; font-weight: 700; margin-bottom: 16px; }
+  .doc-header .meta-row {
+    display: flex; flex-wrap: wrap; gap: 24px; font-size: 13px; color: #555;
+    padding-top: 14px; border-top: 1px solid #e0e8f0;
+  }
+  .doc-header .meta-row span { display: flex; align-items: center; gap: 5px; }
+  .doc-header .meta-row strong { color: #1B3A5C; }
+
+  /* ── Typography ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; color: #1B3A5C; margin: 38px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 15px; color: #2E5D8A; margin: 20px 0 8px; font-weight: 700; letter-spacing: 0.01em; }
+  p  { margin-bottom: 12px; color: #333; }
+  ul, ol { margin: 8px 0 12px 22px; color: #333; }
+  li { margin-bottom: 6px; }
+
+  /* ── Callout boxes ── */
+  .callout { margin: 16px 0; padding: 14px 18px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .instructor-note { margin: 16px 0; padding: 14px 18px; background: #fffbf0; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .instructor-note strong { color: #8a5d0a; }
+  .danger { margin: 16px 0; padding: 14px 18px; background: #fdf0f0; border-left: 4px solid #c04040; border-radius: 0 6px 6px 0; color: #333; }
+  .danger strong { color: #8a1a1a; }
+  .demo-block { margin: 16px 0; padding: 14px 18px; background: #f0faf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .demo-block strong { color: #1a5c3a; }
+  .discussion { margin: 16px 0; padding: 14px 18px; background: #f5f0fa; border-left: 4px solid #7c5cbf; border-radius: 0 6px 6px 0; color: #333; }
+  .discussion strong { color: #4a3580; }
+
+  /* ── Segment blocks ── */
+  .segment { margin: 32px 0 0; border: 1.5px solid #d0dce6; border-radius: 10px; overflow: hidden; }
+  .segment-header { display: flex; align-items: center; background: #1B3A5C; color: #fff; }
+  .segment-num { background: #0d2236; font-size: 22px; font-weight: 700; padding: 14px 20px; min-width: 60px; text-align: center; font-family: 'DM Serif Display', Georgia, serif; }
+  .segment-title-block { padding: 10px 18px; flex: 1; }
+  .segment-title { font-size: 16px; font-weight: 700; }
+  .segment-subtitle { font-size: 12px; color: #a0c0e0; margin-top: 2px; }
+  .segment-time { padding: 10px 20px; font-size: 13px; color: #a0c0e0; text-align: right; white-space: nowrap; }
+  .segment-body { padding: 20px 24px; }
+
+  /* ── Timing bar ── */
+  .timing-overview { margin: 20px 0 30px; border: 1.5px solid #d0dce6; border-radius: 8px; overflow: hidden; }
+  .timing-header { background: #1B3A5C; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 16px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .timing-bar { display: flex; height: 40px; }
+  .timing-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; }
+  .t1 { background: #1B3A5C; }
+  .t2 { background: #2E5D8A; }
+  .t3 { background: #3a7ab5; }
+  .t4 { background: #2e5d7a; }
+  .t5 { background: #1e4a6a; }
+  .t6 { background: #2e7a5d; }
+  .t7 { background: #8a5d0a; }
+  .timing-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #f7f9fc; border-top: 1px solid #e0e8f0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── Talking points ── */
+  .talking-points { list-style: none; margin: 0 0 14px; padding: 0; }
+  .talking-points li { padding: 5px 0 5px 22px; position: relative; color: #333; border-bottom: 1px dotted #e0e8f0; }
+  .talking-points li:last-child { border-bottom: none; }
+  .talking-points li::before { content: "›"; position: absolute; left: 4px; color: #2E5D8A; font-size: 18px; line-height: 1.3; font-weight: 700; }
+
+  /* ── Check-for-understanding ── */
+  .cfu { background: #f7f9fc; border: 1px solid #c8d8e8; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .cfu .cfu-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 8px; }
+  .cfu ol { margin: 0 0 0 20px; color: #333; }
+  .cfu li { margin-bottom: 6px; font-size: 14px; }
+  .cfu .answer { color: #666; font-style: italic; font-size: 13px; margin-top: 2px; }
+
+  /* ── Activity box ── */
+  .activity { background: #f0faf4; border: 1.5px solid #7abf9a; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .activity .act-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2e8a5d; margin-bottom: 8px; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 10px 0 14px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 9px 13px; text-align: left; }
+  td { padding: 8px 13px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  /* ── Two-col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0 16px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 14px 16px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 13px; margin-bottom: 4px; }
+
+  /* ── Objectives grid ── */
+  .obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .obj-item { background: #f0f6fb; border-radius: 6px; padding: 12px 14px; border-left: 3px solid #2E5D8A; font-size: 14px; color: #333; }
+  .obj-item .bloom { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 4px; }
+
+  /* ── Common mistakes table ── */
+  .mistake-row td:first-child { font-weight: 600; color: #8a2020; }
+  .mistake-row td:nth-child(2) { color: #555; }
+  .mistake-row td:nth-child(3) { color: #1a5c3a; font-weight: 600; }
+
+  /* ── Footer ── */
+  .doc-footer { margin-top: 48px; padding-top: 18px; border-top: 2px solid #d0dce6; font-size: 12px; color: #888; display: flex; justify-content: space-between; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .segment { break-inside: avoid; }
+    .callout, .instructor-note, .danger, .demo-block, .discussion { break-inside: avoid; }
+    pre { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<div class="doc-header">
+  <div class="eyebrow">📋 Instructor Lesson Plan</div>
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="subtitle">Event &amp; Listener Patterns in React Native</div>
+  <div class="meta-row">
+    <span>🕐 <strong>Total time:</strong> 75 minutes</span>
+    <span>📅 <strong>Semester:</strong> Spring 2026</span>
+    <span>📦 <strong>SDK:</strong> Expo SDK 52</span>
+    <span>📄 <strong>Student doc:</strong> CS402_Event_Listener_Pattern.html</span>
+    <span>🔗 <strong>Prereqs:</strong> useState, useEffect, Component Composition</span>
+  </div>
+</div>
+
+<!-- ─── OVERVIEW ─── -->
+<h2>Lecture Overview</h2>
+<p>
+  This lecture introduces the Event / Listener pattern as a structured way for React Native
+  components to communicate without direct coupling. Students learn to build a small
+  <code>EventEmitter</code> utility from scratch, wire it into components using
+  <code>useEffect</code>, and understand the chain-of-responsibility behavior controlled
+  by listener return values. The pattern generalizes naturally from things students already know —
+  event handlers in the browser DOM — so lean on that analogy early.
+</p>
+
+<div class="callout">
+  <strong>Framing for students:</strong> Open with the question, "How many of you have ever
+  had to pass a callback through three components just to get it somewhere it needed to go?"
+  Let a few groan or laugh. That lived frustration is the exact motivation for this lecture.
+</div>
+
+<!-- ─── LEARNING OBJECTIVES ─── -->
+<h2>Learning Objectives</h2>
+<div class="obj-grid">
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    Explain why prop-drilling breaks down in multi-component communication scenarios.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    Describe how the chain-of-responsibility pattern controls event propagation via return values.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Implement an <code>EventEmitter</code> class with <code>on()</code>, <code>off()</code>, and <code>emit()</code> methods.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Register and unsubscribe listeners correctly inside <code>useEffect</code> hooks.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Analyze</div>
+    Distinguish when a listener should return <code>true</code> (pass on) vs. <code>false</code> (consume).
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Evaluate</div>
+    Choose between self-registration and central-registration (composer) strategies for a given screen design.
+  </div>
+</div>
+
+<!-- ─── TIMING OVERVIEW ─── -->
+<h2>Timing Overview</h2>
+<div class="timing-overview">
+  <div class="timing-header">75-Minute Class — Segment Breakdown</div>
+  <div class="timing-bar">
+    <div class="timing-seg t1" style="width:10%">Hook (8)</div>
+    <div class="timing-seg t2" style="width:17%">Concept (13)</div>
+    <div class="timing-seg t3" style="width:20%">Build (15)</div>
+    <div class="timing-seg t4" style="width:17%">Wire-up (13)</div>
+    <div class="timing-seg t5" style="width:14%">Live Demo (10)</div>
+    <div class="timing-seg t6" style="width:12%">Scale Up (9)</div>
+    <div class="timing-seg t7" style="width:10%">Wrap (7)</div>
+  </div>
+  <div class="timing-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Hook &amp; Motivation (8 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>Pattern Concepts (13 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3a7ab5"></div>Build the Emitter (15 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e5d7a"></div>Wiring to React Native (13 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1e4a6a"></div>Live Demo (10 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>Context &amp; Scaling (9 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8a5d0a"></div>Wrap-up &amp; Q&amp;A (7 min)</div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- SEGMENT 1 -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">1</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Hook &amp; Motivation — The Prop-Drilling Problem</div>
+      <div class="segment-subtitle">Open with a relatable pain point before introducing the solution</div>
+    </div>
+    <div class="segment-time">⏱ 8 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Opening Hook</h3>
+    <p>
+      Draw (or sketch on-screen) a simple 3-level component tree:
+      <code>App → FormScreen → PasswordField</code>, with a <code>StrengthMeter</code>
+      and <code>SubmitButton</code> as siblings of <code>PasswordField</code>.
+      Ask students: "How does <code>PasswordField</code> tell <code>StrengthMeter</code>
+      what the user typed?"
+    </p>
+
+    <div class="discussion">
+      <strong>💬 Quick Poll (show of hands or PollEverywhere):</strong>
+      "If you needed PasswordField to update StrengthMeter, SubmitButton, AND log to analytics —
+      how would you do it right now with what you know?" Listen for: lift state up, callback props,
+      context. All are valid, but walk through why each gets painful at scale.
+    </div>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li>Callback props work great for 1-to-1 parent/child — but what about 1-to-many at the same level?</li>
+      <li>Lifting state to the parent means the parent must know about every subscriber — tight coupling.</li>
+      <li>What if the analytics listener lives in a completely different part of the tree?</li>
+      <li>Today's pattern borrows from something students already know: <strong>DOM event listeners.</strong> <code>addEventListener('click', fn)</code> — multiple listeners, same event, any component can add one.</li>
+      <li>We're going to build that same mechanism ourselves, purpose-built for component-to-component communication in React Native.</li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>📝 Instructor Note:</strong> Don't spend more than 3 minutes on the pain-point sketch.
+      The goal is buy-in, not an exhaustive comparison. Students who already know Redux may
+      volunteer it — acknowledge it's valid and note you'll compare it in the final section.
+      Keep momentum toward the solution.
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- SEGMENT 2 -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">2</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Pattern Concepts — Events, Listeners, and the Chain</div>
+      <div class="segment-subtitle">Establish vocabulary and the chain-of-responsibility contract before touching code</div>
+    </div>
+    <div class="segment-time">⏱ 13 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Walk Through the Diagrams</h3>
+    <p>
+      Open <strong>CS402_Event_Listener_Pattern.html</strong> and project the first SVG
+      diagram ("Listener Chain Execution"). Walk through it left to right.
+      Name each box, trace the event object, and pause at Listener 3.
+    </p>
+
+    <ul class="talking-points">
+      <li><strong>Event object:</strong> a plain JavaScript object — <code>{ type, payload, timestamp, consumed }</code>. Same object is handed to every listener. Nobody copies it. Nobody owns it until someone returns <code>false</code>.</li>
+      <li><strong>Listeners are just functions.</strong> They take the event, do their work, and return a boolean. That's the whole contract.</li>
+      <li><strong>The chain runs in registration order.</strong> First registered = first called. This matters and we'll revisit it.</li>
+      <li><code>return true</code> → "I handled this but I'm done, pass it along." Think of it as stepping aside.</li>
+      <li><code>return false</code> → "I consumed this event. Nobody else gets it." Think of it as catching a ball — the throw stops.</li>
+      <li>Missing return value (<code>undefined</code>) is falsy — it will stop the chain by accident. We'll show this mistake explicitly.</li>
+    </ul>
+
+    <div class="discussion">
+      <strong>💬 Analogy — Bouncer at a Club:</strong>
+      Each listener is a bouncer in a line. The event is a person trying to get in.
+      If bouncer #1 waves them through (<code>return true</code>), bouncer #2 sees them.
+      If bouncer #2 stops them (<code>return false</code>), bouncer #3 never sees them at all.
+      The bouncers don't talk to each other — they only interact with the person (the event).
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding — Verbal Cold Call</div>
+      <ol>
+        <li>
+          "I have three listeners. The second one returns <code>false</code>. How many listeners run total?"
+          <div class="answer">→ Two. The first runs and returns true, the second runs and returns false, the third never executes.</div>
+        </li>
+        <li>
+          "A listener runs some code but has no return statement. What happens?"
+          <div class="answer">→ It implicitly returns undefined, which is falsy — the chain stops as if it returned false. This is a bug.</div>
+        </li>
+        <li>
+          "What's in the event object besides the payload?"
+          <div class="answer">→ type (event name), timestamp, consumed flag.</div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 Instructor Note:</strong> The "undefined = false" gotcha is the single most
+      common student mistake in assignments that use this pattern. Say it twice, write it on
+      the board. It will save you a lot of grading heartache.
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- SEGMENT 3 -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">3</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Build the EventEmitter — Live Coding</div>
+      <div class="segment-subtitle">Students should type along; this code is the foundation of everything that follows</div>
+    </div>
+    <div class="segment-time">⏱ 15 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Setup</h3>
+    <p>
+      Start with a blank file: <code>utils/EventEmitter.js</code>.
+      Build it incrementally — do not paste the finished version.
+      Students type along in their own editor or a shared Snack session.
+    </p>
+
+    <div class="demo-block">
+      <strong>🖥 Live Coding Order:</strong>
+      <ol style="margin: 8px 0 0 20px; font-size: 14px;">
+        <li>Class skeleton with <code>constructor</code> and <code>this._listeners = {}</code></li>
+        <li>The <code>on()</code> method — push to array, return the unsubscribe lambda</li>
+        <li>The <code>off()</code> method — filter out the specific function reference</li>
+        <li>The <code>emit()</code> method — build the event object, loop with <code>for...of</code>, break on <code>false</code></li>
+        <li>The <code>clear()</code> method — one-liner cleanup</li>
+      </ol>
+    </div>
+
+    <h3>Key Points to Narrate While Typing</h3>
+    <ul class="talking-points">
+      <li>
+        <strong>Why a plain object <code>{}</code> instead of a <code>Map</code>?</strong>
+        Either works. Plain object is simpler to read and sufficient for named events.
+        If students ask, acknowledge Map would handle edge-case keys better.
+      </li>
+      <li>
+        <strong>The unsubscribe closure:</strong> <code>return () => this.off(eventType, listenerFn)</code>.
+        Point out this is a closure — it captures both arguments. Call it "the cleanup gift with purchase."
+      </li>
+      <li>
+        <strong><code>for...of</code> not <code>forEach</code>:</strong>
+        <code>break</code> works in a <code>for</code> loop. You cannot break out of a <code>forEach</code>.
+        This is one of the few cases where <code>for...of</code> is meaningfully better.
+      </li>
+      <li>
+        <strong>Strict <code>=== false</code> check:</strong> We check for exactly <code>false</code>,
+        not just falsy. This means a listener that returns <code>0</code> or <code>null</code>
+        by accident won't incorrectly stop the chain — only an explicit <code>false</code> does.
+      </li>
+      <li>
+        <strong><code>emit()</code> returns <code>event.consumed</code>:</strong>
+        Sometimes the caller wants to know if anything stopped the chain — useful for debugging.
+      </li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>📝 Instructor Note:</strong> When you type the <code>for...of</code> loop, pause and
+      deliberately write a <code>forEach</code> version first, then try to add <code>break</code>
+      inside it. Show the class it won't work (no error, just silently ignores break). Then switch
+      to <code>for...of</code>. That contrast makes the choice memorable.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding — Think-Pair (2 min)</div>
+      <ol>
+        <li>
+          "Why does <code>on()</code> return a function instead of just registering the listener?"
+          <div class="answer">→ It returns an unsubscribe function so the caller can easily remove the listener later, especially useful in useEffect cleanup.</div>
+        </li>
+        <li>
+          "What would happen if two different listeners passed the exact same function reference to <code>on()</code>?"
+          <div class="answer">→ It would be registered twice and called twice per emit. This is a real bug to watch for when registering inside loops or unstable closures.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- SEGMENT 4 -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">4</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Wiring to React Native — useEffect &amp; State</div>
+      <div class="segment-subtitle">Connect the emitter to real component lifecycle and useState hooks</div>
+    </div>
+    <div class="segment-time">⏱ 13 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Project the Component Tree Diagram</h3>
+    <p>
+      Switch to the second SVG in the student doc — the component tree showing
+      <code>FormScreen</code> distributing the emitter to <code>PasswordField</code>,
+      <code>StrengthMeter</code>, and <code>SubmitButton</code>.
+      Walk through the three code examples in sequence.
+    </p>
+
+    <h3>Step-by-Step Walkthrough</h3>
+    <ul class="talking-points">
+      <li>
+        <strong>Source component (<code>PasswordField</code>):</strong> Calls
+        <code>emitter.emit('onChange', { value: text })</code> inside its <code>onChangeText</code>.
+        It does not know or care who is listening.
+      </li>
+      <li>
+        <strong>Listener component (<code>StrengthMeter</code>):</strong> The
+        <code>useEffect</code> runs after mount, registers the listener, and returns the unsubscribe
+        function. Walk through the lifecycle diagram at this point (step 1 → 2 → 3 → 4 → 5).
+      </li>
+      <li>
+        <strong>Composer (<code>FormScreen</code>):</strong> Uses <code>useMemo</code> to
+        create the emitter exactly once. Passes it as a prop. Each child self-registers.
+      </li>
+      <li>
+        <strong>Dependency array <code>[emitter]</code>:</strong> Because the emitter is stable
+        (same reference every render thanks to <code>useMemo</code>), this effect only runs once.
+        If the emitter were recreated every render, the effect would thrash — re-registering on
+        every keystroke. This is a common bug.
+      </li>
+    </ul>
+
+    <div class="danger">
+      <strong>⛔ Live Mistake Demo:</strong> Briefly create the emitter with plain
+      <code>const emitter = new EventEmitter()</code> inside the component body (no
+      <code>useMemo</code>). Open React DevTools Profiler or add a
+      <code>console.log('registered')</code> inside the <code>useEffect</code> and type in
+      the field. Show that "registered" fires on every keystroke — the emitter is new each render,
+      the effect re-runs each time. Then add <code>useMemo</code> and show it stops.
+      Students will not forget this.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding — Cold Call</div>
+      <ol>
+        <li>
+          "What happens to the listener if the component unmounts and we forgot the cleanup return?"
+          <div class="answer">→ The listener stays in the emitter's array. It fires on future events, tries to call setState on an unmounted component, and produces a React warning. In older React, this caused memory leaks and potential crashes.</div>
+        </li>
+        <li>
+          "Could two sibling components register for the same event on the same emitter?"
+          <div class="answer">→ Yes. That's the whole point — multiple independent listeners for the same event. They each call setState on their own state slice independently.</div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 Instructor Note:</strong> The lifecycle diagram (segment 3 in the student doc)
+      is worth 2 minutes of direct projection. Point at each numbered step physically while
+      narrating. Students respond well to the "zombie listener" framing — it's memorable
+      and accurate.
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- SEGMENT 5 -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">5</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Live Demo — Password Form With Chain Stopping</div>
+      <div class="segment-subtitle">Put it all together in a running Expo Snack; demonstrate the false-return stop visually</div>
+    </div>
+    <div class="segment-time">⏱ 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>What to Build</h3>
+    <p>
+      A minimal form with three components wired to a shared emitter on an <code>onChange</code>
+      event. Each listener logs to the console so students can see the chain in action.
+    </p>
+
+    <div class="demo-block">
+      <strong>🖥 Demo Script — Expo Snack (snack.expo.dev)</strong>
+      <ol style="margin: 8px 0 0 20px; font-size: 14px;">
+        <li>Paste in the completed <code>EventEmitter</code> class.</li>
+        <li>Add a <code>PasswordField</code> that emits on change.</li>
+        <li>Add <code>StrengthMeter</code> — listener logs "StrengthMeter: strength=" and returns <code>true</code>.</li>
+        <li>Add <code>SubmitButton</code> — listener logs "SubmitButton: enabled=" and returns <code>true</code>.</li>
+        <li>Add a third <code>RateLimiter</code> stub — logs "RateLimiter: BLOCKED" and returns <code>false</code> when value contains a space.</li>
+        <li>Type in the field — show all three logs firing.</li>
+        <li>Type a space — show only "RateLimiter: BLOCKED" in the log; StrengthMeter and SubmitButton don't see it.</li>
+      </ol>
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 Instructor Note:</strong> The RateLimiter returning <code>false</code> when a
+      space is typed is a simple, visually obvious trigger. Students can immediately see the chain
+      stop in the console. If you want a richer demo, make the RateLimiter render a red flash
+      on-screen when it fires — this makes the "consumed" behavior tangible rather than just
+      a console observation.
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 Instructor Note:</strong> Before the demo, open the console panel visibly on
+      the projector. Narrate what you expect to see <em>before</em> you type. This trains
+      students to reason about code before running it — a habit worth building.
+    </div>
+
+    <div class="discussion">
+      <strong>💬 Discussion Prompt (after demo):</strong>
+      "What if StrengthMeter needed to run even when the rate limiter fires?
+      How would you rearrange the listener order?" Let students suggest moving StrengthMeter
+      <em>before</em> the RateLimiter in the registration order. Confirm: yes, order matters —
+      and the composer pattern gives you explicit control over that order.
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- SEGMENT 6 -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">6</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Scaling Up — Context, Order, and Alternatives</div>
+      <div class="segment-subtitle">When prop-passing the emitter also becomes pain, and how to compare this pattern to others</div>
+    </div>
+    <div class="segment-time">⏱ 9 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>React Context Delivery</h3>
+    <p>
+      Walk through the <code>AppEventProvider</code> and <code>useAppEvents()</code> hook
+      from the student doc. Keep it brief — the pattern is identical to any other Context
+      usage students have seen; the only difference is the value being passed is an
+      <code>EventEmitter</code> instance rather than plain state.
+    </p>
+    <ul class="talking-points">
+      <li>Use a Context emitter for app-wide events: navigation, auth state changes, notifications.</li>
+      <li>Use a local prop-passed emitter for screen-scoped coordination — keeps the blast radius small.</li>
+      <li>A pure-listener component that renders <code>null</code> is perfectly valid — it's a side-effect observer, not a UI element.</li>
+    </ul>
+
+    <h3>Listener Order Table</h3>
+    <p>
+      Briefly project the ordering table from the student doc. The key insight: when one listener
+      can stop the chain, the order of registration is a design decision, not an implementation
+      detail. Document it.
+    </p>
+
+    <h3>Quick Comparison</h3>
+    <p>
+      Spend 2 minutes on the comparison table. Frame it as "use the right tool for the job":
+    </p>
+    <ul class="talking-points">
+      <li><strong>Callback props</strong> — fine for one parent, one child. Doesn't scale to siblings or deep trees.</li>
+      <li><strong>This pattern</strong> — clean for one-source-to-many-listeners with optional chain stopping.</li>
+      <li><strong>Context + Reducer</strong> — better when many components <em>read</em> shared state; every consumer re-renders on any change.</li>
+      <li><strong>Zustand/Redux</strong> — bring in when you need devtools, time-travel debugging, or complex middleware. Overkill for a single form screen.</li>
+      <li><strong>RxJS</strong> — when you need async streams, debounce, or operator composition. Heavy dependency, but powerful for sensor-data pipelines.</li>
+    </ul>
+
+    <div class="discussion">
+      <strong>💬 Quick Scenario Exercise:</strong>
+      Give students 60 seconds: "You're building a music player. When a song changes, the
+      mini-player thumbnail, the lock screen metadata, and the Now Playing screen all need to update.
+      Which pattern do you reach for, and why?" Take 2-3 answers. There's no single right answer —
+      look for students reasoning about scope and coupling.
+    </div>
+
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────── -->
+<!-- SEGMENT 7 -->
+<!-- ─────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">7</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Wrap-Up, Checklist &amp; Q&amp;A</div>
+      <div class="segment-subtitle">Consolidate key takeaways and give students the implementation checklist</div>
+    </div>
+    <div class="segment-time">⏱ 7 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Seven-Point Recap (project the checklist from student doc)</h3>
+    <p>
+      Read through the implementation checklist in the student doc with the class.
+      For each item, ask a student to explain it in their own words before you confirm.
+      This is a fast-paced round — about 30 seconds per item.
+    </p>
+
+    <ul class="talking-points">
+      <li>Every <code>on()</code> call saves its returned unsubscribe function.</li>
+      <li>Every <code>useEffect</code> that registers a listener returns that unsubscribe function.</li>
+      <li>Every listener returns explicit <code>true</code> or <code>false</code> — never undefined.</li>
+      <li>The emitter is stable across renders (<code>useMemo</code> or <code>useRef</code>).</li>
+      <li>Listener order is intentional when order matters for correctness.</li>
+      <li>A consumed event doesn't leave later listeners with stale UI.</li>
+      <li>Tests cover the chain-stop case — listeners after <code>false</code> are never called.</li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>📝 Instructor Note:</strong> Leave the checklist projected during Q&amp;A.
+      Students often ask questions that are directly answered by one of the seven items.
+      Pointing at the checklist item while answering reinforces that it's a reference they
+      should keep open during lab work.
+    </div>
+
+    <h3>Exit Ticket (optional — 2 min if time allows)</h3>
+
+    <div class="activity">
+      <div class="act-label">🖊 Exit Ticket — Index Card or Canvas Quiz</div>
+      <p style="font-size:14px; margin-bottom: 8px;">
+        Ask students to write one sentence answering each of:
+      </p>
+      <ol style="margin: 0 0 0 20px; font-size: 14px;">
+        <li>What does returning <code>false</code> from a listener do?</li>
+        <li>Where in the component does listener registration happen, and why?</li>
+        <li>What happens if you forget to return the unsubscribe function from <code>useEffect</code>?</li>
+      </ol>
+      <p style="font-size:13px; margin-top: 8px; color:#555;">
+        Collect or post to Canvas discussion for a quick formative pulse. No grade required.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── COMMON MISTAKES ─── -->
+<h2>Common Student Mistakes to Watch For</h2>
+<table>
+  <thead>
+    <tr><th>Mistake</th><th>Symptom</th><th>Correction</th></tr>
+  </thead>
+  <tbody>
+    <tr class="mistake-row">
+      <td>Listener has no return statement</td>
+      <td>Chain stops unexpectedly after the first listener that "forgot"</td>
+      <td>Require explicit <code>return true</code> or <code>return false</code> always</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Emitter created in component body without <code>useMemo</code></td>
+      <td>Listeners re-register on every render; console floods with "registered"</td>
+      <td>Wrap in <code>useMemo(() => new EventEmitter(), [])</code></td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Missing cleanup in <code>useEffect</code></td>
+      <td>React warning: "Can't perform state update on unmounted component"; zombie listeners accumulate</td>
+      <td>Always <code>return unsubscribe</code> from the effect</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Registering same function reference twice</td>
+      <td>Listener fires twice per event; double state updates</td>
+      <td>Ensure registration happens only once; check effect dependency array</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Calling <code>emitter.off()</code> with a new lambda</td>
+      <td>Listener never removed; <code>off()</code> receives a different function reference than was registered</td>
+      <td>Always use the unsubscribe function returned by <code>on()</code></td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Assuming listeners fire synchronously "later"</td>
+      <td>Student writes async listener that awaits inside the loop, creating ordering surprises</td>
+      <td>The emitter loop is synchronous; async side effects should be fire-and-forget inside the listener, not awaited in <code>emit()</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ─── GRADING / ASSESSMENT NOTES ─── -->
+<h2>Grading &amp; Assessment Notes</h2>
+<p>
+  When this pattern appears in assignment submissions, credit the intent generously.
+  A student who builds a functioning emitter but forgets cleanup in one component
+  has demonstrated clear understanding of the pattern — partial deduction at most.
+  Reserve full deductions for:
+</p>
+<ul>
+  <li>No unsubscribe at all (not just missing in one place — systematically absent).</li>
+  <li>Emitter recreated on every render, causing listener accumulation that breaks functionality.</li>
+  <li>Listener return values completely absent, causing all chains to stop after the first listener.</li>
+</ul>
+<div class="instructor-note">
+  <strong>📝 Grading Philosophy:</strong> If a student clearly understands the chain concept
+  (fires events, multiple listeners, correct behavior) but has a minor implementation issue
+  (one missing cleanup), treat it as a code quality note rather than a correctness failure.
+  The pattern understanding is the learning objective, not memorizing the cleanup syntax.
+</div>
+
+<!-- ─── PREPARATION CHECKLIST ─── -->
+<h2>Before Class — Preparation Checklist</h2>
+<ul>
+  <li>✅ Open <strong>CS402_Event_Listener_Pattern.html</strong> in browser, test all SVG diagrams render correctly.</li>
+  <li>✅ Pre-build the demo Expo Snack with the completed EventEmitter + form components so you can paste quickly.</li>
+  <li>✅ Have the Snack URL ready to share in Canvas announcements so students can fork it during demo.</li>
+  <li>✅ Confirm browser DevTools console is visible on projector before class starts.</li>
+  <li>✅ If using exit ticket, queue up a Canvas Quiz or have index cards ready.</li>
+  <li>✅ Check that the Expo Snack demo runs on iOS simulator (some older SDK features differ on Android).</li>
+</ul>
+
+<!-- ─── FOOTER ─── -->
+<div class="doc-footer">
+  <span>CS 402 · Spring 2026 · Boise State University</span>
+  <span>Event &amp; Listener Patterns — Instructor Plan</span>
+  <span>Internal use only — not for student distribution</span>
+</div>
+
+</body>
+</html>

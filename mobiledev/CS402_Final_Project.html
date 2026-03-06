@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Final Project</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.8; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .semester { font-size: 14px; color: #888; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .doc-header .subtitle { font-size: 20px; color: #2E5D8A; font-weight: 700; margin-top: 4px; }
+  .doc-header .meta-row { margin-top: 16px; display: flex; justify-content: center; flex-wrap: wrap; gap: 28px; }
+  .meta-pill { background: #f0f4fb; border: 1.5px solid #c0d0e8; border-radius: 20px; padding: 6px 18px; font-size: 13px; color: #1B3A5C; font-weight: 600; }
+
+  /* ── Typography ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; color: #1B3A5C; margin: 44px 0 14px; padding-bottom: 7px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 16px; color: #2E5D8A; margin: 22px 0 9px; font-weight: 700; }
+  p  { margin-bottom: 14px; color: #333; }
+  ul, ol { margin: 10px 0 16px 26px; color: #333; }
+  li { margin-bottom: 8px; }
+
+  /* ── Callouts ── */
+  .callout { margin: 20px 0; padding: 16px 22px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 8px 8px 0; }
+  .callout strong { color: #1B3A5C; }
+  .tip    { margin: 20px 0; padding: 16px 22px; background: #f0fbf4; border-left: 4px solid #2e8a5d; border-radius: 0 8px 8px 0; }
+  .tip    strong { color: #1a5c3a; }
+  .warning { margin: 20px 0; padding: 16px 22px; background: #fdf6ec; border-left: 4px solid #c8890f; border-radius: 0 8px 8px 0; }
+  .warning strong { color: #8a5d0a; }
+
+  /* ── Section intro ── */
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 28px; padding: 14px 20px; background: #f7f9fc; border-radius: 6px; border-left: 4px solid #1B3A5C; }
+
+  /* ── App idea cards ── */
+  .app-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0 28px; }
+  .app-card { border-radius: 10px; padding: 18px 20px; border: 1.5px solid; }
+  .app-card .app-icon { font-size: 26px; margin-bottom: 8px; }
+  .app-card .app-name { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+  .app-card .app-desc { font-size: 13px; line-height: 1.55; color: #555; }
+  .app-card .app-tags { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .app-tag { background: rgba(0,0,0,0.07); border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+  .ac-1 { background: #eef4fb; border-color: #4a80b5; }
+  .ac-1 .app-name { color: #1B3A5C; }
+  .ac-2 { background: #f0fbf4; border-color: #4a9a5a; }
+  .ac-2 .app-name { color: #1a5c3a; }
+  .ac-3 { background: #fdf6ec; border-color: #c8890f; }
+  .ac-3 .app-name { color: #7a4a00; }
+  .ac-4 { background: #f5f0fb; border-color: #7a5abf; }
+  .ac-4 .app-name { color: #4a2a8a; }
+  .ac-5 { background: #fdf0f0; border-color: #c04040; }
+  .ac-5 .app-name { color: #8a1a1a; }
+  .ac-own { background: #f7f9fc; border-color: #1B3A5C; border-style: dashed; border-width: 2px; }
+  .ac-own .app-name { color: #1B3A5C; }
+
+  /* ── Deliverable timeline ── */
+  .timeline { margin: 24px 0 32px; position: relative; }
+  .timeline::before { content: ''; position: absolute; left: 28px; top: 0; bottom: 0; width: 3px; background: linear-gradient(to bottom, #1B3A5C, #c8890f, #8a2020); border-radius: 3px; }
+  .tl-item { display: flex; gap: 20px; margin-bottom: 0; position: relative; }
+  .tl-dot { width: 60px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding-top: 16px; }
+  .tl-circle { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #1B3A5C; z-index: 1; flex-shrink: 0; }
+  .tl-line { width: 2px; flex: 1; }
+  .tl-body { flex: 1; padding: 12px 0 24px; }
+  .tl-date { font-size: 12px; font-weight: 700; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px; }
+  .tl-title { font-size: 16px; font-weight: 700; color: #1B3A5C; margin-bottom: 5px; }
+  .tl-points { display: inline-block; background: #1B3A5C; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 12px; margin-bottom: 8px; }
+  .tl-desc { font-size: 14px; color: #444; line-height: 1.6; }
+  .tl-desc ul { margin: 6px 0 0 18px; }
+  .tl-desc li { margin-bottom: 4px; font-size: 13px; }
+
+  .c-blue   { background: #1B3A5C; }
+  .c-navy   { background: #2E5D8A; }
+  .c-teal   { background: #2e7a5d; }
+  .c-amber  { background: #c8890f; }
+  .c-orange { background: #b05a0f; }
+  .c-red    { background: #8a2020; }
+  .c-dark   { background: #4a2a8a; }
+
+  /* ── Points summary table ── */
+  .points-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+  .points-table th { background: #1B3A5C; color: #fff; padding: 10px 16px; text-align: left; font-weight: 600; }
+  .points-table td { padding: 10px 16px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  .points-table tr:nth-child(even) { background: #f4f8fb; }
+  .points-table .total-row { background: #1B3A5C !important; }
+  .points-table .total-row td { color: #fff; font-weight: 700; font-size: 15px; border: none; }
+  .points-table .pts { text-align: right; font-weight: 700; color: #1B3A5C; font-family: 'JetBrains Mono', monospace; }
+  .points-table .total-row .pts { color: #a6e3a1; }
+
+  /* ── Requirements grid ── */
+  .req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  .req-card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 16px 18px; }
+  .req-card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .req-card ul { margin: 0 0 0 16px; }
+  .req-card li { font-size: 13px; margin-bottom: 4px; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+
+  /* ── Rubric ── */
+  .rubric { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+  .rubric th { background: #1B3A5C; color: #fff; padding: 9px 12px; text-align: left; }
+  .rubric td { padding: 9px 12px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  .rubric tr:nth-child(even) { background: #f4f8fb; }
+  .rubric .cat { font-weight: 700; color: #1B3A5C; white-space: nowrap; }
+  .rubric .pts-col { text-align: center; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #2E5D8A; white-space: nowrap; }
+
+  /* ── Team section ── */
+  .team-block { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .role-card { background: #f0f6fb; border-radius: 8px; padding: 14px 16px; border-top: 4px solid #2E5D8A; }
+  .role-card .role-title { font-weight: 700; color: #1B3A5C; font-size: 14px; margin-bottom: 6px; }
+  .role-card ul { margin: 0 0 0 16px; }
+  .role-card li { font-size: 12px; margin-bottom: 3px; color: #444; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .app-grid, .req-grid, .team-block { break-inside: avoid; }
+    .tl-item { break-inside: avoid; }
+    .callout, .tip, .warning { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════ HEADER ══ -->
+<header class="doc-header">
+  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+  <h1>Final Project</h1>
+  <div class="subtitle">A Real App. On Your Phone. In a Job Interview.</div>
+  <div class="meta-row">
+    <span class="meta-pill">👥 Teams of 3</span>
+    <span class="meta-pill">⭐ 250 points</span>
+    <span class="meta-pill">📱 Live demo required</span>
+    <span class="meta-pill">📅 Presentations: May 7</span>
+  </div>
+</header>
+
+<!-- ══════ OVERVIEW ══ -->
+<p class="section-intro">
+  The final project is your capstone — a complete, working mobile application built by a team
+  of three, presented live during finals week. This is not a prototype or a mockup. It runs
+  on a real phone. A stranger should be able to pick it up and use it without explanation.
+  That's the bar.
+</p>
+
+<p>
+  Everything you've built toward this semester — components, navigation, sensors, databases,
+  networking, platform handling, testing — comes together here. The project is deliberately
+  open-ended: you choose what to build, you decide the architecture, and you own the result.
+  The deliverables along the way keep you on track and give you a professional document trail
+  to go with the code.
+</p>
+
+<div class="callout">
+  <strong>The goal behind the goal:</strong> You will walk into a technical job interview
+  with this app on your phone. The interviewer will tap it, something will happen, and you
+  will explain how you built it. That moment — the working app plus the ability to talk about
+  what's under the hood — is what this project is for. Build something you're proud to show.
+</div>
+
+
+<!-- ══════ APP IDEAS ══ -->
+<h2>1. What to Build</h2>
+
+<p>
+  Choose one of the projects below, or propose your own. Every option below has been sized
+  to be achievable in a team of three over the remaining weeks while being genuinely impressive
+  in a demo. If you propose your own, get it approved before writing your proposal — the main
+  check is scope: a real app that uses at least three of the course's major topics.
+</p>
+
+<div class="app-grid">
+
+  <div class="app-card ac-1">
+    <div class="app-icon">📦</div>
+    <div class="app-name">Inventory Manager with Camera</div>
+    <div class="app-desc">
+      Photograph items, auto-tag them, search and filter your inventory. Add barcode
+      scanning, quantity tracking, and a shareable web view of your catalog.
+    </div>
+    <div class="app-tags">
+      <span class="app-tag">camera</span>
+      <span class="app-tag">sqlite</span>
+      <span class="app-tag">search</span>
+      <span class="app-tag">sharing</span>
+    </div>
+  </div>
+
+  <div class="app-card ac-2">
+    <div class="app-icon">🥾</div>
+    <div class="app-name">Hiking Log</div>
+    <div class="app-desc">
+      Record hikes with GPS tracks, photos, elevation data, and notes. Review past hikes
+      on a map, view stats, and share summaries with friends.
+    </div>
+    <div class="app-tags">
+      <span class="app-tag">location</span>
+      <span class="app-tag">maps</span>
+      <span class="app-tag">camera</span>
+      <span class="app-tag">sqlite</span>
+    </div>
+  </div>
+
+  <div class="app-card ac-3">
+    <div class="app-icon">🔍</div>
+    <div class="app-name">AR Scavenger Hunt</div>
+    <div class="app-desc">
+      Location-based scavenger hunt where clues are unlocked at GPS coordinates.
+      Organizer creates hunts; players follow clues on a map to find and photograph targets.
+    </div>
+    <div class="app-tags">
+      <span class="app-tag">location</span>
+      <span class="app-tag">camera</span>
+      <span class="app-tag">networking</span>
+      <span class="app-tag">realtime</span>
+    </div>
+  </div>
+
+  <div class="app-card ac-4">
+    <div class="app-icon">✅</div>
+    <div class="app-name">Student Check-In / Check-Out</div>
+    <div class="app-desc">
+      Attendance tracking app for a classroom or event. QR-code or NFC check-in, 
+      real-time roster, reports, and instructor dashboard. Solves a real campus problem.
+    </div>
+    <div class="app-tags">
+      <span class="app-tag">camera/qr</span>
+      <span class="app-tag">networking</span>
+      <span class="app-tag">backend</span>
+      <span class="app-tag">roles</span>
+    </div>
+  </div>
+
+  <div class="app-card ac-5">
+    <div class="app-icon">💡</div>
+    <div class="app-name">Remote Controller for Luminary</div>
+    <div class="app-desc">
+      A Bluetooth or WiFi controller app for the Luminary space hardware on campus.
+      Real physical feedback loop — control lights or devices and see the result in the room.
+    </div>
+    <div class="app-tags">
+      <span class="app-tag">bluetooth/wifi</span>
+      <span class="app-tag">sensors</span>
+      <span class="app-tag">real hardware</span>
+    </div>
+  </div>
+
+  <div class="app-card ac-own">
+    <div class="app-icon">💡</div>
+    <div class="app-name">Your Own Idea</div>
+    <div class="app-desc">
+      Have something else in mind? Propose it. Requirements: it runs on a real phone,
+      it uses at least 3 major course topics, a stranger can use it without help,
+      and all three team members have substantial contributions. Get it approved early.
+    </div>
+    <div class="app-tags">
+      <span class="app-tag">3+ course topics</span>
+      <span class="app-tag">needs approval</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="tip">
+  <strong>💡 Scope advice:</strong> The most common project failure is overscoping. A polished,
+  fully working app with three features is worth far more than an ambitious app with eight
+  half-finished features. Decide on your core experience first, build it to completion, then
+  add stretch features if time allows. The demo is what gets graded — not the feature list
+  in your proposal.
+</div>
+
+
+<!-- ══════ TEAM ══ -->
+<h2>2. Teams</h2>
+
+<p>
+  Teams are three people. Team composition is your choice — pick people you can work with,
+  not just people you know. The project is large enough that uneven contribution will hurt
+  the entire team's grade and make the final weeks miserable.
+</p>
+
+<div class="team-block">
+  <div class="role-card">
+    <div class="role-title">🏗 Architecture Lead</div>
+    <ul>
+      <li>Owns the technical structure</li>
+      <li>Navigation and data flow decisions</li>
+      <li>Writes the Architecture Document</li>
+      <li>Ensures components have clean interfaces</li>
+    </ul>
+  </div>
+  <div class="role-card">
+    <div class="role-title">🎨 Feature Lead</div>
+    <ul>
+      <li>Drives feature implementation</li>
+      <li>UI consistency and polish</li>
+      <li>Coordinates work session demos</li>
+      <li>Writes the User Manual</li>
+    </ul>
+  </div>
+  <div class="role-card">
+    <div class="role-title">🔗 Integration Lead</div>
+    <ul>
+      <li>APIs, databases, external services</li>
+      <li>Testing and error handling</li>
+      <li>Manages submission package</li>
+      <li>Coordinates the final presentation</li>
+    </ul>
+  </div>
+</div>
+
+<div class="warning">
+  <strong>⚠ On contribution:</strong> All team members are expected to make meaningful
+  code contributions visible in your Git history. "I did the design document" is not a
+  substitute for writing code. Peer evaluations are part of the final grade — you will
+  rate your teammates, and they will rate you. Significant contribution imbalance will
+  be reflected in individual scores.
+</div>
+
+
+<!-- ══════ DELIVERABLES ══ -->
+<h2>3. Deliverables and Timeline</h2>
+
+<p>
+  The project is structured as a series of deliverables that build on each other. Each one
+  exists for a reason — the proposal forces you to decide what you're building before you
+  start building it; the design document forces you to think before you code; the architecture
+  document captures decisions you'll be asked about in the presentation.
+</p>
+
+<div class="timeline">
+
+  <div class="tl-item">
+    <div class="tl-dot">
+      <div class="tl-circle c-blue"></div>
+    </div>
+    <div class="tl-body">
+      <div class="tl-date">Due: Tuesday, April 7</div>
+      <div class="tl-title">Project Proposal</div>
+      <div class="tl-points">5 points</div>
+      <div class="tl-desc">
+        2 pages minimum. This document answers three questions: what are you building, 
+        why will it be impressive to a future employer, and how will your team divide the work.
+        <ul>
+          <li>App name, concept, and the problem it solves</li>
+          <li>The three (or more) course topics it demonstrates</li>
+          <li>Team member names and their primary responsibilities</li>
+          <li>Three core features you commit to finishing, plus two stretch goals</li>
+        </ul>
+        Submit as PDF via Canvas. Both team members confirm submission in comments.
+      </div>
+    </div>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot">
+      <div class="tl-circle c-navy"></div>
+    </div>
+    <div class="tl-body">
+      <div class="tl-date">Due: Tuesday, April 21 — Project Work Session II</div>
+      <div class="tl-title">Design Document</div>
+      <div class="tl-points">35 points</div>
+      <div class="tl-desc">
+        A complete design document covering the user experience and visual design of your app.
+        Think of this as the document a new team member would read to understand what the app
+        does and how it should feel.
+        <ul>
+          <li>Screen inventory — one paragraph per screen, what it does and how the user reaches it</li>
+          <li>Navigation map — a diagram of how screens connect</li>
+          <li>Data model — what data the app stores and how it's structured</li>
+          <li>UI wireframes or mockups for each major screen (hand-drawn is fine)</li>
+          <li>External services and APIs the app will use</li>
+        </ul>
+        Bring a printed copy to the April 21 work session for peer review.
+      </div>
+    </div>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot">
+      <div class="tl-circle c-teal"></div>
+    </div>
+    <div class="tl-body">
+      <div class="tl-date">Due: Tuesday, April 28</div>
+      <div class="tl-title">Architecture Document</div>
+      <div class="tl-points">35 points</div>
+      <div class="tl-desc">
+        A technical document describing how your app is built — not what it does, but how.
+        This is what you'll refer to during your presentation Q&amp;A.
+        <ul>
+          <li>Component hierarchy — major components, their props, and their relationships</li>
+          <li>Data flow — where state lives and how it moves between components</li>
+          <li>Where your app sits on the thin-to-rich client spectrum and why</li>
+          <li>Platform-specific decisions — any iOS/Android differences you handled</li>
+          <li>Testing strategy — which parts are tested and at what layer</li>
+          <li>Key technical decisions and the alternatives you considered</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot">
+      <div class="tl-circle c-amber"></div>
+    </div>
+    <div class="tl-body">
+      <div class="tl-date">Due: Monday, May 4</div>
+      <div class="tl-title">User Manual</div>
+      <div class="tl-points">35 points</div>
+      <div class="tl-desc">
+        A clear, friendly guide to using your app — written as if for someone who has never
+        seen it. Screenshots required. If a user needs a workaround to use a feature, document
+        the workaround (then fix the feature if you can).
+        <ul>
+          <li>Getting started — installation or first-launch instructions</li>
+          <li>Feature walkthrough — one section per major feature with screenshots</li>
+          <li>Known limitations — anything that doesn't work perfectly yet</li>
+          <li>Troubleshooting — the three most likely things to go wrong and how to fix them</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot">
+      <div class="tl-circle c-orange"></div>
+    </div>
+    <div class="tl-body">
+      <div class="tl-date">Due: Monday, May 4</div>
+      <div class="tl-title">Source Code + Final Package</div>
+      <div class="tl-points">70 points — 35 code + 35 package</div>
+      <div class="tl-desc">
+        Submit a clean, working codebase and a complete submission package.
+        <ul>
+          <li><strong>Source code:</strong> GitHub repo link with full commit history. All three team members must have commits. Include a <code>README.md</code> with setup instructions — a TA should be able to clone and run with no additional guidance.</li>
+          <li><strong>Final package:</strong> A single zip or folder containing your proposal, design document, architecture document, user manual, and any additional assets (demo video, screenshots). Organized and labeled.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tl-item">
+    <div class="tl-dot">
+      <div class="tl-circle c-red"></div>
+    </div>
+    <div class="tl-body">
+      <div class="tl-date">Thursday, May 7 · 9:30–11:30 AM · Finals Week</div>
+      <div class="tl-title">Final Presentation</div>
+      <div class="tl-points">35 points</div>
+      <div class="tl-desc">
+        A live demo and technical walkthrough. Every team member speaks. The app runs on a
+        real physical device during the demo — not a simulator, not a video.
+        <ul>
+          <li><strong>Demo (5 min):</strong> Show the app working. Let it speak for itself before you explain it.</li>
+          <li><strong>Architecture walkthrough (5 min):</strong> Explain one technically interesting decision — what you chose, what you considered, and why.</li>
+          <li><strong>Q&amp;A (5 min):</strong> Any team member may be asked about any part of the codebase. You are expected to know your own app.</li>
+        </ul>
+        Each team has approximately 15 minutes total. Be ready when called — we keep to the schedule.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════ POINTS TABLE ══ -->
+<h2>4. Points Summary</h2>
+
+<table class="points-table">
+  <thead>
+    <tr>
+      <th>Deliverable</th>
+      <th>Due</th>
+      <th style="text-align:right">Points</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Project Proposal (2 pages minimum)</td>
+      <td>Tue, Apr 7</td>
+      <td class="pts">5</td>
+    </tr>
+    <tr>
+      <td>Design Document</td>
+      <td>Tue, Apr 21</td>
+      <td class="pts">35</td>
+    </tr>
+    <tr>
+      <td>Architecture Document</td>
+      <td>Tue, Apr 28</td>
+      <td class="pts">35</td>
+    </tr>
+    <tr>
+      <td>User Manual</td>
+      <td>Mon, May 4</td>
+      <td class="pts">35</td>
+    </tr>
+    <tr>
+      <td>Source Code (GitHub repo + README)</td>
+      <td>Mon, May 4</td>
+      <td class="pts">35</td>
+    </tr>
+    <tr>
+      <td>Final Package (all documents, organized)</td>
+      <td>Mon, May 4</td>
+      <td class="pts">35</td>
+    </tr>
+    <tr>
+      <td>Final Presentation (live demo + Q&amp;A)</td>
+      <td>Thu, May 7</td>
+      <td class="pts">35</td>
+    </tr>
+    <tr>
+      <td>Peer Evaluation (teammate contribution ratings)</td>
+      <td>Thu, May 7</td>
+      <td class="pts">5</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr class="total-row">
+      <td colspan="2"><strong>Total</strong></td>
+      <td class="pts">250</td>
+    </tr>
+  </tfoot>
+</table>
+
+
+<!-- ══════ TECHNICAL REQUIREMENTS ══ -->
+<h2>5. Technical Requirements</h2>
+
+<p>
+  Every project must demonstrate breadth across the course topics. A project that is entirely
+  local with no sensors and no networking misses the point. These are the minimum technical
+  requirements — you are expected to exceed them.
+</p>
+
+<div class="req-grid">
+  <div class="req-card">
+    <h4>📱 Must use (at minimum)</h4>
+    <ul>
+      <li>React Native with Expo SDK</li>
+      <li>Expo Router for navigation (2+ screens)</li>
+      <li>At least one device sensor or camera</li>
+      <li>Local persistence (AsyncStorage or SQLite)</li>
+      <li>At least one external API or network call</li>
+      <li>Platform-appropriate UI (iOS and Android)</li>
+    </ul>
+  </div>
+  <div class="req-card">
+    <h4>✅ Quality expectations</h4>
+    <ul>
+      <li>Runs on a real physical device without crashing</li>
+      <li>No placeholder data or "TODO" labels in the demo</li>
+      <li>Error states handled gracefully (no blank screens)</li>
+      <li>Unit tests for core utility functions</li>
+      <li>Git history shows all three team members contributing</li>
+      <li>README enables a stranger to clone and run the app</li>
+    </ul>
+  </div>
+  <div class="req-card">
+    <h4>🏆 To aim for</h4>
+    <ul>
+      <li>Something a stranger would actually want to use</li>
+      <li>Loading and empty states that feel intentional</li>
+      <li>Consistent visual style across all screens</li>
+      <li>App icon and splash screen (not the Expo defaults)</li>
+      <li>Works offline or degrades gracefully when offline</li>
+    </ul>
+  </div>
+  <div class="req-card">
+    <h4>🚫 Automatic deductions</h4>
+    <ul>
+      <li>App crashes during the demo — significant</li>
+      <li>Simulator demo instead of real device — significant</li>
+      <li>Team member can't explain their own code — individual</li>
+      <li>No README or broken setup instructions — package points</li>
+      <li>Missing Git history for a team member — code points</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ══════ PRESENTATION RUBRIC ══ -->
+<h2>6. Presentation Rubric</h2>
+
+<table class="rubric">
+  <thead>
+    <tr>
+      <th>Category</th>
+      <th>Full credit looks like</th>
+      <th style="text-align:center">Points</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="cat">Live demo</td>
+      <td>App runs on a physical device. Core feature flow demonstrated without crashes. Demo is prepared and rehearsed.</td>
+      <td class="pts-col">10</td>
+    </tr>
+    <tr>
+      <td class="cat">App quality</td>
+      <td>Visually polished. No placeholder content. Error states handled. Works as described in the user manual.</td>
+      <td class="pts-col">8</td>
+    </tr>
+    <tr>
+      <td class="cat">Technical depth</td>
+      <td>Architecture walkthrough is clear and accurate. At least one non-trivial technical decision explained with reasoning.</td>
+      <td class="pts-col">8</td>
+    </tr>
+    <tr>
+      <td class="cat">Q&amp;A</td>
+      <td>All team members can answer questions about any part of the app. No "I didn't write that part" deflections.</td>
+      <td class="pts-col">5</td>
+    </tr>
+    <tr>
+      <td class="cat">Presentation</td>
+      <td>All team members speak. Timing is respected. Demo is led with confidence.</td>
+      <td class="pts-col">4</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ══════ SUBMISSION ══ -->
+<h2>7. How to Submit</h2>
+
+<p>
+  All deliverables are submitted via Canvas. One team member submits on behalf of the team —
+  include all team member names in every submission.
+</p>
+
+<ul>
+  <li><strong>Documents:</strong> PDF preferred. Name files clearly: <code>TeamName_Proposal.pdf</code>, <code>TeamName_Design.pdf</code>, etc.</li>
+  <li><strong>Source code:</strong> Submit the GitHub repo URL. Make sure the repo is public or the instructor has been added as a collaborator before the deadline.</li>
+  <li><strong>Final package:</strong> A single Canvas submission containing all documents organized into a folder or zip. Label everything.</li>
+  <li><strong>Peer evaluations:</strong> Submitted individually, privately, via the Canvas peer evaluation tool. Due by end of finals day.</li>
+</ul>
+
+<div class="callout">
+  <strong>Questions?</strong> Start with your team. Then Canvas discussion. Then office hours.
+  The earlier you surface a scope or technical concern, the more options you have. A concern
+  raised in Week 12 is solvable. The same concern raised the night before the presentation is not.
+</div>
+
+</body>
+</html>

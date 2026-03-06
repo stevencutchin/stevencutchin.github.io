@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Instructor Plan: Building a Camera App</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 0.85in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.75; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  .doc-header { margin-bottom: 36px; padding-bottom: 24px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #c8890f; text-transform: uppercase; margin-bottom: 6px; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .subtitle { font-size: 17px; color: #2E5D8A; font-weight: 700; margin-bottom: 16px; }
+  .doc-header .meta-row { display: flex; flex-wrap: wrap; gap: 24px; font-size: 13px; color: #555; padding-top: 14px; border-top: 1px solid #e0e8f0; }
+  .doc-header .meta-row span { display: flex; align-items: center; gap: 5px; }
+  .doc-header .meta-row strong { color: #1B3A5C; }
+
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; color: #1B3A5C; margin: 38px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 15px; color: #2E5D8A; margin: 20px 0 8px; font-weight: 700; letter-spacing: 0.01em; }
+  p  { margin-bottom: 12px; color: #333; }
+  ul, ol { margin: 8px 0 12px 22px; color: #333; }
+  li { margin-bottom: 6px; }
+
+  .callout { margin: 16px 0; padding: 14px 18px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .instructor-note { margin: 16px 0; padding: 14px 18px; background: #fffbf0; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .instructor-note strong { color: #8a5d0a; }
+  .danger { margin: 16px 0; padding: 14px 18px; background: #fdf0f0; border-left: 4px solid #c04040; border-radius: 0 6px 6px 0; color: #333; }
+  .danger strong { color: #8a1a1a; }
+  .demo-block { margin: 16px 0; padding: 14px 18px; background: #f0faf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .demo-block strong { color: #1a5c3a; }
+  .discussion { margin: 16px 0; padding: 14px 18px; background: #f5f0fa; border-left: 4px solid #7c5cbf; border-radius: 0 6px 6px 0; color: #333; }
+  .discussion strong { color: #4a3580; }
+
+  .segment { margin: 32px 0 0; border: 1.5px solid #d0dce6; border-radius: 10px; overflow: hidden; }
+  .segment-header { display: flex; align-items: center; background: #1B3A5C; color: #fff; }
+  .segment-num { background: #0d2236; font-size: 22px; font-weight: 700; padding: 14px 20px; min-width: 60px; text-align: center; font-family: 'DM Serif Display', Georgia, serif; }
+  .segment-title-block { padding: 10px 18px; flex: 1; }
+  .segment-title { font-size: 16px; font-weight: 700; }
+  .segment-subtitle { font-size: 12px; color: #a0c0e0; margin-top: 2px; }
+  .segment-time { padding: 10px 20px; font-size: 13px; color: #a0c0e0; text-align: right; white-space: nowrap; }
+  .segment-body { padding: 20px 24px; }
+
+  .timing-overview { margin: 20px 0 30px; border: 1.5px solid #d0dce6; border-radius: 8px; overflow: hidden; }
+  .timing-header { background: #1B3A5C; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 16px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .timing-bar { display: flex; height: 40px; }
+  .timing-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; text-align: center; padding: 0 4px; }
+  .t1 { background: #1B3A5C; }
+  .t2 { background: #2E5D8A; }
+  .t3 { background: #3a7ab5; }
+  .t4 { background: #2e5d7a; }
+  .t5 { background: #1e4a6a; }
+  .t6 { background: #2e7a5d; }
+  .t7 { background: #8a5d0a; }
+  .timing-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #f7f9fc; border-top: 1px solid #e0e8f0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  .talking-points { list-style: none; margin: 0 0 14px; padding: 0; }
+  .talking-points li { padding: 5px 0 5px 22px; position: relative; color: #333; border-bottom: 1px dotted #e0e8f0; }
+  .talking-points li:last-child { border-bottom: none; }
+  .talking-points li::before { content: "\203A"; position: absolute; left: 4px; color: #2E5D8A; font-size: 18px; line-height: 1.3; font-weight: 700; }
+
+  .cfu { background: #f7f9fc; border: 1px solid #c8d8e8; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .cfu .cfu-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 8px; }
+  .cfu ol { margin: 0 0 0 20px; color: #333; }
+  .cfu li { margin-bottom: 6px; font-size: 14px; }
+  .cfu .answer { color: #666; font-style: italic; font-size: 13px; margin-top: 2px; }
+
+  .activity { background: #f0faf4; border: 1.5px solid #7abf9a; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .activity .act-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2e8a5d; margin-bottom: 8px; }
+
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 10px 0 14px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 9px 13px; text-align: left; }
+  td { padding: 8px 13px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+  .mistake-row td:first-child { font-weight: 600; color: #8a2020; }
+  .mistake-row td:nth-child(2) { color: #555; }
+  .mistake-row td:nth-child(3) { color: #1a5c3a; font-weight: 600; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0 16px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 14px 16px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 13px; margin-bottom: 4px; }
+
+  .obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .obj-item { background: #f0f6fb; border-radius: 6px; padding: 12px 14px; border-left: 3px solid #2E5D8A; font-size: 14px; color: #333; }
+  .obj-item .bloom { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 4px; }
+
+  .doc-footer { margin-top: 48px; padding-top: 18px; border-top: 2px solid #d0dce6; font-size: 12px; color: #888; display: flex; justify-content: space-between; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .segment { break-inside: avoid; }
+    .callout, .instructor-note, .danger, .demo-block, .discussion { break-inside: avoid; }
+    pre { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+<div class="doc-header">
+  <div class="eyebrow">📋 Instructor Lesson Plan</div>
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="subtitle">Building a Camera App: View, Capture, Browse, Share</div>
+  <div class="meta-row">
+    <span>&#x1F550; <strong>Total time:</strong> 75 minutes</span>
+    <span>&#x1F4C5; <strong>Semester:</strong> Spring 2026</span>
+    <span>&#x1F4E6; <strong>SDK:</strong> Expo SDK 52</span>
+    <span>&#x1F4C4; <strong>Student doc:</strong> CS402_Camera_App_Walkthrough.html</span>
+    <span>&#x1F517; <strong>Prereqs:</strong> useState, useEffect, useRef, Expo permissions</span>
+  </div>
+</div>
+
+
+<!-- ── OVERVIEW ───────────────────────────────────────────────────────────── -->
+<h2>Lesson Overview</h2>
+<p>
+  This lecture walks students through a complete, working React Native camera app
+  line by line, using the literate-programming structure of <code>CameraApp.js</code>
+  as the spine of the lesson. Each of the eleven chapters in the student document
+  corresponds to a cohesive concept; the seven instructor segments group those chapters
+  into teachable arcs with appropriate pacing and demos.
+</p>
+<p>
+  The primary teaching challenge here is <strong>density</strong>: five state variables,
+  a ref, an async permission flow, a capture pipeline, orientation-aware layout, and
+  conditional rendering all coexist in a single component. The goal is not to cover
+  every line at equal depth, but to build a clear mental model of how these pieces
+  connect — students can re-read the document for detail. Prioritize the ref vs. state
+  distinction (Chapter 4) and the permission state machine (Chapter 5); those are where
+  confusion most often takes root.
+</p>
+
+<div class="callout">
+  <strong>Pedagogical framing:</strong> This is a <em>code reading</em> lecture as much as a
+  code writing one. The student doc is written in literate style for a reason: students who
+  read it top-to-bottom before class will follow the lecture well; those who haven't will
+  still be able to follow because the narrative structure is identical. Explicitly tell
+  students at the start: "The document and this lecture tell the same story. You can use
+  one to fill gaps in the other."
+</div>
+
+
+<!-- ── LEARNING OBJECTIVES ─────────────────────────────────────────────────── -->
+<h2>Learning Objectives</h2>
+<div class="obj-grid">
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    Explain the difference between <code>useRef</code> and <code>useState</code>
+    and when each is the right tool.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    Describe the three-state permission model (null / true / false) and why all
+    three states require distinct handling.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Write a correct <code>useEffect</code> permission request using an
+    immediately-invoked async function and an empty dependency array.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Use <code>takePictureAsync()</code> via a ref and prepend the result to
+    state using the functional update form.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Implement orientation-aware layout using <code>useWindowDimensions()</code>
+    and conditional style selection.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Analyze</div>
+    Identify and explain at least four common mistakes in camera component code
+    and articulate the correct fix for each.
+  </div>
+</div>
+
+
+<!-- ── TIMING BAR ─────────────────────────────────────────────────────────── -->
+<h2>Session Timing at a Glance</h2>
+<div class="timing-overview">
+  <div class="timing-header">75-Minute Session — Proportional Breakdown</div>
+  <div class="timing-bar">
+    <div class="timing-seg t1" style="width:7%">Hook<br>5m</div>
+    <div class="timing-seg t2" style="width:19%">State &amp; Imports<br>14m</div>
+    <div class="timing-seg t3" style="width:20%">Ref &amp; Perms<br>15m</div>
+    <div class="timing-seg t4" style="width:19%">Capture<br>14m</div>
+    <div class="timing-seg t5" style="width:13%">Guards &amp; Layout<br>10m</div>
+    <div class="timing-seg t6" style="width:13%">UI &amp; Styles<br>10m</div>
+    <div class="timing-seg t7" style="width:9%">Wrap<br>7m</div>
+  </div>
+  <div class="timing-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Hook &amp; Orientation (5 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>Imports &amp; State — Ch. 2–3 (14 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3a7ab5"></div>useRef &amp; Permissions — Ch. 4–5 (15 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e5d7a"></div>Capture Pipeline — Ch. 6–7 (14 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1e4a6a"></div>Guards &amp; Responsive Layout — Ch. 8–9 (10 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>UI &amp; Styles — Ch. 10–11 (10 min)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8a5d0a"></div>Bugs Table, Q&amp;A, Exit Ticket (7 min)</div>
+  </div>
+</div>
+
+
+<!-- ── SEGMENT 1 ───────────────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">1</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Hook &amp; Orientation — What We Are Building</div>
+      <div class="segment-subtitle">Show the finished app first; establish the four-function contract</div>
+    </div>
+    <div class="segment-time">&#x23F1; 5 min</div>
+  </div>
+  <div class="segment-body">
+
+    <p>Open by running the finished app on a physical device. Let students watch it work before explaining a single line. This 60 seconds of live demo sets the target and makes everything that follows concrete.</p>
+
+    <div class="demo-block">
+      <strong>&#x1F5A5; Open demo (no narration yet):</strong> Launch the app. Tap Snap — a photo appears in the list. Tap Snap again — two photos. Tap Switch — the view changes to a grid. Tap Flip — the camera swaps front to back. Rotate the device — the layout reflows. Then stop and say: "One file. 150 lines. Let's read it together."
+    </div>
+
+    <h3>Talking Points</h3>
+    <ul class="talking-points">
+      <li>This is the simplest possible camera app — no navigation, no server, no persistence. Four things: ask permission, show viewfinder, snap photos, browse the list. That's the whole spec.</li>
+      <li>The entire app is one functional component. No classes, no Redux, no navigation stack. All state is local. This is intentional — Project 4 will ask you to compose this into something larger; today we understand the core.</li>
+      <li>Point to the student doc: "The document and this lecture are the same story told twice. Use whichever one fills gaps."</li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>&#x1F4DD; Pacing note:</strong> Resist the urge to explain the app during the demo. The silence while it runs is productive — students are forming questions. You want those questions to surface naturally as you walk through the code.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── SEGMENT 2 ───────────────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">2</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Chapters 2 &amp; 3 — Imports and State</div>
+      <div class="segment-subtitle">What the file depends on; what the component remembers</div>
+    </div>
+    <div class="segment-time">&#x23F1; 14 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Imports (4 min)</h3>
+    <p>Walk through the import block. The key teaching point is that imports are a promise about what the file will use — nothing extra, nothing missing. Have students predict which imports they would expect before you show the list.</p>
+
+    <div class="discussion">
+      <strong>&#x1F4AC; Before showing the imports, cold-call:</strong> "Without looking at the file — what do you think this component will need to import from React? From React Native? From Expo?" Let two or three students answer. Then reveal the actual imports. Note what they predicted correctly and what they missed (<code>useRef</code> is the one most students forget).
+    </div>
+
+    <ul class="talking-points">
+      <li>We import only what we use — <code>useState</code>, <code>useEffect</code>, <code>useRef</code> from React. Nothing else. This is a readability signal: every hook you see in the imports, you will see used below.</li>
+      <li>Two separate things come from <code>expo-camera</code>: <code>CameraView</code> (the JSX widget — the live viewfinder) and <code>Camera</code> (the static API object — we only call <code>requestCameraPermissionsAsync</code> from it). Students often confuse these.</li>
+      <li>SDK 50 renamed <code>&lt;Camera&gt;</code> to <code>&lt;CameraView&gt;</code>. Any tutorial that uses <code>&lt;Camera ref={...}&gt;</code> as the viewfinder is out of date. This matters because students will Google and find old examples.</li>
+      <li><code>PreviewList</code> and <code>ListGrid</code> are sibling components — we don't build them today, but we see how <code>CameraApp</code> communicates with them via props.</li>
+    </ul>
+
+    <h3>State — The Five Slots (10 min)</h3>
+    <p>Display the state diagram from the student doc (or draw it on the board: five columns, each with the variable name and its possible values). Walk each one.</p>
+
+    <ul class="talking-points">
+      <li><strong>hasPermission</strong> is the most important state variable in the file. It starts as <code>null</code> — not false, not undefined — because "not asked" and "denied" are genuinely different situations that require different UI responses. Conflating them would be a bug.</li>
+      <li><strong>type</strong> is just a string: <code>'front'</code> or <code>'back'</code>. It goes straight into the <code>facing</code> prop on <code>CameraView</code>. One state variable, one prop, zero logic in between.</li>
+      <li><strong>aphoto</strong> starts as a placeholder asset path. After the first snap, it holds a <code>file://</code> URI. The child list components use this to show the most recent capture.</li>
+      <li><strong>photolist</strong> starts empty and grows with every snap. Newest first — we prepend, not append. This is an array of raw Expo photo objects.</li>
+      <li><strong>viewmode</strong> is a boolean. <code>false</code> = <code>PreviewList</code>, <code>true</code> = <code>ListGrid</code>. The Switch button flips it. Students sometimes ask "why not a string like 'preview' and 'grid'?" — a boolean is correct here because there are exactly two states. If a third view were added later, you'd refactor to a string then.</li>
+    </ul>
+
+    <div class="cfu">
+      <div class="cfu-label">&#x2705; Check for Understanding</div>
+      <ol>
+        <li>"Why does <code>hasPermission</code> start as <code>null</code> rather than <code>false</code>?"
+          <div class="answer">&#x2192; Null means "not asked yet." False means "asked and denied." They require different UI responses — a waiting message vs. an error message. Starting as false would show an error before the dialog has even appeared.</div>
+        </li>
+        <li>"Which import lets us actually fire the shutter?"
+          <div class="answer">&#x2192; Neither import on its own. <code>CameraView</code> renders the viewfinder, but the shutter is fired via <code>cameraRef.current.takePictureAsync()</code> — which requires the ref introduced in Chapter 4.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── SEGMENT 3 ───────────────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">3</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Chapters 4 &amp; 5 — useRef and Permissions</div>
+      <div class="segment-subtitle">The remote-control mental model; the three-state permission machine</div>
+    </div>
+    <div class="segment-time">&#x23F1; 15 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>useRef — Commands vs. Data (7 min)</h3>
+    <p>This is the conceptual crux of the segment. Take the time to establish the distinction cleanly before showing any code.</p>
+
+    <div class="instructor-note">
+      <strong>&#x1F4DD; Board moment:</strong> Draw two boxes side by side. Label one "Data that drives the UI" (useState) and one "Commands sent to a component" (useRef). Ask students to place examples from the app into each box before revealing the answer. Most will correctly place <code>type</code>, <code>photolist</code>, and <code>viewmode</code> in the useState box. Almost none will independently suggest that <em>taking a photo</em> belongs in the useRef box — that's the insight to make explicit.
+    </div>
+
+    <ul class="talking-points">
+      <li>Think of a ref as a remote control. You don't re-render the camera to take a photo — you press its shutter button directly. State is for values that make the UI look different. Refs are for imperative actions on mounted component instances.</li>
+      <li>Changing a ref does NOT trigger a re-render. That's the key technical distinction. A ref is just a mutable container — <code>{ current: null }</code> — that React fills in when the component mounts.</li>
+      <li>The old class-component pattern was <code>this.SnapCamera = React.createRef()</code>. Two problems: there's no <code>this</code> in a functional component, and <code>createRef()</code> inside the function body creates a new ref on every render, which never stably connects to the hardware. Always use <code>useRef(null)</code>.</li>
+      <li>Wiring it up: <code>const cameraRef = useRef(null)</code> creates the slot. Writing <code>ref={cameraRef}</code> on <code>&lt;CameraView&gt;</code> tells React to fill that slot when the widget mounts. After mount, <code>cameraRef.current</code> is the live camera instance.</li>
+    </ul>
+
+    <h3>Permissions — The State Machine (8 min)</h3>
+    <p>Walk through the permission flow using the state-machine diagram in the student doc (or draw the three-node diagram on the board).</p>
+
+    <ul class="talking-points">
+      <li><code>useEffect</code> with <code>[]</code> fires once, right after first render. This is where startup work lives — analogous to <code>componentDidMount</code> in class components. The empty array is not optional; without it the effect runs on every re-render, which would show the permission dialog on every state change.</li>
+      <li>Why the immediately-invoked async function? <code>useEffect</code>'s callback must be synchronous — if it returns a Promise, React treats it as a cleanup function and things break silently. The IIFE lets us use <code>await</code> inside the effect without making the callback itself async.</li>
+      <li>Once a user denies permission, the OS will not show the dialog again. Calling <code>requestCameraPermissionsAsync()</code> on a denied permission returns <code>{ status: 'denied' }</code> immediately. The only recourse is directing the user to Settings.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>&#x1F5A5; Live demo — show both permission paths:</strong> Reset the app permission in device Settings to "not determined." Run the app — students see the system dialog. Tap Allow. Now reset to denied in Settings. Run again — no dialog, state goes directly to false, the error message appears. This 90 seconds makes the state machine viscerally real.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">&#x2705; Check for Understanding</div>
+      <ol>
+        <li>"The useEffect dependency array is <code>[]</code>. What happens if you accidentally leave it out?"
+          <div class="answer">&#x2192; The effect runs after every re-render. The permission dialog fires every time any state changes. In practice it would appear, be dismissed, appear again — an infinite loop of dialogs.</div>
+        </li>
+        <li>"Why can't we just write <code>useEffect(async () =&gt; { ... }, [])</code>?"
+          <div class="answer">&#x2192; useEffect expects its callback to return either nothing or a cleanup function. An async function always returns a Promise. React would try to call the Promise as a cleanup function, which fails silently and can cause memory leaks.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── SEGMENT 4 ───────────────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">4</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Chapters 6 &amp; 7 — Capture and View Toggle</div>
+      <div class="segment-subtitle">The snap() pipeline; boolean intent driving conditional rendering</div>
+    </div>
+    <div class="segment-time">&#x23F1; 14 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>snap() — The Four-Step Pipeline (9 min)</h3>
+
+    <ul class="talking-points">
+      <li>The guard check first: <code>if (cameraRef.current)</code> before calling anything. If the widget isn't mounted yet, we do nothing rather than crash. This is defensive programming — write it habitually.</li>
+      <li><code>takePictureAsync()</code> is awaited because image processing takes real time on the hardware. <code>quality: 0.5</code> means 50% JPEG compression — fine for thumbnails, much smaller files. The returned object has <code>uri</code>, <code>width</code>, <code>height</code>, and <code>base64</code> fields.</li>
+      <li>We mutate the photo object to add a <code>name</code> field: <code>photo.name = 'photo_' + photolist.length</code>. This is a common pattern — Expo gives you what the hardware returns, and you augment it with app-specific metadata before storing.</li>
+      <li>The functional update form: <code>setPhotoList(prev =&gt; [photo, ...prev])</code>. Ask students: "Why not just <code>setPhotoList([photo, ...photolist])</code>?" The closure over <code>photolist</code> could be stale if two snaps happen in rapid succession. The functional form always reads the current value.</li>
+    </ul>
+
+    <div class="activity">
+      <div class="act-label">&#x270F; Think-Pair (2 min)</div>
+      "If you removed the guard check and called <code>takePictureAsync()</code> directly, when exactly would it crash — and what would the error say?" Have students think for 60 seconds, then pair-share. Expected answer: it would crash if Snap is tapped before CameraView has finished mounting, throwing a TypeError trying to call a method on null.
+    </div>
+
+    <h3>switchMode() — State-Driven Conditional Render (5 min)</h3>
+
+    <ul class="talking-points">
+      <li><code>switchMode</code> is the simplest function in the file: <code>setVMode(prev =&gt; !prev)</code>. The functional toggle form is correct here — same reason as the photo list. It reads the current value rather than closing over a potentially stale one.</li>
+      <li>The payoff is in the JSX: <code>{viewmode ? &lt;ListGrid /&gt; : &lt;PreviewList /&gt;}</code>. This is a React pattern called conditional rendering. Store intent as a boolean in state; derive the actual UI from that boolean. The component doesn't manage two UIs — it manages one piece of state and lets the JSX compute the rest.</li>
+      <li>Both child components receive the same two props. The parent doesn't care how they display the photos — it just hands over the data. This is the separation of concerns from the composable components lecture applied here.</li>
+    </ul>
+
+    <div class="cfu">
+      <div class="cfu-label">&#x2705; Check for Understanding</div>
+      <ol>
+        <li>"Why does snap() use the functional form of setPhotoList rather than spreading photolist directly?"
+          <div class="answer">&#x2192; The closure over photolist in the snap function could be stale if two snaps happen before React re-renders. The functional form (prev =&gt;) is guaranteed to use the current list value.</div>
+        </li>
+        <li>"PreviewList and ListGrid receive the same two props. What are they?"
+          <div class="answer">&#x2192; photolist (the full array of photo objects) and source (the URI of the most recently captured photo as an object: {{ uri: aphoto }}).</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── SEGMENT 5 ───────────────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">5</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Chapters 8 &amp; 9 — Guard Clauses and Responsive Layout</div>
+      <div class="segment-subtitle">Early returns as error handling; orientation-aware containers</div>
+    </div>
+    <div class="segment-time">&#x23F1; 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Guard Clauses (5 min)</h3>
+
+    <ul class="talking-points">
+      <li>The two early returns before the main JSX are guard clauses — a React convention for handling loading and error states before reaching the happy path. They keep the main return clean and readable because everything below the guards can assume a camera is available.</li>
+      <li>Point out the triple equality: <code>=== null</code>, not <code>== null</code>. Both <code>null</code> and <code>false</code> are falsy, so <code>if (!hasPermission)</code> would conflate them — showing the "no access" error message before the permission dialog has appeared. Use strict equality when the difference between null and false matters.</li>
+      <li>These guard messages are deliberately minimal. In a real app, the <code>null</code> state is so brief that a splash screen is more appropriate. The <code>false</code> state should include a button using <code>Linking.openSettings()</code> to send the user to the correct Settings panel.</li>
+    </ul>
+
+    <h3>Responsive Layout with useWindowDimensions (5 min)</h3>
+
+    <ul class="talking-points">
+      <li><code>useWindowDimensions()</code> is a hook that re-runs whenever the device rotates, providing updated width and height. The comparison <code>SCREEN_WIDTH &gt; SCREEN_HEIGHT</code> determines landscape vs. portrait. That single boolean drives the entire layout switch.</li>
+      <li><code>tallbox</code> uses <code>flexDirection: 'column'</code> — children stack vertically. <code>widebox</code> uses <code>flexDirection: 'row'</code> — children sit side by side. The viewfinder, button row, and photo list are the same three children in both orientations.</li>
+      <li>The keyboard gotcha: <code>useWindowDimensions</code> returns the <em>window</em> height, which shrinks when the software keyboard opens. On some phones this shrinkage can flip <code>width &gt; height</code> from false to true even in portrait — causing a phantom landscape switch. For this camera app there's no keyboard, so it's safe. But if you ever add a text field to this screen, switch to <code>Dimensions.get('screen')</code>.</li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>&#x1F4DD; Live rotation demo:</strong> If you haven't already, rotate the physical device during this segment while the app is running. Students seeing the layout reflow in real time is worth 30 seconds of explanation. Point out that zero code in the component changes — only the hook's return value changes, which triggers a re-render with the new mainstyle.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── SEGMENT 6 ───────────────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">6</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Chapters 10 &amp; 11 — The UI and StyleSheet</div>
+      <div class="segment-subtitle">Reading JSX back to state; StyleSheet.create() and common gotchas</div>
+    </div>
+    <div class="segment-time">&#x23F1; 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Reading the JSX (5 min)</h3>
+    <p>Walk through the JSX by tracing each element back to the state or function that drives it. The goal is not to read every prop — it's to show students that every piece of JSX is a direct consequence of something they've already seen.</p>
+
+    <ul class="talking-points">
+      <li><code>&lt;View style={mainstyle}&gt;</code> — the container uses the orientation-computed style from Chapter 9. One variable, one style, zero conditionals in the JSX itself.</li>
+      <li><code>&lt;CameraView ref={cameraRef} facing={type}&gt;</code> — two props, two state/ref connections from Chapters 3 and 4. The ref wires the shutter; <code>facing</code> controls which lens.</li>
+      <li>The Flip button's handler is written inline: <code>prev =&gt; prev === 'back' ? 'front' : 'back'</code>. This is appropriate because it's a single expression. Snap and Switch are named functions because they contain multiple statements. Both styles are idiomatic — choose based on complexity.</li>
+      <li>The conditional at the bottom: <code>{viewmode ? &lt;ListGrid&gt; : &lt;PreviewList&gt;}</code>. Point back to <code>viewmode</code> in the state block. The parent manages one boolean; the JSX computes which component to render. React unmounts one and mounts the other when the boolean flips.</li>
+    </ul>
+
+    <h3>StyleSheet (5 min)</h3>
+
+    <ul class="talking-points">
+      <li><code>StyleSheet.create()</code> compiles style objects once at module load time. React Native can validate property names and values against the native style system at that point, which means typos throw warnings immediately rather than silently doing nothing at runtime.</li>
+      <li>The <code>flex</code> values: the container has <code>flex: 4</code>; the button row has <code>flex: 1</code>. In a flex column, the camera gets 4 units of space and the buttons get 1 — roughly 80/20 split. <code>flex</code> is proportional, not a fixed size.</li>
+      <li><code>objectFit: 'cover'</code> on the camera style: fills the box without letterboxing. This is what camera apps feel like on a phone. Without it, the preview may have black bars.</li>
+      <li>Point out the comment on <code>behind.justifyContent</code>: <code>'top'</code> is not a valid React Native value. It is silently ignored. The correct value is <code>'flex-start'</code>. Valid options are: <code>flex-start</code>, <code>flex-end</code>, <code>center</code>, <code>space-between</code>, <code>space-around</code>, <code>space-evenly</code>. This is the most common style typo in student code.</li>
+    </ul>
+
+  </div>
+</div>
+
+
+<!-- ── SEGMENT 7 ───────────────────────────────────────────────────────────── -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">7</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Common Mistakes, Q&amp;A, and Exit Ticket</div>
+      <div class="segment-subtitle">Rapid-fire bug table; open questions; bridge to Project 4</div>
+    </div>
+    <div class="segment-time">&#x23F1; 7 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Rapid-Fire Bug Review (4 min)</h3>
+    <p>Project the common mistakes table from the student doc. Read down it quickly — one sentence per row. The goal is pattern recognition, not deep explanation. Students should leave knowing the symptoms; they can read the fixes in the doc.</p>
+
+    <ul class="talking-points">
+      <li><code>this.SnapCamera</code> / <code>createRef()</code> in a functional component — ref is always null, Snap does nothing. Fix: <code>useRef(null)</code>.</li>
+      <li>Async <code>useEffect</code> callback — silent warning, potential memory leak. Fix: IIFE inside the callback.</li>
+      <li>Missing <code>[]</code> dependency array — permission dialog on every keystroke. Fix: always add the array.</li>
+      <li>Flip button returning a constant — always goes to one camera. Fix: <code>prev =&gt; prev === 'back' ? 'front' : 'back'</code>.</li>
+      <li><code>justifyContent: 'top'</code> — silently ignored, layout looks wrong. Fix: <code>'flex-start'</code>.</li>
+      <li>No guard on <code>cameraRef.current</code> — crash if Snap tapped before camera mounts. Fix: <code>if (cameraRef.current) { ... }</code>.</li>
+    </ul>
+
+    <h3>Bridge to Project 4 (2 min)</h3>
+    <p>Connect what they just learned to the assignment waiting for them.</p>
+
+    <div class="callout">
+      <strong>&#x1F51C; Project 4 connection:</strong> Project 4 asks you to extend this app in three directions: (1) persist photos so they survive an app restart — today's <code>photolist</code> is in-memory only; (2) wrap <code>FlatList</code> into a <code>PhotoGallery</code> module using the composable patterns from last lecture; (3) save captured photos to the device's MediaLibrary using <code>createAssetAsync()</code>. Today's code is the camera layer. You are building everything around it.
+    </div>
+
+    <div class="discussion">
+      <strong>&#x1F4AC; Exit ticket (1 question, written or verbal):</strong>
+      "In your own words: what is the difference between <code>useState</code> and <code>useRef</code>, and which one do we use to fire the camera shutter — and why?"
+      <br><br>
+      Expected answer: useState stores data that drives re-renders; useRef holds a stable handle to a mounted component instance for imperative commands. We use useRef for the shutter because taking a photo is a command, not a state change, and we don't want it to trigger a re-render.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ── DIFFERENTIATION ─────────────────────────────────────────────────────── -->
+<h2>Differentiation and Pacing Notes</h2>
+<div class="two-col">
+  <div class="card">
+    <h4>If class is ahead of schedule</h4>
+    <ul>
+      <li>Extend the Segment 3 demo: reset the app permission in Settings live and show the denied path running in real time</li>
+      <li>Ask students to predict what happens if you pass <code>null</code> as the facing prop to CameraView — test it live</li>
+      <li>Show <code>Linking.openSettings()</code> and discuss how the production permission-denied screen would look</li>
+      <li>Discuss how you would add a "delete photo" feature — where does state live, what prop goes to which child?</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>If class is behind schedule</h4>
+    <ul>
+      <li>Compress Segment 6 (UI and Styles) to 3 minutes — it's the least conceptually dense segment</li>
+      <li>Skip the Think-Pair in Segment 4 and answer the guard question yourself</li>
+      <li>Treat Segment 7 as take-home: direct students to the bugs table in the student doc and move straight to the exit ticket question</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Students who are ahead</h4>
+    <ul>
+      <li>Challenge: add a photo count badge above the list that updates every time a photo is snapped</li>
+      <li>Challenge: make the camera flip happen automatically every 5 seconds using <code>setInterval</code> inside a <code>useEffect</code></li>
+      <li>Explore: what does the full photo object from <code>takePictureAsync()</code> contain? Log it and report back</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Students who are struggling</h4>
+    <ul>
+      <li>Focus on just two concepts: "useRef gives you a handle to call methods on; useState gives you memory that triggers re-renders." That's the nucleus.</li>
+      <li>Suggest they read the student doc chapter by chapter, not the whole file at once</li>
+      <li>Point them to the Quick Reference table at the end of the student doc — every pattern they need for Project 4 is in that table</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ── COMMON MISTAKES TABLE ─────────────────────────────────────────────────── -->
+<h2>Common Mistakes Reference</h2>
+<table>
+  <thead>
+    <tr><th>Mistake</th><th>Symptom</th><th>Fix</th></tr>
+  </thead>
+  <tbody class="mistake-row">
+    <tr class="mistake-row">
+      <td>React.createRef() or this.SnapCamera in functional component</td>
+      <td>Snap does nothing; cameraRef.current is always null</td>
+      <td>const cameraRef = useRef(null)</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>async useEffect callback</td>
+      <td>React warning; potential memory leak; cleanup may not run</td>
+      <td>Use immediately-invoked async IIFE inside the callback</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Missing [] on permission useEffect</td>
+      <td>Permission dialog on every re-render / state change</td>
+      <td>Always add [] as second argument when effect should run once</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Flip handler returning a constant</td>
+      <td>Flip button has no visible effect</td>
+      <td>prev =&gt; prev === 'back' ? 'front' : 'back'</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>justifyContent: 'top'</td>
+      <td>Silently ignored; layout looks wrong with no error</td>
+      <td>Use 'flex-start' — valid values: flex-start, flex-end, center, space-between, space-around, space-evenly</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>No guard on cameraRef.current before takePictureAsync</td>
+      <td>Crash: "Cannot read properties of null"</td>
+      <td>if (cameraRef.current) { ... } inside snap()</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>setPhotoList([photo, ...photolist]) instead of functional form</td>
+      <td>Occasional dropped photo if two snaps happen fast</td>
+      <td>setPhotoList(prev =&gt; [photo, ...prev])</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ── PREP CHECKLIST ─────────────────────────────────────────────────────── -->
+<h2>Pre-Class Preparation Checklist</h2>
+<ul>
+  <li>Physical device with Expo Go installed and <code>expo-camera</code> permissions pre-tested — simulator camera is unreliable</li>
+  <li>Finished <code>CameraApp.js</code> with <code>PreviewList.js</code> and <code>ListGrid.js</code> in a working Expo project, ready to run</li>
+  <li>Device Settings open to the app's permission screen — you will reset and re-grant permission live during Segment 3</li>
+  <li>Student doc (<code>CS402_Camera_App_Walkthrough.html</code>) open in a browser tab, state diagram visible for Segment 2</li>
+  <li>Board space cleared for the useState vs. useRef two-box diagram in Segment 3</li>
+  <li>Project 4 assignment brief ready to reference at the end of Segment 7</li>
+  <li>Exit ticket question written somewhere visible: "What is the difference between useState and useRef, and which do we use for the shutter?"</li>
+</ul>
+
+
+<div class="doc-footer">
+  <span>CS 402 &middot; Spring 2026 &middot; Boise State University</span>
+  <span>Instructor Copy &mdash; Not for Student Distribution</span>
+  <span>Paired doc: CS402_Camera_App_Walkthrough.html</span>
+</div>
+
+</body>
+</html>

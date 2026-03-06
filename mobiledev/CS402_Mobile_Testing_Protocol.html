@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Complete Mobile Testing Protocol</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.8; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .semester { font-size: 14px; color: #888; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .doc-header .subtitle { font-size: 20px; color: #2E5D8A; font-weight: 700; margin-top: 4px; }
+  .doc-header .lesson-meta { margin-top: 14px; font-size: 13px; color: #777; display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; }
+
+  /* ── Typography ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; color: #1B3A5C; margin: 44px 0 14px; padding-bottom: 7px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 16px; color: #2E5D8A; margin: 22px 0 9px; font-weight: 700; }
+  p  { margin-bottom: 14px; color: #333; }
+  ul, ol { margin: 10px 0 16px 26px; color: #333; }
+  li { margin-bottom: 8px; }
+
+  /* ── Callouts ── */
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 28px; padding: 14px 20px; background: #f7f9fc; border-radius: 6px; border-left: 4px solid #1B3A5C; }
+  .callout { margin: 20px 0; padding: 15px 20px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .warning { margin: 20px 0; padding: 15px 20px; background: #fdf6ec; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .warning strong { color: #8a5d0a; }
+  .tip { margin: 20px 0; padding: 15px 20px; background: #f0fbf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .tip strong { color: #1a5c3a; }
+  .insight { margin: 20px 0; padding: 15px 20px; background: #f5f0fb; border-left: 4px solid #7a5abf; border-radius: 0 6px 6px 0; color: #333; }
+  .insight strong { color: #4a2a8a; }
+
+  /* ── Diagrams ── */
+  .diagram-wrap { text-align: center; margin: 28px 0; padding: 20px 16px; background: #fafbfc; border: 1px solid #e0e8f0; border-radius: 10px; }
+  .diagram-wrap svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .diagram-caption { font-size: 13px; color: #666; margin-top: 10px; font-style: italic; }
+
+  /* ── Layer cards ── */
+  .layer-strip { margin: 28px 0; display: flex; flex-direction: column; gap: 0; border-radius: 10px; overflow: hidden; border: 2px solid #1B3A5C; }
+  .layer-row { display: grid; grid-template-columns: 56px 1fr 1fr 1fr; align-items: stretch; }
+  .layer-num  { display: flex; align-items: center; justify-content: center; font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; color: #fff; padding: 14px 8px; }
+  .layer-name { display: flex; align-items: center; padding: 12px 16px; font-weight: 700; font-size: 14px; }
+  .layer-tool { display: flex; align-items: center; padding: 12px 16px; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+  .layer-desc { display: flex; align-items: center; padding: 12px 16px; font-size: 13px; color: #555; border-left: 1px solid rgba(255,255,255,0.15); }
+  .lr-1 { background: #1B3A5C; }
+  .lr-1 .layer-name { color: #89b4fa; }
+  .lr-1 .layer-tool { color: #a6e3a1; }
+  .lr-1 .layer-desc { color: #a0c8e8; }
+  .lr-2 { background: #2E5D8A; }
+  .lr-2 .layer-name { color: #cdd6f4; }
+  .lr-2 .layer-tool { color: #a6e3a1; }
+  .lr-2 .layer-desc { color: #a0c8e8; }
+  .lr-3 { background: #2e7a5d; }
+  .lr-3 .layer-name { color: #a6e3a1; }
+  .lr-3 .layer-tool { color: #f9e2af; }
+  .lr-3 .layer-desc { color: #c0f0d8; }
+  .lr-4 { background: #c8890f; }
+  .lr-4 .layer-name { color: #fff; }
+  .lr-4 .layer-tool { color: #f9e2af; }
+  .lr-4 .layer-desc { color: #fff3d0; }
+  .lr-5 { background: #8a2020; }
+  .lr-5 .layer-name { color: #f38ba8; }
+  .lr-5 .layer-tool { color: #f9e2af; }
+  .lr-5 .layer-desc { color: #ffd0d0; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left; }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+  td code { font-size: 12.5px; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre  { background: #1e1e2e; color: #cdd6f4; padding: 18px 22px; border-radius: 8px; overflow-x: auto; margin: 12px 0 20px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+  pre .cls  { color: #f9e2af; }
+
+  /* ── Two-col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0 20px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 16px 18px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 13px; margin-bottom: 5px; }
+
+  /* ── Challenge strip ── */
+  .challenge-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 20px 0; }
+  .ch-card { border-radius: 8px; padding: 14px 16px; border: 1.5px solid; }
+  .ch-card .ch-icon { font-size: 22px; margin-bottom: 6px; }
+  .ch-card .ch-title { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+  .ch-card p { font-size: 12px; margin: 0; line-height: 1.5; }
+  .ch-1 { background: #fdf6ec; border-color: #c8890f; }
+  .ch-1 .ch-title { color: #7a4a00; }
+  .ch-2 { background: #fdf0f0; border-color: #c04040; }
+  .ch-2 .ch-title { color: #8a1a1a; }
+  .ch-3 { background: #f5f0fb; border-color: #7a5abf; }
+  .ch-3 .ch-title { color: #4a2a8a; }
+  .ch-4 { background: #f0fbf4; border-color: #2e8a5d; }
+  .ch-4 .ch-title { color: #1a5c3a; }
+  .ch-5 { background: #eef4fb; border-color: #2E5D8A; }
+  .ch-5 .ch-title { color: #1B3A5C; }
+  .ch-6 { background: #fdf6ec; border-color: #8a6020; }
+  .ch-6 .ch-title { color: #5a3a00; }
+
+  /* ── Tool comparison ── */
+  .tool-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  .tool-card { border-radius: 8px; padding: 16px 18px; border: 1.5px solid; }
+  .tool-card .tool-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; }
+  .tool-card .tool-type { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .tool-card ul { margin: 0 0 0 18px; }
+  .tool-card li { font-size: 13px; margin-bottom: 4px; }
+  .tc-detox  { background: #eef4fb; border-color: #2E5D8A; }
+  .tc-detox  .tool-name { color: #1B3A5C; }
+  .tc-detox  .tool-type { color: #2E5D8A; }
+  .tc-maestro{ background: #f0fbf4; border-color: #2e8a5d; }
+  .tc-maestro .tool-name { color: #1a5c3a; }
+  .tc-maestro .tool-type { color: #2e8a5d; }
+  .tc-appium { background: #f5f0fb; border-color: #7a5abf; }
+  .tc-appium  .tool-name { color: #4a2a8a; }
+  .tc-appium  .tool-type { color: #7a5abf; }
+  .tc-percy  { background: #fdf6ec; border-color: #c8890f; }
+  .tc-percy  .tool-name { color: #7a4a00; }
+  .tc-percy  .tool-type { color: #c8890f; }
+
+  /* ── Callback highlight box ── */
+  .callback-hero { margin: 28px 0; padding: 24px 28px; background: linear-gradient(135deg, #1B3A5C 0%, #2e7a5d 100%); border-radius: 12px; color: #fff; }
+  .callback-hero h3 { color: #a6e3a1; margin-top: 0; font-size: 18px; }
+  .callback-hero p { color: #d0ecd8; margin-bottom: 10px; }
+  .callback-hero .cb-key { background: rgba(255,255,255,0.12); border-radius: 8px; padding: 12px 16px; margin-top: 14px; }
+  .callback-hero .cb-key strong { color: #f9e2af; }
+  .callback-hero .cb-key p { color: #e0f8e8; margin: 6px 0 0; font-size: 14px; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .diagram-wrap, .layer-strip, .two-col, .challenge-grid, .tool-row { break-inside: avoid; }
+    pre, .callout, .warning, .tip, .insight, .callback-hero { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══ -->
+<header class="doc-header">
+  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+  <h1>Complete Mobile Testing Protocol</h1>
+  <div class="subtitle">From Unit Tests to Full App Suites — How the Layers Connect</div>
+  <div class="lesson-meta">
+    <span>🧪 Unit → Functional → Integration</span>
+    <span>🖼 UI automation</span>
+    <span>📱 Mobile-specific challenges</span>
+    <span>🔁 Callback simulation</span>
+    <span>🤖 E2E suites</span>
+  </div>
+</header>
+
+<!-- ══════════ INTRO ══ -->
+<p class="section-intro">
+  Testing a mobile app is not one thing — it's a stack of five different disciplines, each
+  catching a different class of bug, each depending on the layers below it. A unit test can
+  tell you a function returns the right value. Only a full end-to-end suite on a real device
+  can tell you that a user can actually open your app, log in, and complete a purchase without
+  it crashing. This lecture maps the complete protocol, explains how each layer feeds the next,
+  and gives you the tools to build all of them.
+</p>
+
+<div class="callout">
+  <strong>Building on Lectures 16 and 17:</strong> You already know Jest (unit tests) and
+  React Native Testing Library (component tests). This lecture zooms out to show where those
+  fit in the full picture, then goes deeper into the layers above them — integration testing,
+  UI automation, and full end-to-end suites — including the mobile-specific challenges that
+  make the top layers genuinely hard.
+</div>
+
+
+<!-- ══════════ 1. THE FIVE LAYERS ══ -->
+<h2>1. The Five Layers of Mobile Testing</h2>
+
+<p>
+  Every professional mobile testing protocol covers five layers. Each layer tests at a
+  different scope — from a single pure function all the way to the complete app running on
+  real hardware. They are not alternatives to each other. They are a stack. You need all
+  five to have real confidence.
+</p>
+
+<div class="layer-strip">
+  <div class="layer-row lr-5">
+    <div class="layer-num">5</div>
+    <div class="layer-name">End-to-End Suite</div>
+    <div class="layer-tool">Detox / Maestro / Appium</div>
+    <div class="layer-desc">Real device or simulator. Full user journeys. Login → use → logout.</div>
+  </div>
+  <div class="layer-row lr-4">
+    <div class="layer-num">4</div>
+    <div class="layer-name">UI Automation</div>
+    <div class="layer-tool">Detox / visual regression</div>
+    <div class="layer-desc">Automated taps, swipes, input. Pixel comparison. Screenshots per state.</div>
+  </div>
+  <div class="layer-row lr-3">
+    <div class="layer-num">3</div>
+    <div class="layer-name">Integration Testing</div>
+    <div class="layer-tool">Jest + mocks / RNTL + server</div>
+    <div class="layer-desc">Multiple components talking to each other and to real APIs.</div>
+  </div>
+  <div class="layer-row lr-2">
+    <div class="layer-num">2</div>
+    <div class="layer-name">Functional / Component</div>
+    <div class="layer-tool">React Native Testing Library</div>
+    <div class="layer-desc">Single component rendered. Events fired. Output verified. No device.</div>
+  </div>
+  <div class="layer-row lr-1">
+    <div class="layer-num">1</div>
+    <div class="layer-name">Unit Testing</div>
+    <div class="layer-tool">Jest</div>
+    <div class="layer-desc">Single functions and pure logic. Fast, isolated, no UI.</div>
+  </div>
+</div>
+
+
+<!-- ══════════ PYRAMID DIAGRAM ══ -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 760 380" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="760" height="380" fill="#fafbfc" rx="10"/>
+
+    <!-- Layer 1 — Unit (base, widest) -->
+    <polygon points="80,340 680,340 620,280 140,280" fill="#1B3A5C"/>
+    <text x="380" y="315" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">1 — Unit Tests</text>
+    <text x="380" y="332" text-anchor="middle" font-size="11" fill="#89b4fa">Jest · pure functions · fast · hundreds of tests</text>
+
+    <!-- Layer 2 — Component -->
+    <polygon points="140,278 620,278 560,218 200,218" fill="#2E5D8A"/>
+    <text x="380" y="253" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">2 — Functional / Component Tests</text>
+    <text x="380" y="270" text-anchor="middle" font-size="11" fill="#a0c8e8">RNTL · render + fireEvent · no device needed</text>
+
+    <!-- Layer 3 — Integration -->
+    <polygon points="200,216 560,216 500,156 260,156" fill="#2e7a5d"/>
+    <text x="380" y="191" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">3 — Integration Tests</text>
+    <text x="380" y="208" text-anchor="middle" font-size="11" fill="#a6e3a1">components + APIs + data flow</text>
+
+    <!-- Layer 4 — UI Automation -->
+    <polygon points="260,154 500,154 440,94 320,94" fill="#c8890f"/>
+    <text x="380" y="126" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">4 — UI Automation</text>
+    <text x="380" y="143" text-anchor="middle" font-size="11" fill="#f9e2af">Detox · Maestro · visual regression</text>
+
+    <!-- Layer 5 — E2E (apex) -->
+    <polygon points="320,92 440,92 380,32" fill="#8a2020"/>
+    <text x="380" y="68" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">5 — E2E</text>
+
+    <!-- Axis labels -->
+    <text x="28" y="340" font-size="11" fill="#2E5D8A" font-weight="700" text-anchor="middle" transform="rotate(-90,28,250)">Speed</text>
+    <text x="18" y="345" font-size="10" fill="#888" text-anchor="middle">fast</text>
+    <text x="18" y="40"  font-size="10" fill="#888" text-anchor="middle">slow</text>
+    <line x1="26" y1="330" x2="26" y2="50" stroke="#d0dce6" stroke-width="1" marker-start="url(#as)" marker-end="url(#ae)"/>
+
+    <text x="732" y="250" font-size="11" fill="#2E5D8A" font-weight="700" text-anchor="middle" transform="rotate(90,732,250)">Confidence</text>
+    <text x="742" y="340" font-size="10" fill="#888" text-anchor="middle">low</text>
+    <text x="742" y="40"  font-size="10" fill="#888" text-anchor="middle">high</text>
+    <line x1="740" y1="330" x2="740" y2="50" stroke="#d0dce6" stroke-width="1" marker-start="url(#bs)" marker-end="url(#be)"/>
+
+    <!-- Count labels on right -->
+    <text x="695" y="315" font-size="11" fill="#1B3A5C">100s of tests</text>
+    <text x="695" y="255" font-size="11" fill="#2E5D8A">10s–100s</text>
+    <text x="695" y="195" font-size="11" fill="#2e7a5d">10s–50s</text>
+    <text x="695" y="130" font-size="11" fill="#c8890f">5–20 flows</text>
+    <text x="695" y="72"  font-size="11" fill="#8a2020">2–5 journeys</text>
+
+    <defs>
+      <marker id="as" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><circle cx="3" cy="3" r="2" fill="#d0dce6"/></marker>
+      <marker id="ae" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L0,8 L8,4 z" fill="#d0dce6"/></marker>
+      <marker id="bs" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><circle cx="3" cy="3" r="2" fill="#d0dce6"/></marker>
+      <marker id="be" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L0,8 L8,4 z" fill="#d0dce6"/></marker>
+    </defs>
+  </svg>
+  <div class="diagram-caption">The testing pyramid. Wider layers run faster and in greater quantity — hundreds of unit tests run in seconds. Narrower layers are slower and more expensive — a full E2E suite may take 20 minutes. You invert the pyramid at your peril: apps with only E2E tests are slow to validate, expensive to maintain, and produce useless failure messages ("the login is broken" — but where?).</div>
+</div>
+
+
+<!-- ══════════ 2. HOW THE LAYERS CONNECT ══ -->
+<h2>2. How the Layers Feed Each Other</h2>
+
+<p>
+  The layers are not independent checkboxes. Each layer depends on the ones below it and
+  reveals things the layers below cannot see. Understanding these dependencies explains
+  why the sequence matters and why skipping layers is always false economy.
+</p>
+
+<!-- DIAGRAM: Feed-forward connections -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="760" height="300" fill="#fafbfc" rx="10"/>
+
+    <!-- Nodes -->
+    <rect x="20"  y="120" width="120" height="56" rx="8" fill="#1B3A5C"/>
+    <text x="80"  y="144" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Unit</text>
+    <text x="80"  y="160" text-anchor="middle" font-size="10" fill="#89b4fa">pure logic</text>
+    <text x="80"  y="174" text-anchor="middle" font-size="10" fill="#6c7086">Jest</text>
+
+    <rect x="174" y="120" width="120" height="56" rx="8" fill="#2E5D8A"/>
+    <text x="234" y="144" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Component</text>
+    <text x="234" y="160" text-anchor="middle" font-size="10" fill="#a0c8e8">render + events</text>
+    <text x="234" y="174" text-anchor="middle" font-size="10" fill="#a0c8e8">RNTL</text>
+
+    <rect x="328" y="120" width="120" height="56" rx="8" fill="#2e7a5d"/>
+    <text x="388" y="144" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Integration</text>
+    <text x="388" y="160" text-anchor="middle" font-size="10" fill="#a6e3a1">components + API</text>
+    <text x="388" y="174" text-anchor="middle" font-size="10" fill="#a6e3a1">Jest + mocks</text>
+
+    <rect x="482" y="120" width="120" height="56" rx="8" fill="#c8890f"/>
+    <text x="542" y="144" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">UI Auto</text>
+    <text x="542" y="160" text-anchor="middle" font-size="10" fill="#f9e2af">tap + see</text>
+    <text x="542" y="174" text-anchor="middle" font-size="10" fill="#f9e2af">Detox / Maestro</text>
+
+    <rect x="636" y="120" width="104" height="56" rx="8" fill="#8a2020"/>
+    <text x="688" y="144" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">E2E Suite</text>
+    <text x="688" y="160" text-anchor="middle" font-size="10" fill="#f38ba8">full journeys</text>
+    <text x="688" y="174" text-anchor="middle" font-size="10" fill="#f38ba8">real device</text>
+
+    <!-- Primary arrows -->
+    <path d="M141 148 L172 148" stroke="#1B3A5C" stroke-width="2.5" marker-end="url(#a1)"/>
+    <path d="M295 148 L326 148" stroke="#2E5D8A" stroke-width="2.5" marker-end="url(#a2)"/>
+    <path d="M449 148 L480 148" stroke="#2e7a5d" stroke-width="2.5" marker-end="url(#a3)"/>
+    <path d="M603 148 L634 148" stroke="#c8890f" stroke-width="2.5" marker-end="url(#a4)"/>
+
+    <!-- Feedback arrows (bottom — what failures tell you) -->
+    <path d="M234 178 Q234 230 155 230 Q80 230 80 178" stroke="#2E5D8A" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#af)"/>
+    <text x="157" y="248" text-anchor="middle" font-size="10" fill="#2E5D8A" font-style="italic">component failures → fix unit logic</text>
+
+    <path d="M388 178 Q388 260 310 260 Q234 260 234 178" stroke="#2e7a5d" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#ag)"/>
+    <text x="310" y="278" text-anchor="middle" font-size="10" fill="#2e7a5d" font-style="italic">integration failures → fix component contracts</text>
+
+    <!-- What each layer CANNOT see (top labels) -->
+    <text x="80"  y="108" text-anchor="middle" font-size="10" fill="#8b949e">✓ logic correct</text>
+    <text x="80"  y="96"  text-anchor="middle" font-size="10" fill="#8b949e">✗ render, layout</text>
+
+    <text x="234" y="108" text-anchor="middle" font-size="10" fill="#8b949e">✓ renders, events</text>
+    <text x="234" y="96"  text-anchor="middle" font-size="10" fill="#8b949e">✗ real network</text>
+
+    <text x="388" y="108" text-anchor="middle" font-size="10" fill="#8b949e">✓ data flows</text>
+    <text x="388" y="96"  text-anchor="middle" font-size="10" fill="#8b949e">✗ real device</text>
+
+    <text x="542" y="108" text-anchor="middle" font-size="10" fill="#8b949e">✓ taps work</text>
+    <text x="542" y="96"  text-anchor="middle" font-size="10" fill="#8b949e">✗ full journey</text>
+
+    <text x="688" y="108" text-anchor="middle" font-size="10" fill="#8b949e">✓ user succeeds</text>
+    <text x="688" y="96"  text-anchor="middle" font-size="10" fill="#8b949e">✗ nothing — apex</text>
+
+    <defs>
+      <marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1B3A5C"/></marker>
+      <marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#2E5D8A"/></marker>
+      <marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#2e7a5d"/></marker>
+      <marker id="a4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#c8890f"/></marker>
+      <marker id="af" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2E5D8A"/></marker>
+      <marker id="ag" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e7a5d"/></marker>
+    </defs>
+  </svg>
+  <div class="diagram-caption">Each layer surfaces failures that point back to the layer below. A failing integration test tells you a component contract is wrong — which a unit test would have caught if it existed. Failures cascade downward; fixes propagate upward. This is why you write lower-layer tests first.</div>
+</div>
+
+<h3>The overlap zones</h3>
+<p>
+  Adjacent layers have natural overlap — the same scenario can be tested at either level,
+  and that's intentional. Overlap is not redundancy; it's a double-catch for high-value paths.
+</p>
+
+<div class="two-col">
+  <div class="card">
+    <h4>Component ↔ Integration overlap</h4>
+    <ul>
+      <li>A form submission can be tested at the component level (does the button call the handler?) and at the integration level (does the handler actually reach the API endpoint with correct data?)</li>
+      <li>Both tests should exist. The component test runs in milliseconds. The integration test catches network contract mismatches.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Integration ↔ UI overlap</h4>
+    <ul>
+      <li>A login flow can be tested at the integration level (does authentication succeed?) and at the UI level (does the success state actually navigate to the home screen?)</li>
+      <li>The integration test is faster and more specific. The UI test proves the navigation wiring works end-to-end.</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- ══════════ 3. LAYER BY LAYER ══ -->
+<h2>3. Each Layer in Detail</h2>
+
+<h3>Layer 1 — Unit Tests</h3>
+<p>
+  Unit tests test one thing in complete isolation. No UI, no network, no device. A unit
+  test verifies that a pure function or isolated piece of logic produces the correct output
+  for a given input. They run in milliseconds and you should have hundreds of them.
+</p>
+
+<pre><span class="cm">// Pure utility function — perfect unit test target</span>
+<span class="kw">function</span> <span class="fn">formatDistance</span>(meters) {
+  <span class="kw">if</span> (meters &lt; <span class="num">1000</span>) <span class="kw">return</span> <span class="str">`</span>${meters}<span class="str"> m`</span>;
+  <span class="kw">return</span> <span class="str">`</span>${(meters / <span class="num">1000</span>).<span class="fn">toFixed</span>(<span class="num">1</span>)}<span class="str"> km`</span>;
+}
+
+<span class="cm">// Unit test — no imports, no renders, no device</span>
+<span class="fn">test</span>(<span class="str">'formatDistance shows meters under 1km'</span>, () =&gt; {
+  <span class="fn">expect</span>(<span class="fn">formatDistance</span>(<span class="num">400</span>)).<span class="fn">toBe</span>(<span class="str">'400 m'</span>);
+});
+<span class="fn">test</span>(<span class="str">'formatDistance converts to km over 1000m'</span>, () =&gt; {
+  <span class="fn">expect</span>(<span class="fn">formatDistance</span>(<span class="num">2500</span>)).<span class="fn">toBe</span>(<span class="str">'2.5 km'</span>);
+});
+<span class="fn">test</span>(<span class="str">'formatDistance handles exactly 1km'</span>, () =&gt; {
+  <span class="fn">expect</span>(<span class="fn">formatDistance</span>(<span class="num">1000</span>)).<span class="fn">toBe</span>(<span class="str">'1.0 km'</span>);
+});</pre>
+
+<h3>Layer 2 — Functional / Component Tests</h3>
+<p>
+  Component tests render a single component into a virtual environment and interact with it
+  programmatically. React Native Testing Library fires events, queries for rendered elements
+  by accessibility role or text, and asserts on what the user would see. No device, no
+  network, but real React component lifecycle.
+</p>
+
+<pre><span class="kw">import</span> { <span class="fn">render</span>, <span class="fn">fireEvent</span>, <span class="fn">screen</span> } <span class="kw">from</span> <span class="str">'@testing-library/react-native'</span>;
+<span class="kw">import</span> { <span class="cls">TrailCard</span> } <span class="kw">from</span> <span class="str">'./TrailCard'</span>;
+
+<span class="fn">test</span>(<span class="str">'TrailCard shows distance and calls onPress'</span>, () =&gt; {
+  <span class="kw">const</span> mockPress = <span class="fn">jest.fn</span>();
+  <span class="fn">render</span>(&lt;<span class="cls">TrailCard</span> name=<span class="str">"Camel's Back"</span> distanceM={<span class="num">3200</span>} onPress={mockPress} /&gt;);
+
+  <span class="cm">// Verify rendered content</span>
+  <span class="fn">expect</span>(screen.<span class="fn">getByText</span>(<span class="str">"Camel's Back"</span>)).<span class="fn">toBeTruthy</span>();
+  <span class="fn">expect</span>(screen.<span class="fn">getByText</span>(<span class="str">'3.2 km'</span>)).<span class="fn">toBeTruthy</span>(); <span class="cm">// formatDistance called internally</span>
+
+  <span class="cm">// Verify interaction</span>
+  <span class="fn">fireEvent</span>.<span class="fn">press</span>(screen.<span class="fn">getByRole</span>(<span class="str">'button'</span>));
+  <span class="fn">expect</span>(mockPress).<span class="fn">toHaveBeenCalledTimes</span>(<span class="num">1</span>);
+});</pre>
+
+<h3>Layer 3 — Integration Tests</h3>
+<p>
+  Integration tests verify that multiple units work correctly together — components talking
+  to state managers, API calls returning the right data structure, navigation triggering on
+  the right conditions. External services (APIs, databases) are usually mocked, but the
+  wiring between internal pieces is real.
+</p>
+
+<pre><span class="cm">// Integration: does the screen fetch, show loading, then show data?</span>
+<span class="fn">test</span>(<span class="str">'TrailList fetches and displays trails'</span>, <span class="kw">async</span> () =&gt; {
+  <span class="cm">// Mock the network layer — but the component's fetch logic is real</span>
+  <span class="fn">jest.spyOn</span>(global, <span class="str">'fetch'</span>).<span class="fn">mockResolvedValueOnce</span>({
+    json: () =&gt; <span class="cls">Promise</span>.<span class="fn">resolve</span>([
+      { id: <span class="num">1</span>, name: <span class="str">"Camel's Back"</span>, distanceM: <span class="num">3200</span> },
+      { id: <span class="num">2</span>, name: <span class="str">'Table Rock'</span>, distanceM: <span class="num">9700</span> },
+    ]),
+  });
+
+  <span class="fn">render</span>(&lt;<span class="cls">TrailListScreen</span> /&gt;);
+
+  <span class="cm">// Loading state first</span>
+  <span class="fn">expect</span>(screen.<span class="fn">getByText</span>(<span class="str">'Loading...'</span>)).<span class="fn">toBeTruthy</span>();
+
+  <span class="cm">// Wait for fetch to resolve and component to re-render</span>
+  <span class="kw">await</span> screen.<span class="fn">findByText</span>(<span class="str">"Camel's Back"</span>);
+  <span class="fn">expect</span>(screen.<span class="fn">getByText</span>(<span class="str">'Table Rock'</span>)).<span class="fn">toBeTruthy</span>();
+  <span class="fn">expect</span>(screen.<span class="fn">getByText</span>(<span class="str">'9.7 km'</span>)).<span class="fn">toBeTruthy</span>();
+});</pre>
+
+
+<!-- ══════════ 4. MOBILE-SPECIFIC CHALLENGES ══ -->
+<h2>4. Mobile-Specific Testing Challenges</h2>
+
+<p>
+  Testing web apps is hard. Testing mobile apps is hard in six additional ways that don't
+  exist on the web. Understanding these is not an excuse to skip testing — it's context
+  for why the upper layers of the pyramid require more investment.
+</p>
+
+<div class="challenge-grid">
+  <div class="ch-card ch-1">
+    <div class="ch-icon">📱</div>
+    <div class="ch-title">Device Fragmentation</div>
+    <p>Hundreds of Android device models with different screen sizes, OS versions, GPU
+    drivers, and manufacturer skins. A layout that works on a Pixel may break on a Samsung.
+    Simulators can't cover every device.</p>
+  </div>
+  <div class="ch-card ch-2">
+    <div class="ch-icon">🔋</div>
+    <div class="ch-title">OS-Level Interruptions</div>
+    <p>Phone calls, push notifications, low battery warnings, permission dialogs — the OS
+    can interrupt your app mid-test. Automated tests must handle these interruptions or
+    produce false failures.</p>
+  </div>
+  <div class="ch-card ch-3">
+    <div class="ch-icon">🌐</div>
+    <div class="ch-title">Network Variability</div>
+    <p>Mobile users switch between WiFi, 4G, 3G, and offline constantly. A test that passes
+    on a fast connection may fail at 3G speed. Network condition simulation requires dedicated
+    tooling.</p>
+  </div>
+  <div class="ch-card ch-4">
+    <div class="ch-icon">👆</div>
+    <div class="ch-title">Touch Gesture Complexity</div>
+    <p>Swipe, pinch, long-press, multi-touch — gestures are not mouse clicks. Automated
+    gesture simulation is fundamentally different from web click simulation and requires
+    platform-specific test frameworks.</p>
+  </div>
+  <div class="ch-card ch-5">
+    <div class="ch-icon">⏱</div>
+    <div class="ch-title">Async Everything</div>
+    <p>Animations, transitions, splash screens, permission dialogs — mobile UIs are full of
+    async delays. Tests must wait for the right moment, not just the next frame. Flaky tests
+    are almost always timing issues.</p>
+  </div>
+  <div class="ch-card ch-6">
+    <div class="ch-icon">🔐</div>
+    <div class="ch-title">Hardware APIs</div>
+    <p>Camera, GPS, biometrics, sensors — hardware that simulators only partially emulate.
+    A camera test in a simulator uses a synthetic feed, not a real lens. Some hardware
+    bugs only appear on physical devices.</p>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>The implication for test strategy:</strong> Because the upper layers are expensive
+  and mobile-specific challenges are real, professional mobile test suites are deliberately
+  selective. You don't write 50 E2E tests. You write 3–5 critical user journey tests and
+  trust layers 1–3 to cover everything else. The pyramid is not about size — it's about
+  where you invest.
+</div>
+
+
+<!-- ══════════ 5. UI AUTOMATION ══ -->
+<h2>5. UI Automation — The Hard Layer</h2>
+
+<p>
+  UI automation is layer 4 — testing the app through its actual UI, the same way a user
+  would: tap this button, see this result, swipe left, type text, verify the navigation
+  happened. This is the most valuable form of testing and the most technically difficult.
+  There are three distinct approaches to achieving it.
+</p>
+
+<!-- DIAGRAM: UI automation approaches -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="760" height="220" fill="#fafbfc" rx="10"/>
+
+    <text x="380" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C" letter-spacing="0.04em">THREE APPROACHES TO UI AUTOMATION</text>
+
+    <!-- Approach 1: Accessibility tree -->
+    <rect x="20" y="38" width="220" height="164" rx="8" fill="#eef4fb" stroke="#2E5D8A" stroke-width="1.5"/>
+    <text x="130" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#1B3A5C">Accessibility Tree</text>
+    <text x="130" y="76" text-anchor="middle" font-size="11" fill="#2E5D8A">Detox · Maestro · RNTL</text>
+    <text x="130" y="100" text-anchor="middle" font-size="11" fill="#444">Queries by</text>
+    <text x="130" y="114" text-anchor="middle" font-size="11" fill="#444">accessibilityLabel,</text>
+    <text x="130" y="128" text-anchor="middle" font-size="11" fill="#444">testID, role, text</text>
+    <line x1="40" y1="140" x2="220" y2="140" stroke="#d0dce6" stroke-width="1"/>
+    <text x="130" y="156" text-anchor="middle" font-size="11" fill="#2e7a5d">✓ Stable across rebrands</text>
+    <text x="130" y="170" text-anchor="middle" font-size="11" fill="#2e7a5d">✓ Tests behavior not pixel</text>
+    <text x="130" y="184" text-anchor="middle" font-size="11" fill="#c8890f">⚠ Needs testIDs in code</text>
+    <text x="130" y="198" text-anchor="middle" font-size="11" fill="#c8890f">⚠ Doesn't catch visual bugs</text>
+
+    <!-- Approach 2: Image/pixel comparison -->
+    <rect x="270" y="38" width="220" height="164" rx="8" fill="#f0fbf4" stroke="#2e8a5d" stroke-width="1.5"/>
+    <text x="380" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#1a5c3a">Visual Regression</text>
+    <text x="380" y="76" text-anchor="middle" font-size="11" fill="#2e7a5d">Percy · Applitools · screenshot diff</text>
+    <text x="380" y="100" text-anchor="middle" font-size="11" fill="#444">Screenshots every state</text>
+    <text x="380" y="114" text-anchor="middle" font-size="11" fill="#444">pixel-diff vs baseline</text>
+    <text x="380" y="128" text-anchor="middle" font-size="11" fill="#444">AI-powered region ignore</text>
+    <line x1="290" y1="140" x2="470" y2="140" stroke="#d0dce6" stroke-width="1"/>
+    <text x="380" y="156" text-anchor="middle" font-size="11" fill="#2e7a5d">✓ Catches visual regressions</text>
+    <text x="380" y="170" text-anchor="middle" font-size="11" fill="#2e7a5d">✓ No code annotation needed</text>
+    <text x="380" y="184" text-anchor="middle" font-size="11" fill="#c8890f">⚠ Fragile — font render varies</text>
+    <text x="380" y="198" text-anchor="middle" font-size="11" fill="#c8890f">⚠ Intentional changes = false fail</text>
+
+    <!-- Approach 3: Simulator/cloud farm -->
+    <rect x="520" y="38" width="220" height="164" rx="8" fill="#fdf6ec" stroke="#c8890f" stroke-width="1.5"/>
+    <text x="630" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#7a4a00">Device Cloud</text>
+    <text x="630" y="76" text-anchor="middle" font-size="11" fill="#c8890f">AWS Device Farm · Firebase Test Lab</text>
+    <text x="630" y="100" text-anchor="middle" font-size="11" fill="#444">Run tests on 100+</text>
+    <text x="630" y="114" text-anchor="middle" font-size="11" fill="#444">real devices in the cloud</text>
+    <text x="630" y="128" text-anchor="middle" font-size="11" fill="#444">simultaneously</text>
+    <line x1="540" y1="140" x2="720" y2="140" stroke="#d0dce6" stroke-width="1"/>
+    <text x="630" y="156" text-anchor="middle" font-size="11" fill="#2e7a5d">✓ Real hardware, real OS</text>
+    <text x="630" y="170" text-anchor="middle" font-size="11" fill="#2e7a5d">✓ Covers fragmentation</text>
+    <text x="630" y="184" text-anchor="middle" font-size="11" fill="#c8890f">⚠ Expensive</text>
+    <text x="630" y="198" text-anchor="middle" font-size="11" fill="#c8890f">⚠ Slow (20–60 min per run)</text>
+  </svg>
+  <div class="diagram-caption">Three approaches to UI automation — most professional suites combine all three. Accessibility tree testing runs on every CI commit. Visual regression runs on pre-release builds. Device cloud runs on release candidates.</div>
+</div>
+
+<h3>Approach 1 — Accessibility Tree Testing (Detox and Maestro)</h3>
+<p>
+  The accessibility tree approach interacts with the app through the same mechanism
+  assistive technologies use — finding elements by their <code>testID</code>,
+  <code>accessibilityLabel</code>, or role, and firing programmatic taps and inputs.
+  This is the most maintainable form of UI automation.
+</p>
+
+<div class="tool-row">
+  <div class="tool-card tc-detox">
+    <div class="tool-name">Detox</div>
+    <div class="tool-type">Gray-box E2E · Wix Open Source</div>
+    <ul>
+      <li>Specifically designed for React Native</li>
+      <li>Runs tests inside the simulator — has access to the JS runtime</li>
+      <li>"Gray-box" means it can wait for the JS thread to go idle before asserting — eliminates most timing flakiness</li>
+      <li>JavaScript test files using Jest syntax</li>
+      <li>Handles iOS and Android; requires macOS for iOS builds</li>
+    </ul>
+  </div>
+  <div class="tool-card tc-maestro">
+    <div class="tool-name">Maestro</div>
+    <div class="tool-type">YAML-based E2E · Mobile.dev</div>
+    <ul>
+      <li>Writes tests in YAML — no code required</li>
+      <li>Extremely low friction to start — 10 lines of YAML can test a login flow</li>
+      <li>Built-in tolerance for async — automatically waits for elements</li>
+      <li>Works on Android and iOS; cloud service available</li>
+      <li>Best choice for fast coverage without deep JS test expertise</li>
+    </ul>
+  </div>
+</div>
+
+<pre><span class="cm"># Maestro test — login flow in YAML</span>
+appId: com.yourcompany.app
+---
+- launchApp
+- tapOn: <span class="str">"Email"</span>
+- inputText: <span class="str">"test@example.com"</span>
+- tapOn: <span class="str">"Password"</span>
+- inputText: <span class="str">"secure123"</span>
+- tapOn: <span class="str">"Sign In"</span>
+- assertVisible: <span class="str">"Welcome back"</span>       <span class="cm"># verifies home screen appeared</span>
+- assertNotVisible: <span class="str">"Sign In"</span>           <span class="cm"># verifies login form gone</span></pre>
+
+<h3>Approach 2 — Visual Regression Testing</h3>
+<p>
+  Visual regression testing takes a screenshot of every significant UI state, compares it
+  pixel-by-pixel against a stored baseline, and flags any differences. This catches visual
+  bugs that accessibility-tree tests cannot: a button that moved 4 pixels, a color that
+  changed slightly, a font that stopped loading.
+</p>
+
+<p>
+  The practical challenge is <strong>noise</strong>. Font rendering varies between OS versions.
+  Anti-aliasing differs between machines. Timestamps and live data change every run. Modern
+  visual regression tools solve this with region masking (ignore this dynamic area), threshold
+  tolerances (allow up to 0.1% pixel difference), and AI-powered diff analysis that distinguishes
+  intentional design changes from regressions.
+</p>
+
+<div class="tool-row">
+  <div class="tool-card tc-percy">
+    <div class="tool-name">Percy / Applitools</div>
+    <div class="tool-type">Visual regression cloud services</div>
+    <ul>
+      <li>Take screenshots at defined checkpoints in your tests</li>
+      <li>Upload to cloud; pixel-diff runs against stored baseline</li>
+      <li>Review UI shows diffs highlighted in red — one-click approve or reject</li>
+      <li>Approve a change once → it becomes the new baseline</li>
+      <li>Integrates with Detox, Maestro, or standalone screenshot capture</li>
+    </ul>
+  </div>
+  <div class="tool-card tc-appium">
+    <div class="tool-name">Appium</div>
+    <div class="tool-type">Cross-platform WebDriver protocol</div>
+    <ul>
+      <li>The older, established standard — supports native iOS, Android, and web in one framework</li>
+      <li>Uses WebDriver protocol (same as Selenium for browsers)</li>
+      <li>Language-agnostic — tests in Java, Python, JavaScript</li>
+      <li>Larger team investment than Detox/Maestro; better for multi-platform orgs</li>
+      <li>Works with real devices and all major cloud device farms</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Approach 3 — Cloud Device Farms</h3>
+<p>
+  AWS Device Farm, Firebase Test Lab, BrowserStack, and Sauce Labs all offer the same
+  core service: run your UI automation tests across a fleet of real physical devices
+  simultaneously. You upload your test suite and your app binary; they run it in parallel
+  on 50 or 100 different device/OS combinations and return per-device results, logs,
+  and screenshots.
+</p>
+
+<p>
+  This is the only way to systematically test against device fragmentation. A layout bug
+  that only appears on Samsung Galaxy devices running Android 11 will not appear in
+  any simulator. It will appear in a device farm run.
+</p>
+
+<div class="warning">
+  <strong>⚠ Device farms are expensive and slow.</strong> A full device farm run can cost
+  $50–$500 and take 30–60 minutes. You run them on release candidates, not on every commit.
+  Lower layers (1–3) are your daily confidence; device farms are your release gate.
+</div>
+
+
+<!-- ══════════ 6. CALLBACKS ══ -->
+<h2>6. The Callback Architecture — Simulating Entire User Sessions</h2>
+
+<div class="callback-hero">
+  <h3>The most important insight in mobile testing</h3>
+  <p>
+    React Native components are built on callback functions: <code>onPress</code>,
+    <code>onChangeText</code>, <code>onScroll</code>, <code>onSubmitEditing</code>,
+    <code>onFocus</code>, <code>onBlur</code>. Every user interaction is just a function call.
+    And functions can be called by test code just as easily as by a user's finger.
+  </p>
+  <div class="cb-key">
+    <strong>The payoff:</strong>
+    <p>If you design your components to expose their callback props, a test can simulate
+    an entire session of user interactions — open screen, fill form, submit, navigate,
+    verify state — without a device, without a simulator, without UI automation tooling,
+    and without any of the timing problems that make UI tests flaky. A complete user journey
+    can run in milliseconds using nothing but Jest and RNTL.</p>
+  </div>
+</div>
+
+<h3>Callbacks as a testability design pattern</h3>
+<p>
+  The key is separating concerns. A component that does too much — fetches its own data,
+  manages its own navigation, owns all its own business logic — is hard to test at any layer.
+  A component that accepts its behavior through props (including callbacks) is trivially testable
+  because the test controls everything the component depends on.
+</p>
+
+<pre><span class="cm">// Hard to test — component owns everything</span>
+<span class="kw">export function</span> <span class="fn">TrailDetailScreen</span>() {
+  <span class="kw">const</span> [trail, setTrail] = <span class="fn">useState</span>(<span class="kw">null</span>);
+  <span class="kw">const</span> router = <span class="fn">useRouter</span>();
+  <span class="fn">useEffect</span>(() =&gt; { <span class="fn">fetchTrail</span>().<span class="fn">then</span>(setTrail); }, []);
+
+  <span class="kw">return</span> &lt;<span class="cls">Button</span> onPress={() =&gt; router.<span class="fn">push</span>(<span class="str">'/booking'</span>)} /&gt;;
+  <span class="cm">// To test: need to mock fetch, mock router, wait for effect...</span>
+}
+
+<span class="cm">// Easy to test — behavior injected through props</span>
+<span class="kw">export function</span> <span class="fn">TrailDetailView</span>({ trail, onBookPress, onBackPress }) {
+  <span class="kw">return</span> (
+    &lt;<span class="cls">View</span>&gt;
+      &lt;<span class="cls">Text</span>&gt;{trail.name}&lt;/<span class="cls">Text</span>&gt;
+      &lt;<span class="cls">Button</span> <span class="prop">label</span>=<span class="str">"Book"</span> <span class="prop">onPress</span>={onBookPress} /&gt;
+      &lt;<span class="cls">Button</span> <span class="prop">label</span>=<span class="str">"Back"</span> <span class="prop">onPress</span>={onBackPress} /&gt;
+    &lt;/<span class="cls">View</span>&gt;
+  );
+  <span class="cm">// To test: just pass mock functions. No mocking needed.</span>
+}</pre>
+
+<h3>Simulating an entire user session with callbacks</h3>
+<p>
+  When components expose callbacks, you can chain interactions across an entire user flow
+  in a single test. Here is a complete session — open app, search for a trail, view detail,
+  book it — tested entirely in Jest with zero devices and zero UI automation tooling:
+</p>
+
+<pre><span class="fn">describe</span>(<span class="str">'Trail booking session'</span>, () =&gt; {
+  <span class="fn">test</span>(<span class="str">'user searches, views, and books a trail'</span>, <span class="kw">async</span> () =&gt; {
+    <span class="kw">const</span> mockBook = <span class="fn">jest.fn</span>().<span class="fn">mockResolvedValue</span>({ confirmationId: <span class="str">'ABC123'</span> });
+    <span class="kw">const</span> mockNavigate = <span class="fn">jest.fn</span>();
+
+    <span class="cm">// ── Step 1: Search screen ──────────────────────────────</span>
+    <span class="kw">const</span> { <span class="fn">rerender</span> } = <span class="fn">render</span>(
+      &lt;<span class="cls">TrailSearchView</span>
+        <span class="prop">onSearch</span>={<span class="fn">jest.fn</span>()}
+        <span class="prop">results</span>={[{ id: <span class="num">1</span>, name: <span class="str">"Camel's Back"</span>, distanceM: <span class="num">3200</span> }]}
+        <span class="prop">onSelectTrail</span>={mockNavigate}
+      /&gt;
+    );
+
+    <span class="cm">// User types in search box</span>
+    <span class="fn">fireEvent</span>.<span class="fn">changeText</span>(screen.<span class="fn">getByPlaceholderText</span>(<span class="str">'Search trails'</span>), <span class="str">'camel'</span>);
+    <span class="fn">fireEvent</span>.<span class="fn">press</span>(screen.<span class="fn">getByText</span>(<span class="str">"Camel's Back"</span>));
+
+    <span class="cm">// Callback fired with correct trail</span>
+    <span class="fn">expect</span>(mockNavigate).<span class="fn">toHaveBeenCalledWith</span>({ id: <span class="num">1</span>, name: <span class="str">"Camel's Back"</span>, distanceM: <span class="num">3200</span> });
+
+    <span class="cm">// ── Step 2: Detail screen — with the trail from step 1 ──</span>
+    <span class="fn">rerender</span>(
+      &lt;<span class="cls">TrailDetailView</span>
+        <span class="prop">trail</span>={mockNavigate.<span class="fn">mock</span>.calls[<span class="num">0</span>][<span class="num">0</span>]}
+        <span class="prop">onBookPress</span>={() =&gt; mockBook({ trailId: <span class="num">1</span>, date: <span class="str">'2026-04-15'</span> })}
+        <span class="prop">onBackPress</span>={<span class="fn">jest.fn</span>()}
+      /&gt;
+    );
+
+    <span class="fn">expect</span>(screen.<span class="fn">getByText</span>(<span class="str">"Camel's Back"</span>)).<span class="fn">toBeTruthy</span>();
+    <span class="fn">expect</span>(screen.<span class="fn">getByText</span>(<span class="str">'3.2 km'</span>)).<span class="fn">toBeTruthy</span>();
+
+    <span class="cm">// User taps Book</span>
+    <span class="fn">fireEvent</span>.<span class="fn">press</span>(screen.<span class="fn">getByText</span>(<span class="str">'Book'</span>));
+
+    <span class="cm">// ── Step 3: Confirm the booking API was called ──────────</span>
+    <span class="kw">await</span> <span class="fn">waitFor</span>(() =&gt; {
+      <span class="fn">expect</span>(mockBook).<span class="fn">toHaveBeenCalledWith</span>({ trailId: <span class="num">1</span>, date: <span class="str">'2026-04-15'</span> });
+    });
+  });
+});</pre>
+
+<div class="insight">
+  <strong>💡 What just happened:</strong> A three-screen user journey — search, detail, book —
+  was tested in under 100 milliseconds. No simulator spun up. No network request fired. No
+  device was involved. The test is deterministic (no timing), fast (milliseconds), and specific
+  (failures pinpoint exactly which interaction broke). This is the payoff of the callback
+  architecture. Callbacks are not just how React Native handles user input — they are the
+  seams through which tests reach into your app.
+</div>
+
+<h3>testID — the bridge between component tests and UI automation</h3>
+<p>
+  The same callback architecture that enables fast Jest tests also makes UI automation
+  reliable. The <code>testID</code> prop on any React Native component adds a stable identifier
+  that both RNTL and Detox can query — by ID, not by text, not by position. When you add
+  <code>testID</code> to your interactive elements as a discipline, your components become
+  queryable at every layer of the pyramid simultaneously.
+</p>
+
+<pre><span class="cm">// Add testID to interactive elements as a development habit</span>
+&lt;<span class="cls">TextInput</span>
+  <span class="prop">testID</span>=<span class="str">"trail-search-input"</span>
+  <span class="prop">placeholder</span>=<span class="str">"Search trails"</span>
+  <span class="prop">onChangeText</span>={onSearch}
+/&gt;
+&lt;<span class="cls">TouchableOpacity</span>
+  <span class="prop">testID</span>=<span class="str">"book-trail-button"</span>
+  <span class="prop">onPress</span>={onBookPress}
+&gt;
+
+<span class="cm">// RNTL — queries by testID (Layer 2 + 3)</span>
+screen.<span class="fn">getByTestId</span>(<span class="str">'trail-search-input'</span>)
+
+<span class="cm">// Detox — queries by testID (Layer 4 + 5)</span>
+<span class="kw">await</span> <span class="fn">element</span>(<span class="fn">by</span>.<span class="fn">id</span>(<span class="str">'book-trail-button'</span>)).<span class="fn">tap</span>();</pre>
+
+
+<!-- ══════════ 7. FULL SUITE ══ -->
+<h2>7. Putting It All Together — The Full Protocol</h2>
+
+<div class="diagram-wrap">
+  <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="760" height="280" fill="#fafbfc" rx="10"/>
+
+    <!-- CI/CD pipeline visual -->
+    <text x="380" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C" letter-spacing="0.06em">WHEN DOES EACH LAYER RUN?</text>
+
+    <!-- Timeline -->
+    <line x1="30" y1="50" x2="730" y2="50" stroke="#d0dce6" stroke-width="2"/>
+
+    <!-- Events on timeline -->
+    <!-- Every save -->
+    <circle cx="80" cy="50" r="8" fill="#1B3A5C"/>
+    <text x="80" y="74" text-anchor="middle" font-size="10" fill="#1B3A5C" font-weight="700">every save</text>
+    <text x="80" y="86" text-anchor="middle" font-size="9" fill="#888">(dev loop)</text>
+
+    <!-- Git push -->
+    <circle cx="230" cy="50" r="8" fill="#2E5D8A"/>
+    <text x="230" y="74" text-anchor="middle" font-size="10" fill="#2E5D8A" font-weight="700">git push</text>
+    <text x="230" y="86" text-anchor="middle" font-size="9" fill="#888">(CI trigger)</text>
+
+    <!-- PR merge -->
+    <circle cx="400" cy="50" r="8" fill="#2e7a5d"/>
+    <text x="400" y="74" text-anchor="middle" font-size="10" fill="#2e7a5d" font-weight="700">PR merge</text>
+    <text x="400" y="86" text-anchor="middle" font-size="9" fill="#888">(staging build)</text>
+
+    <!-- Release candidate -->
+    <circle cx="570" cy="50" r="8" fill="#c8890f"/>
+    <text x="570" y="74" text-anchor="middle" font-size="10" fill="#c8890f" font-weight="700">release candidate</text>
+
+    <!-- Release -->
+    <circle cx="710" cy="50" r="8" fill="#8a2020"/>
+    <text x="710" y="74" text-anchor="middle" font-size="10" fill="#8a2020" font-weight="700">release</text>
+
+    <!-- Layer run ranges -->
+    <!-- Unit: every save to release -->
+    <rect x="40" y="100" width="680" height="24" rx="4" fill="#1B3A5C" opacity="0.9"/>
+    <text x="380" y="117" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Layer 1 — Unit Tests (seconds, run always)</text>
+
+    <!-- Component: push to release -->
+    <rect x="192" y="132" width="528" height="24" rx="4" fill="#2E5D8A" opacity="0.9"/>
+    <text x="456" y="149" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Layer 2 — Component Tests (seconds, run on every push)</text>
+
+    <!-- Integration: PR merge to release -->
+    <rect x="362" y="164" width="358" height="24" rx="4" fill="#2e7a5d" opacity="0.9"/>
+    <text x="541" y="181" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Layer 3 — Integration Tests (minutes, run on merge)</text>
+
+    <!-- UI Automation: RC to release -->
+    <rect x="532" y="196" width="188" height="24" rx="4" fill="#c8890f" opacity="0.9"/>
+    <text x="626" y="213" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Layer 4 — UI Automation</text>
+
+    <!-- E2E: release only -->
+    <rect x="672" y="228" width="58" height="24" rx="4" fill="#8a2020" opacity="0.9"/>
+    <text x="701" y="245" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Layer 5</text>
+
+    <!-- Time label -->
+    <text x="30"  y="270" font-size="10" fill="#888">fast / cheap</text>
+    <text x="700" y="270" font-size="10" fill="#888" text-anchor="end">slow / expensive</text>
+  </svg>
+  <div class="diagram-caption">When each layer runs in a professional CI/CD pipeline. Fast layers run constantly. Expensive layers run only at the gates that matter. You never wait 45 minutes for a device farm run on every save — you wait 3 seconds for unit tests, then 45 minutes for the release gate.</div>
+</div>
+
+<table>
+  <thead>
+    <tr><th>Layer</th><th>Run when</th><th>Target count</th><th>Failure action</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>1 — Unit</strong></td><td>Every save (watch mode) + every CI run</td><td>100–500 tests</td><td>Block immediately — fix before moving on</td></tr>
+    <tr><td><strong>2 — Component</strong></td><td>Every git push, pre-merge</td><td>50–200 tests</td><td>Block PR merge</td></tr>
+    <tr><td><strong>3 — Integration</strong></td><td>PR merge, nightly build</td><td>20–80 tests</td><td>Block staging deploy</td></tr>
+    <tr><td><strong>4 — UI Auto</strong></td><td>Release candidate build</td><td>10–30 flows</td><td>Block release candidate</td></tr>
+    <tr><td><strong>5 — E2E Suite</strong></td><td>Release gate</td><td>3–10 journeys</td><td>Block app store submission</td></tr>
+  </tbody>
+</table>
+
+<div class="tip">
+  <strong>💡 The rule of the seam:</strong> Any place in your code where you pass a callback
+  prop is a seam — a place a test can reach in and control behavior. Design components with
+  seams intentionally. Accept callbacks for navigation, data fetching, and side effects
+  rather than wiring them directly inside the component. This makes the component testable
+  at every layer simultaneously. Testability and good architecture are the same thing wearing
+  different hats.
+</div>
+
+</body>
+</html>

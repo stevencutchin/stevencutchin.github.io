@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Instructor Plan: The App Lifecycle in Detail</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 0.85in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.75; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  .doc-header { margin-bottom: 36px; padding-bottom: 24px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #c8890f; text-transform: uppercase; margin-bottom: 6px; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .subtitle { font-size: 17px; color: #2E5D8A; font-weight: 700; margin-bottom: 16px; }
+  .doc-header .meta-row { display: flex; flex-wrap: wrap; gap: 24px; font-size: 13px; color: #555; padding-top: 14px; border-top: 1px solid #e0e8f0; }
+  .doc-header .meta-row span { display: flex; align-items: center; gap: 5px; }
+  .doc-header .meta-row strong { color: #1B3A5C; }
+
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; color: #1B3A5C; margin: 38px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 15px; color: #2E5D8A; margin: 20px 0 8px; font-weight: 700; }
+  p  { margin-bottom: 12px; color: #333; }
+  ul, ol { margin: 8px 0 12px 22px; color: #333; }
+  li { margin-bottom: 6px; }
+
+  .callout          { margin: 16px 0; padding: 14px 18px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong   { color: #1B3A5C; }
+  .instructor-note  { margin: 16px 0; padding: 14px 18px; background: #fffbf0; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .instructor-note strong { color: #8a5d0a; }
+  .danger           { margin: 16px 0; padding: 14px 18px; background: #fdf0f0; border-left: 4px solid #c04040; border-radius: 0 6px 6px 0; color: #333; }
+  .danger strong    { color: #8a1a1a; }
+  .demo-block       { margin: 16px 0; padding: 14px 18px; background: #f0faf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .demo-block strong{ color: #1a5c3a; }
+  .discussion       { margin: 16px 0; padding: 14px 18px; background: #f5f0fa; border-left: 4px solid #7c5cbf; border-radius: 0 6px 6px 0; color: #333; }
+  .discussion strong{ color: #4a3580; }
+
+  .segment { margin: 32px 0 0; border: 1.5px solid #d0dce6; border-radius: 10px; overflow: hidden; }
+  .segment-header { display: flex; align-items: center; background: #1B3A5C; color: #fff; }
+  .segment-num { background: #0d2236; font-size: 22px; font-weight: 700; padding: 14px 20px; min-width: 60px; text-align: center; font-family: 'DM Serif Display', Georgia, serif; }
+  .segment-title-block { padding: 10px 18px; flex: 1; }
+  .segment-title { font-size: 16px; font-weight: 700; }
+  .segment-subtitle { font-size: 12px; color: #a0c0e0; margin-top: 2px; }
+  .segment-time { padding: 10px 20px; font-size: 13px; color: #a0c0e0; text-align: right; white-space: nowrap; }
+  .segment-body { padding: 20px 24px; }
+
+  /* Segment accent colors per phase */
+  .seg-c .segment-header { background: #1B3A5C; }
+  .seg-c .segment-num    { background: #0d2236; }
+  .seg-r .segment-header { background: #2e7a5d; }
+  .seg-r .segment-num    { background: #1a5c3a; }
+  .seg-u .segment-header { background: #c8890f; }
+  .seg-u .segment-num    { background: #8a5d0a; }
+  .seg-d .segment-header { background: #8a2020; }
+  .seg-d .segment-num    { background: #5a0a0a; }
+  .seg-s .segment-header { background: #4a3580; }
+  .seg-s .segment-num    { background: #2a1560; }
+
+  .timing-overview { margin: 20px 0 30px; border: 1.5px solid #d0dce6; border-radius: 8px; overflow: hidden; }
+  .timing-header { background: #1B3A5C; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 16px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .timing-bar { display: flex; height: 40px; }
+  .timing-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; padding: 0 4px; text-align: center; }
+  .t1 { background: #1B3A5C; }
+  .t2 { background: #2e7a5d; }
+  .t3 { background: #c8890f; }
+  .t4 { background: #8a2020; }
+  .t5 { background: #4a3580; }
+  .t6 { background: #2E5D8A; }
+  .timing-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #f7f9fc; border-top: 1px solid #e0e8f0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  .talking-points { list-style: none; margin: 0 0 14px; padding: 0; }
+  .talking-points li { padding: 5px 0 5px 22px; position: relative; color: #333; border-bottom: 1px dotted #e0e8f0; }
+  .talking-points li:last-child { border-bottom: none; }
+  .talking-points li::before { content: "›"; position: absolute; left: 4px; color: #2E5D8A; font-size: 18px; line-height: 1.3; font-weight: 700; }
+
+  .cfu { background: #f7f9fc; border: 1px solid #c8d8e8; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .cfu .cfu-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 8px; }
+  .cfu ol { margin: 0 0 0 20px; color: #333; }
+  .cfu li { margin-bottom: 6px; font-size: 14px; }
+  .cfu .answer { color: #666; font-style: italic; font-size: 13px; margin-top: 2px; }
+
+  .activity { background: #f0faf4; border: 1.5px solid #7abf9a; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .activity .act-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2e8a5d; margin-bottom: 8px; }
+
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 10px 0 14px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+  pre .cls  { color: #f9e2af; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 9px 13px; text-align: left; }
+  td { padding: 8px 13px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0 16px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 14px 16px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 13px; margin-bottom: 4px; }
+
+  .obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .obj-item { background: #f0f6fb; border-radius: 6px; padding: 12px 14px; border-left: 3px solid #2E5D8A; font-size: 14px; color: #333; }
+  .obj-item .bloom { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 4px; }
+
+  .mistake-row td:first-child { font-weight: 600; color: #8a2020; }
+  .mistake-row td:nth-child(2) { color: #555; }
+  .mistake-row td:nth-child(3) { color: #1a5c3a; font-weight: 600; }
+
+  .doc-footer { margin-top: 48px; padding-top: 18px; border-top: 2px solid #d0dce6; font-size: 12px; color: #888; display: flex; justify-content: space-between; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .segment { break-inside: avoid; }
+    pre { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<div class="doc-header">
+  <div class="eyebrow">📋 Instructor Lesson Plan</div>
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="subtitle">The App Lifecycle in Detail — Create · Render · Undisplay · Delete</div>
+  <div class="meta-row">
+    <span>🕐 <strong>Total time:</strong> 75 minutes</span>
+    <span>📅 <strong>Semester:</strong> Spring 2026</span>
+    <span>📚 <strong>Lecture:</strong> 6 / 22 (revisited in depth)</span>
+    <span>🎯 <strong>Themes:</strong> Theme 1 (Foundations) · Theme 2 (Building)</span>
+  </div>
+</div>
+
+
+<!-- ─── OBJECTIVES ─── -->
+<h2>Learning Objectives</h2>
+<div class="obj-grid">
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    Name and describe all four lifecycle phases (CRUD) at both the React component level and the OS app level.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Write a <code>useEffect</code> that correctly handles Create, Render, and Delete phases with appropriate dependency arrays and cleanup.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Use the <code>AppState</code> API to detect and respond to Undisplay (background) and the return to Render (foreground).
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Analyze</div>
+    Distinguish between three "not visible" scenarios: navigation blur, AppState background, and component unmount.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    Explain why the OS may kill a backgrounded app without warning and what the correct response is during Undisplay.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Create</div>
+    Annotate a component, labeling each section by its lifecycle phase.
+  </div>
+</div>
+
+
+<!-- ─── TIMING ─── -->
+<h2>Session at a Glance</h2>
+<div class="timing-overview">
+  <div class="timing-header">75-Minute Session</div>
+  <div class="timing-bar">
+    <div class="timing-seg t1" style="width:13.3%">1 · CRUD Intro<br>10 min</div>
+    <div class="timing-seg t2" style="width:16%">2 · Create<br>12 min</div>
+    <div class="timing-seg t6" style="width:13.3%">3 · Render<br>10 min</div>
+    <div class="timing-seg t3" style="width:20%">4 · Undisplay<br>15 min</div>
+    <div class="timing-seg t4" style="width:13.3%">5 · Delete<br>10 min</div>
+    <div class="timing-seg t5" style="width:24%">6 · Full demo + CFU<br>18 min</div>
+  </div>
+  <div class="timing-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>CRUD model intro + state machine diagram</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>Create phase + mount effects</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>Render phase + AppState active</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c8890f"></div>Undisplay — AppState + useFocusEffect</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8a2020"></div>Delete — cleanup + OS kill</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#4a3580"></div>LocationTracker demo + annotation activity</div>
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 1 ─── -->
+<div class="segment seg-c">
+  <div class="segment-header">
+    <div class="segment-num">1</div>
+    <div class="segment-title-block">
+      <div class="segment-title">The CRUD Model — Introducing the Framework</div>
+      <div class="segment-subtitle">Concept framing · State machine diagram · Two-layer model</div>
+    </div>
+    <div class="segment-time">0:00 – 0:10 · 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Opening</h3>
+    <ul class="talking-points">
+      <li>Ask: "What does CRUD stand for in databases?" Students know this. "The app lifecycle has its own version. It's not identical, but the structure rhymes — and once you see it, the whole thing snaps into place."</li>
+      <li>Write on the board: <strong>C — Create · R — Render · U — Undisplay · D — Delete</strong>. Tell students to use this as their mental anchor for the entire session.</li>
+      <li>Emphasize the two levels immediately: "This model applies to a single React component AND to the entire app at the OS level. Both at the same time, in parallel."</li>
+    </ul>
+
+    <div class="discussion">
+      <strong>🗣 Activation question:</strong> "Think of an app on your phone — say, Spotify.
+      When you press the home button and come back ten minutes later, what do you expect? Your
+      place in the song? The same playlist? What if it was gone?" → This frames why lifecycle
+      management matters. Students understand the user expectation immediately.
+    </div>
+
+    <h3>Walk through the state machine diagram</h3>
+    <ul class="talking-points">
+      <li>Open the student document and display the two-layer state machine SVG on the projector. Walk each phase left to right.</li>
+      <li>Point out the <em>curved back arrows</em> — Undisplay is reversible. The app comes back. The component gets re-focused. This is critical: Undisplay is not a death sentence.</li>
+      <li>Point out the dashed vertical connectors — the React layer and the OS layer move in parallel. When the OS enters background, the components are still mounted. When the OS kills the process, everything vanishes.</li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>📝 CRUD as scaffold:</strong> The CRUD framing isn't in the official React docs —
+      it's a teaching model for this course. Students should understand it as an analogy to
+      build intuition, not as a term they'll find in job interviews. The actual API terms
+      (mount, unmount, effect, cleanup, AppState) are what they'll encounter in the wild.
+      Name this explicitly so students don't get confused if they Google it later.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 2 ─── -->
+<div class="segment seg-c">
+  <div class="segment-header">
+    <div class="segment-num">2</div>
+    <div class="segment-title-block">
+      <div class="segment-title">C — Create</div>
+      <div class="segment-subtitle">Mount order · useState initialization · useEffect(fn, []) · First paint</div>
+    </div>
+    <div class="segment-time">0:10 – 0:22 · 12 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>The three-step mount sequence</h3>
+    <ul class="talking-points">
+      <li>Step 1: Component function runs. <code>useState</code> slots are created with initial values. No UI yet.</li>
+      <li>Step 2: JSX is evaluated and committed. The user sees the first paint — often a loading spinner or skeleton.</li>
+      <li>Step 3: After paint, <code>useEffect(fn, [])</code> fires. Data fetching starts here — never before the first paint.</li>
+      <li>Ask: "Why does React commit the UI before running effects?" → So the screen is never blank while a fetch is in-flight. The user sees something immediately.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 1 (6 min) — See the Create sequence:</strong> Open a Snack. Add a
+      <code>console.log('function ran')</code> at the top of the component and a
+      <code>console.log('effect ran')</code> inside <code>useEffect(fn, [])</code>. Show the
+      console output order: function → function (StrictMode double-invokes) → effect. Then
+      disable StrictMode to show the clean sequence. Students are often surprised that the
+      function runs before the effect and before the user sees anything.
+    </div>
+
+    <div class="callout">
+      <strong>StrictMode note:</strong> In Expo's development mode, React runs component
+      functions twice intentionally (StrictMode) to surface side effects in the function body.
+      This doubles console logs and makes the Create sequence look weird. It only happens in
+      development — production runs once. Worth mentioning so students aren't alarmed.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Quick Check</div>
+      <ol>
+        <li>You have <code>useEffect(fn, [])</code>. The function inside fetches data and calls <code>setData(result)</code>. How many times does the fetch run?
+          <div class="answer">→ Once — the empty array means "Create phase only." The fetch fires after the first paint, sets state, triggering one re-render into the Render phase.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 3 ─── -->
+<div class="segment seg-r">
+  <div class="segment-header">
+    <div class="segment-num">3</div>
+    <div class="segment-title-block">
+      <div class="segment-title">R — Render</div>
+      <div class="segment-subtitle">Active phase · Re-render triggers · AppState 'active' · Render ≠ visible</div>
+    </div>
+    <div class="segment-time">0:22 – 0:32 · 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>The Render phase is normal operation</h3>
+    <ul class="talking-points">
+      <li>The Render phase is where the component spends most of its life. State updates trigger re-renders; each re-render runs the component function again.</li>
+      <li><code>useEffect(fn, [dep])</code> is the Render-phase hook — it fires on Create AND whenever a listed dependency changes.</li>
+      <li>At the OS level, this corresponds to <code>AppState === 'active'</code>: screen on, app visible, user interacting.</li>
+    </ul>
+
+    <div class="danger">
+      <strong>🚨 Address "Render ≠ visible" explicitly:</strong> This is the insight most students
+      miss before it bites them in an assignment. A component in a tab they're not looking at is
+      still mounted, still in the Render phase, and its effects are still running. If that
+      component has a polling interval, it's polling even when the user is on a different tab.
+      This is why <code>useFocusEffect</code> exists — and why we cover it in the Undisplay
+      segment.
+    </div>
+
+    <div class="discussion">
+      <strong>🗣 Discussion:</strong> "I have a stock ticker that polls every 5 seconds. My app
+      has three tabs. The ticker is on Tab 1. The user switches to Tab 3. Is the ticker still
+      polling?" → Yes, if you used <code>useEffect</code>. The component is mounted. The interval
+      is registered. Tab visibility is not the same as component mount state. How would you fix it?
+      → <code>useFocusEffect</code>.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 4 ─── -->
+<div class="segment seg-u">
+  <div class="segment-header">
+    <div class="segment-num">4</div>
+    <div class="segment-title-block">
+      <div class="segment-title">U — Undisplay</div>
+      <div class="segment-subtitle">AppState API · Background behavior · Save now · Three "not visible" scenarios · useFocusEffect</div>
+    </div>
+    <div class="segment-time">0:32 – 0:47 · 15 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Why Undisplay is the most important phase to get right</h3>
+    <ul class="talking-points">
+      <li>The user presses home. Your app is still mounted in memory. State is intact. But the OS is now managing your CPU and power allocations aggressively.</li>
+      <li>This is the moment to save. Not when the app is killed — that happens without warning. Now, while you still have execution time.</li>
+      <li>It's also the moment to release expensive resources: GPS, camera, microphone, frequent network polling. The user isn't looking at your app; there's no reason to keep burning battery on their behalf.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 2 (7 min) — AppState listener live:</strong> Add the
+      <code>useAppStateChange</code> hook from the student document to a Snack. Add
+      <code>console.log</code> calls in <code>onBackground</code> and <code>onForeground</code>.
+      Run on a physical device (or ask a student with their phone on the Snack URL).
+      Press the home button — show "background" log. Return to app — show "active" log.
+      This is viscerally satisfying; students immediately see the hook firing in real time.
+    </div>
+
+    <h3>The three "not visible" scenarios — nail this distinction</h3>
+    <p>Draw this on the board or point to the table in the student document:</p>
+    <ul class="talking-points">
+      <li><strong>Navigation blur:</strong> User went to another screen inside your app. Component still mounted. AppState still 'active'. Effects still running. <em>Most common source of "ghost" intervals.</em></li>
+      <li><strong>AppState background:</strong> User pressed home or switched apps. Component still mounted. AppState is now 'background'. This is the save-your-data moment.</li>
+      <li><strong>Component unmount:</strong> Component was removed from the navigation stack or conditionally rendered away. Cleanup runs. State gone. This is the Delete phase.</li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>📝 useFocusEffect timing:</strong> Walk through the <code>useFocusEffect</code>
+      example in the student document. Emphasize that it takes a <code>useCallback</code>
+      wrapper — without it, the effect re-registers on every render. Students commonly forget
+      the <code>useCallback</code> and then wonder why the effect fires too often.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding</div>
+      <ol>
+        <li>The user presses the home button on an iPhone. What is <code>AppState.currentState</code> now?
+          <div class="answer">→ On iOS, it briefly becomes 'inactive' during the transition animation, then 'background'. On Android, it goes directly to 'background'. The correct check compares previous state to current state, not just current state.</div>
+        </li>
+        <li>You have a <code>setInterval</code> in a <code>useEffect(fn, [])</code>. The user navigates to a different tab. Is the interval still running?
+          <div class="answer">→ Yes. Navigation blur does not unmount the component (in a tab navigator). The effect is still registered. Use useFocusEffect with a cleanup to pause it when the screen blurs.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 5 ─── -->
+<div class="segment seg-d">
+  <div class="segment-header">
+    <div class="segment-num">5</div>
+    <div class="segment-title-block">
+      <div class="segment-title">D — Delete</div>
+      <div class="segment-subtitle">Cleanup functions · OS kill without warning · What causes unmount</div>
+    </div>
+    <div class="segment-time">0:47 – 0:57 · 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>The cleanup function is the Delete hook</h3>
+    <ul class="talking-points">
+      <li>The function returned from <code>useEffect</code> runs on two occasions: before the next effect (when deps change) and on component unmount. The unmount run is the Delete phase.</li>
+      <li>Think of it as a contract: "If I started something, I stop it here." Sensor subscriptions, intervals, event listeners, network connections — all have a counterpart teardown in the cleanup.</li>
+      <li>Missing cleanups are the root cause of the most common React Native production bugs: ghost timers, memory leaks, and the "can't perform state update on unmounted component" warning.</li>
+    </ul>
+
+    <div class="danger">
+      <strong>🚨 The OS kill has no callback:</strong> Emphasize this strongly. There is no
+      <code>AppState</code> event when the OS decides to kill your app. No "last chance to save."
+      The process simply ends. This is the single most important reason to save data in the
+      <em>Undisplay</em> phase — you cannot rely on getting a signal at Delete.
+      <br><br>
+      A helpful analogy: imagine your computer's power cord being yanked out. You don't get a
+      "shutting down" dialog. You get nothing. That's what OS kill looks like for your app.
+    </div>
+
+    <h3>What triggers Delete at the component level</h3>
+    <ul class="talking-points">
+      <li>The user presses the back button and the screen is popped from the stack</li>
+      <li>A conditional renders <code>null</code> where the component used to be</li>
+      <li>A FlatList scrolls and a virtualized item leaves the visible window</li>
+      <li>The root component unmounts because the process ends</li>
+    </ul>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Quick Check</div>
+      <ol>
+        <li>A student says "I'll save the user's draft when the app is killed." What's wrong with this plan?
+          <div class="answer">→ There is no AppState event for OS kill. The process ends without notice. Drafts must be saved during the Undisplay phase (AppState → 'background'), not at Delete.</div>
+        </li>
+        <li>Name two things that should always be in a <code>useEffect</code> cleanup function.
+          <div class="answer">→ Any of: interval/timeout clearance, subscription removal, event listener removal, connection close, ref flag (isMounted = false).</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── SEGMENT 6 ─── -->
+<div class="segment seg-s">
+  <div class="segment-header">
+    <div class="segment-num">6</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Synthesis — LocationTracker Annotation Activity</div>
+      <div class="segment-subtitle">Full component walkthrough · Pairs activity · Final CFU</div>
+    </div>
+    <div class="segment-time">0:57 – 1:15 · 18 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Instructor-led walkthrough (8 min)</h3>
+    <p>
+      Paste the <code>LocationTracker</code> component from the student document into Snack
+      or display it on screen. Walk through it section by section, asking students to name the
+      phase before you label it.
+    </p>
+    <ul class="talking-points">
+      <li>Point at <code>const [coords, setCoords] = useState(null)</code> — "What phase is this?" → Create. State initialization always happens in Create.</li>
+      <li>Point at <code>useEffect(() => { startTracking(); return () => sub.remove(); }, [])</code> — "What phase does the body belong to? What phase does the return belong to?" → Body: Create. Return: Delete.</li>
+      <li>Point at the AppState listener — "The onBackground branch — what phase?" → Undisplay. "The onForeground branch?" → Render resuming.</li>
+      <li>Point at the JSX return — "What phase?" → Render. Always. Every paint is Render.</li>
+    </ul>
+
+    <div class="activity">
+      <div class="act-label">🏋 Pairs Activity (8 min) — Lifecycle Annotation</div>
+      <p>
+        Share the following stripped component via Snack or a code paste tool. Each pair annotates
+        every line with its lifecycle phase (C / R / U / D). The goal is to label every
+        <code>useState</code>, every <code>useEffect</code> body, every cleanup, and the JSX.
+      </p>
+      <pre><span class="kw">function</span> <span class="fn">ChatRoom</span>({ roomId }) {
+  <span class="kw">const</span> [messages, setMessages] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [draft, setDraft]    = <span class="fn">useState</span>(<span class="str">''</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> sub = <span class="fn">subscribeToRoom</span>(roomId, msg =&gt;
+      <span class="fn">setMessages</span>(prev =&gt; [...prev, msg])
+    );
+    <span class="kw">return</span> () =&gt; sub.<span class="fn">unsubscribe</span>();
+  }, [roomId]);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">const</span> appSub = <span class="cls">AppState</span>.<span class="fn">addEventListener</span>(<span class="str">'change'</span>, state =&gt; {
+      <span class="kw">if</span> (state !== <span class="str">'active'</span>) <span class="fn">saveDraft</span>(draft);
+    });
+    <span class="kw">return</span> () =&gt; appSub.<span class="fn">remove</span>();
+  }, [draft]);
+
+  <span class="kw">return</span> <span class="tag">&lt;MessageList</span> <span class="prop">messages</span>={messages} /<span class="tag">&gt;</span>;
+}</pre>
+      <p style="margin-top:10px"><strong>Expected annotations:</strong> <code>useState</code> calls → C. First <code>useEffect</code> body → C (mount) and re-runs on R when roomId changes. First cleanup → D. Second <code>useEffect</code> body → C (mount). Second <code>useEffect</code> listener body → U (fires when leaving active). Second cleanup → D. JSX return → R.</p>
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Final Check for Understanding</div>
+      <ol>
+        <li>In the ChatRoom component above, what is the bug if <code>draft</code> is missing from the second effect's dependency array?
+          <div class="answer">→ The AppState listener captures a stale closure of draft. When the app goes to background, saveDraft() receives the value of draft from when the effect last ran — possibly an empty string or outdated text, not what the user typed most recently.</div>
+        </li>
+        <li>The user is on the ChatRoom screen and presses the home button. Which lifecycle transitions fire, in order?
+          <div class="answer">→ (1) AppState changes to 'inactive' (iOS) then 'background'. (2) The AppState listener fires → saveDraft() is called. (3) Component remains mounted (Undisplay). No cleanup runs. No unmount.</div>
+        </li>
+        <li>The user now presses Back and the screen is removed from the navigation stack. What happens next?
+          <div class="answer">→ Component unmounts (Delete phase). Both useEffect cleanup functions run: sub.unsubscribe() and appSub.remove(). State is gone.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── MISTAKES TABLE ─── -->
+<h2>Common Student Mistakes</h2>
+<table>
+  <thead>
+    <tr><th>Mistake</th><th>What goes wrong</th><th>Fix</th></tr>
+  </thead>
+  <tbody>
+    <tr class="mistake-row">
+      <td>No cleanup for subscriptions</td>
+      <td>Listener accumulates on every render. Ghost callbacks fire on unmounted component. "Can't perform state update on unmounted component" warning.</td>
+      <td>Always return a cleanup from effects that subscribe, start timers, or add event listeners.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Saving data "on app kill"</td>
+      <td>OS kill has no callback. Data is lost. The plan can never work.</td>
+      <td>Save during Undisplay (AppState → 'background'), not at Delete.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Assuming navigation blur = unmount</td>
+      <td>Interval or subscription keeps running on a "hidden" screen. Stale data, ghost updates, battery drain.</td>
+      <td>Use <code>useFocusEffect</code> for effects that should pause when the screen blurs.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Missing <code>useCallback</code> in <code>useFocusEffect</code></td>
+      <td>Effect re-registers on every render, not just on focus. Causes rapid subscription cycling.</td>
+      <td>Always wrap the <code>useFocusEffect</code> callback in <code>useCallback</code>.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Treating 'inactive' as 'background' on iOS</td>
+      <td>Save logic fires during transient system overlays (calls, swipe gesture). Can cause duplicate saves or incorrect state resets.</td>
+      <td>Compare previous state to current state. Trigger on the transition <em>from</em> 'active', not on seeing any non-'active' value.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Putting side effects in the function body (not in useEffect)</td>
+      <td>Side effect runs on every single render, not just on Create. Can cause infinite loops if the effect updates state.</td>
+      <td>All side effects belong in <code>useEffect</code>. The component function body should only compute and return JSX.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ─── GRADING NOTES ─── -->
+<h2>Grading &amp; Assessment Notes</h2>
+<p>
+  When lifecycle management appears in assignments, focus on whether the student understands
+  the <em>intent</em> of each phase. Credit generously for correct structure; deduct for
+  systematic absence of cleanup or data loss patterns that would materially affect the user.
+</p>
+<ul>
+  <li><strong>Full credit:</strong> Correct phase structure — data fetched on mount, effects cleaned up, AppState handled if the assignment involves background behavior.</li>
+  <li><strong>Partial credit (comment, not deduction):</strong> A single missing cleanup in a component that otherwise demonstrates phase understanding. Note it in feedback.</li>
+  <li><strong>Significant deduction:</strong> No cleanups anywhere (systematic), or a component that causes the "unmounted component" warning to fire repeatedly, breaking the required behavior.</li>
+  <li><strong>Do not penalize:</strong> Imperfect handling of the 'inactive' state on iOS, or using <code>useEffect</code> instead of <code>useFocusEffect</code> when the assignment doesn't explicitly require focus-aware behavior.</li>
+</ul>
+
+<div class="instructor-note">
+  <strong>📝 The CRUD model in feedback:</strong> When leaving written feedback on assignments,
+  using the phase language ("your Delete phase cleanup is missing the interval teardown") gives
+  students a vocabulary to act on. It's more actionable than "you have a memory leak" alone.
+</div>
+
+
+<!-- ─── PREP CHECKLIST ─── -->
+<h2>Before Class — Preparation Checklist</h2>
+<ul>
+  <li>✅ Open <strong>CS402_App_Lifecycle.html</strong> in browser — verify both SVG diagrams (state machine and CRUD strip) render correctly.</li>
+  <li>✅ Pre-create the Snack for Demo 1 — a component with <code>console.log</code> in the function body and in <code>useEffect(fn, [])</code>, ready to show mount order.</li>
+  <li>✅ Pre-create the Snack for Demo 2 — the <code>useAppStateChange</code> hook with console logs. Test on a physical device if possible; the home button triggering logs is the most impactful demo in this session.</li>
+  <li>✅ Have the ChatRoom annotation activity component ready to paste — put it in a Canvas announcement or Snack link before class so students can work in it during the pairs activity.</li>
+  <li>✅ Note: <code>useFocusEffect</code> requires <code>@react-navigation/core</code> — confirm this is included in the demo project's dependencies before class.</li>
+</ul>
+
+
+<!-- ─── FOOTER ─── -->
+<div class="doc-footer">
+  <span>CS 402 · Spring 2026 · Boise State University</span>
+  <span>The App Lifecycle in Detail — Instructor Plan</span>
+  <span>Internal use only — not for student distribution</span>
+</div>
+
+</body>
+</html>

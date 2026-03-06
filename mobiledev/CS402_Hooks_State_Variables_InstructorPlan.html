@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Instructor Plan: Hooks and State Variables</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 0.85in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.75; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { margin-bottom: 36px; padding-bottom: 24px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #c8890f; text-transform: uppercase; margin-bottom: 6px; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .subtitle { font-size: 17px; color: #2E5D8A; font-weight: 700; margin-bottom: 16px; }
+  .doc-header .meta-row { display: flex; flex-wrap: wrap; gap: 24px; font-size: 13px; color: #555; padding-top: 14px; border-top: 1px solid #e0e8f0; }
+  .doc-header .meta-row span { display: flex; align-items: center; gap: 5px; }
+  .doc-header .meta-row strong { color: #1B3A5C; }
+
+  /* ── Typography ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; color: #1B3A5C; margin: 38px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 15px; color: #2E5D8A; margin: 20px 0 8px; font-weight: 700; letter-spacing: 0.01em; }
+  p  { margin-bottom: 12px; color: #333; }
+  ul, ol { margin: 8px 0 12px 22px; color: #333; }
+  li { margin-bottom: 6px; }
+
+  /* ── Callout boxes ── */
+  .callout { margin: 16px 0; padding: 14px 18px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .instructor-note { margin: 16px 0; padding: 14px 18px; background: #fffbf0; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .instructor-note strong { color: #8a5d0a; }
+  .danger { margin: 16px 0; padding: 14px 18px; background: #fdf0f0; border-left: 4px solid #c04040; border-radius: 0 6px 6px 0; color: #333; }
+  .danger strong { color: #8a1a1a; }
+  .demo-block { margin: 16px 0; padding: 14px 18px; background: #f0faf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .demo-block strong { color: #1a5c3a; }
+  .discussion { margin: 16px 0; padding: 14px 18px; background: #f5f0fa; border-left: 4px solid #7c5cbf; border-radius: 0 6px 6px 0; color: #333; }
+  .discussion strong { color: #4a3580; }
+
+  /* ── Segment blocks ── */
+  .segment { margin: 32px 0 0; border: 1.5px solid #d0dce6; border-radius: 10px; overflow: hidden; }
+  .segment-header { display: flex; align-items: center; background: #1B3A5C; color: #fff; }
+  .segment-num { background: #0d2236; font-size: 22px; font-weight: 700; padding: 14px 20px; min-width: 60px; text-align: center; font-family: 'DM Serif Display', Georgia, serif; }
+  .segment-title-block { padding: 10px 18px; flex: 1; }
+  .segment-title { font-size: 16px; font-weight: 700; }
+  .segment-subtitle { font-size: 12px; color: #a0c0e0; margin-top: 2px; }
+  .segment-time { padding: 10px 20px; font-size: 13px; color: #a0c0e0; text-align: right; white-space: nowrap; }
+  .segment-body { padding: 20px 24px; }
+
+  /* ── Timing bar ── */
+  .timing-overview { margin: 20px 0 30px; border: 1.5px solid #d0dce6; border-radius: 8px; overflow: hidden; }
+  .timing-header { background: #1B3A5C; color: #fff; font-size: 13px; font-weight: 700; padding: 10px 16px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .timing-bar { display: flex; height: 40px; }
+  .timing-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; overflow: hidden; white-space: nowrap; }
+  .t1 { background: #1B3A5C; }
+  .t2 { background: #2E5D8A; }
+  .t3 { background: #3a7ab5; }
+  .t4 { background: #2e5d7a; }
+  .t5 { background: #1e4a6a; }
+  .t6 { background: #2e7a5d; }
+  .t7 { background: #8a5d0a; }
+  .timing-legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; background: #f7f9fc; border-top: 1px solid #e0e8f0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── Talking points ── */
+  .talking-points { list-style: none; margin: 0 0 14px; padding: 0; }
+  .talking-points li { padding: 5px 0 5px 22px; position: relative; color: #333; border-bottom: 1px dotted #e0e8f0; }
+  .talking-points li:last-child { border-bottom: none; }
+  .talking-points li::before { content: "›"; position: absolute; left: 4px; color: #2E5D8A; font-size: 18px; line-height: 1.3; font-weight: 700; }
+
+  /* ── Check-for-understanding ── */
+  .cfu { background: #f7f9fc; border: 1px solid #c8d8e8; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .cfu .cfu-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 8px; }
+  .cfu ol { margin: 0 0 0 20px; color: #333; }
+  .cfu li { margin-bottom: 6px; font-size: 14px; }
+  .cfu .answer { color: #666; font-style: italic; font-size: 13px; margin-top: 2px; }
+
+  /* ── Activity box ── */
+  .activity { background: #f0faf4; border: 1.5px solid #7abf9a; border-radius: 8px; padding: 16px 20px; margin: 14px 0; }
+  .activity .act-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #2e8a5d; margin-bottom: 8px; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre { background: #1e1e2e; color: #cdd6f4; padding: 16px 20px; border-radius: 8px; overflow-x: auto; margin: 10px 0 14px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 9px 13px; text-align: left; }
+  td { padding: 8px 13px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  /* ── Two-col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0 16px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 14px 16px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 13px; margin-bottom: 4px; }
+
+  /* ── Objectives grid ── */
+  .obj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+  .obj-item { background: #f0f6fb; border-radius: 6px; padding: 12px 14px; border-left: 3px solid #2E5D8A; font-size: 14px; color: #333; }
+  .obj-item .bloom { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #2E5D8A; margin-bottom: 4px; }
+
+  /* ── Common mistakes ── */
+  .mistake-row td:first-child { font-weight: 600; color: #8a2020; }
+  .mistake-row td:nth-child(2) { color: #555; }
+  .mistake-row td:nth-child(3) { color: #1a5c3a; font-weight: 600; }
+
+  /* ── Footer ── */
+  .doc-footer { margin-top: 48px; padding-top: 18px; border-top: 2px solid #d0dce6; font-size: 12px; color: #888; display: flex; justify-content: space-between; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .segment { break-inside: avoid; }
+    .callout, .instructor-note, .danger, .demo-block, .discussion { break-inside: avoid; }
+    pre { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<div class="doc-header">
+  <div class="eyebrow">📋 Instructor Lesson Plan</div>
+  <h1>CS 402 — Mobile Application Development</h1>
+  <div class="subtitle">Hooks and State Variables — useState, useEffect, useRef</div>
+  <div class="meta-row">
+    <span>🕐 <strong>Total time:</strong> 75 minutes</span>
+    <span>📅 <strong>Semester:</strong> Spring 2026</span>
+    <span>📚 <strong>Lectures:</strong> 10 &amp; 13 (combined deep-dive)</span>
+    <span>🎯 <strong>Themes:</strong> Theme 2 — Building</span>
+  </div>
+</div>
+
+
+<!-- ─── LEARNING OBJECTIVES ─── -->
+<h2>Learning Objectives</h2>
+<p>By the end of this session, students should be able to:</p>
+<div class="obj-grid">
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    Explain what the React re-render cycle is and what triggers it.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Use <code>useState</code> correctly, including the updater-function form for batched updates.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Apply</div>
+    Write a <code>useEffect</code> with the correct dependency array and a cleanup function.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Analyze</div>
+    Decide when to use <code>useRef</code> vs. <code>useState</code> vs. a regular variable.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Understand</div>
+    State the two Rules of Hooks and explain why they exist.
+  </div>
+  <div class="obj-item">
+    <div class="bloom">Create</div>
+    Build a component that fetches data, handles loading/error states, and cleans up on unmount.
+  </div>
+</div>
+
+
+<!-- ─── TIMING OVERVIEW ─── -->
+<h2>Session at a Glance</h2>
+<div class="timing-overview">
+  <div class="timing-header">75-Minute Session — Time Allocation</div>
+  <div class="timing-bar">
+    <div class="timing-seg t1" style="width:13.3%">1 · Intro<br>10 min</div>
+    <div class="timing-seg t2" style="width:20%">2 · useState<br>15 min</div>
+    <div class="timing-seg t3" style="width:13.3%">3 · Re-render<br>10 min</div>
+    <div class="timing-seg t4" style="width:26.7%">4 · useEffect<br>20 min</div>
+    <div class="timing-seg t5" style="width:13.3%">5 · useRef<br>10 min</div>
+    <div class="timing-seg t6" style="width:13.3%">6 · Wrap-up<br>10 min</div>
+  </div>
+  <div class="timing-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Hook concept intro</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>useState live coding</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3a7ab5"></div>Re-render cycle + rules</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e5d7a"></div>useEffect deep dive</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1e4a6a"></div>useRef</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>Synthesis + CFU</div>
+  </div>
+</div>
+
+
+<!-- ─── PREREQUISITE CONTEXT ─── -->
+<h2>Prerequisite Context</h2>
+<p>
+  Students arriving at this lecture have already seen <code>useState</code> in a counter app
+  (Lecture 10) and had a first look at <code>useEffect</code> and <code>useRef</code> briefly
+  in Lecture 13. This session is the <strong>deep dive</strong> — explaining the underlying
+  model so students stop cargo-culting the dependency array and start reasoning about it.
+</p>
+<div class="instructor-note">
+  <strong>📝 Know your room:</strong> Do a quick show of hands — "who has hit a bug where
+  their state update didn't seem to do anything, or their useEffect ran too many times?"
+  Almost every hand will go up. Use this to frame the session as answering the question
+  <em>why</em> — not just showing the API again.
+</div>
+
+
+<!-- ════════════════════════════════════════ SEGMENT 1 ══ -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">1</div>
+    <div class="segment-title-block">
+      <div class="segment-title">What Are Hooks — The Mental Model</div>
+      <div class="segment-subtitle">Concept introduction · No coding yet</div>
+    </div>
+    <div class="segment-time">0:00 – 0:10 · 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Opening framing</h3>
+    <ul class="talking-points">
+      <li>Before hooks (2018), stateful logic required class components. Classes had their own problems: confusing <code>this</code>, lifecycle method bloat, difficult reuse of logic between components.</li>
+      <li>Hooks let function components opt into React features — state, side effects, context — without converting to classes.</li>
+      <li>The single biggest thing to internalize: <strong>hooks are called in the same order, every render.</strong> React tracks them by position — slot 1, slot 2, slot 3. The Rules exist to protect this.</li>
+    </ul>
+
+    <div class="discussion">
+      <strong>🗣 Opening question (pairs, 60 seconds):</strong> "You have a variable inside a
+      function. The function runs again. What happens to the variable?" → Answer: it resets.
+      "So how does a component remember anything between renders?" → Lead into: React's hook slots.
+    </div>
+
+    <h3>The registration model (brief)</h3>
+    <ul class="talking-points">
+      <li>Draw (or gesture) a box for the component instance. Inside it, React maintains an ordered list of hook slots.</li>
+      <li>First render: hooks register — slot 1 gets <code>useState(0)</code>, slot 2 gets <code>useState(null)</code>, etc.</li>
+      <li>Every subsequent render: same function runs, same slots fill in order with current values.</li>
+      <li>If a hook is inside an <code>if</code>, the slot count changes → React panics → Rule 1 exists.</li>
+    </ul>
+
+    <div class="instructor-note">
+      <strong>📝 Keep it short:</strong> Don't spend more than 10 minutes here. The mental model
+      lands best when students have already seen the <em>consequence</em> of getting it wrong.
+      Plant the seed now; reinforce it after the rules section.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════ SEGMENT 2 ══ -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">2</div>
+    <div class="segment-title-block">
+      <div class="segment-title">useState — Live Coding</div>
+      <div class="segment-subtitle">Interactive demo · Students follow along in Expo Snack</div>
+    </div>
+    <div class="segment-time">0:10 – 0:25 · 15 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Demo sequence</h3>
+    <p>Open a fresh Expo Snack. Build these three versions in sequence — don't jump ahead.</p>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 1 (3 min) — Basic counter:</strong> Start with <code>useState(0)</code>,
+      a <code>Text</code> showing the count, a Button incrementing it. Let students see a
+      re-render happen. Ask: "What changed on screen?" → Only the number. React didn't redraw
+      the whole component, just reconciled the diff.
+    </div>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 2 (5 min) — Stale closure bug:</strong> Modify the Button to call
+      <code>setCount(count + 1)</code> three times in a row. Show that the result is only +1.
+      Ask students to predict before revealing. Then show the updater function form
+      <code>setCount(prev => prev + 1)</code> called three times → result is +3.
+      This moment usually produces audible surprise — let it land.
+    </div>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 3 (5 min) — Object state:</strong> Change state to
+      <code>useState({ name: 'Alex', score: 0 })</code>. Show the mutation bug:
+      mutate and call <code>setState(obj)</code> → nothing happens. Then show the spread fix.
+      Reinforce: React uses reference equality.
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding — 2 min</div>
+      <ol>
+        <li>What does calling a state setter actually do immediately? (Schedules a re-render — doesn't mutate the current value)
+          <div class="answer">→ Common wrong answer: "updates the variable." Correct: queues a new render with the new value.</div>
+        </li>
+        <li>You have an array in state. A student does <code>items.push(newItem); setItems(items)</code>. Will the UI update? Why?
+          <div class="answer">→ No. Same reference. React sees no change. Must spread: <code>setItems([...items, newItem])</code>.</div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 Pacing tip:</strong> If Demo 1 goes long, cut it — Demos 2 and 3 are the
+      high-value moments. The stale closure bug is the thing students will encounter in their
+      assignments. Make sure that one lands.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════ SEGMENT 3 ══ -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">3</div>
+    <div class="segment-title-block">
+      <div class="segment-title">The Re-render Cycle and Rules of Hooks</div>
+      <div class="segment-subtitle">Conceptual with diagram · No new coding</div>
+    </div>
+    <div class="segment-time">0:25 – 0:35 · 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>The four-step cycle (use the student document diagram)</h3>
+    <ul class="talking-points">
+      <li><strong>Trigger:</strong> A setter is called, props change, or context changes.</li>
+      <li><strong>Schedule:</strong> React batches the update — it doesn't re-render immediately. Multiple setters in one handler fire one re-render, not three.</li>
+      <li><strong>Render:</strong> The component function runs again, top to bottom. Hook slots fill. Local variables reset.</li>
+      <li><strong>Commit:</strong> React diffs the new output against the previous and patches only the changed native views.</li>
+    </ul>
+
+    <div class="discussion">
+      <strong>🗣 Discussion prompt:</strong> "If I have a <code>console.log('rendered')</code>
+      at the top of my component and a button that increments state, how many times does it
+      log when I press the button?" → Once per press. Emphasize: the whole function runs again,
+      but React only updates the UI diff.
+    </div>
+
+    <h3>Rules of Hooks (2 min)</h3>
+    <ul class="talking-points">
+      <li>Rule 1: Only call hooks at the top level — never inside if, loops, nested functions.</li>
+      <li>Rule 2: Only call hooks from function components or custom hooks.</li>
+      <li>Enforcement: the <code>eslint-plugin-react-hooks</code> catches violations before they become runtime bugs. Strongly recommend students install it. It also catches missing dependency array entries.</li>
+    </ul>
+
+    <div class="danger">
+      <strong>🚨 Common student violation:</strong> Wrapping a <code>useState</code> inside
+      an <code>if (Platform.OS === 'ios')</code> to "only create state on iOS." This breaks
+      the slot count for Android renders. The right move: always declare the state, then use
+      it conditionally.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════ SEGMENT 4 ══ -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">4</div>
+    <div class="segment-title-block">
+      <div class="segment-title">useEffect — Side Effects and Cleanup</div>
+      <div class="segment-subtitle">Lecture + live coding · The most complex segment</div>
+    </div>
+    <div class="segment-time">0:35 – 0:55 · 20 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>Concept: why not just put fetch() in the component body?</h3>
+    <ul class="talking-points">
+      <li>Open with: "What if we just called <code>fetch()</code> at the top of the component, outside any hook?" → Fetches on every single render, including renders caused by the fetch completing. Infinite loop.</li>
+      <li>Side effects need a controlled execution environment. <code>useEffect</code> is that environment: runs after render, with explicit control over when to re-run.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 4 (7 min) — Three dependency array forms:</strong>
+      Build a component with a <code>console.log('effect ran')</code> and demonstrate all three
+      forms back to back. Show the console after each button press. Students need to see the
+      behavior difference before the explanation makes sense, not after.
+      <br><br>
+      Sequence: (1) no array → log every render, (2) empty array → log once, (3) <code>[count]</code>
+      → log only when count changes.
+    </div>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 5 (7 min) — Cleanup:</strong> Build a simple interval counter (increments
+      every second). Show it working. Then navigate away and back — show the interval keeps
+      running (check console). Now add the cleanup: <code>return () => clearInterval(id)</code>.
+      Navigate away — interval stops. This is the moment the cleanup function clicks.
+    </div>
+
+    <h3>Talking points for the dependency array</h3>
+    <ul class="talking-points">
+      <li>Think of the array as a <em>watch list</em>. "Re-run this effect if any of these values has changed since last time."</li>
+      <li>React compares array values using <code>Object.is()</code> — same rules as reference equality for objects.</li>
+      <li>Omitting a value from the array doesn't make the effect "not use it" — it makes the effect use a <em>stale copy</em>. That's the bug.</li>
+      <li>The ESLint rule <code>exhaustive-deps</code> catches this automatically. Trust it.</li>
+    </ul>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Check for Understanding — 3 min</div>
+      <ol>
+        <li>You have <code>useEffect(fn, [])</code> and <code>fn</code> reads a prop called <code>userId</code>. What's the bug?
+          <div class="answer">→ Effect runs once with the userId at mount time. If userId changes later, the effect still uses the old value. Fix: add userId to the array.</div>
+        </li>
+        <li>When does the cleanup function run?
+          <div class="answer">→ Before the next effect run (when deps change) AND when the component unmounts. Not during normal re-renders if deps haven't changed.</div>
+        </li>
+        <li>Why can't the effect callback itself be <code>async</code>?
+          <div class="answer">→ useEffect expects either a cleanup function or nothing from its callback. An async function returns a Promise, not a cleanup function. Define an async helper inside and call it immediately.</div>
+        </li>
+      </ol>
+    </div>
+
+    <div class="instructor-note">
+      <strong>📝 This segment often runs long.</strong> If you're at 0:52 and haven't done
+      Demo 5, skip directly to the CFU and make cleanup a talking point rather than a demo.
+      The concept is more important than the live code here.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════ SEGMENT 5 ══ -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">5</div>
+    <div class="segment-title-block">
+      <div class="segment-title">useRef — Mutable Values Without Re-renders</div>
+      <div class="segment-subtitle">Contrast with useState · Two use cases</div>
+    </div>
+    <div class="segment-time">0:55 – 1:05 · 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>The contrast that makes it click</h3>
+    <ul class="talking-points">
+      <li>Start with the question: "What if I need to remember something across renders, but I do NOT want a re-render when it changes?" → That's <code>useRef</code>.</li>
+      <li>Classic example: a timer ID. You need to call <code>clearInterval(id)</code> later, but displaying the ID in the UI is meaningless — you don't want a re-render when it's set.</li>
+      <li>useRef returns a stable object: <code>{ current: initialValue }</code>. The object reference never changes. Only <code>.current</code> changes.</li>
+    </ul>
+
+    <div class="demo-block">
+      <strong>🖥 Demo 6 (5 min) — Ref for focus:</strong> Build a screen with a
+      <code>TextInput</code> and a "Focus" Button. Attach a ref to the input.
+      <code>inputRef.current?.focus()</code> on press. Students immediately understand — they've
+      wanted to do this in assignments and didn't know how.
+    </div>
+
+    <h3>The three-way decision</h3>
+    <p>Draw this table or say it aloud:</p>
+    <table>
+      <thead>
+        <tr><th>Need</th><th>Tool</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Value that drives UI</td><td><code>useState</code></td></tr>
+        <tr><td>Value that persists, doesn't drive UI</td><td><code>useRef</code></td></tr>
+        <tr><td>Value that recomputes each render</td><td>Regular variable</td></tr>
+      </tbody>
+    </table>
+
+    <div class="instructor-note">
+      <strong>📝 Don't over-explain useRef.</strong> Students rarely need it deeply in their
+      first semester. The timer ID and focus use cases are enough. More advanced uses
+      (storing previous state, animation values) can come up naturally in office hours or
+      the final project.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════ SEGMENT 6 ══ -->
+<div class="segment">
+  <div class="segment-header">
+    <div class="segment-num">6</div>
+    <div class="segment-title-block">
+      <div class="segment-title">Synthesis and Wrap-up</div>
+      <div class="segment-subtitle">Put it together · Q&amp;A · Exit ticket</div>
+    </div>
+    <div class="segment-time">1:05 – 1:15 · 10 min</div>
+  </div>
+  <div class="segment-body">
+
+    <h3>The full pattern (PokéAPI demo)</h3>
+    <p>
+      Walk through the PokéAPI example from the student document — or paste it into Snack and
+      run it. Don't type it live; just narrate the three parts:
+    </p>
+    <ul class="talking-points">
+      <li><code>useState</code> for <code>pokemon</code>, <code>loading</code>, <code>error</code> — all three drive UI.</li>
+      <li><code>useRef</code> for <code>isMounted</code> — persists across renders, doesn't drive UI, protects against the unmounted-component warning.</li>
+      <li><code>useEffect(fn, [])</code> — runs once on mount, fetches data, sets state, cleans up by marking unmounted.</li>
+    </ul>
+
+    <div class="activity">
+      <div class="act-label">🏋 Exit Activity (5 min) — Individual or Pairs</div>
+      <p>
+        Show students this buggy component. Ask them to identify all three problems:
+      </p>
+      <pre style="margin-top:10px"><span class="kw">function</span> <span class="fn">BrokenComponent</span>({ userId }) {
+  <span class="kw">if</span> (userId) {
+    <span class="kw">const</span> [data, setData] = <span class="fn">useState</span>(<span class="kw">null</span>); <span class="cm">// Bug 1</span>
+  }
+  <span class="fn">useEffect</span>(<span class="kw">async</span> () =&gt; {             <span class="cm">// Bug 2</span>
+    <span class="kw">const</span> res = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">`/users/</span>${userId}<span class="str">`</span>);
+    <span class="fn">setData</span>(<span class="kw">await</span> res.<span class="fn">json</span>());
+  }, []);                               <span class="cm">// Bug 3</span>
+}</pre>
+      <p><strong>Expected answers:</strong> (1) Hook inside conditional — violates Rule 1. (2) Async effect callback — returns Promise, not cleanup. (3) Missing <code>userId</code> in dependency array — stale closure.</p>
+    </div>
+
+    <div class="cfu">
+      <div class="cfu-label">✅ Final Check for Understanding</div>
+      <ol>
+        <li>Name one thing that persists across renders and one thing that doesn't.
+          <div class="answer">→ Persists: state, refs, context. Doesn't: regular variables, inline objects.</div>
+        </li>
+        <li>What's the difference between a component unmounting and a component re-rendering?
+          <div class="answer">→ Re-render: function runs again, same instance, hooks slots persist. Unmount: component removed from tree, cleanup runs, all state lost.</div>
+        </li>
+      </ol>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ─── COMMON STUDENT MISTAKES ─── -->
+<h2>Common Student Mistakes</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Mistake</th>
+      <th>What goes wrong</th>
+      <th>How to fix</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="mistake-row">
+      <td>Calling <code>setItems(items.push(x))</code></td>
+      <td><code>push()</code> returns the new length (a number), not the array. State becomes a number.</td>
+      <td><code>setItems(prev => [...prev, x])</code></td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Mutating state object directly</td>
+      <td>Same reference → React sees no change → no re-render. UI appears frozen.</td>
+      <td>Always spread or copy: <code>setUser({ ...user, name: 'new' })</code></td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Omitting a dependency from the array</td>
+      <td>Effect reads a stale value — often manifests as "first fetch works, then it stops updating."</td>
+      <td>Trust the ESLint warning. Add the missing dep. If it causes a loop, something else is wrong.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Making the effect callback <code>async</code></td>
+      <td>Returns a Promise instead of a cleanup function. React issues a warning; cleanup never runs.</td>
+      <td>Define an async helper inside the effect and call it immediately.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Not returning a cleanup for subscriptions</td>
+      <td>Listener accumulates on every re-render. Memory leaks; ghost subscribers fire on unmounted components.</td>
+      <td>Always return a cleanup that calls <code>.remove()</code> or <code>off()</code>.</td>
+    </tr>
+    <tr class="mistake-row">
+      <td>Using <code>useRef</code> for values that should drive UI</td>
+      <td>Value changes but screen doesn't update — ref changes are invisible to React.</td>
+      <td>If the UI needs to show the value, it must be state.</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ─── GRADING NOTES ─── -->
+<h2>Grading &amp; Assessment Notes</h2>
+<p>
+  When hooks appear in assignment submissions, the key things to credit generously are
+  correct <em>intent</em> and <em>pattern understanding</em>. A student who writes a
+  <code>useEffect</code> with the right structure but forgets one dependency has
+  demonstrated mastery of the pattern — partial deduction at most.
+</p>
+<ul>
+  <li>Reserve full deductions for: hooks inside conditionals (Rule 1 violation), no cleanup on subscriptions (systematic absence, not one miss), using regular variables where state is clearly required.</li>
+  <li>Award full credit when: the three-hook structure is correct, loading/error/data states are handled, and the component does what the spec describes — even if the cleanup isn't perfect.</li>
+  <li>Stale dependency array entries: comment and note in feedback, but do not reduce points unless the bug causes the assignment's required behavior to fail.</li>
+</ul>
+<div class="instructor-note">
+  <strong>📝 Grading philosophy reminder:</strong> The goal is that students can reason about
+  the hook model. A student who can explain why the cleanup exists — even if they forgot to
+  write it — understands the material. Give them credit for that understanding.
+</div>
+
+
+<!-- ─── PREPARATION CHECKLIST ─── -->
+<h2>Before Class — Preparation Checklist</h2>
+<ul>
+  <li>✅ Open <strong>CS402_Hooks_State_Variables.html</strong> in browser — test all SVG diagrams render (the re-render cycle and useEffect timeline diagrams).</li>
+  <li>✅ Pre-open an Expo Snack with a blank React Native starter — having it ready avoids 3 minutes of setup during class.</li>
+  <li>✅ Have the "buggy component" from the exit activity ready to paste — either in a Snack or a code file to screen-share.</li>
+  <li>✅ Install <code>eslint-plugin-react-hooks</code> in your demo project and turn on the rules — you'll reference the ESLint warnings during the dependency array discussion.</li>
+  <li>✅ If demoing the interval cleanup: test it in the iOS simulator beforehand. The timer behavior is most visible there.</li>
+  <li>✅ Remind students to have Expo Go installed on their phones if they want to follow along with Snack.</li>
+</ul>
+
+
+<!-- ─── FOOTER ─── -->
+<div class="doc-footer">
+  <span>CS 402 · Spring 2026 · Boise State University</span>
+  <span>Hooks and State Variables — Instructor Plan</span>
+  <span>Internal use only — not for student distribution</span>
+</div>
+
+</body>
+</html>

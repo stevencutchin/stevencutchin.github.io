@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Building for Specific Platforms</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.8; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .semester { font-size: 14px; color: #888; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .doc-header .subtitle { font-size: 20px; color: #2E5D8A; font-weight: 700; margin-top: 4px; }
+  .doc-header .lesson-meta { margin-top: 14px; font-size: 13px; color: #777; display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; }
+
+  /* ── Typography ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; color: #1B3A5C; margin: 44px 0 14px; padding-bottom: 7px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 16px; color: #2E5D8A; margin: 22px 0 9px; font-weight: 700; }
+  p  { margin-bottom: 14px; color: #333; }
+  ul, ol { margin: 10px 0 16px 26px; color: #333; }
+  li { margin-bottom: 7px; }
+
+  /* ── Callouts ── */
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 28px; padding: 14px 20px; background: #f7f9fc; border-radius: 6px; border-left: 4px solid #1B3A5C; }
+  .callout { margin: 20px 0; padding: 15px 20px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .warning { margin: 20px 0; padding: 15px 20px; background: #fdf6ec; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .warning strong { color: #8a5d0a; }
+  .tip { margin: 20px 0; padding: 15px 20px; background: #f0fbf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .tip strong { color: #1a5c3a; }
+
+  /* ── Part banners ── */
+  .part-banner { display: flex; align-items: center; gap: 20px; margin: 48px 0 24px; padding: 20px 24px; border-radius: 10px; }
+  .part-num { font-family: 'DM Serif Display', Georgia, serif; font-size: 56px; font-weight: 400; line-height: 1; flex-shrink: 0; }
+  .part-text .part-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 3px; }
+  .part-text .part-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 23px; font-weight: 400; }
+  .part-text .part-sub   { font-size: 13px; margin-top: 4px; }
+  .pb-1 { background: #eef4fb; border-left: 5px solid #1B3A5C; }
+  .pb-1 .part-num   { color: #1B3A5C; }
+  .pb-1 .part-label { color: #2E5D8A; }
+  .pb-1 .part-title { color: #1B3A5C; }
+  .pb-1 .part-sub   { color: #2E5D8A; }
+  .pb-2 { background: #f0fbf4; border-left: 5px solid #2e7a5d; }
+  .pb-2 .part-num   { color: #2e7a5d; }
+  .pb-2 .part-label { color: #2e7a5d; }
+  .pb-2 .part-title { color: #1a5c3a; }
+  .pb-2 .part-sub   { color: #2e7a5d; }
+
+  /* ── Platform badges ── */
+  .platform-row { display: flex; gap: 16px; margin: 16px 0 20px; flex-wrap: wrap; }
+  .p-badge { border-radius: 8px; padding: 14px 18px; flex: 1; min-width: 200px; font-size: 14px; }
+  .p-ios  { background: #eef4fb; border: 1.5px solid #4a80b5; }
+  .p-ios  .p-label { color: #1a4a7a; font-weight: 700; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+  .p-and  { background: #f0f8f0; border: 1.5px solid #4a9a5a; }
+  .p-and  .p-label { color: #1a5a2a; font-weight: 700; font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+
+  /* ── Diagrams ── */
+  .diagram-wrap { text-align: center; margin: 28px 0; padding: 20px 16px; background: #fafbfc; border: 1px solid #e0e8f0; border-radius: 10px; }
+  .diagram-wrap svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .diagram-caption { font-size: 13px; color: #666; margin-top: 10px; font-style: italic; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left; }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+  td code { font-size: 12.5px; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre  { background: #1e1e2e; color: #cdd6f4; padding: 18px 22px; border-radius: 8px; overflow-x: auto; margin: 12px 0 20px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+  pre .cls  { color: #f9e2af; }
+  pre .punc { color: #cdd6f4; }
+
+  /* ── Filename pill ── */
+  .file-pill { display: inline-block; background: #1B3A5C; color: #89dceb; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 3px 10px; border-radius: 4px; margin: 0 0 6px; }
+
+  /* ── Two-col ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0 20px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 16px 18px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card ul { margin: 0 0 0 18px; }
+  .card li { font-size: 13px; margin-bottom: 5px; }
+
+  /* ── Strategy spectrum ── */
+  .spectrum { display: flex; margin: 24px 0; border-radius: 10px; overflow: hidden; border: 2px solid #1B3A5C; }
+  .spec-cell { flex: 1; padding: 16px 14px; text-align: center; }
+  .spec-cell .spec-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .spec-cell .spec-api   { font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-bottom: 6px; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+  .spec-cell .spec-desc  { font-size: 12px; line-height: 1.5; }
+  .sc-1 { background: #eef4fb; }
+  .sc-1 .spec-label { color: #1B3A5C; }
+  .sc-1 .spec-api   { background: #1B3A5C; color: #89b4fa; }
+  .sc-2 { background: #f5f0fb; }
+  .sc-2 .spec-label { color: #4a2a8a; }
+  .sc-2 .spec-api   { background: #4a2a8a; color: #cba6f7; }
+  .sc-3 { background: #f0fbf4; }
+  .sc-3 .spec-label { color: #1a5c3a; }
+  .sc-3 .spec-api   { background: #2e7a5d; color: #a6e3a1; }
+  .sc-4 { background: #fdf6ec; }
+  .sc-4 .spec-label { color: #7a4a00; }
+  .sc-4 .spec-api   { background: #c8890f; color: #f9e2af; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .diagram-wrap, .two-col, .platform-row, .spectrum { break-inside: avoid; }
+    pre, .callout, .warning, .tip { break-inside: avoid; }
+    .part-banner { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════ HEADER ══ -->
+<header class="doc-header">
+  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+  <h1>Building for Specific Platforms</h1>
+  <div class="subtitle">From Inline Branching to True Native Modules</div>
+  <div class="lesson-meta">
+    <span>🔀 Platform.OS detection</span>
+    <span>⚙️ Platform.select()</span>
+    <span>📁 .ios.js / .android.js files</span>
+    <span>🔌 Native modules</span>
+    <span>🛡 Fallback stubs</span>
+  </div>
+</header>
+
+<!-- ════════ INTRO ══ -->
+<p class="section-intro">
+  React Native's promise is "write once, run on both platforms." That promise is mostly true —
+  but not entirely. iOS and Android differ in permissions models, visual conventions, hardware
+  capabilities, and the APIs that expose them. This lecture covers the full toolkit for handling
+  those differences: from a one-line conditional inside a single file all the way to loading
+  completely different native modules per platform.
+</p>
+
+<div class="callout">
+  <strong>Two strategies, one principle:</strong> Whether you're adjusting a shadow style or
+  loading a biometric authentication module, the underlying approach is the same — detect the
+  platform, provide the appropriate implementation, always have a fallback for the other side.
+  The difference between the two strategies in this lecture is scope, not philosophy.
+</div>
+
+
+<!-- ════════ OVERVIEW DIAGRAM ══ -->
+<h2>1. The Detection Spectrum</h2>
+
+<p>
+  Platform handling in React Native exists on a spectrum from lightweight to heavyweight.
+  Knowing where your problem sits on that spectrum tells you which tool to reach for.
+</p>
+
+<div class="spectrum">
+  <div class="spec-cell sc-1">
+    <div class="spec-label">Lightest</div>
+    <div class="spec-api">Platform.OS</div>
+    <div class="spec-desc">Inline conditional in a single component. One file, a few different values.</div>
+  </div>
+  <div class="spec-cell sc-2">
+    <div class="spec-label">Structural</div>
+    <div class="spec-api">Platform.select()</div>
+    <div class="spec-desc">Multiple values chosen at once. Style objects, config objects, prop sets.</div>
+  </div>
+  <div class="spec-cell sc-3">
+    <div class="spec-label">File-level</div>
+    <div class="spec-api">.ios.js / .android.js</div>
+    <div class="spec-desc">Separate files per platform. Metro bundler picks the right one automatically.</div>
+  </div>
+  <div class="spec-cell sc-4">
+    <div class="spec-label">Heaviest</div>
+    <div class="spec-api">Native Modules</div>
+    <div class="spec-desc">Truly platform-specific code: Objective-C/Swift or Kotlin/Java behind a JS API.</div>
+  </div>
+</div>
+
+<!-- ════════ DIAGRAM: Two layers ══ -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="760" height="200" fill="#fafbfc" rx="10"/>
+
+    <!-- Your JS code -->
+    <rect x="20" y="20" width="720" height="60" rx="8" fill="#1B3A5C"/>
+    <text x="380" y="48" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">Your React Native / JavaScript Code</text>
+    <text x="380" y="67" text-anchor="middle" font-size="12" fill="#a0c8e8">Platform.OS · Platform.select() · conditional imports · .ios.js / .android.js files</text>
+
+    <!-- Arrow down-left -->
+    <path d="M190 82 L190 118" stroke="#4a80b5" stroke-width="2" marker-end="url(#db)"/>
+    <!-- Arrow down-right -->
+    <path d="M570 82 L570 118" stroke="#4a9a5a" stroke-width="2" marker-end="url(#dg)"/>
+
+    <!-- iOS box -->
+    <rect x="20" y="120" width="340" height="60" rx="8" fill="#2E5D8A"/>
+    <text x="190" y="147" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">🍎 iOS Runtime</text>
+    <text x="190" y="165" text-anchor="middle" font-size="11" fill="#a0c8e8">UIKit · CoreLocation · HealthKit · Face ID · NSURLSession</text>
+
+    <!-- Android box -->
+    <rect x="400" y="120" width="340" height="60" rx="8" fill="#2e7a5d"/>
+    <text x="570" y="147" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">🤖 Android Runtime</text>
+    <text x="570" y="165" text-anchor="middle" font-size="11" fill="#a6e3a1">Android SDK · FusedLocation · WorkManager · Biometric · OkHttp</text>
+
+    <defs>
+      <marker id="db" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a80b5"/></marker>
+      <marker id="dg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a9a5a"/></marker>
+    </defs>
+  </svg>
+  <div class="diagram-caption">Your JavaScript sits above two distinct native runtimes. Platform detection is the bridge — it lets your code choose the right path to each runtime at the right level of granularity.</div>
+</div>
+
+
+<!-- ════════════════════════════════════ PART 1 ══ -->
+<div class="part-banner pb-1">
+  <div class="part-num">1</div>
+  <div class="part-text">
+    <div class="part-label">Part One</div>
+    <div class="part-title">Inline Platform Handling</div>
+    <div class="part-sub">Platform.OS · Platform.select() · Platform.Version · Permissions · StyleSheet differences</div>
+  </div>
+</div>
+
+<p>
+  The majority of platform differences you encounter day-to-day don't require separate files
+  or native modules. They're handled right where the difference occurs — inside a single
+  component or style sheet — using React Native's built-in <code>Platform</code> API.
+</p>
+
+
+<!-- 2. Platform.OS -->
+<h2>2. Platform.OS — The Simplest Branch</h2>
+
+<p>
+  <code>Platform.OS</code> is a string: <code>'ios'</code>, <code>'android'</code>, or
+  <code>'web'</code> (in an Expo web build). It's evaluated at runtime and never changes
+  during a session. Use it for simple conditional logic anywhere in your code.
+</p>
+
+<pre><span class="kw">import</span> { <span class="cls">Platform</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="cm">// Inline in JSX</span>
+<span class="kw">const</span> label = <span class="cls">Platform</span>.OS === <span class="str">'ios'</span> ? <span class="str">'Done'</span> : <span class="str">'OK'</span>;
+
+<span class="cm">// Inline style value</span>
+<span class="kw">const</span> statusBarHeight = <span class="cls">Platform</span>.OS === <span class="str">'ios'</span> ? <span class="num">44</span> : <span class="num">24</span>;
+
+<span class="cm">// Inline behavior</span>
+<span class="kw">async function</span> <span class="fn">requestLocation</span>() {
+  <span class="kw">if</span> (<span class="cls">Platform</span>.OS === <span class="str">'android'</span> &amp;&amp; <span class="cls">Platform</span>.Version &lt; <span class="num">23</span>) {
+    <span class="cm">// Android < 6.0: permissions are granted at install time, not runtime</span>
+    <span class="kw">return</span> <span class="str">'granted'</span>;
+  }
+  <span class="kw">return</span> <span class="kw">await</span> <span class="cls">Location</span>.<span class="fn">requestForegroundPermissionsAsync</span>();
+}</pre>
+
+<h3>Platform.Version</h3>
+<p>
+  <code>Platform.Version</code> gives you the OS version — a number on Android (the API level,
+  e.g. <code>33</code> for Android 13) and a string on iOS (e.g. <code>"17.2"</code>). This is
+  useful for handling features or permissions that changed at a specific OS version.
+</p>
+
+<div class="platform-row">
+  <div class="p-badge p-ios">
+    <div class="p-label">🍎 iOS</div>
+    <code>Platform.Version</code> → <code>"17.2"</code> (string)<br>
+    <code>Platform.isPad</code> → <code>true</code> on iPad<br>
+    <code>Platform.isTV</code> → <code>true</code> on Apple TV<br>
+    Parse with <code>parseInt(Platform.Version)</code> for numeric comparison
+  </div>
+  <div class="p-badge p-and">
+    <div class="p-label">🤖 Android</div>
+    <code>Platform.Version</code> → <code>33</code> (number = API level)<br>
+    API 23 = Android 6.0 (runtime permissions begin)<br>
+    API 29 = Android 10 (scoped storage begins)<br>
+    API 33 = Android 13 (granular media permissions)
+  </div>
+</div>
+
+
+<!-- 3. Platform.select -->
+<h2>3. Platform.select() — Choosing Multiple Values at Once</h2>
+
+<p>
+  When you have several related values that differ by platform, <code>Platform.select()</code>
+  is cleaner than writing multiple <code>Platform.OS ===</code> checks. It takes an object
+  with platform keys and returns the value for the current platform. The <code>default</code>
+  key is used if no matching platform key is found.
+</p>
+
+<pre><span class="kw">import</span> { <span class="cls">Platform</span>, <span class="cls">StyleSheet</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">const</span> styles = <span class="cls">StyleSheet</span>.<span class="fn">create</span>({
+  card: {
+    borderRadius: <span class="num">12</span>,
+    backgroundColor: <span class="str">'#fff'</span>,
+
+    <span class="cm">// iOS uses shadow* props; Android uses elevation</span>
+    ...<span class="cls">Platform</span>.<span class="fn">select</span>({
+      ios: {
+        shadowColor:   <span class="str">'#000'</span>,
+        shadowOffset:  { width: <span class="num">0</span>, height: <span class="num">2</span> },
+        shadowOpacity: <span class="num">0.12</span>,
+        shadowRadius:  <span class="num">6</span>,
+      },
+      android: {
+        elevation: <span class="num">4</span>,
+      },
+    }),
+  },
+
+  headerText: {
+    fontSize:   <span class="num">18</span>,
+    fontWeight: <span class="str">'700'</span>,
+    <span class="cm">// Different system font stacks</span>
+    fontFamily: <span class="cls">Platform</span>.<span class="fn">select</span>({
+      ios:     <span class="str">'San Francisco'</span>,
+      android: <span class="str">'Roboto'</span>,
+      default: <span class="str">'System'</span>,
+    }),
+  },
+});</pre>
+
+<div class="tip">
+  <strong>💡 Spread syntax + Platform.select() = clean style merging:</strong>
+  The spread operator <code>...Platform.select({...})</code> inside a <code>StyleSheet.create</code>
+  call is the idiomatic pattern for injecting platform-specific style properties into an otherwise
+  shared style object. You write the shared styles once and inject only the differences.
+</div>
+
+<h3>Common places Platform.select() is used</h3>
+<table>
+  <thead>
+    <tr><th>Area</th><th>iOS value</th><th>Android value</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Card shadows</td><td><code>shadow*</code> props</td><td><code>elevation</code></td></tr>
+    <tr><td>Status bar height</td><td>44px (notch devices: 48+)</td><td>24px (varies)</td></tr>
+    <tr><td>Back navigation</td><td>Swipe from left edge</td><td>Hardware / gesture back button</td></tr>
+    <tr><td>Haptic feedback</td><td><code>expo-haptics</code> (rich)</td><td><code>expo-haptics</code> (basic)</td></tr>
+    <tr><td>Keyboard avoidance</td><td><code>padding</code> behavior</td><td><code>height</code> behavior</td></tr>
+    <tr><td>Modal presentation</td><td>Sheet slides up from bottom</td><td>Full-screen by default</td></tr>
+    <tr><td>Alert buttons</td><td>Stack vertically (2+)</td><td>Row, dismiss-then-confirm</td></tr>
+  </tbody>
+</table>
+
+
+<!-- 4. PERMISSIONS -->
+<h2>4. Platform-Specific Permissions</h2>
+
+<p>
+  Permissions are where iOS and Android diverge most sharply. The surfaces are different,
+  the timing is different, and the granularity is different. Getting this right is not
+  optional — a permissions crash on either platform is an immediate 1-star review.
+</p>
+
+<div class="platform-row">
+  <div class="p-badge p-ios">
+    <div class="p-label">🍎 iOS — Permission Model</div>
+    <ul>
+      <li>Almost every sensitive resource requires a runtime permission prompt</li>
+      <li>The prompt shows exactly <strong>once</strong> — if denied, the user must go to Settings to re-enable</li>
+      <li>You must declare usage descriptions in <code>app.json</code> (<code>NSLocationWhenInUseUsageDescription</code>, etc.) — the app is rejected from the App Store without them</li>
+      <li>Photo library access is split: <em>full access</em> vs. <em>add-only</em> vs. <em>limited selection</em> (iOS 14+)</li>
+    </ul>
+  </div>
+  <div class="p-badge p-and">
+    <div class="p-label">🤖 Android — Permission Model</div>
+    <ul>
+      <li>Pre-API 23 (Android 5): all permissions granted at install time — never ask at runtime</li>
+      <li>API 23+ (Android 6+): dangerous permissions require runtime requests</li>
+      <li>API 29+ (Android 10): background location requires a <em>separate</em> follow-up permission after foreground is granted</li>
+      <li>API 33+ (Android 13): granular media permissions — <code>READ_MEDIA_IMAGES</code> instead of <code>READ_EXTERNAL_STORAGE</code></li>
+      <li>Manifest declarations still required in <code>app.json</code></li>
+    </ul>
+  </div>
+</div>
+
+<p>
+  Expo's permission packages (<code>expo-location</code>, <code>expo-camera</code>,
+  <code>expo-contacts</code>, etc.) abstract most of this — they check the right permission
+  for each platform internally. But when you need to write custom permission logic, the
+  pattern is: check the current status first, request only if needed, handle every possible
+  outcome explicitly.
+</p>
+
+<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">MediaLibrary</span> <span class="kw">from</span> <span class="str">'expo-media-library'</span>;
+<span class="kw">import</span> { <span class="cls">Platform</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">async function</span> <span class="fn">requestPhotoAccess</span>() {
+  <span class="cm">// Expo handles the platform difference internally,</span>
+  <span class="cm">// but we still branch on version for the granular Android 13 case</span>
+  <span class="kw">if</span> (<span class="cls">Platform</span>.OS === <span class="str">'android'</span> &amp;&amp; <span class="cls">Platform</span>.Version &gt;= <span class="num">33</span>) {
+    <span class="cm">// Android 13+: READ_MEDIA_IMAGES is the correct permission</span>
+    <span class="kw">const</span> { status } = <span class="kw">await</span> <span class="cls">MediaLibrary</span>.<span class="fn">requestPermissionsAsync</span>();
+    <span class="kw">return</span> status === <span class="str">'granted'</span>;
+  }
+
+  <span class="cm">// iOS and older Android: standard flow</span>
+  <span class="kw">const</span> { status } = <span class="kw">await</span> <span class="cls">MediaLibrary</span>.<span class="fn">requestPermissionsAsync</span>();
+
+  <span class="kw">if</span> (status === <span class="str">'denied'</span> &amp;&amp; <span class="cls">Platform</span>.OS === <span class="str">'ios'</span>) {
+    <span class="cm">// iOS: once denied, guide user to Settings — can't re-prompt</span>
+    <span class="cls">Alert</span>.<span class="fn">alert</span>(
+      <span class="str">'Photo Access Required'</span>,
+      <span class="str">'Please enable photo access in Settings to continue.'</span>,
+      [{ text: <span class="str">'Open Settings'</span>, onPress: () =&gt; <span class="cls">Linking</span>.<span class="fn">openURL</span>(<span class="str">'app-settings:'</span>) }]
+    );
+  }
+
+  <span class="kw">return</span> status === <span class="str">'granted'</span>;
+}</pre>
+
+<div class="warning">
+  <strong>⚠ iOS one-shot permission rule:</strong> On iOS, the permission dialog appears exactly
+  once per permission type per app install. If you ask at the wrong moment (before the user
+  understands why you need it) and they deny, they must navigate to Settings &gt; [Your App] to
+  re-enable it. Always ask for a permission at the moment it becomes contextually obvious —
+  not at app launch.
+</div>
+
+
+<!-- ════════════════════════════════════ PART 2 ══ -->
+<div class="part-banner pb-2">
+  <div class="part-num">2</div>
+  <div class="part-text">
+    <div class="part-label">Part Two</div>
+    <div class="part-title">Platform-Native Modules</div>
+    <div class="part-sub">File-extension routing · Conditional imports · Native module wrappers · Fallback stubs</div>
+  </div>
+</div>
+
+<p>
+  Some platform differences run too deep for an inline branch. When entire
+  implementations differ — when you need to call Objective-C APIs on iOS and Kotlin APIs on
+  Android — the solution is to write separate modules and let the build system pick the right
+  one. React Native and Metro have first-class support for this pattern.
+</p>
+
+
+<!-- 5. FILE EXTENSION ROUTING -->
+<h2>5. File-Extension Routing — Metro's Built-In Platform Switch</h2>
+
+<p>
+  Metro, the JavaScript bundler used by React Native, resolves module imports with
+  platform-specific file extensions before falling back to the plain <code>.js</code> version.
+  This means you can create <code>MyModule.ios.js</code> and <code>MyModule.android.js</code>
+  and import <code>MyModule</code> — Metro picks the correct file automatically.
+  No runtime check. No conditional. The branching happens at build time.
+</p>
+
+<!-- DIAGRAM: Metro file resolution -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="720" height="220" fill="#fafbfc" rx="10"/>
+
+    <!-- Import statement -->
+    <rect x="200" y="20" width="320" height="44" rx="8" fill="#1B3A5C"/>
+    <text x="360" y="39" text-anchor="middle" font-size="12" fill="#6c7086" font-family="JetBrains Mono, monospace">import HapticEngine from</text>
+    <text x="360" y="56" text-anchor="middle" font-size="13" font-weight="700" fill="#a6e3a1" font-family="JetBrains Mono, monospace">'./HapticEngine'</text>
+
+    <!-- Metro box -->
+    <rect x="270" y="84" width="180" height="44" rx="8" fill="#4a2a8a"/>
+    <text x="360" y="104" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Metro Bundler</text>
+    <text x="360" y="120" text-anchor="middle" font-size="11" fill="#cba6f7">Resolves platform extension</text>
+    <path d="M360 64 L360 84" stroke="#1B3A5C" stroke-width="2" marker-end="url(#dm)"/>
+
+    <!-- iOS path -->
+    <path d="M270 106 L160 150" stroke="#4a80b5" stroke-width="2" marker-end="url(#di)"/>
+    <rect x="20" y="152" width="280" height="50" rx="8" fill="#2E5D8A"/>
+    <text x="160" y="173" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">HapticEngine.ios.js</text>
+    <text x="160" y="191" text-anchor="middle" font-size="11" fill="#a0c8e8">UIImpactFeedbackGenerator via expo-haptics</text>
+
+    <!-- Android path -->
+    <path d="M450 106 L560 150" stroke="#4a9a5a" stroke-width="2" marker-end="url(#da)"/>
+    <rect x="420" y="152" width="280" height="50" rx="8" fill="#2e7a5d"/>
+    <text x="560" y="173" text-anchor="middle" font-size="12" font-weight="700" fill="#fff" font-family="JetBrains Mono, monospace">HapticEngine.android.js</text>
+    <text x="560" y="191" text-anchor="middle" font-size="11" fill="#a6e3a1">Vibrator API via expo-haptics</text>
+
+    <text x="100" y="145" text-anchor="middle" font-size="11" fill="#4a80b5">iOS build</text>
+    <text x="620" y="145" text-anchor="middle" font-size="11" fill="#4a9a5a">Android build</text>
+
+    <defs>
+      <marker id="dm" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1B3A5C"/></marker>
+      <marker id="di" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a80b5"/></marker>
+      <marker id="da" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a9a5a"/></marker>
+    </defs>
+  </svg>
+  <div class="diagram-caption">Metro's platform extension resolution. A single import statement in your component resolves to the platform-correct file at build time — no runtime check required, no dead code shipped to either platform.</div>
+</div>
+
+<h3>The file naming convention</h3>
+
+<table>
+  <thead>
+    <tr><th>File name</th><th>When Metro uses it</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>HapticEngine.ios.js</code></td><td>iOS builds only</td></tr>
+    <tr><td><code>HapticEngine.android.js</code></td><td>Android builds only</td></tr>
+    <tr><td><code>HapticEngine.native.js</code></td><td>Both iOS and Android (not web)</td></tr>
+    <tr><td><code>HapticEngine.js</code></td><td>Fallback — any platform with no specific file</td></tr>
+    <tr><td><code>HapticEngine.web.js</code></td><td>Expo web builds only</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>The fallback is your safety net.</strong> Always provide a plain <code>.js</code>
+  (or <code>.native.js</code>) fallback. If Metro can't find a platform-specific file, it uses
+  the fallback. If there is no fallback and no platform-specific file, the import fails.
+  A fallback that exports a no-op or throws a descriptive error is far better than a silent
+  crash.
+</div>
+
+<h3>A complete example — HapticEngine</h3>
+<p>
+  iOS has a rich haptic feedback system (<code>UIImpactFeedbackGenerator</code>) with multiple
+  impact styles. Android has vibration, which is less nuanced. Here's how to expose a unified
+  API from both using the file-extension pattern:
+</p>
+
+<div class="file-pill">HapticEngine.ios.js</div>
+<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Haptics</span> <span class="kw">from</span> <span class="str">'expo-haptics'</span>;
+
+<span class="cm">// iOS: full haptic palette — light, medium, heavy, rigid, soft</span>
+<span class="kw">export const</span> <span class="fn">impact</span> = (style = <span class="str">'medium'</span>) =&gt; {
+  <span class="kw">const</span> styleMap = {
+    light:  <span class="cls">Haptics</span>.<span class="cls">ImpactFeedbackStyle</span>.Light,
+    medium: <span class="cls">Haptics</span>.<span class="cls">ImpactFeedbackStyle</span>.Medium,
+    heavy:  <span class="cls">Haptics</span>.<span class="cls">ImpactFeedbackStyle</span>.Heavy,
+  };
+  <span class="kw">return</span> <span class="cls">Haptics</span>.<span class="fn">impactAsync</span>(styleMap[style] ?? <span class="cls">Haptics</span>.<span class="cls">ImpactFeedbackStyle</span>.Medium);
+};
+
+<span class="kw">export const</span> <span class="fn">success</span> = () =&gt; <span class="cls">Haptics</span>.<span class="fn">notificationAsync</span>(
+  <span class="cls">Haptics</span>.<span class="cls">NotificationFeedbackType</span>.Success
+);
+
+<span class="kw">export const</span> <span class="fn">error</span> = () =&gt; <span class="cls">Haptics</span>.<span class="fn">notificationAsync</span>(
+  <span class="cls">Haptics</span>.<span class="cls">NotificationFeedbackType</span>.Error
+);</pre>
+
+<div class="file-pill">HapticEngine.android.js</div>
+<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Haptics</span> <span class="kw">from</span> <span class="str">'expo-haptics'</span>;
+
+<span class="cm">// Android: vibration only — map haptic concepts to duration</span>
+<span class="kw">export const</span> <span class="fn">impact</span> = (style = <span class="str">'medium'</span>) =&gt; {
+  <span class="cm">// expo-haptics wraps the Vibrator API on Android</span>
+  <span class="kw">return</span> <span class="cls">Haptics</span>.<span class="fn">impactAsync</span>(<span class="cls">Haptics</span>.<span class="cls">ImpactFeedbackStyle</span>.Medium);
+};
+
+<span class="kw">export const</span> <span class="fn">success</span> = () =&gt;
+  <span class="cls">Haptics</span>.<span class="fn">notificationAsync</span>(<span class="cls">Haptics</span>.<span class="cls">NotificationFeedbackType</span>.Success);
+
+<span class="kw">export const</span> <span class="fn">error</span> = () =&gt;
+  <span class="cls">Haptics</span>.<span class="fn">notificationAsync</span>(<span class="cls">Haptics</span>.<span class="cls">NotificationFeedbackType</span>.Error);</pre>
+
+<div class="file-pill">MyButton.js  ← uses HapticEngine on both platforms</div>
+<pre><span class="kw">import</span> { <span class="fn">impact</span> } <span class="kw">from</span> <span class="str">'./HapticEngine'</span>; <span class="cm">// ← Metro picks .ios or .android</span>
+<span class="kw">import</span> { <span class="cls">TouchableOpacity</span>, <span class="cls">Text</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">export function</span> <span class="fn">MyButton</span>({ label, onPress }) {
+  <span class="kw">return</span> (
+    <span class="tag">&lt;TouchableOpacity</span>
+      <span class="prop">onPress</span>={() =&gt; { <span class="fn">impact</span>(<span class="str">'light'</span>); <span class="fn">onPress</span>(); }}
+    <span class="tag">&gt;</span>
+      <span class="tag">&lt;Text&gt;</span>{label}<span class="tag">&lt;/Text&gt;</span>
+    <span class="tag">&lt;/TouchableOpacity&gt;</span>
+  );
+}</pre>
+
+<p>
+  The consuming component <code>MyButton</code> knows nothing about the platform. It imports
+  a unified interface and calls it. The module boundary is where the platform split lives —
+  and only there.
+</p>
+
+
+<!-- 6. TRULY NATIVE MODULES -->
+<h2>6. Truly Native Modules — When JavaScript Isn't Enough</h2>
+
+<p>
+  Some device capabilities have no JavaScript abstraction at all, or the available abstraction
+  doesn't expose the feature you need. In these cases, you write — or more commonly install —
+  a <strong>native module</strong>: a package that contains platform-native code (Swift/Objective-C
+  for iOS, Kotlin/Java for Android) with a JavaScript API surface generated by Expo Modules API
+  or the older React Native Bridge.
+</p>
+
+<h3>How native modules work</h3>
+
+<!-- DIAGRAM: Native module bridge -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 720 180" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="720" height="180" fill="#fafbfc" rx="10"/>
+
+    <!-- JS layer -->
+    <rect x="20" y="20" width="680" height="46" rx="8" fill="#1B3A5C"/>
+    <text x="360" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Your JavaScript</text>
+    <text x="360" y="57" text-anchor="middle" font-size="11" fill="#a0c8e8">import BiometricAuth from 'expo-local-authentication'</text>
+
+    <!-- Bridge -->
+    <rect x="260" y="82" width="200" height="32" rx="6" fill="#4a2a8a"/>
+    <text x="360" y="103" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Expo Modules API / Bridge</text>
+    <path d="M360 66 L360 82" stroke="#1B3A5C" stroke-width="2" marker-end="url(#dn)"/>
+
+    <!-- iOS native -->
+    <path d="M260 98 L160 130" stroke="#4a80b5" stroke-width="2" marker-end="url(#di2)"/>
+    <rect x="20" y="130" width="280" height="36" rx="6" fill="#2E5D8A"/>
+    <text x="160" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Swift / Objective-C</text>
+    <text x="160" y="164" text-anchor="middle" font-size="11" fill="#a0c8e8">LAContext · Face ID · Touch ID</text>
+
+    <!-- Android native -->
+    <path d="M460 98 L560 130" stroke="#4a9a5a" stroke-width="2" marker-end="url(#da2)"/>
+    <rect x="420" y="130" width="280" height="36" rx="6" fill="#2e7a5d"/>
+    <text x="560" y="149" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Kotlin / Java</text>
+    <text x="560" y="164" text-anchor="middle" font-size="11" fill="#a6e3a1">BiometricPrompt · FingerprintManager</text>
+
+    <defs>
+      <marker id="dn" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1B3A5C"/></marker>
+      <marker id="di2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a80b5"/></marker>
+      <marker id="da2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a9a5a"/></marker>
+    </defs>
+  </svg>
+  <div class="diagram-caption">A native module exposes platform-native code through a JavaScript interface. The Expo Modules API generates the bridge layer — your JavaScript calls the same function name on both platforms; native code does the right thing on each.</div>
+</div>
+
+<h3>Installing and using a native module</h3>
+<p>
+  Most of the native capabilities you'll need are already wrapped by Expo or the community.
+  Using them looks like any other npm package — but they require a native rebuild because
+  they contain compiled code.
+</p>
+
+<pre><span class="cm"># Install the package — it contains Swift and Kotlin code</span>
+npx expo install expo-local-authentication</pre>
+
+<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">LocalAuthentication</span> <span class="kw">from</span> <span class="str">'expo-local-authentication'</span>;
+<span class="kw">import</span> { <span class="cls">Platform</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">async function</span> <span class="fn">authenticateUser</span>() {
+  <span class="cm">// Check what biometrics are available on this device</span>
+  <span class="kw">const</span> types = <span class="kw">await</span> <span class="cls">LocalAuthentication</span>.<span class="fn">supportedAuthenticationTypesAsync</span>();
+  <span class="kw">const</span> hasBiometric = types.length &gt; <span class="num">0</span>;
+
+  <span class="kw">if</span> (!hasBiometric) {
+    <span class="cm">// No biometric hardware — fall back to PIN/password</span>
+    <span class="kw">return</span> <span class="fn">promptForPIN</span>();
+  }
+
+  <span class="cm">// Platform-specific prompt message</span>
+  <span class="kw">const</span> promptMsg = <span class="cls">Platform</span>.<span class="fn">select</span>({
+    ios:     <span class="str">'Use Face ID to sign in'</span>,
+    android: <span class="str">'Use fingerprint to sign in'</span>,
+    default: <span class="str">'Authenticate to continue'</span>,
+  });
+
+  <span class="kw">const</span> result = <span class="kw">await</span> <span class="cls">LocalAuthentication</span>.<span class="fn">authenticateAsync</span>({
+    promptMessage:         promptMsg,
+    fallbackLabel:         <span class="str">'Use passcode'</span>,
+    cancelLabel:           <span class="str">'Cancel'</span>,
+    disableDeviceFallback: <span class="kw">false</span>, <span class="cm">// allow PIN fallback</span>
+  });
+
+  <span class="kw">return</span> result.success;
+}</pre>
+
+<h3>When you need to write your own native module</h3>
+<p>
+  Writing a custom native module is necessary when you need a platform capability that no
+  existing package exposes. The Expo Modules API (the modern approach) lets you write
+  Swift and Kotlin code that is automatically exposed to JavaScript. This is an advanced topic
+  covered briefly here for awareness — the full implementation is out of scope for CS 402 —
+  but the pattern is worth understanding:
+</p>
+
+<div class="two-col">
+  <div class="card">
+    <h4>You write (Swift/Kotlin)</h4>
+    <ul>
+      <li>An Expo Module class with exported functions</li>
+      <li>Platform-native API calls</li>
+      <li>Event emitters for async callbacks</li>
+      <li>One file per platform (<code>MyModule.swift</code> + <code>MyModuleModule.kt</code>)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Expo generates (JavaScript)</h4>
+    <ul>
+      <li>A typed JavaScript interface from your module's exports</li>
+      <li>The bridge wiring to call native functions from JS</li>
+      <li>Event subscription helpers</li>
+      <li>TypeScript types if you use the typed API</li>
+    </ul>
+  </div>
+</div>
+
+
+<!-- 7. STUB FALLBACKS -->
+<h2>7. The Fallback Stub — Graceful Degradation</h2>
+
+<p>
+  Whenever you write platform-specific code, write a fallback for the other platform — even
+  if that fallback does nothing. A no-op fallback is better than an import error. A descriptive
+  console warning is better than a silent failure. An error with a clear message is better than
+  a crash with a stack trace pointing at a missing module.
+</p>
+
+<div class="file-pill">BiometricAuth.web.js  ← stub for Expo web builds</div>
+<pre><span class="cm">// Biometric auth is not available on web — export a stub</span>
+<span class="cm">// that behaves reasonably rather than crashing</span>
+
+<span class="kw">export async function</span> <span class="fn">authenticateUser</span>() {
+  <span class="cm">// Web has no biometric API — skip authentication</span>
+  <span class="fn">console</span>.<span class="fn">warn</span>(<span class="str">'BiometricAuth: not available on web platform'</span>);
+  <span class="kw">return false</span>;
+}
+
+<span class="kw">export async function</span> <span class="fn">isBiometricAvailable</span>() {
+  <span class="kw">return false</span>;
+}</pre>
+
+<p>
+  The consuming code doesn't need to know the difference. It imports the module, calls
+  <code>authenticateUser()</code>, checks the return value, and handles <code>false</code>
+  — which is the same thing it would do if biometric hardware wasn't present on a real device.
+</p>
+
+<div class="tip">
+  <strong>💡 Design principle — program to an interface, not an implementation:</strong>
+  This is the underlying principle that makes both platform branching strategies work. Your
+  consuming components call a named function with known inputs and outputs. Whether the
+  implementation behind that function is a <code>Platform.select()</code> branch, a
+  <code>.ios.js</code> file, a native module, or a no-op stub — the consumer doesn't care.
+  The platform split is an implementation detail, hidden behind a stable interface.
+</div>
+
+
+<!-- 8. QUICK REFERENCE -->
+<h2>8. Quick Reference — Choosing the Right Strategy</h2>
+
+<table>
+  <thead>
+    <tr><th>Situation</th><th>Best approach</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>One or two values differ (e.g. a color, a label)</td><td><code>Platform.OS ===</code> inline</td></tr>
+    <tr><td>A style object has several platform-specific properties</td><td><code>...Platform.select({ios:{}, android:{}})</code> spread</td></tr>
+    <tr><td>Different behavior based on OS version</td><td><code>Platform.OS + Platform.Version</code> check</td></tr>
+    <tr><td>Significant logic difference but same JS API surface</td><td><code>Module.ios.js</code> + <code>Module.android.js</code></td></tr>
+    <tr><td>Capability needs native code; package already exists</td><td>Install the Expo/community package, use its JS API</td></tr>
+    <tr><td>Capability has no existing package</td><td>Write a custom Expo Module in Swift + Kotlin</td></tr>
+    <tr><td>Platform doesn't support the capability at all</td><td>Write a fallback stub (<code>Module.web.js</code> etc.)</td></tr>
+  </tbody>
+</table>
+
+</body>
+</html>

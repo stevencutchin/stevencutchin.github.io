@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS 402 – Hooks and State Variables</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  @page { size: letter; margin: 1in; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', 'Segoe UI', Arial, sans-serif;
+    font-size: 15px; line-height: 1.8; color: #2c2c2c;
+    max-width: 880px; margin: 0 auto; padding: 48px 32px; background: #fff;
+  }
+
+  /* ── Header ── */
+  .doc-header { text-align: center; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 3px solid #1B3A5C; }
+  .doc-header h1 { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; color: #1B3A5C; font-weight: 400; margin-bottom: 4px; }
+  .doc-header .semester { font-size: 14px; color: #888; margin-bottom: 8px; letter-spacing: 0.05em; }
+  .doc-header .subtitle { font-size: 20px; color: #2E5D8A; font-weight: 700; margin-top: 4px; }
+  .doc-header .lesson-meta { margin-top: 14px; font-size: 13px; color: #777; display: flex; justify-content: center; flex-wrap: wrap; gap: 24px; }
+
+  /* ── Section headers ── */
+  h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; color: #1B3A5C; margin: 44px 0 14px; padding-bottom: 7px; border-bottom: 2px solid #d0dce6; font-weight: 400; }
+  h3 { font-size: 16px; color: #2E5D8A; margin: 22px 0 9px; font-weight: 700; }
+  p  { margin-bottom: 14px; color: #333; }
+  ul, ol { margin: 10px 0 16px 26px; color: #333; }
+  li { margin-bottom: 7px; }
+
+  /* ── Callout boxes ── */
+  .section-intro { font-size: 16px; color: #444; font-style: italic; margin-bottom: 28px; padding: 14px 20px; background: #f7f9fc; border-radius: 6px; border-left: 4px solid #1B3A5C; }
+  .callout { margin: 20px 0; padding: 15px 20px; background: #f0f6fb; border-left: 4px solid #2E5D8A; border-radius: 0 6px 6px 0; color: #333; }
+  .callout strong { color: #1B3A5C; }
+  .warning { margin: 20px 0; padding: 15px 20px; background: #fdf6ec; border-left: 4px solid #c8890f; border-radius: 0 6px 6px 0; color: #333; }
+  .warning strong { color: #8a5d0a; }
+  .tip    { margin: 20px 0; padding: 15px 20px; background: #f0fbf4; border-left: 4px solid #2e8a5d; border-radius: 0 6px 6px 0; color: #333; }
+  .tip strong { color: #1a5c3a; }
+
+  /* ── Diagrams ── */
+  .diagram-wrap { text-align: center; margin: 28px 0; padding: 20px 16px; background: #fafbfc; border: 1px solid #e0e8f0; border-radius: 10px; }
+  .diagram-wrap svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .diagram-caption { font-size: 13px; color: #666; margin-top: 10px; font-style: italic; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: 14px; }
+  th { background: #1B3A5C; color: #fff; font-weight: 600; padding: 10px 14px; text-align: left; }
+  td { padding: 9px 14px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) { background: #f4f8fb; }
+
+  /* ── Code ── */
+  code { font-family: 'JetBrains Mono', 'Consolas', monospace; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-size: 13.5px; }
+  pre  { background: #1e1e2e; color: #cdd6f4; padding: 18px 22px; border-radius: 8px; overflow-x: auto; margin: 12px 0 20px; font-size: 13px; line-height: 1.6; font-family: 'JetBrains Mono', 'Consolas', monospace; }
+  pre .kw   { color: #cba6f7; }
+  pre .fn   { color: #89b4fa; }
+  pre .str  { color: #a6e3a1; }
+  pre .cm   { color: #6c7086; font-style: italic; }
+  pre .num  { color: #fab387; }
+  pre .prop { color: #89dceb; }
+  pre .tag  { color: #f38ba8; }
+  pre .cls  { color: #f9e2af; }
+
+  /* ── Two-column ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 16px 0 20px; }
+  .card { background: #f7f9fc; border: 1px solid #d0dce6; border-radius: 8px; padding: 16px 18px; }
+  .card h4 { font-size: 14px; font-weight: 700; color: #1B3A5C; margin-bottom: 8px; }
+  .card p  { margin-bottom: 0; }
+
+  /* ── Hook overview strip ── */
+  .hook-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0 24px; }
+  .hook-card { border-radius: 8px; padding: 16px 18px; border: 2px solid; }
+  .hook-card .hk-name { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .hook-card .hk-tag  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .hook-card p { font-size: 13px; margin: 0; }
+  .hc-state  { background: #eef4fb; border-color: #2E5D8A; }
+  .hc-state  .hk-name { color: #1B3A5C; }
+  .hc-state  .hk-tag  { color: #2E5D8A; }
+  .hc-effect { background: #f0fbf4; border-color: #2e8a5d; }
+  .hc-effect .hk-name { color: #1a5c3a; }
+  .hc-effect .hk-tag  { color: #2e8a5d; }
+  .hc-ref    { background: #f5f0fb; border-color: #7a5abf; }
+  .hc-ref    .hk-name { color: #4a2a8a; }
+  .hc-ref    .hk-tag  { color: #7a5abf; }
+
+  /* ── Dep-array grid ── */
+  .dep-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0; }
+  .dep-card { border-radius: 8px; padding: 14px 16px; border: 1.5px solid; }
+  .dep-card .dep-sig { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; margin-bottom: 8px; padding: 6px 8px; border-radius: 4px; }
+  .dep-card p { font-size: 13px; margin: 0; color: #444; }
+  .dc-a { background: #fdf6ec; border-color: #c8890f; }
+  .dc-a .dep-sig { background: #f9e8c0; color: #7a4a00; }
+  .dc-b { background: #f0fbf4; border-color: #2e8a5d; }
+  .dc-b .dep-sig { background: #c8efd8; color: #1a5c3a; }
+  .dc-c { background: #eef4fb; border-color: #2E5D8A; }
+  .dc-c .dep-sig { background: #c8ddf5; color: #1B3A5C; }
+
+  @media print {
+    body { padding: 0; max-width: none; }
+    h2 { break-after: avoid; }
+    .diagram-wrap, .two-col, .dep-grid, .hook-strip { break-inside: avoid; }
+    pre, .callout, .warning, .tip { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ HEADER ══ -->
+<header class="doc-header">
+  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+  <h1>Hooks and State Variables</h1>
+  <div class="subtitle">useState, useEffect, and useRef in Depth</div>
+  <div class="lesson-meta">
+    <span>🪝 React Hooks model</span>
+    <span>🔄 Re-render cycle</span>
+    <span>⚡ Side effects &amp; cleanup</span>
+    <span>📌 Refs without re-renders</span>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════ INTRO ══ -->
+<p class="section-intro">
+  Before hooks, sharing stateful logic between React components required awkward patterns —
+  class components, higher-order components, render props. Hooks are a clean solution:
+  ordinary JavaScript functions that let function components opt into React features.
+  This lecture goes beyond the API surface into <em>why</em> each hook behaves the way it does,
+  so you can use all three confidently without fighting the framework.
+</p>
+
+<div class="callout">
+  <strong>Where this fits:</strong> You've already used <code>useState</code> to build a counter
+  and a todo list. This document explains the underlying model — why calling
+  <code>setState</code> schedules a re-render instead of mutating immediately, what the
+  dependency array in <code>useEffect</code> actually controls, and when <code>useRef</code>
+  is the right tool instead of state.
+</div>
+
+<!-- ════════════════════════════════════════ 1. WHAT ARE HOOKS ══ -->
+<h2>1. What Are Hooks?</h2>
+
+<p>
+  Hooks are functions whose names start with <code>use</code>. When React calls your component
+  function, any hooks inside it run in the same order, every time. React tracks that order
+  internally — it's how it knows which state belongs to which hook call across re-renders.
+</p>
+
+<p>
+  Think of hooks as a registration system. The first time your component renders, each
+  <code>useState</code> call reserves a slot in React's memory for that component instance.
+  On every subsequent render, React fills those slots back in — in order — with the current values.
+  This is why the rules of hooks exist: the order must be stable.
+</p>
+
+<div class="hook-strip">
+  <div class="hook-card hc-state">
+    <div class="hk-tag">Lecture 10 / Today</div>
+    <div class="hk-name">useState</div>
+    <p>Declares a reactive variable. When it changes, React re-renders the component with the new value.</p>
+  </div>
+  <div class="hook-card hc-effect">
+    <div class="hk-tag">Lecture 13 / Today</div>
+    <div class="hk-name">useEffect</div>
+    <p>Runs code <em>after</em> render — for data fetching, subscriptions, timers, and other side effects.</p>
+  </div>
+  <div class="hook-card hc-ref">
+    <div class="hk-tag">Lecture 13 / Today</div>
+    <div class="hk-name">useRef</div>
+    <p>Holds a mutable value that persists across renders <em>without</em> triggering a re-render when it changes.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ 2. useState ══ -->
+<h2>2. useState — Reactive Variables</h2>
+
+<p>
+  <code>useState</code> takes one argument — the initial value — and returns an array of exactly
+  two things: the current value and a setter function. Destructuring gives them readable names.
+</p>
+
+<pre><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">Counter</span>() {
+  <span class="cm">// count starts at 0; setCount is how we change it</span>
+  <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num">0</span>);
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;View&gt;</span>
+      <span class="tag">&lt;Text&gt;</span>{count}<span class="tag">&lt;/Text&gt;</span>
+      <span class="tag">&lt;Button</span> <span class="prop">title</span>=<span class="str">"+"</span> <span class="prop">onPress</span>={() =&gt; <span class="fn">setCount</span>(count + <span class="num">1</span>)} /<span class="tag">&gt;</span>
+    <span class="tag">&lt;/View&gt;</span>
+  );
+}</pre>
+
+<h3>Calling the setter correctly</h3>
+
+<p>
+  When you call <code>setCount(count + 1)</code>, you're not mutating <code>count</code> in place.
+  You're telling React: <em>"next time you render this component, give me <code>count + 1</code>
+  for this slot."</em> React schedules the re-render, and when it runs, the component function
+  executes again with the new value already in place.
+</p>
+
+<div class="warning">
+  <strong>⚠ The stale closure trap:</strong> If you call the setter multiple times in the
+  same event handler using the current value, only the last call wins — because all three
+  closures captured the same <code>count</code> snapshot. Use the <strong>updater function</strong>
+  form to avoid this:
+</div>
+
+<pre><span class="cm">// ❌ All three use the same stale snapshot of count</span>
+<span class="fn">setCount</span>(count + <span class="num">1</span>);
+<span class="fn">setCount</span>(count + <span class="num">1</span>);
+<span class="fn">setCount</span>(count + <span class="num">1</span>); <span class="cm">// result: count + 1, not count + 3</span>
+
+<span class="cm">// ✅ Each call receives the latest pending value</span>
+<span class="fn">setCount</span>(prev =&gt; prev + <span class="num">1</span>);
+<span class="fn">setCount</span>(prev =&gt; prev + <span class="num">1</span>);
+<span class="fn">setCount</span>(prev =&gt; prev + <span class="num">1</span>); <span class="cm">// result: count + 3 ✓</span></pre>
+
+<h3>State with objects and arrays</h3>
+
+<p>
+  State can be any JavaScript value — strings, numbers, booleans, objects, or arrays.
+  The key rule is that React uses <strong>reference equality</strong> to detect changes.
+  Mutating an object in place won't trigger a re-render because the reference stays the same.
+  You must always produce a new value.
+</p>
+
+<pre><span class="kw">const</span> [user, setUser] = <span class="fn">useState</span>({ name: <span class="str">'Alex'</span>, score: <span class="num">0</span> });
+
+<span class="cm">// ❌ Mutating in place — React won't notice</span>
+user.score = <span class="num">10</span>;
+<span class="fn">setUser</span>(user); <span class="cm">// same reference → no re-render</span>
+
+<span class="cm">// ✅ Spread to create a new object</span>
+<span class="fn">setUser</span>({ ...user, score: <span class="num">10</span> }); <span class="cm">// new reference → re-render ✓</span>
+
+<span class="cm">// ✅ Adding to an array</span>
+<span class="kw">const</span> [items, setItems] = <span class="fn">useState</span>([]);
+<span class="fn">setItems</span>(prev =&gt; [...prev, newItem]); <span class="cm">// spread, don't push()</span></pre>
+
+<!-- ════════════════════════════════════════ 3. RE-RENDER CYCLE ══ -->
+<h2>3. The Re-render Cycle</h2>
+
+<p>
+  Understanding when and why React re-renders is the key to writing components that are both
+  correct and efficient. The cycle has four predictable steps.
+</p>
+
+<!-- DIAGRAM: Re-render Cycle -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <!-- Background -->
+    <rect width="760" height="200" fill="#fafbfc" rx="10"/>
+
+    <!-- Step boxes -->
+    <!-- 1: Trigger -->
+    <rect x="20" y="60" width="140" height="80" rx="8" fill="#1B3A5C"/>
+    <text x="90" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">① TRIGGER</text>
+    <text x="90" y="112" text-anchor="middle" font-size="11" fill="#a0c8e8">setState called</text>
+    <text x="90" y="127" text-anchor="middle" font-size="11" fill="#a0c8e8">or props change</text>
+
+    <!-- Arrow 1→2 -->
+    <path d="M162 100 L195 100" stroke="#2E5D8A" stroke-width="2.5" marker-end="url(#arr)"/>
+
+    <!-- 2: Schedule -->
+    <rect x="197" y="60" width="140" height="80" rx="8" fill="#2E5D8A"/>
+    <text x="267" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">② SCHEDULE</text>
+    <text x="267" y="112" text-anchor="middle" font-size="11" fill="#a0c8e8">React queues the</text>
+    <text x="267" y="127" text-anchor="middle" font-size="11" fill="#a0c8e8">re-render</text>
+
+    <!-- Arrow 2→3 -->
+    <path d="M339 100 L372 100" stroke="#2E5D8A" stroke-width="2.5" marker-end="url(#arr)"/>
+
+    <!-- 3: Render -->
+    <rect x="374" y="60" width="140" height="80" rx="8" fill="#3a7ab5"/>
+    <text x="444" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">③ RENDER</text>
+    <text x="444" y="112" text-anchor="middle" font-size="11" fill="#d0eaff">Component function</text>
+    <text x="444" y="127" text-anchor="middle" font-size="11" fill="#d0eaff">runs again</text>
+
+    <!-- Arrow 3→4 -->
+    <path d="M516 100 L549 100" stroke="#2E5D8A" stroke-width="2.5" marker-end="url(#arr)"/>
+
+    <!-- 4: Commit -->
+    <rect x="551" y="60" width="140" height="80" rx="8" fill="#2e7a5d"/>
+    <text x="621" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">④ COMMIT</text>
+    <text x="621" y="112" text-anchor="middle" font-size="11" fill="#a0e8c8">React updates only</text>
+    <text x="621" y="127" text-anchor="middle" font-size="11" fill="#a0e8c8">changed UI nodes</text>
+
+    <!-- Arrowhead def -->
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#2E5D8A"/>
+      </marker>
+    </defs>
+
+    <!-- Label row -->
+    <text x="90"  y="170" text-anchor="middle" font-size="11" fill="#1B3A5C" font-style="italic">Event handler fires</text>
+    <text x="267" y="170" text-anchor="middle" font-size="11" fill="#2E5D8A" font-style="italic">Batched &amp; async</text>
+    <text x="444" y="170" text-anchor="middle" font-size="11" fill="#3a7ab5" font-style="italic">Hooks fill in order</text>
+    <text x="621" y="170" text-anchor="middle" font-size="11" fill="#2e7a5d" font-style="italic">DOM diffing / reconcile</text>
+  </svg>
+  <div class="diagram-caption">The React re-render cycle. Calling a state setter triggers a new render —
+  React runs your component function again, fills hook slots in order, and commits only the UI nodes that changed.</div>
+</div>
+
+<p>
+  Notice that step ③ runs your <em>entire</em> component function again. All local variables
+  re-initialize. The only things that survive across renders are hook slots managed by React.
+  This is why you cannot rely on a regular variable to remember a value between renders — you need
+  a hook.
+</p>
+
+<div class="two-col">
+  <div class="card">
+    <h4>✅ Persists across renders</h4>
+    <ul>
+      <li>State via <code>useState</code></li>
+      <li>Refs via <code>useRef</code></li>
+      <li>Context values via <code>useContext</code></li>
+      <li>Memoized computations via <code>useMemo</code></li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>❌ Resets on every render</h4>
+    <ul>
+      <li>Regular <code>const</code>/<code>let</code> variables</li>
+      <li>Inline objects and arrays <code>{}</code> <code>[]</code></li>
+      <li>Function definitions created inside the component</li>
+      <li>Computed values not wrapped in <code>useMemo</code></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ 4. RULES OF HOOKS ══ -->
+<h2>4. The Rules of Hooks</h2>
+
+<p>
+  React's hook tracking depends on call order being identical every render. Two rules
+  make this possible — and violating either produces bugs that are hard to diagnose.
+</p>
+
+<div class="warning">
+  <strong>Rule 1 — Only call hooks at the top level.</strong> Never call hooks inside loops,
+  conditionals, or nested functions. If you need to conditionally use state, put the condition
+  <em>inside</em> the hook callback, not around the hook call.
+</div>
+
+<div class="warning">
+  <strong>Rule 2 — Only call hooks from React function components or custom hooks.</strong>
+  Never call them from regular JavaScript functions, class methods, or event handlers outside
+  a component.
+</div>
+
+<pre><span class="cm">// ❌ Breaks Rule 1 — hook inside a conditional</span>
+<span class="kw">if</span> (isLoggedIn) {
+  <span class="kw">const</span> [profile, setProfile] = <span class="fn">useState</span>(null); <span class="cm">// slot count changes!</span>
+}
+
+<span class="cm">// ✅ Correct — hook at top level, condition inside</span>
+<span class="kw">const</span> [profile, setProfile] = <span class="fn">useState</span>(null);
+<span class="kw">const</span> displayName = isLoggedIn ? profile?.name : <span class="str">'Guest'</span>;</pre>
+
+<div class="tip">
+  <strong>💡 The ESLint plugin:</strong> Install <code>eslint-plugin-react-hooks</code> in your
+  project. It catches both rule violations automatically and even catches stale dependency arrays
+  in <code>useEffect</code>. It's the fastest way to learn the rules.
+</div>
+
+<!-- ════════════════════════════════════════ 5. useEffect ══ -->
+<h2>5. useEffect — Managing Side Effects</h2>
+
+<p>
+  A "side effect" is anything your component does that reaches outside its own render output:
+  fetching data from an API, subscribing to a sensor, setting a timer, reading from a database,
+  logging to analytics. React's rendering is supposed to be a pure function of props and state —
+  side effects live in <code>useEffect</code>.
+</p>
+
+<pre><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+
+<span class="kw">function</span> <span class="fn">WeatherWidget</span>({ city }) {
+  <span class="kw">const</span> [temp, setTemp] = <span class="fn">useState</span>(<span class="kw">null</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="cm">// This runs after render, not during</span>
+    <span class="fn">fetch</span>(<span class="str">`https://api.weather.example/</span>${city}<span class="str">`</span>)
+      .<span class="fn">then</span>(r =&gt; r.<span class="fn">json</span>())
+      .<span class="fn">then</span>(data =&gt; <span class="fn">setTemp</span>(data.temp));
+  }, [city]); <span class="cm">// re-run whenever city changes</span>
+
+  <span class="kw">if</span> (temp === <span class="kw">null</span>) <span class="kw">return</span> <span class="tag">&lt;Text&gt;</span>Loading…<span class="tag">&lt;/Text&gt;</span>;
+  <span class="kw">return</span> <span class="tag">&lt;Text&gt;</span>{city}: {temp}°<span class="tag">&lt;/Text&gt;</span>;
+}</pre>
+
+<h3>The dependency array</h3>
+
+<p>
+  The second argument to <code>useEffect</code> is the dependency array. It controls
+  <em>when</em> the effect re-runs after renders. This is one of the most important things
+  to get right in React Native development.
+</p>
+
+<div class="dep-grid">
+  <div class="dep-card dc-a">
+    <div class="dep-sig">useEffect(fn)</div>
+    <p><strong>No array at all.</strong> Runs after every single render. Usually a mistake — can cause infinite loops if the effect updates state.</p>
+  </div>
+  <div class="dep-card dc-b">
+    <div class="dep-sig">useEffect(fn, [])</div>
+    <p><strong>Empty array.</strong> Runs once — after the first render only. Equivalent to "on mount." Great for initial data fetches.</p>
+  </div>
+  <div class="dep-card dc-c">
+    <div class="dep-sig">useEffect(fn, [a, b])</div>
+    <p><strong>Values listed.</strong> Runs after the first render, then again whenever <code>a</code> or <code>b</code> changes. The most precise form.</p>
+  </div>
+</div>
+
+<div class="warning">
+  <strong>⚠ Include every value the effect uses.</strong> If your effect reads a prop or state
+  variable but you don't list it in the array, the effect captures a stale version of that value.
+  The ESLint plugin will warn you about this. When in doubt, list it.
+</div>
+
+<!-- DIAGRAM: useEffect Timeline -->
+<div class="diagram-wrap">
+  <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
+    <rect width="760" height="240" fill="#fafbfc" rx="10"/>
+
+    <!-- Timeline spine -->
+    <line x1="40" y1="120" x2="720" y2="120" stroke="#d0dce6" stroke-width="2"/>
+
+    <!-- Render markers -->
+    <!-- Render 1 -->
+    <circle cx="100" cy="120" r="10" fill="#1B3A5C"/>
+    <text x="100" y="148" text-anchor="middle" font-size="11" fill="#1B3A5C" font-weight="700">Render 1</text>
+    <text x="100" y="162" text-anchor="middle" font-size="10" fill="#666">(mount)</text>
+    <!-- effect fires -->
+    <line x1="100" y1="108" x2="100" y2="60" stroke="#2e8a5d" stroke-width="2" stroke-dasharray="4,3"/>
+    <rect x="60" y="38" width="80" height="22" rx="4" fill="#2e8a5d"/>
+    <text x="100" y="53" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">effect runs</text>
+
+    <!-- Render 2 (same deps) -->
+    <circle cx="260" cy="120" r="10" fill="#2E5D8A"/>
+    <text x="260" y="148" text-anchor="middle" font-size="11" fill="#2E5D8A" font-weight="700">Render 2</text>
+    <text x="260" y="162" text-anchor="middle" font-size="10" fill="#666">(same deps)</text>
+    <!-- no effect -->
+    <line x1="260" y1="108" x2="260" y2="80" stroke="#bbb" stroke-width="2" stroke-dasharray="4,3"/>
+    <rect x="220" y="58" width="80" height="22" rx="4" fill="#bbb"/>
+    <text x="260" y="73" text-anchor="middle" font-size="10" fill="#555" font-weight="700">skipped</text>
+
+    <!-- Render 3 (dep changed) -->
+    <circle cx="440" cy="120" r="10" fill="#1B3A5C"/>
+    <text x="440" y="148" text-anchor="middle" font-size="11" fill="#1B3A5C" font-weight="700">Render 3</text>
+    <text x="440" y="162" text-anchor="middle" font-size="10" fill="#666">(dep changed)</text>
+    <!-- cleanup first -->
+    <line x1="420" y1="108" x2="360" y2="60" stroke="#c8890f" stroke-width="2" stroke-dasharray="4,3"/>
+    <rect x="315" y="38" width="90" height="22" rx="4" fill="#c8890f"/>
+    <text x="360" y="53" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">cleanup runs</text>
+    <!-- effect fires -->
+    <line x1="460" y1="108" x2="510" y2="60" stroke="#2e8a5d" stroke-width="2" stroke-dasharray="4,3"/>
+    <rect x="468" y="38" width="80" height="22" rx="4" fill="#2e8a5d"/>
+    <text x="508" y="53" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">effect runs</text>
+
+    <!-- Unmount -->
+    <circle cx="660" cy="120" r="10" fill="#c04040"/>
+    <text x="660" y="148" text-anchor="middle" font-size="11" fill="#c04040" font-weight="700">Unmount</text>
+    <!-- cleanup -->
+    <line x1="660" y1="108" x2="660" y2="60" stroke="#c8890f" stroke-width="2" stroke-dasharray="4,3"/>
+    <rect x="615" y="38" width="90" height="22" rx="4" fill="#c8890f"/>
+    <text x="660" y="53" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">cleanup runs</text>
+
+    <!-- Legend -->
+    <rect x="40" y="190" width="12" height="12" rx="2" fill="#2e8a5d"/>
+    <text x="58" y="201" font-size="11" fill="#333">Effect runs</text>
+    <rect x="150" y="190" width="12" height="12" rx="2" fill="#c8890f"/>
+    <text x="168" y="201" font-size="11" fill="#333">Cleanup runs</text>
+    <rect x="270" y="190" width="12" height="12" rx="2" fill="#bbb"/>
+    <text x="288" y="201" font-size="11" fill="#333">Skipped (deps unchanged)</text>
+  </svg>
+  <div class="diagram-caption">useEffect lifecycle. The cleanup function (if provided) runs before each new effect execution and on unmount — preventing resource leaks.</div>
+</div>
+
+<h3>The cleanup function</h3>
+
+<p>
+  If your effect sets up a subscription, timer, or event listener, it must tear it down when
+  the component unmounts or before the effect re-runs. Return a function from your effect to
+  register the cleanup.
+</p>
+
+<pre><span class="kw">import</span> { Accelerometer } <span class="kw">from</span> <span class="str">'expo-sensors'</span>;
+
+<span class="fn">useEffect</span>(() =&gt; {
+  <span class="cm">// Start the subscription</span>
+  <span class="kw">const</span> subscription = Accelerometer.<span class="fn">addListener</span>(data =&gt; {
+    <span class="fn">setAccelData</span>(data);
+  });
+
+  <span class="cm">// Return cleanup — runs on unmount or before next effect</span>
+  <span class="kw">return</span> () =&gt; {
+    subscription.<span class="fn">remove</span>();
+  };
+}, []); <span class="cm">// empty array: subscribe once on mount, unsubscribe on unmount</span></pre>
+
+<div class="tip">
+  <strong>💡 A rule of thumb:</strong> If you <em>start</em> something in an effect (timer,
+  subscription, connection), you almost always need to <em>stop</em> it in a cleanup function.
+  Missing cleanups are a leading cause of memory leaks and unpredictable behavior in
+  React Native apps.
+</div>
+
+<h3>Async effects and data fetching</h3>
+
+<p>
+  <code>useEffect</code> cannot be an <code>async</code> function directly — but you can define
+  and immediately call an async function inside it.
+</p>
+
+<pre><span class="fn">useEffect</span>(() =&gt; {
+  <span class="cm">// Define async function inside the effect</span>
+  <span class="kw">async function</span> <span class="fn">loadData</span>() {
+    <span class="kw">try</span> {
+      <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://api.example.com/data'</span>);
+      <span class="kw">const</span> json = <span class="kw">await</span> response.<span class="fn">json</span>();
+      <span class="fn">setData</span>(json);
+    } <span class="kw">catch</span> (err) {
+      <span class="fn">setError</span>(err.message);
+    }
+  }
+  <span class="fn">loadData</span>(); <span class="cm">// call it immediately</span>
+
+  <span class="cm">// No cleanup needed here — fetch can't be cancelled this way</span>
+  <span class="cm">// (for cancellable fetches, use AbortController)</span>
+}, [userId]); <span class="cm">// re-fetch when userId changes</span></pre>
+
+<!-- ════════════════════════════════════════ 6. useRef ══ -->
+<h2>6. useRef — Persistence Without Re-renders</h2>
+
+<p>
+  <code>useRef</code> returns a stable object with a single property: <code>.current</code>.
+  You can read and write <code>.current</code> freely — React will never re-render because of it.
+  The ref object itself is the same object every render; only its <code>.current</code> contents change.
+</p>
+
+<pre><span class="kw">const</span> renderCount = <span class="fn">useRef</span>(<span class="num">0</span>);
+
+<span class="fn">useEffect</span>(() =&gt; {
+  renderCount.current += <span class="num">1</span>;
+  <span class="cm">// Updating renderCount.current does NOT cause a re-render</span>
+});</pre>
+
+<p>
+  This makes <code>useRef</code> the right choice in two distinct scenarios:
+</p>
+
+<div class="two-col">
+  <div class="card">
+    <h4>📎 Scenario A: DOM / Component Reference</h4>
+    <p>Pass a ref as the <code>ref</code> prop of a component to get a direct handle to the underlying native view — useful for programmatic focus, scrolling, or measuring layout.</p>
+  </div>
+  <div class="card">
+    <h4>🗃 Scenario B: Mutable Instance Variable</h4>
+    <p>Store a value that must persist across renders but should <em>not</em> trigger UI updates: timer IDs, previous prop values, subscription handles, accumulated measurements.</p>
+  </div>
+</div>
+
+<pre><span class="cm">// Scenario A — Focus a TextInput programmatically</span>
+<span class="kw">const</span> inputRef = <span class="fn">useRef</span>(<span class="kw">null</span>);
+
+<span class="kw">return</span> (
+  <span class="tag">&lt;View&gt;</span>
+    <span class="tag">&lt;TextInput</span> <span class="prop">ref</span>={inputRef} <span class="prop">placeholder</span>=<span class="str">"Search…"</span> /<span class="tag">&gt;</span>
+    <span class="tag">&lt;Button</span>
+      <span class="prop">title</span>=<span class="str">"Focus"</span>
+      <span class="prop">onPress</span>={() =&gt; inputRef.current?.<span class="fn">focus</span>()}
+    /<span class="tag">&gt;</span>
+  <span class="tag">&lt;/View&gt;</span>
+);
+
+<span class="cm">// Scenario B — Store a timer ID across renders</span>
+<span class="kw">const</span> timerRef = <span class="fn">useRef</span>(<span class="kw">null</span>);
+
+<span class="kw">function</span> <span class="fn">startTimer</span>() {
+  timerRef.current = <span class="fn">setInterval</span>(() =&gt; {
+    <span class="fn">doWork</span>();
+  }, <span class="num">1000</span>);
+}
+
+<span class="kw">function</span> <span class="fn">stopTimer</span>() {
+  <span class="fn">clearInterval</span>(timerRef.current);
+}</pre>
+
+<!-- ════════════════════════════════════════ 7. CHOOSING THE RIGHT HOOK ══ -->
+<h2>7. Choosing the Right Tool</h2>
+
+<p>
+  The three hooks cover distinct scenarios. When you're not sure which to reach for, ask
+  these questions in order.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Question</th>
+      <th>If yes → use</th>
+      <th>Why</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Does changing this value need to update the UI?</td>
+      <td><code>useState</code></td>
+      <td>State changes trigger re-renders; refs and variables don't.</td>
+    </tr>
+    <tr>
+      <td>Do I need to run code after render (fetch, subscribe, timer)?</td>
+      <td><code>useEffect</code></td>
+      <td>Effects run after the component renders, not during. Side effects here don't block the UI.</td>
+    </tr>
+    <tr>
+      <td>Do I need a value that persists but must <em>not</em> trigger a re-render?</td>
+      <td><code>useRef</code></td>
+      <td>Refs are mutable containers with stable identity across renders.</td>
+    </tr>
+    <tr>
+      <td>Is the value derived from state or props with no side effects?</td>
+      <td>Regular variable</td>
+      <td>Compute it inside the render function — no hook needed.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════════ 8. COMBINING HOOKS ══ -->
+<h2>8. Putting It Together — A Complete Pattern</h2>
+
+<p>
+  Real components use multiple hooks together. Here's a component that fetches a list, stores
+  it in state, runs the fetch in an effect with cleanup for race conditions, and tracks a
+  selected item with a ref to avoid unnecessary re-renders.
+</p>
+
+<pre><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<span class="kw">import</span> { <span class="cls">View</span>, <span class="cls">Text</span>, <span class="cls">FlatList</span>, <span class="cls">ActivityIndicator</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+
+<span class="kw">export function</span> <span class="fn">PokemonList</span>() {
+  <span class="cm">// UI-driving state → useState</span>
+  <span class="kw">const</span> [pokemon, setPokemon] = <span class="fn">useState</span>([]);
+  <span class="kw">const</span> [loading, setLoading] = <span class="fn">useState</span>(<span class="kw">true</span>);
+  <span class="kw">const</span> [error, setError]   = <span class="fn">useState</span>(<span class="kw">null</span>);
+
+  <span class="cm">// Non-UI value → useRef (tracks if component is still mounted)</span>
+  <span class="kw">const</span> isMounted = <span class="fn">useRef</span>(<span class="kw">true</span>);
+
+  <span class="fn">useEffect</span>(() =&gt; {
+    <span class="kw">async function</span> <span class="fn">load</span>() {
+      <span class="kw">try</span> {
+        <span class="kw">const</span> res  = <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'https://pokeapi.co/api/v2/pokemon?limit=20'</span>);
+        <span class="kw">const</span> data = <span class="kw">await</span> res.<span class="fn">json</span>();
+        <span class="cm">// Only update state if still mounted</span>
+        <span class="kw">if</span> (isMounted.current) <span class="fn">setPokemon</span>(data.results);
+      } <span class="kw">catch</span> (e) {
+        <span class="kw">if</span> (isMounted.current) <span class="fn">setError</span>(e.message);
+      } <span class="kw">finally</span> {
+        <span class="kw">if</span> (isMounted.current) <span class="fn">setLoading</span>(<span class="kw">false</span>);
+      }
+    }
+    <span class="fn">load</span>();
+
+    <span class="cm">// Cleanup: mark as unmounted so async callbacks are ignored</span>
+    <span class="kw">return</span> () =&gt; { isMounted.current = <span class="kw">false</span>; };
+  }, []); <span class="cm">// run once on mount</span>
+
+  <span class="kw">if</span> (loading) <span class="kw">return</span> <span class="tag">&lt;ActivityIndicator</span> <span class="prop">size</span>=<span class="str">"large"</span> /<span class="tag">&gt;</span>;
+  <span class="kw">if</span> (error)   <span class="kw">return</span> <span class="tag">&lt;Text&gt;</span>Error: {error}<span class="tag">&lt;/Text&gt;</span>;
+
+  <span class="kw">return</span> (
+    <span class="tag">&lt;FlatList</span>
+      <span class="prop">data</span>={pokemon}
+      <span class="prop">keyExtractor</span>={item =&gt; item.name}
+      <span class="prop">renderItem</span>={({ item }) =&gt; <span class="tag">&lt;Text&gt;</span>{item.name}<span class="tag">&lt;/Text&gt;</span>}
+    /<span class="tag">&gt;</span>
+  );
+}</pre>
+
+<div class="callout">
+  <strong>The isMounted pattern:</strong> The <code>isMounted</code> ref guards against
+  "Can't perform a React state update on an unmounted component" — a common warning when
+  async operations complete after the user has already navigated away. Writing to
+  <code>isMounted.current</code> in the cleanup function doesn't cause a re-render, which is
+  exactly what you want.
+</div>
+
+<!-- ════════════════════════════════════════ 9. QUICK REFERENCE ══ -->
+<h2>9. Quick Reference</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Hook</th>
+      <th>Signature</th>
+      <th>When it runs</th>
+      <th>Triggers re-render?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>useState</code></td>
+      <td><code>const [val, setVal] = useState(init)</code></td>
+      <td>Setter called from event handler or effect</td>
+      <td>✅ Yes — on every setter call with a new value</td>
+    </tr>
+    <tr>
+      <td><code>useEffect</code></td>
+      <td><code>useEffect(fn, deps)</code></td>
+      <td>After render, when deps have changed</td>
+      <td>Only if the effect calls a setter</td>
+    </tr>
+    <tr>
+      <td><code>useRef</code></td>
+      <td><code>const ref = useRef(init)</code></td>
+      <td>Read/write <code>ref.current</code> any time</td>
+      <td>❌ Never — ref changes are invisible to React</td>
+    </tr>
+  </tbody>
+</table>
+
+<table>
+  <thead>
+    <tr>
+      <th>Dependency array form</th>
+      <th>Effect runs when…</th>
+      <th>Typical use</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><em>omitted</em></td>
+      <td>After every render</td>
+      <td>Rarely — usually a bug</td>
+    </tr>
+    <tr>
+      <td><code>[]</code></td>
+      <td>Once, after mount</td>
+      <td>Initial data load, subscriptions</td>
+    </tr>
+    <tr>
+      <td><code>[a, b]</code></td>
+      <td>After mount + whenever a or b changes</td>
+      <td>Re-fetching when a filter or ID changes</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="tip">
+  <strong>💡 Custom hooks:</strong> Any function starting with <code>use</code> that calls other
+  hooks is a <em>custom hook</em>. They let you extract and reuse stateful logic — a
+  <code>useLocation</code> that wraps the Expo Location subscription, a <code>useFetch</code>
+  that abstracts the loading/error/data pattern. You'll write your first custom hook when
+  the same three-line <code>useEffect</code> pattern appears in three different components.
+</div>
+
+</body>
+</html>
