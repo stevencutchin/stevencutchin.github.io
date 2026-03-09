@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paging — Machine Environment</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f; --surface: #0d1320; --surface2: #141d2f; --border: #1e2d4a;
+    --text: #c8d6e5; --text-dim: #6b7fa3; --heading: #e8f0fe;
+    --accent-cyan: #00e5ff; --accent-green: #69f0ae; --accent-orange: #ffab40;
+    --accent-purple: #b388ff; --accent-red: #ff5252; --accent-yellow: #ffd740;
+    --accent-blue: #448aff; --accent-pink: #ff80ab;
+    --accent-main: #ffab40;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; min-height: 100vh; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-main); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-orange); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-main); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-main), var(--accent-yellow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 640px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-main); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); } pre .type { color: var(--accent-cyan); } pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; } pre .num { color: var(--accent-orange); } pre .func { color: var(--accent-orange); }
+  .key-concept { background: linear-gradient(135deg, rgba(255,171,64,0.07), rgba(255,215,64,0.04)); border-left: 3px solid var(--accent-main); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-main); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .analogy { background: rgba(179,136,255,0.06); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .analogy strong { color: var(--accent-purple); }
+  .tip { background: rgba(105,240,174,0.05); border-left: 3px solid var(--accent-green); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .tip strong { color: var(--accent-green); }
+  .layer-badge { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 3px 10px; border-radius: 3px; margin-bottom: 8px; background: rgba(255,171,64,0.15); color: var(--accent-orange); border: 1px solid rgba(255,171,64,0.3); }
+  .pitfalls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+  .pitfall-card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent-red); border-radius: 0 0 10px 10px; padding: 20px; }
+  .pitfall-card .pitfall-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent-red); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .pitfall-card .pitfall-title { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: var(--heading); margin-bottom: 10px; }
+  .pitfall-card .pitfall-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+  @media (max-width: 700px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .series-bar .nav-links { display: none; } .diagram-container { padding: 16px; } .pitfalls { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+<nav class="series-bar">
+  <span class="chip">2 / 3</span>
+  <span>Machine Environment</span>
+  <div class="nav-links">
+    <a href="vm-01-virtual-memory.html">Virtual Memory</a>
+    <a href="vm-02-paging.html" class="active">Paging</a>
+    <a href="vm-03-process-layout.html">Process Layout</a>
+  </div>
+</nav>
+<header class="hero">
+  <div class="number">Machine Environment · 02</div>
+  <h1><span class="highlight">Paging</span></h1>
+  <p class="subtitle">Virtual memory is the idea. Paging is the mechanism. The address space is divided into fixed-size chunks called pages. The hardware translates virtual page numbers to physical frame numbers on every memory access.</p>
+</header>
+<main class="content">
+
+  <div class="layer-badge">Machine Environment Layer</div>
+
+  <h2>Pages and Frames</h2>
+
+  <p>Both virtual and physical address spaces are divided into fixed-size chunks. A chunk of virtual address space is called a <strong>page</strong>. A chunk of physical RAM is called a <strong>frame</strong>. On x86-64 systems the standard size is <strong>4096 bytes (4 KB)</strong>. Pages and frames are always the same size — the whole system is built on this alignment.</p>
+
+  <p>Translation is therefore simple in concept: the hardware needs to know which physical frame a given virtual page maps to. The offset within the page (the low 12 bits for 4 KB pages) is the same in both the virtual and physical address — only the page number changes.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 260" width="100%" height="260">
+      <defs>
+        <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffd740"/>
+        </marker>
+      </defs>
+
+      <!-- Virtual address breakdown -->
+      <text x="230" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">48-bit virtual address</text>
+
+      <!-- VPN field -->
+      <rect x="40"  y="28" width="280" height="44" rx="4" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="2"/>
+      <text x="180" y="48" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">Virtual Page Number (VPN)</text>
+      <text x="180" y="64" text-anchor="middle" fill="#6b7fa3" font-size="10">bits 47..12  —  36 bits  —  identifies the page</text>
+
+      <!-- Offset field -->
+      <rect x="324" y="28" width="160" height="44" rx="4" fill="rgba(255,215,64,0.1)" stroke="#ffd740" stroke-width="2"/>
+      <text x="404" y="48" text-anchor="middle" fill="#ffd740" font-size="12" font-weight="600">Page Offset</text>
+      <text x="404" y="64" text-anchor="middle" fill="#6b7fa3" font-size="10">bits 11..0  —  12 bits  —  byte within page</text>
+
+      <!-- Arrow down through page table -->
+      <path d="M 180 72 L 180 115" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#aa)"/>
+      <rect x="100" y="116" width="160" height="36" rx="6" fill="rgba(255,215,64,0.08)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="180" y="139" text-anchor="middle" fill="#ffd740" font-size="12">page table lookup</text>
+
+      <path d="M 180 152 L 180 180" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#aa)"/>
+
+      <!-- PFN field -->
+      <rect x="40" y="180" width="280" height="44" rx="4" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="180" y="200" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">Physical Frame Number (PFN)</text>
+      <text x="180" y="216" text-anchor="middle" fill="#6b7fa3" font-size="10">bits 51..12  —  identifies the physical frame</text>
+
+      <!-- Offset carried through -->
+      <rect x="324" y="180" width="160" height="44" rx="4" fill="rgba(255,215,64,0.1)" stroke="#ffd740" stroke-width="2"/>
+      <text x="404" y="200" text-anchor="middle" fill="#ffd740" font-size="12" font-weight="600">Page Offset</text>
+      <text x="404" y="216" text-anchor="middle" fill="#6b7fa3" font-size="10">unchanged — same 12 bits</text>
+
+      <!-- offset carried through arrow -->
+      <path d="M 404 72 L 404 178" stroke="#ffd740" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#aa)"/>
+
+      <!-- Final physical address label -->
+      <text x="230" y="244" text-anchor="middle" fill="#69f0ae" font-size="12">= Physical Address</text>
+      <text x="230" y="258" text-anchor="middle" fill="#6b7fa3" font-size="11">PFN provides upper bits · offset provides lower 12 bits · result is 52-bit physical address</text>
+    </svg>
+    <div class="caption">An address splits into a virtual page number (which frame to use) and a page offset (where within that frame). Only the page number is translated.</div>
+  </div>
+
+  <h2>The Page Table</h2>
+
+  <p>Each process has a <strong>page table</strong> — a data structure maintained by the OS that maps virtual page numbers to physical frame numbers. The OS sets it up when the process starts and updates it whenever new memory is allocated or pages are swapped. The hardware MMU consults this table on every memory access.</p>
+
+  <p>A page table entry (PTE) contains more than just the frame number. It also carries permission bits that the hardware enforces automatically.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 300" width="100%" height="300">
+      <defs>
+        <marker id="pt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
+        </marker>
+        <marker id="ptg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+        <marker id="ptr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
+        </marker>
+      </defs>
+
+      <!-- Virtual address space (left) -->
+      <text x="80" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">Virtual pages</text>
+      <rect x="20" y="25" width="120" height="260" rx="6" fill="rgba(20,30,48,0.6)" stroke="#1e2d4a" stroke-width="1.5"/>
+      <text x="80" y="47" text-anchor="middle" fill="#6b7fa3" font-size="10">page 0</text>
+      <line x1="20" y1="52" x2="140" y2="52" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="80" y="72" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">page 1</text>
+      <line x1="20" y1="78" x2="140" y2="78" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="80" y="98" text-anchor="middle" fill="#69f0ae" font-size="11" font-weight="600">page 2</text>
+      <line x1="20" y1="104" x2="140" y2="104" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="80" y="124" text-anchor="middle" fill="#6b7fa3" font-size="10">page 3</text>
+      <line x1="20" y1="130" x2="140" y2="130" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="80" y="150" text-anchor="middle" fill="#448aff" font-size="11" font-weight="600">page 4</text>
+      <line x1="20" y1="156" x2="140" y2="156" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="80" y="176" text-anchor="middle" fill="#6b7fa3" font-size="9">…</text>
+      <line x1="20" y1="182" x2="140" y2="182" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="80" y="205" text-anchor="middle" fill="#ff5252" font-size="11" font-weight="600">page N</text>
+
+      <!-- Page table (middle) -->
+      <text x="370" y="18" text-anchor="middle" fill="#ffd740" font-size="12">Page table (per-process)</text>
+      <rect x="230" y="25" width="280" height="260" rx="6" fill="rgba(20,30,48,0.6)" stroke="#ffd740" stroke-width="1.5"/>
+
+      <!-- PTE rows -->
+      <rect x="240" y="35" width="260" height="30" rx="3" fill="rgba(30,45,74,0.8)"/>
+      <text x="280" y="55" fill="#6b7fa3" font-size="10">VPN 0</text>
+      <text x="390" y="55" text-anchor="middle" fill="#6b7fa3" font-size="10">not present</text>
+      <text x="470" y="55" fill="#ff5252" font-size="10">P=0</text>
+
+      <rect x="240" y="68" width="260" height="30" rx="3" fill="rgba(255,171,64,0.08)"/>
+      <text x="280" y="88" fill="#ffab40" font-size="10">VPN 1</text>
+      <text x="380" y="88" text-anchor="middle" fill="#ffab40" font-size="10">frame 7  R/W</text>
+      <text x="470" y="88" fill="#69f0ae" font-size="10">P=1</text>
+
+      <rect x="240" y="101" width="260" height="30" rx="3" fill="rgba(105,240,174,0.08)"/>
+      <text x="280" y="121" fill="#69f0ae" font-size="10">VPN 2</text>
+      <text x="380" y="121" text-anchor="middle" fill="#69f0ae" font-size="10">frame 3  R-X</text>
+      <text x="470" y="121" fill="#69f0ae" font-size="10">P=1</text>
+
+      <rect x="240" y="134" width="260" height="30" rx="3" fill="rgba(30,45,74,0.8)"/>
+      <text x="280" y="154" fill="#6b7fa3" font-size="10">VPN 3</text>
+      <text x="390" y="154" text-anchor="middle" fill="#6b7fa3" font-size="10">on disk</text>
+      <text x="470" y="154" fill="#ff5252" font-size="10">P=0</text>
+
+      <rect x="240" y="167" width="260" height="30" rx="3" fill="rgba(68,138,255,0.08)"/>
+      <text x="280" y="187" fill="#448aff" font-size="10">VPN 4</text>
+      <text x="380" y="187" text-anchor="middle" fill="#448aff" font-size="10">frame 12 R/W</text>
+      <text x="470" y="187" fill="#69f0ae" font-size="10">P=1</text>
+
+      <text x="370" y="230" text-anchor="middle" fill="#6b7fa3" font-size="9">…</text>
+
+      <rect x="240" y="242" width="260" height="30" rx="3" fill="rgba(255,82,52,0.08)"/>
+      <text x="280" y="262" fill="#ff5252" font-size="10">VPN N</text>
+      <text x="395" y="262" text-anchor="middle" fill="#ff5252" font-size="10">guard page — no access</text>
+      <text x="470" y="262" fill="#ff5252" font-size="10">P=0</text>
+
+      <!-- Physical RAM (right) -->
+      <text x="630" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">Physical frames</text>
+      <rect x="560" y="25" width="140" height="260" rx="6" fill="rgba(20,30,48,0.6)" stroke="#6b7fa3" stroke-width="1.5"/>
+
+      <text x="630" y="47" text-anchor="middle" fill="#6b7fa3" font-size="9">frame 0</text>
+      <line x1="560" y1="52" x2="700" y2="52" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="630" y="72" text-anchor="middle" fill="#6b7fa3" font-size="9">frame 1</text>
+      <line x1="560" y1="78" x2="700" y2="78" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="630" y="98" text-anchor="middle" fill="#6b7fa3" font-size="9">frame 2</text>
+      <line x1="560" y1="104" x2="700" y2="104" stroke="#1e2d4a" stroke-width="1"/>
+      <rect x="565" y="106" width="130" height="24" rx="3" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1"/>
+      <text x="630" y="122" text-anchor="middle" fill="#69f0ae" font-size="9">frame 3 ← VPN 2</text>
+      <line x1="560" y1="130" x2="700" y2="130" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="630" y="148" text-anchor="middle" fill="#6b7fa3" font-size="9">frame 4</text>
+      <line x1="560" y1="156" x2="700" y2="156" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="630" y="175" text-anchor="middle" fill="#6b7fa3" font-size="9">…</text>
+      <line x1="560" y1="182" x2="700" y2="182" stroke="#1e2d4a" stroke-width="1"/>
+      <rect x="565" y="183" width="130" height="24" rx="3" fill="rgba(255,171,64,0.12)" stroke="#ffab40" stroke-width="1"/>
+      <text x="630" y="199" text-anchor="middle" fill="#ffab40" font-size="9">frame 7 ← VPN 1</text>
+      <line x1="560" y1="208" x2="700" y2="208" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="630" y="225" text-anchor="middle" fill="#6b7fa3" font-size="9">frame 8..11</text>
+      <line x1="560" y1="234" x2="700" y2="234" stroke="#1e2d4a" stroke-width="1"/>
+      <rect x="565" y="236" width="130" height="24" rx="3" fill="rgba(68,138,255,0.12)" stroke="#448aff" stroke-width="1"/>
+      <text x="630" y="252" text-anchor="middle" fill="#448aff" font-size="9">frame 12 ← VPN 4</text>
+
+      <!-- Arrows from PTEs to frames -->
+      <path d="M 510 83 Q 535 83 558 195" stroke="#ffab40" stroke-width="1.5" fill="none" stroke-dasharray="4,2" marker-end="url(#pt)"/>
+      <path d="M 510 116 Q 535 115 558 115" stroke="#69f0ae" stroke-width="1.5" fill="none" stroke-dasharray="4,2" marker-end="url(#ptg)"/>
+      <path d="M 510 182 Q 535 182 558 244" stroke="#448aff" stroke-width="1.5" fill="none" stroke-dasharray="4,2" marker-end="url(#pt)"/>
+    </svg>
+    <div class="caption">Each page table entry maps a virtual page number to a physical frame number, plus permission bits. P=1 means the page is resident in RAM. P=0 triggers a page fault.</div>
+  </div>
+
+  <h3>Page Table Entry Fields</h3>
+
+  <p>Each PTE is typically 8 bytes on x86-64 and packs several fields into those 64 bits:</p>
+
+  <pre><span class="comment">// Simplified view of what a PTE contains:</span>
+Physical Frame Number   <span class="comment">// which frame in RAM (or swap address if not present)</span>
+Present bit (P)         <span class="comment">// 1 = in RAM, 0 = not present (triggers page fault)</span>
+Writable bit (W)        <span class="comment">// 1 = read/write, 0 = read-only</span>
+User bit (U)            <span class="comment">// 1 = user code can access, 0 = kernel only</span>
+Execute-disable (XD)    <span class="comment">// 1 = cannot execute code from this page</span>
+Dirty bit (D)           <span class="comment">// 1 = page has been written (needs flush to disk)</span>
+Accessed bit (A)        <span class="comment">// 1 = page has been read or written recently</span></pre>
+
+  <div class="key-concept">
+    <strong>Permission bits enforce memory protection in hardware</strong><br>
+    The Read, Write, and Execute permissions are enforced by the MMU on every access — no software check needed. Writing to a read-only page triggers a hardware fault. Jumping to a non-executable page triggers a fault. This is how the OS isolates processes, how the kernel protects itself from user code, and how <code>const</code> globals can be placed in read-only memory.
+  </div>
+
+  <h2>The TLB — Translation Lookaside Buffer</h2>
+
+  <p>Consulting the page table on every memory access would require reading from memory to find out where to read memory — a circular problem that would make programs 2–5× slower. The hardware solves this with a small, fast cache called the <strong>TLB</strong>.</p>
+
+  <p>The TLB stores recently used VPN→PFN translations directly in the CPU. A lookup takes 1 cycle. A page table walk takes 20–100 cycles depending on cache state. Most memory accesses hit the TLB; page table walks are the exception.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 240" width="100%" height="240">
+      <defs>
+        <marker id="ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+        <marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
+        </marker>
+        <marker id="na" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
+        </marker>
+      </defs>
+
+      <!-- CPU issues address -->
+      <rect x="20" y="80" width="120" height="60" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="80" y="107" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">CPU</text>
+      <text x="80" y="125" text-anchor="middle" fill="#6b7fa3" font-size="10">virtual addr</text>
+
+      <path d="M 140 110 L 188 110" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#na)"/>
+
+      <!-- TLB -->
+      <rect x="190" y="55" width="160" height="110" rx="8" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="2"/>
+      <text x="270" y="82"  text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">TLB</text>
+      <text x="270" y="100" text-anchor="middle" fill="#6b7fa3" font-size="10">32–2048 entries</text>
+      <text x="270" y="116" text-anchor="middle" fill="#6b7fa3" font-size="10">VPN → PFN cache</text>
+      <text x="270" y="132" text-anchor="middle" fill="#6b7fa3" font-size="10">~1 cycle lookup</text>
+      <text x="270" y="150" text-anchor="middle" fill="#6b7fa3" font-size="10">on-chip in CPU</text>
+
+      <!-- TLB hit path -->
+      <path d="M 350 90 L 500 90" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#ha)"/>
+      <text x="425" y="82" text-anchor="middle" fill="#69f0ae" font-size="11">HIT (~1 cycle)</text>
+      <rect x="502" y="65" width="180" height="50" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="592" y="88"  text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">physical address</text>
+      <text x="592" y="104" text-anchor="middle" fill="#6b7fa3" font-size="10">proceed to cache/RAM</text>
+
+      <!-- TLB miss path -->
+      <path d="M 350 130 L 500 130" stroke="#ff5252" stroke-width="2" fill="none" marker-end="url(#ma)"/>
+      <text x="425" y="122" text-anchor="middle" fill="#ff5252" font-size="11">MISS (~50 cycles)</text>
+      <rect x="502" y="110" width="180" height="65" rx="6" fill="rgba(255,82,82,0.07)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="592" y="133" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">page table walk</text>
+      <text x="592" y="151" text-anchor="middle" fill="#6b7fa3" font-size="10">read page table from RAM</text>
+      <text x="592" y="165" text-anchor="middle" fill="#6b7fa3" font-size="10">load entry into TLB</text>
+
+      <text x="360" y="210" text-anchor="middle" fill="#6b7fa3" font-size="12">TLB hit rate is typically >99% for well-behaved programs.</text>
+      <text x="360" y="228" text-anchor="middle" fill="#6b7fa3" font-size="12">Programs that thrash the TLB (random access over huge memory) pay a severe penalty.</text>
+    </svg>
+    <div class="caption">The TLB caches translations. A hit costs ~1 cycle. A miss forces a page table walk costing 20–100 cycles. The 99%+ hit rate is why virtual memory is fast in practice.</div>
+  </div>
+
+  <h2>Page Faults</h2>
+
+  <p>When the CPU tries to access a virtual address and the page table says the page is not present (P=0), the hardware generates a <strong>page fault</strong> — a CPU exception that transfers control to the OS. The OS must then handle it before the program can continue.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 260" width="100%" height="260">
+      <defs>
+        <marker id="pfa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
+        </marker>
+        <marker id="pfr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
+        </marker>
+        <marker id="pfg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
+        </marker>
+      </defs>
+
+      <!-- Start -->
+      <rect x="10" y="80" width="130" height="50" rx="6" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="75" y="102" text-anchor="middle" fill="#ffab40" font-size="12">CPU accesses</text>
+      <text x="75" y="120" text-anchor="middle" fill="#6b7fa3" font-size="10">virtual address</text>
+
+      <path d="M 140 105 L 168 105" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#pfa)"/>
+
+      <!-- MMU check -->
+      <polygon points="235,75 305,105 235,135 165,105" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="1.5"/>
+      <text x="235" y="100" text-anchor="middle" fill="#ffd740" font-size="10">P bit</text>
+      <text x="235" y="115" text-anchor="middle" fill="#ffd740" font-size="10">= 1?</text>
+
+      <!-- P=1 path (normal) -->
+      <path d="M 305 105 L 388 105" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#pfg)"/>
+      <text x="345" y="97" text-anchor="middle" fill="#69f0ae" font-size="10">yes</text>
+      <rect x="390" y="82" width="110" height="46" rx="5" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="445" y="102" text-anchor="middle" fill="#69f0ae" font-size="11" font-weight="600">translate</text>
+      <text x="445" y="118" text-anchor="middle" fill="#6b7fa3" font-size="10">access proceeds</text>
+
+      <!-- P=0 path (fault) -->
+      <path d="M 235 135 L 235 168" stroke="#ff5252" stroke-width="2" fill="none" marker-end="url(#pfr)"/>
+      <text x="248" y="157" fill="#ff5252" font-size="10">no → fault</text>
+
+      <!-- OS handler -->
+      <rect x="110" y="170" width="250" height="75" rx="8" fill="rgba(255,82,82,0.07)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="235" y="195" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">OS page fault handler</text>
+
+      <!-- Three outcomes -->
+      <text x="125" y="218" fill="#69f0ae" font-size="10">load from disk</text>
+      <text x="125" y="232" fill="#6b7fa3" font-size="10">set P=1, resume</text>
+
+      <text x="240" y="218" fill="#ffab40" font-size="10">allocate new page</text>
+      <text x="240" y="232" fill="#6b7fa3" font-size="10">zero-fill, resume</text>
+
+      <text x="355" y="218" fill="#ff5252" font-size="10">invalid access</text>
+      <text x="355" y="232" fill="#ff5252" font-size="10">→ SIGSEGV</text>
+
+    </svg>
+    <div class="caption">A page fault is a hardware exception. The OS examines the faulting address and either resolves it (load from disk, allocate new page) or terminates the process with a segfault.</div>
+  </div>
+
+  <h3>The Three Outcomes of a Page Fault</h3>
+  <p><strong>1. Demand paging (swap-in):</strong> The page was previously swapped to disk to free RAM. The OS finds it, loads it into a free frame, updates the PTE, and restarts the faulting instruction. The program never knows this happened.</p>
+  <p><strong>2. Anonymous page allocation:</strong> The program accessed a heap or stack page that hasn't been touched yet. The OS allocates a new frame, zero-fills it (for security — you must not see another process's data), marks it present, and restarts. This is how <code>malloc</code>'d memory actually gets physical RAM.</p>
+  <p><strong>3. Segmentation fault:</strong> The virtual address isn't mapped at all, the access violates the permission bits (writing to a read-only page, executing a non-executable page), or the address is in kernel space. The OS sends <code>SIGSEGV</code> to the process, which typically terminates it.</p>
+
+  <div class="tip">
+    <strong>Why zero-fill on fault?</strong><br>
+    When the OS allocates a new physical frame, it always fills it with zeros before handing it to your process. This is a security requirement: the frame may have previously belonged to another process. Without zeroing, your <code>malloc</code> call could return memory containing another process's passwords, keys, or data. The OS zeroes frames in the background when the CPU is idle so they're ready before you need them.
+  </div>
+
+  <h2>Swapping and Demand Paging</h2>
+  <p>When physical RAM fills up, the OS must evict pages — write modified pages to the <em>swap partition</em> on disk and repurpose their frames for other processes. An evicted page has its PTE's present bit cleared. When the program accesses it again, a page fault triggers a swap-in from disk.</p>
+
+  <p>Accessing swap is catastrophically slow — disk I/O is 100,000× slower than RAM. When the working set of active pages exceeds available RAM and the system is constantly swapping back and forth, it is called <strong>thrashing</strong> — the machine appears to freeze as it spends all its time moving pages rather than executing instructions.</p>
+
+  <div class="pitfalls">
+    <div class="pitfall-card">
+      <div class="pitfall-num">Performance 01</div>
+      <div class="pitfall-title">TLB Thrashing</div>
+      <div class="pitfall-desc">Accessing memory in a random pattern across a large address space evicts TLB entries before they're reused. Every access pays the full page table walk penalty. Cache-friendly access patterns — walking arrays sequentially — maintain a high TLB hit rate. Random pointer chasing over large structures is the worst case.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Performance 02</div>
+      <div class="pitfall-title">Swap Thrashing</div>
+      <div class="pitfall-desc">When a program's working set exceeds available RAM, the OS constantly swaps pages in and out. Each page fault involving disk I/O costs millions of cycles. Programs that allocate far more memory than they actively use contribute to system-wide thrashing. Free what you don't need; work in cache-sized chunks.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Correctness 01</div>
+      <div class="pitfall-title">Write to Read-Only Page → Segfault</div>
+      <div class="pitfall-desc">String literals, code, and const globals are placed in read-only pages. Writing through a pointer to any of these triggers a write-protection fault → SIGSEGV. This is enforced in hardware by the PTE's write bit, not in software. The crash is immediate and unavoidable.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Correctness 02</div>
+      <div class="pitfall-title">Using Memory Before OS Allocates the Page</div>
+      <div class="pitfall-desc">On Linux, <code>mmap</code> and large <code>malloc</code> calls succeed immediately but the physical pages aren't allocated until first write (demand paging). Code that checks the return of <code>malloc</code> but then gets OOM-killed mid-execution has been caught by this: the OS said "sure" but couldn't deliver later.</div>
+    </div>
+  </div>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    Paging divides address spaces into fixed 4 KB pages/frames. The page table maps virtual page numbers to physical frame numbers plus permission bits. The TLB caches recent translations for speed — a miss costs a page table walk. A page fault triggers when a page is not present; the OS either loads it from disk, allocates a new zeroed frame, or kills the process with SIGSEGV. Permissions are enforced in hardware on every access.
+  </div>
+
+</main>
+</body>
+</html>

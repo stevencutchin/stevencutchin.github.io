@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Types — C Fundamentals</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f; --surface: #0d1320; --surface2: #141d2f; --border: #1e2d4a;
+    --text: #c8d6e5; --text-dim: #6b7fa3; --heading: #e8f0fe;
+    --accent-cyan: #00e5ff; --accent-green: #69f0ae; --accent-orange: #ffab40;
+    --accent-purple: #b388ff; --accent-red: #ff5252; --accent-yellow: #ffd740;
+    --accent-blue: #448aff; --accent-pink: #ff80ab;
+    --accent-main: #448aff;
+    --code-bg: #0a0f1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; min-height: 100vh; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-main); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-main); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-main); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-main), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 640px; line-height: 1.6; }
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 24px; padding-top: 20px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-main); letter-spacing: 1px; text-transform: uppercase; margin: 40px 0 16px; }
+  p { margin-bottom: 20px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 24px 28px; margin: 24px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 15px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); } pre .type { color: var(--accent-cyan); } pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; } pre .num { color: var(--accent-orange); } pre .func { color: var(--accent-orange); }
+  pre .pp { color: var(--accent-yellow); }
+  .key-concept { background: linear-gradient(135deg, rgba(68,138,255,0.06), rgba(0,229,255,0.04)); border-left: 3px solid var(--accent-main); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-main); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); }
+  .analogy { background: rgba(179,136,255,0.06); border-left: 3px solid var(--accent-purple); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .analogy strong { color: var(--accent-purple); }
+  .tip { background: rgba(105,240,174,0.05); border-left: 3px solid var(--accent-green); padding: 20px 24px; margin: 28px 0; border-radius: 0 8px 8px 0; }
+  .tip strong { color: var(--accent-green); }
+  .data-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-family: 'IBM Plex Mono', monospace; font-size: 14px; }
+  .data-table th { background: var(--surface); border: 1px solid var(--border); padding: 10px 14px; color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; }
+  .data-table td { border: 1px solid var(--border); padding: 9px 14px; vertical-align: top; }
+  .data-table .hl { color: var(--accent-cyan); font-weight: 600; }
+  .pitfalls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 32px 0; }
+  .pitfall-card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent-red); border-radius: 0 0 10px 10px; padding: 20px; }
+  .pitfall-card .pitfall-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent-red); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .pitfall-card .pitfall-title { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: var(--heading); margin-bottom: 10px; }
+  .pitfall-card .pitfall-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+  @media (max-width: 700px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .series-bar .nav-links { display: none; } .diagram-container { padding: 16px; } .pitfalls { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+<nav class="series-bar">
+  <span class="chip">2 / 4</span>
+  <span>C Fundamentals</span>
+  <div class="nav-links">
+    <a href="vars-01-variables.html">Variables</a>
+    <a href="vars-02-types.html" class="active">Types</a>
+    <a href="vars-03-characters.html">Characters</a>
+    <a href="vars-04-strings.html">Strings</a>
+  </div>
+</nav>
+<header class="hero">
+  <div class="number">C Fundamentals · 02</div>
+  <h1><span class="highlight">Types</span></h1>
+  <p class="subtitle">A type tells the compiler two things: how many bytes a variable occupies, and how to interpret those bytes. The same bit pattern means completely different things depending on the type.</p>
+</header>
+<main class="content">
+
+  <h2>Why Types Exist</h2>
+  <p>Memory is just bytes. A type gives those bytes meaning. The 4-byte pattern <code>01000000 01001000 00000000 00000000</code> means 1,083,179,008 as an <code>int</code>, but it means 3.125 as a <code>float</code>. The bits are identical — the type determines what they represent.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 200" width="100%" height="200">
+      <!-- same bytes -->
+      <text x="360" y="22" text-anchor="middle" fill="#6b7fa3" font-size="13">Same 4 bytes in memory — different types, different meanings</text>
+
+      <!-- byte boxes -->
+      <g>
+        <rect x="160" y="40" width="100" height="50" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1.5"/>
+        <text x="210" y="62" text-anchor="middle" fill="#448aff" font-size="10">byte 0</text>
+        <text x="210" y="80" text-anchor="middle" fill="#c8d6e5" font-size="12">0x40</text>
+        <rect x="260" y="40" width="100" height="50" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1.5"/>
+        <text x="310" y="62" text-anchor="middle" fill="#448aff" font-size="10">byte 1</text>
+        <text x="310" y="80" text-anchor="middle" fill="#c8d6e5" font-size="12">0x48</text>
+        <rect x="360" y="40" width="100" height="50" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1.5"/>
+        <text x="410" y="62" text-anchor="middle" fill="#448aff" font-size="10">byte 2</text>
+        <text x="410" y="80" text-anchor="middle" fill="#c8d6e5" font-size="12">0x00</text>
+        <rect x="460" y="40" width="100" height="50" rx="4" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1.5"/>
+        <text x="510" y="62" text-anchor="middle" fill="#448aff" font-size="10">byte 3</text>
+        <text x="510" y="80" text-anchor="middle" fill="#c8d6e5" font-size="12">0x00</text>
+      </g>
+
+      <!-- int interpretation -->
+      <rect x="100" y="115" width="220" height="55" rx="6" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1.5"/>
+      <text x="210" y="138" text-anchor="middle" fill="#69f0ae" font-size="12">as int:</text>
+      <text x="210" y="158" text-anchor="middle" fill="#69f0ae" font-size="16" font-weight="700">1,083,179,008</text>
+
+      <!-- float interpretation -->
+      <rect x="400" y="115" width="220" height="55" rx="6" fill="rgba(255,171,64,0.07)" stroke="#ffab40" stroke-width="1.5"/>
+      <text x="510" y="138" text-anchor="middle" fill="#ffab40" font-size="12">as float:</text>
+      <text x="510" y="158" text-anchor="middle" fill="#ffab40" font-size="16" font-weight="700">3.125</text>
+    </svg>
+    <div class="caption">Types are the interpreter. The bits don't change — the type determines what they mean.</div>
+  </div>
+
+  <h2>Integer Types</h2>
+  <p>Integer types store whole numbers. They vary in size (how many bytes) and signedness (can they hold negative numbers). The sizes shown here are typical for 64-bit systems — C only guarantees minimum sizes, not exact ones. Use <code>&lt;stdint.h&gt;</code> when exact sizes matter.</p>
+
+  <table class="data-table">
+    <thead><tr><th>Type</th><th>Typical Size</th><th>Range (signed)</th><th>Use for</th></tr></thead>
+    <tbody>
+      <tr><td class="hl">char</td><td>1 byte</td><td>-128 to 127</td><td>Single characters, small integers</td></tr>
+      <tr><td class="hl">short</td><td>2 bytes</td><td>-32,768 to 32,767</td><td>Small integers where space matters</td></tr>
+      <tr><td class="hl">int</td><td>4 bytes</td><td>-2,147,483,648 to 2,147,483,647</td><td>General-purpose integers</td></tr>
+      <tr><td class="hl">long</td><td>8 bytes*</td><td>±9.2 × 10¹⁸</td><td>Large integers</td></tr>
+      <tr><td class="hl">long long</td><td>8 bytes</td><td>±9.2 × 10¹⁸</td><td>Guaranteed 64-bit integer</td></tr>
+      <tr><td class="hl">unsigned int</td><td>4 bytes</td><td>0 to 4,294,967,295</td><td>Non-negative counts, bit manipulation</td></tr>
+    </tbody>
+  </table>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 160" width="100%" height="160">
+      <text x="360" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">Integer type sizes — memory layout on a 64-bit system</text>
+
+      <!-- char 1 byte -->
+      <rect x="40" y="35" width="50" height="40" rx="4" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="2"/>
+      <text x="65" y="61" text-anchor="middle" fill="#69f0ae" font-size="11">char</text>
+      <text x="65" y="93" text-anchor="middle" fill="#6b7fa3" font-size="10">1 byte</text>
+
+      <!-- short 2 bytes -->
+      <rect x="110" y="35" width="100" height="40" rx="4" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1.5"/>
+      <text x="160" y="61" text-anchor="middle" fill="#00e5ff" font-size="11">short</text>
+      <text x="160" y="93" text-anchor="middle" fill="#6b7fa3" font-size="10">2 bytes</text>
+
+      <!-- int 4 bytes -->
+      <rect x="230" y="35" width="200" height="40" rx="4" fill="rgba(68,138,255,0.1)" stroke="#448aff" stroke-width="2"/>
+      <text x="330" y="61" text-anchor="middle" fill="#448aff" font-size="11">int</text>
+      <text x="330" y="93" text-anchor="middle" fill="#6b7fa3" font-size="10">4 bytes</text>
+
+      <!-- long 8 bytes -->
+      <rect x="450" y="35" width="230" height="40" rx="4" fill="rgba(179,136,255,0.08)" stroke="#b388ff" stroke-width="1.5"/>
+      <text x="565" y="61" text-anchor="middle" fill="#b388ff" font-size="11">long / long long</text>
+      <text x="565" y="93" text-anchor="middle" fill="#6b7fa3" font-size="10">8 bytes</text>
+
+      <!-- byte ruler -->
+      <line x1="40" y1="120" x2="680" y2="120" stroke="#1e2d4a" stroke-width="1"/>
+      <text x="40" y="140" fill="#6b7fa3" font-size="10">0</text>
+      <text x="85" y="140" fill="#6b7fa3" font-size="10">1</text>
+      <text x="185" y="140" fill="#6b7fa3" font-size="10">2</text>
+      <text x="380" y="140" fill="#6b7fa3" font-size="10">4</text>
+      <text x="670" y="140" fill="#6b7fa3" font-size="10">8</text>
+      <text x="355" y="155" text-anchor="middle" fill="#6b7fa3" font-size="10">bytes →</text>
+    </svg>
+    <div class="caption">Each type occupies a fixed number of bytes. More bytes means wider range but more memory.</div>
+  </div>
+
+  <h2>Floating-Point Types</h2>
+  <p>Floating-point types store real numbers — values with fractional parts. They use a standardized binary encoding (IEEE 754) that trades exact representation for enormous range. Most decimal fractions cannot be represented exactly in binary floating-point.</p>
+
+  <table class="data-table">
+    <thead><tr><th>Type</th><th>Size</th><th>Precision</th><th>Range (approx)</th></tr></thead>
+    <tbody>
+      <tr><td class="hl">float</td><td>4 bytes</td><td>~7 significant digits</td><td>±3.4 × 10³⁸</td></tr>
+      <tr><td class="hl">double</td><td>8 bytes</td><td>~15 significant digits</td><td>±1.8 × 10³⁰⁸</td></tr>
+      <tr><td class="hl">long double</td><td>10–16 bytes</td><td>~18–19 significant digits</td><td>platform-dependent</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <strong>Floating-point numbers are approximations.</strong><br>
+    <code>0.1 + 0.2</code> is not exactly <code>0.3</code> in binary floating-point. The result is <code>0.30000000000000004...</code>. Never compare floats with <code>==</code>. Instead, check whether the difference is smaller than a tolerance: <code>fabs(a - b) &lt; 1e-9</code>. Use <code>double</code> by default — <code>float</code> has too little precision for most work.
+  </div>
+
+  <h2>Type Conversion</h2>
+  <p>C converts between types in two ways: <strong>implicit conversion</strong> happens automatically when you mix types in an expression, and <strong>explicit casting</strong> is when you tell the compiler to convert with <code>(type)</code>.</p>
+
+  <pre><span class="comment">// Implicit: C promotes to the "wider" type automatically</span>
+<span class="type">int</span>    i = <span class="num">5</span>;
+<span class="type">double</span> d = <span class="num">2.5</span>;
+<span class="type">double</span> r = i + d;    <span class="comment">// i promoted to double → 5.0 + 2.5 = 7.5</span>
+
+<span class="comment">// Integer division pitfall — both operands are int</span>
+<span class="type">int</span> a = <span class="num">7</span>, b = <span class="num">2</span>;
+<span class="type">double</span> bad  = a / b;       <span class="comment">// 3.0  ← integer division happened first!</span>
+<span class="type">double</span> good = (<span class="type">double</span>)a / b; <span class="comment">// 3.5  ← cast a first, then divide</span>
+
+<span class="comment">// Explicit cast: narrowing (can lose data)</span>
+<span class="type">double</span> pi = <span class="num">3.14159</span>;
+<span class="type">int</span>    n  = (<span class="type">int</span>)pi;        <span class="comment">// n = 3 — fractional part silently dropped</span></pre>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 720 180" width="100%" height="180">
+      <defs>
+        <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#448aff"/>
+        </marker>
+        <marker id="cr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
+        </marker>
+      </defs>
+      <!-- widening -->
+      <text x="190" y="20" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">Widening — safe, automatic</text>
+      <rect x="40" y="40" width="110" height="50" rx="5" fill="rgba(68,138,255,0.08)" stroke="#448aff" stroke-width="1.5"/>
+      <text x="95" y="62" text-anchor="middle" fill="#448aff" font-size="12">int 5</text>
+      <text x="95" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">4 bytes</text>
+      <path d="M 150 65 L 228 65" stroke="#448aff" stroke-width="2" fill="none" marker-end="url(#ca)"/>
+      <text x="190" y="57" text-anchor="middle" fill="#448aff" font-size="10">promote</text>
+      <rect x="230" y="40" width="110" height="50" rx="5" fill="rgba(68,138,255,0.12)" stroke="#448aff" stroke-width="2"/>
+      <text x="285" y="62" text-anchor="middle" fill="#448aff" font-size="12">double 5.0</text>
+      <text x="285" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">8 bytes</text>
+      <text x="190" y="120" text-anchor="middle" fill="#6b7fa3" font-size="11">No data lost. Value preserved exactly.</text>
+
+      <!-- narrowing -->
+      <text x="540" y="20" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">Narrowing — lossy, needs cast</text>
+      <rect x="400" y="40" width="140" height="50" rx="5" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="1.5"/>
+      <text x="470" y="62" text-anchor="middle" fill="#ff5252" font-size="12">double 3.14159</text>
+      <text x="470" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">8 bytes</text>
+      <path d="M 540 65 L 608 65" stroke="#ff5252" stroke-width="2" fill="none" marker-end="url(#cr)"/>
+      <text x="575" y="57" text-anchor="middle" fill="#ff5252" font-size="10">(int)</text>
+      <rect x="610" y="40" width="90" height="50" rx="5" fill="rgba(255,82,82,0.12)" stroke="#ff5252" stroke-width="2"/>
+      <text x="655" y="62" text-anchor="middle" fill="#ff5252" font-size="12">int 3</text>
+      <text x="655" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">4 bytes</text>
+      <text x="540" y="120" text-anchor="middle" fill="#ff5252" font-size="11">Fractional part silently discarded.</text>
+    </svg>
+    <div class="caption">Widening conversions preserve value. Narrowing conversions lose data — the compiler will not warn you.</div>
+  </div>
+
+  <h2>sizeof</h2>
+  <p>The <code>sizeof</code> operator returns the size in bytes of a type or variable at compile time. Use it instead of hardcoding sizes — this is especially important in pointer arithmetic and when allocating memory.</p>
+
+  <pre><span class="func">printf</span>(<span class="str">"char:   %zu bytes\n"</span>, <span class="kw">sizeof</span>(<span class="type">char</span>));    <span class="comment">// 1</span>
+<span class="func">printf</span>(<span class="str">"int:    %zu bytes\n"</span>, <span class="kw">sizeof</span>(<span class="type">int</span>));     <span class="comment">// 4</span>
+<span class="func">printf</span>(<span class="str">"double: %zu bytes\n"</span>, <span class="kw">sizeof</span>(<span class="type">double</span>));  <span class="comment">// 8</span>
+
+<span class="type">int</span> arr[<span class="num">10</span>];
+<span class="func">printf</span>(<span class="str">"array:  %zu bytes\n"</span>, <span class="kw">sizeof</span>(arr));    <span class="comment">// 40</span>
+<span class="func">printf</span>(<span class="str">"length: %zu\n"</span>, <span class="kw">sizeof</span>(arr) / <span class="kw">sizeof</span>(arr[<span class="num">0</span>])); <span class="comment">// 10</span></pre>
+
+  <h2>Exact-Size Types with &lt;stdint.h&gt;</h2>
+  <p>The standard types like <code>int</code> and <code>long</code> have implementation-defined sizes that vary by platform. When you need a specific number of bits — for file formats, network protocols, or hardware registers — use the exact-size types from <code>&lt;stdint.h&gt;</code>.</p>
+
+  <pre><span class="pp">#include &lt;stdint.h&gt;</span>
+
+<span class="type">int8_t</span>   a;   <span class="comment">// exactly 8 bits, signed</span>
+<span class="type">uint8_t</span>  b;   <span class="comment">// exactly 8 bits, unsigned</span>
+<span class="type">int16_t</span>  c;   <span class="comment">// exactly 16 bits, signed</span>
+<span class="type">uint32_t</span> d;   <span class="comment">// exactly 32 bits, unsigned</span>
+<span class="type">int64_t</span>  e;   <span class="comment">// exactly 64 bits, signed</span></pre>
+
+  <h2>Common Problems</h2>
+  <div class="pitfalls">
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 01</div>
+      <div class="pitfall-title">Integer Division Truncation</div>
+      <div class="pitfall-desc"><code>7 / 2</code> is <code>3</code>, not <code>3.5</code>. When both operands are integers, C performs integer division. The fractional part is silently discarded. Cast at least one operand: <code>(double)7 / 2</code> gives <code>3.5</code>.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 02</div>
+      <div class="pitfall-title">Integer Overflow</div>
+      <div class="pitfall-desc">An <code>int</code> can hold up to 2,147,483,647. Adding 1 to that value wraps around to -2,147,483,648 — silently. The compiler will not warn. Use a larger type (<code>long long</code>) or check bounds before arithmetic when overflow is possible.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 03</div>
+      <div class="pitfall-title">Comparing Floats with ==</div>
+      <div class="pitfall-desc"><code>0.1 + 0.2 == 0.3</code> is false. Floating-point arithmetic produces tiny rounding errors that make exact equality comparisons unreliable. Use <code>fabs(a - b) &lt; 1e-9</code> instead.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 04</div>
+      <div class="pitfall-title">Signed/Unsigned Mismatch</div>
+      <div class="pitfall-desc">Comparing a signed <code>int</code> with an <code>unsigned int</code> when the signed value is negative causes the negative value to be interpreted as a very large positive number. <code>-1 > 1u</code> is true. Enable <code>-Wall -Wsign-compare</code> to catch these.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 05</div>
+      <div class="pitfall-title">Narrowing Cast Loses Data</div>
+      <div class="pitfall-desc">Casting a large value to a smaller type silently discards the excess bits. <code>(char)300</code> gives 44, not 300. <code>(int)3.9</code> gives 3, not 4. The compiler does not warn about explicit casts — you asked for the conversion, so it assumes you know what you're doing.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 06</div>
+      <div class="pitfall-title">Using float Instead of double</div>
+      <div class="pitfall-desc"><code>float</code> has only ~7 significant digits of precision. Accumulated rounding errors in long calculations become visible. Use <code>double</code> by default. Only use <code>float</code> when memory or GPU performance demands it, and when you've measured that the precision loss is acceptable.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 07</div>
+      <div class="pitfall-title">Assuming int Size</div>
+      <div class="pitfall-desc">The C standard only guarantees <code>int</code> is at least 16 bits. In practice it's 32 bits on modern systems — but code that assumes a specific size will break when ported. Use <code>&lt;stdint.h&gt;</code> types like <code>int32_t</code> when the exact size matters.</div>
+    </div>
+    <div class="pitfall-card">
+      <div class="pitfall-num">Pitfall 08</div>
+      <div class="pitfall-title">Wrong printf Format Specifier</div>
+      <div class="pitfall-desc">Using <code>%d</code> to print a <code>long</code> or <code>%f</code> to print a <code>double</code> with <code>scanf</code> produces undefined behavior. Match specifiers to types exactly: <code>%d</code> for int, <code>%ld</code> for long, <code>%f</code>/<code>%lf</code> for float/double, <code>%zu</code> for size_t.</div>
+    </div>
+  </div>
+
+  <div class="key-concept">
+    <strong>Takeaway</strong><br>
+    A type determines how many bytes a value occupies and how those bytes are interpreted. Use <code>int</code> for general integers, <code>double</code> for real numbers, and <code>&lt;stdint.h&gt;</code> types when exact width matters. Integer division truncates — cast first to get a float result. Never compare floats with <code>==</code>. Always match printf/scanf format specifiers to their types.
+  </div>
+
+</main>
+</body>
+</html>

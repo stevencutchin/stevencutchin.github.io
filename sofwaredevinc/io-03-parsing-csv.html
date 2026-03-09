@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parsing CSV — C Input/Output</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-teal: #1de9b6;
+    --accent-main: #1de9b6;
+    --code-bg: #0a0f1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+
+  .page-grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  .series-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+
+  .series-bar .chip {
+    background: var(--accent-main);
+    color: var(--bg);
+    padding: 2px 10px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-main); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+
+  .hero .number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--accent-main);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(40px, 6vw, 64px);
+    color: var(--heading);
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  h1 .highlight {
+    background: linear-gradient(135deg, var(--accent-main), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 20px;
+    color: var(--text-dim);
+    max-width: 620px;
+    line-height: 1.6;
+  }
+
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--heading);
+    margin: 60px 0 24px;
+    padding-top: 20px;
+  }
+
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    color: var(--accent-main);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 40px 0 16px;
+  }
+
+  p { margin-bottom: 20px; }
+
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 32px 0;
+    overflow-x: auto;
+  }
+
+  .diagram-container .caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 16px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 15px;
+    color: var(--accent-green);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  pre .kw    { color: var(--accent-purple); }
+  pre .type  { color: var(--accent-cyan); }
+  pre .str   { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num   { color: var(--accent-orange); }
+  pre .func  { color: var(--accent-orange); }
+
+  .key-concept {
+    background: linear-gradient(135deg, rgba(29,233,182,0.06), rgba(0,229,255,0.04));
+    border-left: 3px solid var(--accent-main);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .key-concept strong {
+    color: var(--accent-main);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .warning {
+    background: rgba(255,82,82,0.06);
+    border-left: 3px solid var(--accent-red);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .warning strong { color: var(--accent-red); }
+
+  .analogy {
+    background: rgba(179,136,255,0.06);
+    border-left: 3px solid var(--accent-purple);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .analogy strong { color: var(--accent-purple); }
+
+  .pitfall-card {
+    background: rgba(255,82,82,0.05);
+    border: 1px solid rgba(255,82,82,0.2);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .pitfall-card .pitfall-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-red);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .csv-file {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.9;
+  }
+
+  .csv-file .csv-header { color: var(--accent-main); }
+  .csv-file .csv-comma { color: var(--accent-orange); }
+  .csv-file .csv-val   { color: var(--text); }
+  .csv-file .csv-num   { color: var(--accent-cyan); }
+
+  /* Token decomposition diagram */
+  .token-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+    align-items: center;
+  }
+
+  .token {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .token-field { background: rgba(29,233,182,0.12); color: var(--accent-teal); border: 1px solid rgba(29,233,182,0.3); }
+  .token-sep   { background: rgba(255,171,64,0.12);  color: var(--accent-orange); border: 1px solid rgba(255,171,64,0.3); }
+  .token-nl    { background: rgba(255,82,82,0.12);   color: var(--accent-red);    border: 1px solid rgba(255,82,82,0.3); }
+
+  .token-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .token-group { display: flex; flex-direction: column; align-items: center; }
+
+  @media (max-width: 600px) {
+    .hero, .content { padding-left: 20px; padding-right: 20px; }
+    .series-bar { padding: 10px 16px; font-size: 11px; }
+    .diagram-container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">3 / 3</span>
+  <span>C Input/Output</span>
+  <div class="nav-links">
+    <a href="io-01-terminal-io.html">Terminal I/O</a>
+    <a href="io-02-file-io.html">File I/O</a>
+    <a href="io-03-parsing-csv.html" class="active">Parsing CSV</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 03</div>
+  <h1>Parsing <span class="highlight">CSV Data</span></h1>
+  <p class="subtitle">CSV is the universal format for tabular data. Parsing it in C puts everything together: file I/O, string splitting, type conversion, and error handling — all at once.</p>
+</header>
+
+<main class="content">
+
+  <h2>What Is CSV?</h2>
+
+  <p>CSV — <em>Comma-Separated Values</em> — is a plain-text format for tables. Each line is one row. Within a line, fields are separated by commas. The first line is usually a header row that names the columns.</p>
+
+  <div class="csv-file">
+    <span class="csv-header">name</span><span class="csv-comma">,</span><span class="csv-header">major</span><span class="csv-comma">,</span><span class="csv-header">gpa</span><span class="csv-comma">,</span><span class="csv-header">year</span><br>
+    <span class="csv-val">Alice</span><span class="csv-comma">,</span><span class="csv-val">CS</span><span class="csv-comma">,</span><span class="csv-num">3.85</span><span class="csv-comma">,</span><span class="csv-num">3</span><br>
+    <span class="csv-val">Bob</span><span class="csv-comma">,</span><span class="csv-val">EE</span><span class="csv-comma">,</span><span class="csv-num">3.40</span><span class="csv-comma">,</span><span class="csv-num">2</span><br>
+    <span class="csv-val">Carol</span><span class="csv-comma">,</span><span class="csv-val">Math</span><span class="csv-comma">,</span><span class="csv-num">3.95</span><span class="csv-comma">,</span><span class="csv-num">4</span><br>
+    <span class="csv-val">Dave</span><span class="csv-comma">,</span><span class="csv-val">CS</span><span class="csv-comma">,</span><span class="csv-num">2.90</span><span class="csv-comma">,</span><span class="csv-num">1</span>
+  </div>
+
+  <p>CSV is ubiquitous: spreadsheets export it, databases dump to it, data-science pipelines read it. Knowing how to parse it in C means you can process real-world data with nothing but the standard library.</p>
+
+  <h2>The Two-Level Structure</h2>
+
+  <p>Parsing CSV is a two-level problem. At the outer level you handle <strong style="color:var(--accent-main)">lines</strong> — one row per iteration. At the inner level you handle <strong style="color:var(--accent-orange)">fields</strong> — one value per comma-separated token within the line.</p>
+
+  <div class="diagram-container">
+    <svg viewBox="0 0 700 240" width="100%">
+      <!-- Row box -->
+      <rect x="30" y="30" width="640" height="60" rx="6" fill="rgba(29,233,182,0.05)" stroke="var(--accent-teal)" stroke-width="1.5"/>
+      <text x="46" y="22" fill="var(--accent-teal)" font-size="11" text-transform="uppercase">fgets reads one line</text>
+      <text x="50" y="68" fill="var(--text)" font-size="16">Alice,CS,3.85,3\n</text>
+
+      <!-- Field boxes -->
+      <rect x="30"  y="130" width="112" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
+      <text x="86"  y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">Alice</text>
+      <text x="86"  y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">name</text>
+
+      <text x="155" y="158" text-anchor="middle" fill="var(--accent-orange)" font-size="18">,</text>
+
+      <rect x="170" y="130" width="82" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
+      <text x="211" y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">CS</text>
+      <text x="211" y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">major</text>
+
+      <text x="265" y="158" text-anchor="middle" fill="var(--accent-orange)" font-size="18">,</text>
+
+      <rect x="280" y="130" width="100" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
+      <text x="330" y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">3.85</text>
+      <text x="330" y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">gpa</text>
+
+      <text x="393" y="158" text-anchor="middle" fill="var(--accent-orange)" font-size="18">,</text>
+
+      <rect x="408" y="130" width="82" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
+      <text x="449" y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">3</text>
+      <text x="449" y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">year</text>
+
+      <!-- Arrow -->
+      <line x1="360" y1="92" x2="360" y2="120" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="3,3"/>
+      <text x="380" y="113" fill="var(--text-dim)" font-size="11">strtok splits on ','</text>
+    </svg>
+    <p class="caption">fgets handles the outer loop; strtok handles the inner field extraction</p>
+  </div>
+
+  <h2>strtok — Splitting a String on a Delimiter</h2>
+
+  <p><code>strtok</code> breaks a string into tokens separated by delimiter characters. Its interface is unusual because it uses a <strong style="color:var(--accent-orange)">stateful, two-call pattern</strong>:</p>
+
+  <pre><span class="type">char</span> line[] = <span class="str">"Alice,CS,3.85,3"</span>;
+
+<span class="comment">// First call: pass the string</span>
+<span class="type">char</span> *token = <span class="func">strtok</span>(line, <span class="str">","</span>);
+
+<span class="comment">// Subsequent calls: pass NULL to continue from where we left off</span>
+<span class="kw">while</span> (token != NULL) {
+    <span class="func">printf</span>(<span class="str">"field: [%s]\n"</span>, token);
+    token = <span class="func">strtok</span>(NULL, <span class="str">","</span>);
+}
+<span class="comment">// Output:
+// field: [Alice]
+// field: [CS]
+// field: [3.85]
+// field: [3]</span></pre>
+
+  <div class="key-concept">
+    <strong>How strtok works</strong><br>
+    <code>strtok</code> modifies the original string in place: it writes <code>'\0'</code> over each delimiter it finds, turning the single string into a sequence of substrings. The tokens it returns are just pointers into the modified original. Do <em>not</em> pass a string literal — it must be a writable character array.
+  </div>
+
+  <div class="warning">
+    <strong>strtok modifies its input</strong><br>
+    Because <code>strtok</code> overwrites delimiters with null terminators, the original string is destroyed. If you need to keep the original, copy it with <code>strcpy</code> or <code>strncpy</code> before calling <code>strtok</code>.
+  </div>
+
+  <h2>Type Conversion — Strings to Numbers</h2>
+
+  <p>All CSV fields arrive as strings. To use numeric fields mathematically, you must convert them. The standard library provides conversion functions for the most common types:</p>
+
+  <pre><span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+
+<span class="type">char</span> *field = <span class="str">"3.85"</span>;
+
+<span class="type">int</span>    year = <span class="func">atoi</span>(field);      <span class="comment">// string → int  (simple but no error detection)</span>
+<span class="type">double</span> gpa  = <span class="func">atof</span>(field);      <span class="comment">// string → double</span>
+
+<span class="comment">// Safer alternatives with error detection:</span>
+<span class="type">char</span> *end;
+<span class="type">long</span>   n = <span class="func">strtol</span>(field, &amp;end, <span class="num">10</span>);   <span class="comment">// base-10 integer; end points past last digit</span>
+<span class="type">double</span> d = <span class="func">strtod</span>(field, &amp;end);       <span class="comment">// double; end points past last digit</span>
+
+<span class="kw">if</span> (end == field) {
+    <span class="func">fprintf</span>(stderr, <span class="str">"Not a valid number\n"</span>);
+}</pre>
+
+  <p>For simple labs, <code>atoi</code> and <code>atof</code> are fine. In production code, prefer <code>strtol</code>/<code>strtod</code> because they tell you whether conversion succeeded and where it stopped.</p>
+
+  <h2>A Complete CSV Parser</h2>
+
+  <p>Here is a full program that reads the student CSV file, parses every field, and computes the class average GPA:</p>
+
+  <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+
+<span class="kw">#define</span> MAX_LINE  <span class="num">256</span>
+<span class="kw">#define</span> MAX_FIELD  <span class="num">64</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="type">char</span>   name[MAX_FIELD];
+    <span class="type">char</span>   major[MAX_FIELD];
+    <span class="type">double</span> gpa;
+    <span class="type">int</span>    year;
+} Student;
+
+<span class="comment">/* Parse one CSV line into a Student struct.
+   Returns 1 on success, 0 if the line couldn't be parsed. */</span>
+<span class="type">int</span> <span class="func">parse_student</span>(<span class="type">char</span> *line, Student *s) {
+    <span class="type">char</span> *tok;
+
+    tok = <span class="func">strtok</span>(line, <span class="str">","</span>);  <span class="kw">if</span> (!tok) <span class="kw">return</span> <span class="num">0</span>;
+    <span class="func">strncpy</span>(s-&gt;name, tok, MAX_FIELD - <span class="num">1</span>);
+    s-&gt;name[MAX_FIELD - <span class="num">1</span>] = <span class="str">'\0'</span>;
+
+    tok = <span class="func">strtok</span>(NULL, <span class="str">","</span>); <span class="kw">if</span> (!tok) <span class="kw">return</span> <span class="num">0</span>;
+    <span class="func">strncpy</span>(s-&gt;major, tok, MAX_FIELD - <span class="num">1</span>);
+    s-&gt;major[MAX_FIELD - <span class="num">1</span>] = <span class="str">'\0'</span>;
+
+    tok = <span class="func">strtok</span>(NULL, <span class="str">","</span>); <span class="kw">if</span> (!tok) <span class="kw">return</span> <span class="num">0</span>;
+    s-&gt;gpa = <span class="func">atof</span>(tok);
+
+    tok = <span class="func">strtok</span>(NULL, <span class="str">","</span>); <span class="kw">if</span> (!tok) <span class="kw">return</span> <span class="num">0</span>;
+    s-&gt;year = <span class="func">atoi</span>(tok);
+
+    <span class="kw">return</span> <span class="num">1</span>;
+}
+
+<span class="type">int</span> <span class="func">main</span>(<span class="type">void</span>) {
+    <span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"students.csv"</span>, <span class="str">"r"</span>);
+    <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+    <span class="type">char</span>    line[MAX_LINE];
+    Student s;
+    <span class="type">int</span>     count  = <span class="num">0</span>;
+    <span class="type">double</span>  gpa_sum = <span class="num">0.0</span>;
+    <span class="type">int</span>     lineno = <span class="num">0</span>;
+
+    <span class="kw">while</span> (<span class="func">fgets</span>(line, <span class="kw">sizeof</span>(line), fp) != NULL) {
+        lineno++;
+
+        <span class="comment">/* Strip trailing newline */</span>
+        <span class="type">size_t</span> len = <span class="func">strlen</span>(line);
+        <span class="kw">if</span> (len &gt; <span class="num">0</span> &amp;&amp; line[len-<span class="num">1</span>] == <span class="str">'\n'</span>)
+            line[len-<span class="num">1</span>] = <span class="str">'\0'</span>;
+
+        <span class="comment">/* Skip the header row */</span>
+        <span class="kw">if</span> (lineno == <span class="num">1</span>) <span class="kw">continue</span>;
+
+        <span class="comment">/* Skip blank lines */</span>
+        <span class="kw">if</span> (line[<span class="num">0</span>] == <span class="str">'\0'</span>) <span class="kw">continue</span>;
+
+        <span class="kw">if</span> (!<span class="func">parse_student</span>(line, &amp;s)) {
+            <span class="func">fprintf</span>(stderr, <span class="str">"Warning: bad line %d, skipping\n"</span>, lineno);
+            <span class="kw">continue</span>;
+        }
+
+        <span class="func">printf</span>(<span class="str">"%-12s %-6s  GPA: %.2f  Year: %d\n"</span>,
+               s.name, s.major, s.gpa, s.year);
+        gpa_sum += s.gpa;
+        count++;
+    }
+
+    <span class="func">fclose</span>(fp);
+
+    <span class="kw">if</span> (count &gt; <span class="num">0</span>)
+        <span class="func">printf</span>(<span class="str">"\nAverage GPA: %.2f  (%d students)\n"</span>,
+               gpa_sum / count, count);
+    <span class="kw">else</span>
+        <span class="func">printf</span>(<span class="str">"No student records found.\n"</span>);
+
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+  <p>Sample output for the file shown at the top of this page:</p>
+
+  <pre><span class="comment">Alice        CS      GPA: 3.85  Year: 3
+Bob          EE      GPA: 3.40  Year: 2
+Carol        Math    GPA: 3.95  Year: 4
+Dave         CS      GPA: 2.90  Year: 1
+
+Average GPA: 3.53  (4 students)</span></pre>
+
+  <h2>Walking Through the Key Decisions</h2>
+
+  <h3>Why strip the newline before parsing?</h3>
+
+  <p><code>fgets</code> includes the <code>'\n'</code> in the buffer. If you don't strip it, the last field in every row gets a hidden newline appended — <code>"3\n"</code> instead of <code>"3"</code>. <code>atoi("3\n")</code> still works, but <code>strcmp(s.major, "CS")</code> would fail because the stored value is <code>"CS\n"</code>, not <code>"CS"</code>.</p>
+
+  <h3>Why skip line 1 (the header)?</h3>
+
+  <p>The first line contains column names, not data. If you tried to parse <code>"name,major,gpa,year"</code> into a <code>Student</code> struct, <code>atof("gpa")</code> would return 0.0 silently and you'd get a garbage record. Skipping it is simpler than detecting and rejecting it after the fact.</p>
+
+  <h3>Why pull parse_student into its own function?</h3>
+
+  <p>Separating parsing from the main I/O loop keeps each piece testable and readable. You can call <code>parse_student</code> from a unit test with a hard-coded string — no file I/O needed. This is the <strong style="color:var(--accent-main)">separation of concerns</strong> principle in practice.</p>
+
+  <h2>Limits of This Approach</h2>
+
+  <div class="key-concept">
+    <strong>Full CSV Has More Rules</strong><br>
+    The simple parser above handles the common case. Real CSV (RFC 4180) also allows fields to be quoted — <code>"Smith, John"</code> contains a comma but is one field. Quoted fields can span multiple lines. Quotes inside a quoted field are escaped by doubling them: <code>"He said ""hello"""</code>. For production code that must handle arbitrary CSV, consider a dedicated parsing library.
+  </div>
+
+  <p>For coursework and data files you control, the simple approach is exactly right — and understanding its limitations is just as valuable as knowing how to use it.</p>
+
+  <h2>Pitfalls</h2>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 1 — Calling strtok on a string literal</div>
+    <p><code>strtok</code> writes into its first argument. String literals are read-only — writing to them is undefined behavior. Always pass a character array: <code>char line[256]</code>, not <code>char *line = "..."</code>.</p>
+  </div>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 2 — Forgetting to strip the trailing newline</div>
+    <p>The last field of every line parsed with <code>fgets</code> will have a hidden <code>'\n'</code> appended. String comparisons and numeric conversions may still work, but the stored string won't match what you expect. Always strip it before parsing.</p>
+  </div>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 3 — Trusting atoi / atof with invalid data</div>
+    <p><code>atoi("hello")</code> silently returns 0. <code>atof("")</code> silently returns 0.0. If your CSV might have missing or malformed fields, use <code>strtol</code>/<code>strtod</code> and check whether the end pointer advanced.</p>
+  </div>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 4 — strtok skips consecutive delimiters</div>
+    <p><code>strtok</code> treats consecutive delimiters as a single delimiter, so empty fields — <code>"Alice,,3.85,3"</code> — are silently swallowed. If empty fields are valid in your data, you'll need a character-by-character approach or a dedicated CSV library instead.</p>
+  </div>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 5 — strtok is not re-entrant</div>
+    <p><code>strtok</code> stores its position in a hidden static variable. Calling it on a second string before finishing the first will corrupt the first parse. Never interleave two <code>strtok</code> parses. If you need that, POSIX provides <code>strtok_r</code>, a re-entrant version.</p>
+  </div>
+
+</main>
+</body>
+</html>

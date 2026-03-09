@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Memory & Paging — Class Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --text: #1e1c1a;
+    --dim: #6b6660;
+    --faint: #ccc9c0;
+    --border: #e2dfd7;
+    --code-bg: #f0efea;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.65; max-width: 680px; margin: 0 auto; padding: 48px 40px 80px; }
+
+  header { margin-bottom: 36px; border-bottom: 2px solid var(--text); padding-bottom: 16px; }
+  header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  header .meta { font-size: 13px; color: var(--dim); }
+
+  .session-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: #fff;
+    background: #1a1815;
+    display: inline-block;
+    padding: 3px 10px; border-radius: 3px;
+    margin: 44px 0 16px;
+  }
+
+  h2 {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--dim);
+    margin: 32px 0 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  ol { list-style: none; counter-reset: step; display: flex; flex-direction: column; }
+
+  ol li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 0 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+    font-size: 15px;
+  }
+  ol li:last-child { border-bottom: none; }
+
+  ol li::before {
+    content: counter(step);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; font-weight: 600;
+    color: var(--dim);
+    padding-top: 2px;
+  }
+
+  ol li > div { min-width: 0; }
+
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+
+  pre {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--code-bg);
+    border-left: 2px solid var(--faint);
+    padding: 8px 12px;
+    margin: 6px 0 0;
+    font-size: 13px; line-height: 1.6;
+    border-radius: 0 3px 3px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  @media print {
+    body { padding: 24px 28px; font-size: 13px; }
+    .session-label { background: #1a1815 !important; -webkit-print-color-adjust: exact; }
+  }
+  @media (max-width: 500px) { body { padding: 24px 20px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Virtual Memory &amp; Paging — Class Guide</h1>
+  <div class="meta">CS253 &nbsp;·&nbsp; Three 75-min sessions &nbsp;·&nbsp; vm-01 through vm-03</div>
+</header>
+
+<!-- ══════════════════════════════════════════════════ -->
+<div class="session-label">Session 1 — Virtual Memory</div>
+
+<h2>Opening Problem</h2>
+<ol>
+  <li><div>Open with a concrete puzzle: your machine has 16 GB of RAM and you're running 40 programs. Their combined memory use might be 30 GB. How? And how does a bug in one program not corrupt another? Let students guess. Don't answer yet — use the tension to motivate everything that follows.</div></li>
+  <li><div>Ask: when you write <code>int x = 42;</code> and then <code>printf("%p", &amp;x)</code>, what does that address actually mean? Is it a location in a RAM chip? Most students assume yes. The answer is no — and that's the whole lecture.</div></li>
+</ol>
+
+<h2>The Abstraction</h2>
+<ol>
+  <li><div>State the definition plainly: a virtual address is a number in a private, per-process address space. A physical address is an actual location in RAM. Your program only ever sees virtual addresses. The hardware translates them to physical on every single memory access.</div></li>
+  <li><div>Draw on the board: three processes on the left, each with "0x0000…FFFF" address space. An arrow from each to a box labeled "OS + MMU." An arrow from that box to a single bar of physical RAM divided into colored chunks. Each process thinks it owns everything; they actually share one physical resource.</div></li>
+  <li><div>Introduce the MMU — Memory Management Unit. It's a piece of hardware inside the CPU. It performs the virtual→physical translation automatically, on every load and store, with no software involved. There is no speed penalty for the indirection in normal operation.</div></li>
+</ol>
+
+<h2>Three Problems Virtual Memory Solves</h2>
+<ol>
+  <li><div><strong>Isolation.</strong> Process A's virtual address 0x1000 maps to a different physical location than Process B's virtual address 0x1000. A bug in A cannot corrupt B's memory — not because of software checks, but because the hardware simply routes them to different physical pages. This is why a crash in one process doesn't take down the system.</div></li>
+  <li><div><strong>More address space than physical RAM.</strong> Pages that haven't been accessed recently can be written to disk (swap) and their physical frames reused. When the program touches them again, they're loaded back transparently. The program never knows. This is why you can open more applications than your RAM can fit.</div></li>
+  <li><div><strong>Simplified loading.</strong> Because every process has its own address space, every program can be compiled to use the same virtual addresses. Without virtual memory, the OS would have to relink every binary at load time to avoid collisions. Ask students: why does every C program's <code>main</code> end up at roughly the same virtual address?</div></li>
+</ol>
+
+<h2>Address Space Size</h2>
+<ol>
+  <li><div>On a 64-bit system the virtual address space is 2⁶⁴ bytes in theory — 16 exabytes. In practice, current hardware only uses 48 bits (256 TB). Half goes to user processes (low addresses), half to the kernel (high addresses). Draw this split on the board as a tall bar.</div></li>
+  <li><div>Point out the implication: a 64-bit pointer can address 256 TB of virtual space, but the machine may only have 32 GB of RAM. The virtual space is vastly larger than the physical backing. This is not a bug — it's the whole point.</div></li>
+</ol>
+
+<h2>Common Misconceptions to Address Head-On</h2>
+<ol>
+  <li><div><strong>"A pointer is a RAM address."</strong> No — it's a virtual address. The physical location it corresponds to can change (e.g., after a swap), and the same virtual address in two processes points to different physical bytes.</div></li>
+  <li><div><strong>"malloc gives you raw memory."</strong> No — malloc carves from your process's heap, which is already a region of virtual address space the OS set up. The OS doesn't see individual malloc calls. It sees larger requests when the heap needs to grow.</div></li>
+  <li><div><strong>"Two processes can never share memory."</strong> Isolation is the default — but the OS can deliberately map the same physical page into two processes' address spaces. This is how shared memory IPC works. Isolation is a policy, not a physical constraint.</div></li>
+</ol>
+
+<h2>Pitfalls — Session 1</h2>
+<ol>
+  <li><div>Don't conflate virtual and physical addresses. In a C program, all addresses are virtual. Students will not be able to find the "real" location of a variable without OS tools like <code>/proc/PID/maps</code>.</div></li>
+  <li><div>Optimistic allocation: <code>malloc</code> can succeed even when the physical page doesn't exist yet. On Linux, the OS may say "yes" and only actually assign physical RAM on first write. A program that checks malloc's return value but later crashes with OOM has been caught by this.</div></li>
+</ol>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<div class="session-label">Session 2 — Paging</div>
+
+<h2>Dividing the Address Space</h2>
+<ol>
+  <li><div>Virtual memory is the concept. Paging is the implementation. Introduce the unit of management: a <strong>page</strong> is a fixed-size chunk of virtual address space, typically 4096 bytes (4 KB). Physical RAM is divided into equally sized <strong>frames</strong>. Pages map to frames.</div></li>
+  <li><div>Write a 48-bit virtual address on the board. Divide it into two parts: the upper 36 bits are the Virtual Page Number (VPN) — which page. The lower 12 bits are the page offset — which byte within that page. The offset passes through unchanged; only the VPN gets translated.</div></li>
+  <li><div>Ask: why 12 bits for the offset? Because 2¹² = 4096 — exactly one page. The page size and offset width are locked together.</div></li>
+</ol>
+
+<h2>The Page Table</h2>
+<ol>
+  <li><div>The OS maintains a <strong>page table</strong> for each process. It maps VPNs to Physical Frame Numbers (PFNs). Draw a two-column table on the board: left column is virtual page numbers 0, 1, 2, 3…; right column shows which physical frame each one maps to (or "not present").</div></li>
+  <li><div>Show that virtual pages don't need to map to consecutive physical frames. Virtual page 0 might be in physical frame 7; virtual page 1 might be in physical frame 2. The virtual address space looks contiguous to the program; the physical layout can be scattered anywhere.</div></li>
+  <li><div>Page Table Entry (PTE) fields worth knowing: Present bit (P) — is the page in RAM right now? Writable bit (W) — can it be written? User bit (U) — can user code access it, or kernel only? Execute-Disable (XD) — can code be executed from this page? Dirty bit (D) — has it been written since it was loaded?</div></li>
+  <li><div>Emphasize: these permission bits are enforced entirely in <em>hardware</em>, by the MMU, on every access. There is no software check. Writing to a read-only page triggers a hardware fault before a single byte is changed.</div></li>
+</ol>
+
+<h2>The TLB</h2>
+<ol>
+  <li><div>Pose the obvious problem: if the page table is in RAM, looking it up on every memory access requires reading RAM to find out where to read RAM. That would make every memory access twice as expensive. How is this solved?</div></li>
+  <li><div>Answer: the TLB — Translation Lookaside Buffer. A small, fast cache inside the CPU that stores recently used VPN→PFN mappings. A TLB hit takes ~1 cycle. A TLB miss requires a page table walk costing 20–100 cycles.</div></li>
+  <li><div>TLB hit rate is typically >99% for well-behaved programs — programs that access memory in locality-friendly patterns. Ask: what kind of code would thrash the TLB? Answer: random access over a huge array, pointer-chasing linked lists scattered in memory, anything that jumps unpredictably across many pages.</div></li>
+  <li><div>When the OS switches between processes (context switch), the TLB must be flushed or tagged — because the translations from Process A are meaningless to Process B. This is a real cost of context switching.</div></li>
+</ol>
+
+<h2>Page Faults</h2>
+<ol>
+  <li><div>When the CPU tries to access a page with P=0 (not present), it generates a <strong>page fault</strong> — a CPU exception that hands control to the OS page fault handler. The faulting instruction is suspended. The OS investigates the address and decides what to do.</div></li>
+  <li><div>Walk through the three outcomes:
+    <pre>1. Swap-in:  page was on disk, OS loads it into a free frame,
+             sets P=1, restarts the faulting instruction.
+             Program never knew anything happened.
+
+2. New page:  program accessed heap/stack memory for the first time,
+              OS allocates a new frame, zero-fills it, sets P=1.
+              This is demand paging — malloc doesn't touch RAM
+              until you first write to the memory.
+
+3. Segfault:  address is unmapped, permission violated (write to
+              read-only, execute from non-exec page), or kernel
+              address from user code. OS sends SIGSEGV. Done.</pre>
+  </div></li>
+  <li><div>Ask: why does the OS zero-fill new pages before handing them to a process? Security: the physical frame may have previously belonged to another process. Without zeroing, a program could read another process's passwords or keys through an uninitialized heap allocation. The OS pre-zeros frames in the background during idle time.</div></li>
+  <li><div>Swapping: when RAM is full, the OS evicts cold pages to disk (swap partition). Accessing them later triggers a swap-in fault. Disk is ~100,000× slower than RAM. When the system is constantly swapping in and out — because the active working set exceeds RAM — it's called <strong>thrashing</strong>. The machine appears frozen. Students may have seen this on underpowered machines.</div></li>
+</ol>
+
+<h2>Connecting Page Faults to C Bugs</h2>
+<ol>
+  <li><div>Walk through each common segfault scenario in terms of page faults:
+    <pre>NULL dereference:    address 0x0 is intentionally unmapped
+                     → page fault → no mapping → SIGSEGV
+
+Wild pointer:        random address not in any mapping
+                     → page fault → no mapping → SIGSEGV
+
+Write to rodata:     string literal page has W=0
+                     → page fault → permission violation → SIGSEGV
+
+Stack overflow:      RSP crosses below the stack limit into
+                     unmapped guard page → page fault → SIGSEGV</pre>
+  </div></li>
+  <li><div>The four-layer diagnostic: when a student gets a segfault, it lives in the Machine Environment layer. It is a virtual memory protection event — the hardware detected an illegal access and the OS terminated the process. Understanding this helps students locate the bug conceptually before reaching for gdb.</div></li>
+</ol>
+
+<h2>Pitfalls — Session 2</h2>
+<ol>
+  <li><div>TLB thrashing: code that accesses memory randomly over a large range pays a full page-table-walk penalty on nearly every access. Sequential array traversal is fast; random pointer chasing is slow — part of the reason is TLB miss rate.</div></li>
+  <li><div>Write to read-only page: string literals and <code>const</code> globals live in read-only pages. Hardware enforces this. <code>char *s = "hello"; s[0] = 'H';</code> is an immediate SIGSEGV — not a C rule violation but a memory protection fault.</div></li>
+  <li><div>Optimistic allocation revisited: on Linux, a large <code>malloc</code> may succeed even when the OS can't back it with physical RAM at that moment. The physical page is assigned on first write. Programs that never write to every byte of a huge allocation may work fine on a machine with little RAM — until they do.</div></li>
+</ol>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<div class="session-label">Session 3 — Process Layout</div>
+
+<h2>The Segments</h2>
+<ol>
+  <li><div>Draw the classic process address space diagram on the board — a tall rectangle, high addresses at top, low at bottom. Fill in the regions from top to bottom: kernel space, stack (grows ↓), mmap/shared libs region, heap (grows ↑), BSS, data, rodata, text. Students should draw this in their notes. They will refer to it for the rest of the course.</div></li>
+  <li><div>Name the two growing regions and their directions. Stack starts at a high address and grows down toward lower addresses. Heap starts just above BSS and grows up. In theory they could collide in the middle under extreme use — in practice the address space is large enough that this is almost never an issue on 64-bit systems.</div></li>
+</ol>
+
+<h2>Text and Rodata — Read-Only Segments</h2>
+<ol>
+  <li><div><strong>Text segment</strong>: compiled machine code. Permissions: read + execute, no write. Ask: why not writable? Self-modifying code would be a security disaster. The read-only permission prevents accidental and malicious modification of the program's own instructions.</div></li>
+  <li><div><strong>Rodata</strong>: string literals and <code>const</code> globals. Permissions: read-only, no write, no execute. Write on the board: <code>char *s = "hello";</code>. Ask: where does the string "hello" live? Answer: rodata. Ask: what happens if you write <code>s[0] = 'H'</code>? Answer: SIGSEGV from the write-protection fault. Now show the fix: <code>char s[] = "hello";</code> — this copies the string onto the stack, which is writable.</div></li>
+</ol>
+
+<h2>Data and BSS — Global and Static Storage</h2>
+<ol>
+  <li><div><strong>Data segment</strong>: initialized globals and static locals. The initial values are stored in the binary on disk and copied into these pages when the program loads. These pages are read/write and live for the entire process lifetime.</div></li>
+  <li><div><strong>BSS segment</strong>: uninitialized globals and statics. Not stored in the binary — the OS zero-fills these pages at startup. A 10 MB array of uninitialized globals adds nothing to the binary size on disk but is guaranteed to be all zeros in memory.
+    <pre>int scores[100000];   // BSS — 400 KB, zero-filled, no binary size cost
+int count = 5;        // data — stored in binary, loaded at startup</pre>
+  </div></li>
+  <li><div>State the rule students will use forever: global and static variables are always zero-initialized. Local variables on the stack are never zero-initialized — they contain whatever bytes the previous function left there. This difference is a direct consequence of which segment they live in.</div></li>
+</ol>
+
+<h2>The Heap</h2>
+<ol>
+  <li><div>The heap is managed by the C library allocator (on Linux: glibc's ptmalloc). <code>malloc</code> and <code>free</code> do not talk directly to the OS on every call — they manage a pool of pages the allocator has already requested. When the pool is exhausted, the allocator calls <code>brk()</code> or <code>mmap()</code> to ask the OS for more pages.</div></li>
+  <li><div>Draw fragmentation on the board: a sequence of alternating allocated and freed blocks. Free space is present but scattered. Ask: if you then call <code>malloc(large)</code>, can it succeed? Maybe not — the total free bytes exist but no single contiguous block is large enough. This is heap fragmentation.</div></li>
+  <li><div>Demand paging on the heap: when the allocator requests new pages from the OS, those pages are not immediately backed by physical RAM. Physical frames are assigned only when you first write to each page. This is why programs that allocate huge buffers but only touch a fraction of them don't actually use that much RAM.</div></li>
+</ol>
+
+<h2>The Stack</h2>
+<ol>
+  <li><div>Each function call pushes a <strong>stack frame</strong>: local variables, saved registers, the return address, and the function's arguments. When the function returns, the frame is popped — the stack pointer moves back up and that space is immediately reusable. No bookkeeping, no allocator, no free list. That's why stack allocation is so fast.</div></li>
+  <li><div>Show the frame contents live: compile a simple function with <code>-g</code> and run under gdb. Use <code>info frame</code> and <code>backtrace</code> to show students the call stack. Make it concrete — this is what "the stack" actually looks like at runtime.</div></li>
+  <li><div>Stack limit: typically 8 MB on Linux (<code>ulimit -s</code>). What happens when you exceed it? The stack pointer crosses into unmapped memory below the stack. The MMU detects a page fault to an unmapped address. The OS cannot grow the stack further. It sends SIGSEGV. This is a stack overflow.</div></li>
+  <li><div>Show both overflow mechanisms:
+    <pre>// Deep recursion — many small frames
+void inf(void) { inf(); }   // segfault after ~tens of thousands of calls
+
+// One giant frame
+void bad(void) {
+    char buf[10000000];     // 10 MB in a single frame — instant death
+}</pre>
+  </div></li>
+  <li><div>State the rule: if a local array is larger than a few KB, it belongs on the heap. Put anything big in <code>malloc</code>. The stack is for small, short-lived data.</div></li>
+</ol>
+
+<h2>Where Every Variable Lives</h2>
+<ol>
+  <li><div>Walk through the table with live code. Write the following on the board and ask students to place each variable in a segment before you reveal the answers:
+    <pre>int g_count = 0;           // data  — initialized global
+int g_scores[100];         // BSS   — uninitialized global
+const char *greeting = "Hi"; // ptr: data; "Hi": rodata
+static int call_count = 0; // data  — static local
+int x = 42;                // stack — local variable
+int *p = malloc(40);       // p: stack; *p: heap</pre>
+  </div></li>
+  <li><div>Reinforce: it's the declaration form — global, static, local, malloc — that determines the segment, not the type. An <code>int</code> can live in any segment depending on how it was declared.</div></li>
+</ol>
+
+<h2>ASLR</h2>
+<ol>
+  <li><div>Ask students to run a simple program twice that prints the address of a local variable. Show that the addresses are different each run. This surprises students who expect deterministic output.</div></li>
+  <li><div>Explain ASLR — Address Space Layout Randomization. Each time a process starts, the OS randomizes the base addresses of the stack, heap, and shared libraries. This makes it much harder to exploit memory bugs: an attacker cannot predict where code or the stack will land.</div></li>
+  <li><div>Implication for debugging: pointer values printed with <code>%p</code> are not reproducible between runs. They're useful for comparing two pointers within one run, but you can't record them and compare across sessions. Sanitizers and tools like Valgrind disable ASLR to get reproducible addresses.</div></li>
+</ol>
+
+<h2>Pitfalls — Session 3</h2>
+<ol>
+  <li><div>Returning a pointer to a local variable: the local lives on the current stack frame. When the function returns, that frame is gone. The caller holds a pointer into recycled stack space that will be overwritten by the next function call. Compile with <code>-Wall</code> — GCC will warn about this.</div></li>
+  <li><div>Large local arrays: <code>char buf[10000000]</code> as a local variable allocates 10 MB on the stack before the function body even runs. The stack limit is exceeded immediately. Put large buffers on the heap.</div></li>
+  <li><div>Assuming locals are zero: stack memory contains garbage from previous calls. Only global/static variables are guaranteed zero. Always initialize locals. This is a virtual memory design fact, not just a C style preference.</div></li>
+  <li><div>Heap-stack lifetime mismatch: storing a pointer to a local variable inside a heap-allocated struct is valid as long as the function hasn't returned. But if the heap struct outlives the function, the pointer dangles the moment the function returns. Lifetime discipline is required whenever mixing segment types through pointers.</div></li>
+</ol>
+
+<h2>Wrap-Up — The Full Picture</h2>
+<ol>
+  <li><div>Connect the three sessions into one chain: your C program uses virtual addresses (session 1) → the hardware breaks each address into a page number and offset, looks up the mapping in the page table, and translates it to a physical frame (session 2) → that physical frame holds bytes from one of the named segments your program was loaded into (session 3). Every memory access your program makes follows this complete path.</div></li>
+  <li><div>Draw the diagnostic ladder on the board. When a student gets a segfault, they now have a mental model for what actually happened: a virtual address was accessed, the MMU checked the page table, something was wrong (no mapping, wrong permission, guard page), a page fault fired, the OS determined it was unrecoverable, SIGSEGV was delivered. The bug is wherever the bad address came from — null pointer, wild pointer, out-of-bounds access, dangling pointer, or stack overflow.</div></li>
+  <li><div>Bridge to future topics: file I/O and <code>mmap</code> map file contents directly into the virtual address space — no explicit read/copy needed. Process creation with <code>fork()</code> copies the page table (with copy-on-write optimization). Shared libraries are mapped into the mmap region and their pages can be physically shared across every process that uses them. Virtual memory is the foundation all of these sit on.</div></li>
+</ol>
+
+</body>
+</html>

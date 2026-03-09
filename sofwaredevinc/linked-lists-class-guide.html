@@ -23,12 +23,12 @@
   h2 {
     font-size: 13px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 1px; color: var(--dim);
-    margin: 36px 0 12px;
-    padding-bottom: 6px;
+    margin: 36px 0 12px; padding-bottom: 6px;
     border-bottom: 1px solid var(--border);
   }
 
-  ol { list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 0; }
+  ol { list-style: none; counter-reset: step; display: flex; flex-direction: column; }
+
   ol li {
     counter-increment: step;
     display: grid;
@@ -40,14 +40,16 @@
     font-size: 15px;
   }
   ol li:last-child { border-bottom: none; }
+
   ol li::before {
     content: counter(step);
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 12px; font-weight: 600;
     color: var(--dim);
     padding-top: 2px;
   }
+
+  ol li > div { min-width: 0; }
 
   code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
 
@@ -57,9 +59,10 @@
     border-left: 2px solid var(--faint);
     padding: 8px 12px;
     margin: 6px 0 0;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 13px; line-height: 1.6;
     border-radius: 0 3px 3px 0;
+    overflow-x: auto;
+    white-space: pre;
   }
 
   @media print { body { padding: 24px 28px; } }
@@ -75,74 +78,74 @@
 
 <h2>Motivation</h2>
 <ol>
-  <li>Ask: what's the cost of inserting at the front of a 10,000-element array?</li>
-  <li>Explain: arrays require shifting everything — O(n). Size is also fixed at allocation.</li>
-  <li>Introduce the trade-off: linked lists give O(1) insert/delete anywhere, grow freely at runtime, but lose O(1) random access.</li>
+  <li><div>Ask: what's the cost of inserting at the front of a 10,000-element array?</div></li>
+  <li><div>Explain: arrays require shifting everything — O(n). Size is also fixed at allocation.</div></li>
+  <li><div>Introduce the trade-off: linked lists give O(1) insert/delete anywhere, grow freely at runtime, but lose O(1) random access.</div></li>
 </ol>
 
 <h2>The Node Struct</h2>
 <ol>
-  <li>Explain: a linked list is just heap-allocated structs chained by pointers. Nothing new — structs and pointers they already know.</li>
-  <li>Write the Node definition. Explain why the tagged form is required for the self-referential pointer.
+  <li><div>Explain: a linked list is just heap-allocated structs chained by pointers. Nothing new — structs and pointers they already know.</div></li>
+  <li><div>Write the Node definition. Explain why the tagged form is required for the self-referential pointer.
     <pre>typedef struct Node {
     int          value;
     struct Node *next;
 } Node;</pre>
-  </li>
-  <li>Write <code>make_node()</code> — malloc, NULL check, set fields, return.</li>
-  <li>Ask: what does NULL mean for the <code>next</code> field? Answer: end of list. Every traversal stops here.</li>
-  <li>Draw three nodes on the board with arrows. Leave it up for the rest of class.</li>
+  </div></li>
+  <li><div>Write <code>make_node()</code> — malloc, NULL check, set fields, return.</div></li>
+  <li><div>Ask: what does NULL mean for the <code>next</code> field? Answer: end of list. Every traversal stops here.</div></li>
+  <li><div>Draw three nodes on the board with arrows. Leave it up for the rest of class.</div></li>
 </ol>
 
 <h2>Building a List</h2>
 <ol>
-  <li>Write <code>prepend()</code>. Talk through the two steps: new node points at old head, return new node as head.</li>
-  <li>Build a list live — call prepend three times, update the board diagram after each call.</li>
-  <li>Call out the caller pattern: <code>list = prepend(list, x)</code>. Forgetting the reassignment is a common bug.</li>
-  <li>Write <code>append()</code>. Handle the empty list case. Walk to last node with <code>cur->next != NULL</code>.</li>
-  <li>Ask: why stop at <code>cur->next != NULL</code> and not <code>cur != NULL</code>? Answer: you need to set <code>cur->next</code> — you can't do that if cur is already NULL.</li>
+  <li><div>Write <code>prepend()</code>. Talk through the two steps: new node points at old head, return new node as head.</div></li>
+  <li><div>Build a list live — call prepend three times, update the board diagram after each call.</div></li>
+  <li><div>Call out the caller pattern: <code>list = prepend(list, x)</code>. Forgetting the reassignment is a common bug.</div></li>
+  <li><div>Write <code>append()</code>. Handle the empty list case. Walk to last node with <code>cur-&gt;next != NULL</code>.</div></li>
+  <li><div>Ask: why stop at <code>cur-&gt;next != NULL</code> and not <code>cur != NULL</code>? Answer: you need to set <code>cur-&gt;next</code> — you can't do that if cur is already NULL.</div></li>
 </ol>
 
 <h2>Traversal</h2>
 <ol>
-  <li>State the rule: never advance <code>head</code>. Always use a local <code>cur</code> pointer.</li>
-  <li>Write <code>print_list()</code> using the for-loop form. This is the canonical traversal shape — memorize it.
+  <li><div>State the rule: never advance <code>head</code>. Always use a local <code>cur</code> pointer.</div></li>
+  <li><div>Write <code>print_list()</code> using the for-loop form. This is the canonical traversal shape — memorize it.
     <pre>for (Node *cur = head; cur != NULL; cur = cur->next)</pre>
-  </li>
-  <li>Write <code>find()</code> to show traversal with early return and NULL on failure.</li>
-  <li>Warn: using <code>head</code> as the traversal variable is invisible in read-only functions (pass by value protects you) but destroys the list if the function holds a <code>Node **</code>. Build the habit now.</li>
+  </div></li>
+  <li><div>Write <code>find()</code> to show traversal with early return and NULL on failure.</div></li>
+  <li><div>Warn: using <code>head</code> as the traversal variable is invisible in read-only functions (pass by value protects you) but destroys the list if the function holds a <code>Node **</code>. Build the habit now.</div></li>
 </ol>
 
 <h2>Insertion in the Middle</h2>
 <ol>
-  <li>Explain: you need the predecessor node — the one before the insertion point.</li>
-  <li>Draw the two rewiring steps on the board before writing any code.</li>
-  <li>Write <code>insert_after()</code> matching the diagram: set <code>n->next</code> first, then update <code>prev->next</code>.</li>
-  <li>Show what happens if you reverse the steps — <code>prev->next = n</code> first loses the tail of the list entirely.</li>
+  <li><div>Explain: you need the predecessor node — the one before the insertion point.</div></li>
+  <li><div>Draw the two rewiring steps on the board before writing any code.</div></li>
+  <li><div>Write <code>insert_after()</code> matching the diagram: set <code>n-&gt;next</code> first, then update <code>prev-&gt;next</code>.</div></li>
+  <li><div>Show what happens if you reverse the steps — <code>prev-&gt;next = n</code> first loses the tail of the list entirely.</div></li>
 </ol>
 
 <h2>Deletion</h2>
 <ol>
-  <li>Explain: deletion = unlink the node + free its memory. Both required. One without the other is a bug.</li>
-  <li>Show the read-after-free mistake immediately, before writing any deletion code.
-    <pre>free(cur);             // WRONG: freed
-cur = cur->next;       // reading freed memory — undefined behavior
+  <li><div>Explain: deletion = unlink the node + free its memory. Both required. One without the other is a bug.</div></li>
+  <li><div>Show the read-after-free mistake immediately, before writing any deletion code.
+    <pre>free(cur);              // WRONG: freed
+cur = cur->next;        // reading freed memory — undefined behavior
 
 Node *next = cur->next; // RIGHT: save next first
 free(cur);
 cur = next;</pre>
-  </li>
-  <li>Write <code>delete_front()</code>. Save <code>head->next</code>, free old head, return new head.</li>
-  <li>Write <code>free_list()</code> using the save-next pattern.</li>
-  <li>Write <code>delete_value()</code>. Handle the head special case first, then the predecessor-walk for the general case.</li>
-  <li>Ask: why does deleting the head node need a special case? Answer: there's no predecessor inside the list to update — the change has to propagate to the caller.</li>
+  </div></li>
+  <li><div>Write <code>delete_front()</code>. Save <code>head-&gt;next</code>, free old head, return new head.</div></li>
+  <li><div>Write <code>free_list()</code> using the save-next pattern.</div></li>
+  <li><div>Write <code>delete_value()</code>. Handle the head special case first, then the predecessor-walk for the general case.</div></li>
+  <li><div>Ask: why does deleting the head node need a special case? Answer: there's no predecessor inside the list to update — the change has to propagate to the caller.</div></li>
 </ol>
 
 <h2>Wrap-up</h2>
 <ol>
-  <li>Five bugs they will write: losing head · read after free · wrong insertion order · not checking NULL · forgetting to free.</li>
-  <li>Three rules that prevent most of them: use <code>cur</code> not <code>head</code> · save next before free · wire new node's next before updating predecessor.</li>
-  <li>Bridge: this node-with-a-next-pointer pattern is the foundation for trees, graphs, and hash table chaining. The shape scales to every pointer-based data structure in C.</li>
+  <li><div>Five bugs they will write: losing head · read after free · wrong insertion order · not checking NULL · forgetting to free.</div></li>
+  <li><div>Three rules that prevent most of them: use <code>cur</code> not <code>head</code> · save next before free · wire new node's next before updating predecessor.</div></li>
+  <li><div>Bridge: this node-with-a-next-pointer pattern is the foundation for trees, graphs, and hash table chaining. The shape scales to every pointer-based data structure in C.</div></li>
 </ol>
 
 </body>

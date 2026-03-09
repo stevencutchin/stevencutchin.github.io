@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File I/O — C Input/Output</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --accent-teal: #1de9b6;
+    --accent-main: #1de9b6;
+    --code-bg: #0a0f1a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 18px;
+    line-height: 1.75;
+    min-height: 100vh;
+  }
+
+  .page-grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  .series-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(12px);
+  }
+
+  .series-bar .chip {
+    background: var(--accent-main);
+    color: var(--bg);
+    padding: 2px 10px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 20px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-main); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+
+  .hero { padding: 80px 40px 60px; max-width: 900px; margin: 0 auto; }
+
+  .hero .number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--accent-main);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    font-size: clamp(40px, 6vw, 64px);
+    color: var(--heading);
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  h1 .highlight {
+    background: linear-gradient(135deg, var(--accent-main), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 20px;
+    color: var(--text-dim);
+    max-width: 620px;
+    line-height: 1.6;
+  }
+
+  .content { max-width: 900px; margin: 0 auto; padding: 0 40px 100px; }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--heading);
+    margin: 60px 0 24px;
+    padding-top: 20px;
+  }
+
+  h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    color: var(--accent-main);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 40px 0 16px;
+  }
+
+  p { margin-bottom: 20px; }
+
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 32px 0;
+    overflow-x: auto;
+  }
+
+  .diagram-container .caption {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 16px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 15px;
+    color: var(--accent-green);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 24px 0;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+
+  pre .kw    { color: var(--accent-purple); }
+  pre .type  { color: var(--accent-cyan); }
+  pre .str   { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num   { color: var(--accent-orange); }
+  pre .func  { color: var(--accent-orange); }
+
+  .key-concept {
+    background: linear-gradient(135deg, rgba(29,233,182,0.06), rgba(0,229,255,0.04));
+    border-left: 3px solid var(--accent-main);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .key-concept strong {
+    color: var(--accent-main);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .warning {
+    background: rgba(255,82,82,0.06);
+    border-left: 3px solid var(--accent-red);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .warning strong { color: var(--accent-red); }
+
+  .analogy {
+    background: rgba(179,136,255,0.06);
+    border-left: 3px solid var(--accent-purple);
+    padding: 20px 24px;
+    margin: 28px 0;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .analogy strong { color: var(--accent-purple); }
+
+  .pitfall-card {
+    background: rgba(255,82,82,0.05);
+    border: 1px solid rgba(255,82,82,0.2);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+
+  .pitfall-card .pitfall-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent-red);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+  }
+
+  th {
+    background: var(--surface2);
+    color: var(--accent-main);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  td:first-child { color: var(--accent-green); }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.01); }
+
+  .step-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin: 20px 0;
+  }
+
+  .step-num {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent-main);
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 15px;
+    margin-top: 2px;
+  }
+
+  .step-content { flex: 1; }
+  .step-content strong { color: var(--heading); }
+
+  @media (max-width: 600px) {
+    .hero, .content { padding-left: 20px; padding-right: 20px; }
+    .series-bar { padding: 10px 16px; font-size: 11px; }
+    .diagram-container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">2 / 3</span>
+  <span>C Input/Output</span>
+  <div class="nav-links">
+    <a href="io-01-terminal-io.html">Terminal I/O</a>
+    <a href="io-02-file-io.html" class="active">File I/O</a>
+    <a href="io-03-parsing-csv.html">Parsing CSV</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="number">Chapter 02</div>
+  <h1>File <span class="highlight">Input &amp; Output</span></h1>
+  <p class="subtitle">Files are just streams that point to disk instead of the terminal. The same functions, the same mental model — and the same responsibility to clean up when you're done.</p>
+</header>
+
+<main class="content">
+
+  <h2>FILE* — The Stream Handle</h2>
+
+  <p>In C, every open file is represented by a <code>FILE*</code> — a pointer to an opaque structure maintained by the standard library. You never look inside it directly. You hand it to I/O functions and they do the right thing.</p>
+
+  <div class="analogy">
+    <strong>Analogy</strong><br>
+    A <code>FILE*</code> is like a bookmark in a book, combined with a description of how you opened the book (read-only? read/write? start from the beginning?). The library keeps track of where you are and handles the actual disk access. You just pass the bookmark around.
+  </div>
+
+  <p>The three standard streams you already know — <code>stdin</code>, <code>stdout</code>, <code>stderr</code> — are all <code>FILE*</code> values that the runtime pre-opens for you. When you open your own files, you get the same type.</p>
+
+  <h2>The Open / Use / Close Pattern</h2>
+
+  <p>Every file operation follows the same three-step lifecycle. Skipping step 3 is one of the most common resource leaks in C programs.</p>
+
+  <div class="step-box">
+    <div class="step-num">1</div>
+    <div class="step-content"><strong>Open</strong> — call <code>fopen()</code> to get a <code>FILE*</code>. Check for <code>NULL</code> before proceeding.</div>
+  </div>
+  <div class="step-box">
+    <div class="step-num">2</div>
+    <div class="step-content"><strong>Use</strong> — read from or write to the file using the <code>FILE*</code> you received.</div>
+  </div>
+  <div class="step-box">
+    <div class="step-num">3</div>
+    <div class="step-content"><strong>Close</strong> — call <code>fclose()</code> to flush any buffered data to disk and release the file handle back to the OS.</div>
+  </div>
+
+  <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+
+<span class="type">int</span> <span class="func">main</span>(<span class="type">void</span>) {
+    <span class="comment">// 1. Open</span>
+    <span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+    <span class="kw">if</span> (fp == NULL) {
+        <span class="func">perror</span>(<span class="str">"fopen"</span>);   <span class="comment">// prints the system error message</span>
+        <span class="kw">return</span> <span class="num">1</span>;
+    }
+
+    <span class="comment">// 2. Use</span>
+    <span class="type">char</span> line[<span class="num">256</span>];
+    <span class="kw">while</span> (<span class="func">fgets</span>(line, <span class="kw">sizeof</span>(line), fp) != NULL) {
+        <span class="func">printf</span>(<span class="str">"%s"</span>, line);    <span class="comment">// line already contains '\n'</span>
+    }
+
+    <span class="comment">// 3. Close</span>
+    <span class="func">fclose</span>(fp);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+  <h2>fopen Mode Strings</h2>
+
+  <p>The second argument to <code>fopen</code> is the <strong style="color:var(--accent-main)">mode string</strong> — it specifies what you want to do with the file and what happens if it doesn't exist yet.</p>
+
+  <table>
+    <thead>
+      <tr><th>Mode</th><th>Meaning</th><th>File exists</th><th>File missing</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>"r"</td><td>Read only</td><td>Open at start</td><td>Returns NULL</td></tr>
+      <tr><td>"w"</td><td>Write only</td><td><strong style="color:var(--accent-red)">Truncates to zero</strong></td><td>Creates new file</td></tr>
+      <tr><td>"a"</td><td>Append (write)</td><td>Open at end</td><td>Creates new file</td></tr>
+      <tr><td>"r+"</td><td>Read + write</td><td>Open at start</td><td>Returns NULL</td></tr>
+      <tr><td>"w+"</td><td>Read + write</td><td><strong style="color:var(--accent-red)">Truncates to zero</strong></td><td>Creates new file</td></tr>
+      <tr><td>"rb"</td><td>Binary read</td><td>Open at start</td><td>Returns NULL</td></tr>
+      <tr><td>"wb"</td><td>Binary write</td><td>Truncates to zero</td><td>Creates new file</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <strong>Mode "w" destroys existing content</strong><br>
+    Opening a file with <code>"w"</code> immediately truncates it to zero bytes — even before you write anything. If you open the wrong file by accident, the original content is gone. There is no warning. Always double-check the filename before using write mode.
+  </div>
+
+  <h2>Reading from Files</h2>
+
+  <h3>fgets — Line by Line</h3>
+
+  <p><code>fgets</code> is the standard way to read a text file line by line. It reads until it encounters a newline, fills the buffer, or reaches EOF — whichever comes first.</p>
+
+  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"names.txt"</span>, <span class="str">"r"</span>);
+<span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="type">char</span> line[<span class="num">256</span>];
+<span class="kw">while</span> (<span class="func">fgets</span>(line, <span class="kw">sizeof</span>(line), fp) != NULL) {
+    <span class="comment">// Strip trailing newline</span>
+    <span class="type">size_t</span> len = <span class="func">strlen</span>(line);
+    <span class="kw">if</span> (len &gt; <span class="num">0</span> &amp;&amp; line[len-<span class="num">1</span>] == <span class="str">'\n'</span>)
+        line[len-<span class="num">1</span>] = <span class="str">'\0'</span>;
+    <span class="func">printf</span>(<span class="str">"Read: [%s]\n"</span>, line);
+}
+<span class="func">fclose</span>(fp);</pre>
+
+  <h3>fscanf — Formatted File Reading</h3>
+
+  <p><code>fscanf</code> is the file version of <code>scanf</code>. It reads formatted data from a <code>FILE*</code> instead of <code>stdin</code>. Useful for files with a consistent record structure.</p>
+
+  <pre><span class="comment">// Suppose scores.txt contains lines like: "Alice 95"</span>
+<span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"scores.txt"</span>, <span class="str">"r"</span>);
+<span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="type">char</span> name[<span class="num">64</span>];
+<span class="type">int</span>  score;
+
+<span class="kw">while</span> (<span class="func">fscanf</span>(fp, <span class="str">"%63s %d"</span>, name, &amp;score) == <span class="num">2</span>) {
+    <span class="func">printf</span>(<span class="str">"%s scored %d\n"</span>, name, score);
+}
+<span class="func">fclose</span>(fp);</pre>
+
+  <h3>fread — Binary / Raw Reads</h3>
+
+  <p>For binary files — images, structs, custom formats — use <code>fread</code>. It reads a specified number of <em>items</em> each of a specified <em>size</em> and returns how many items were actually read.</p>
+
+  <pre><span class="comment">// Read up to 100 integers from a binary file</span>
+<span class="type">int</span> buffer[<span class="num">100</span>];
+<span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.bin"</span>, <span class="str">"rb"</span>);
+<span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="type">size_t</span> n = <span class="func">fread</span>(buffer, <span class="kw">sizeof</span>(<span class="type">int</span>), <span class="num">100</span>, fp);
+<span class="func">printf</span>(<span class="str">"Read %zu integers\n"</span>, n);
+<span class="func">fclose</span>(fp);</pre>
+
+  <h2>Writing to Files</h2>
+
+  <h3>fprintf — Formatted File Writing</h3>
+
+  <p>Just like <code>printf</code> but directs output to a <code>FILE*</code>. This is the most common way to produce structured text output to a file.</p>
+
+  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"report.txt"</span>, <span class="str">"w"</span>);
+<span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="func">fprintf</span>(fp, <span class="str">"Student Report\n"</span>);
+<span class="func">fprintf</span>(fp, <span class="str">"Name: %s, Score: %d\n"</span>, <span class="str">"Alice"</span>, <span class="num">95</span>);
+<span class="func">fprintf</span>(fp, <span class="str">"Name: %s, Score: %d\n"</span>, <span class="str">"Bob"</span>, <span class="num">87</span>);
+
+<span class="func">fclose</span>(fp);   <span class="comment">// flush and close — don't skip this!</span></pre>
+
+  <h3>fputs — Write a String</h3>
+  <p><code>fputs(str, fp)</code> writes a string to a file without a trailing newline (unlike <code>puts</code> which adds one to <code>stdout</code>).</p>
+
+  <h3>fwrite — Binary / Raw Writes</h3>
+
+  <pre><span class="comment">// Write an array of structs to a binary file</span>
+<span class="kw">typedef struct</span> {
+    <span class="type">int</span>   id;
+    <span class="type">float</span> score;
+} Record;
+
+Record records[<span class="num">3</span>] = {{<span class="num">1</span>, <span class="num">95.5f</span>}, {<span class="num">2</span>, <span class="num">87.0f</span>}, {<span class="num">3</span>, <span class="num">91.2f</span>}};
+
+<span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"records.bin"</span>, <span class="str">"wb"</span>);
+<span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="func">fwrite</span>(records, <span class="kw">sizeof</span>(Record), <span class="num">3</span>, fp);
+<span class="func">fclose</span>(fp);</pre>
+
+  <h2>Detecting End-of-File and Errors</h2>
+
+  <p>When a read function returns a sentinel value — <code>NULL</code> for <code>fgets</code>, <code>EOF</code> for <code>fscanf</code> — it could mean one of two things: either you reached the end of the file, or an error occurred. Use <code>feof</code> and <code>ferror</code> to tell them apart.</p>
+
+  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+<span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+<span class="type">char</span> line[<span class="num">256</span>];
+<span class="kw">while</span> (<span class="func">fgets</span>(line, <span class="kw">sizeof</span>(line), fp) != NULL) {
+    <span class="func">process</span>(line);
+}
+
+<span class="comment">// After the loop, determine why fgets stopped</span>
+<span class="kw">if</span> (<span class="func">ferror</span>(fp)) {
+    <span class="func">fprintf</span>(stderr, <span class="str">"Error reading file\n"</span>);
+} <span class="kw">else if</span> (<span class="func">feof</span>(fp)) {
+    <span class="func">printf</span>(<span class="str">"Reached end of file normally\n"</span>);
+}
+
+<span class="func">fclose</span>(fp);</pre>
+
+  <div class="key-concept">
+    <strong>Don't loop on feof</strong><br>
+    A classic bug is writing <code>while (!feof(fp))</code> as the loop condition. <code>feof</code> only becomes true <em>after</em> a read has failed — so the loop always executes one extra iteration and processes stale data. Loop on the return value of the read function instead.
+  </div>
+
+  <h2>perror — Printing System Error Messages</h2>
+
+  <p>When an I/O function fails, the C library sets a global variable called <code>errno</code> to indicate the reason. <code>perror(label)</code> prints that reason as a human-readable message to <code>stderr</code>:</p>
+
+  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"nonexistent.txt"</span>, <span class="str">"r"</span>);
+<span class="kw">if</span> (fp == NULL) {
+    <span class="func">perror</span>(<span class="str">"fopen"</span>);
+    <span class="comment">// Output: "fopen: No such file or directory"</span>
+    <span class="kw">return</span> <span class="num">1</span>;
+}</pre>
+
+  <p>The string you pass to <code>perror</code> becomes a prefix before the system message. Use the function name so you know where the failure happened.</p>
+
+  <h2>The File I/O Function Family</h2>
+
+  <table>
+    <thead>
+      <tr><th>Function</th><th>Direction</th><th>Type</th><th>Analogue</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>fgets(buf, n, fp)</td><td>Read</td><td>Text line</td><td>fgets(buf, n, stdin)</td></tr>
+      <tr><td>fscanf(fp, fmt, ...)</td><td>Read</td><td>Formatted</td><td>scanf(fmt, ...)</td></tr>
+      <tr><td>fread(buf, sz, n, fp)</td><td>Read</td><td>Binary</td><td>—</td></tr>
+      <tr><td>fgetc(fp)</td><td>Read</td><td>One char</td><td>getchar()</td></tr>
+      <tr><td>fprintf(fp, fmt, ...)</td><td>Write</td><td>Formatted</td><td>printf(fmt, ...)</td></tr>
+      <tr><td>fputs(str, fp)</td><td>Write</td><td>String</td><td>puts(str)</td></tr>
+      <tr><td>fwrite(buf, sz, n, fp)</td><td>Write</td><td>Binary</td><td>—</td></tr>
+      <tr><td>fputc(c, fp)</td><td>Write</td><td>One char</td><td>putchar(c)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>A Complete Read/Write Example</h2>
+
+  <p>This program reads student names from one file and writes a formatted report to another — showing the full open/use/close pattern for both input and output:</p>
+
+  <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+
+<span class="type">int</span> <span class="func">main</span>(<span class="type">void</span>) {
+    <span class="type">FILE</span> *in  = <span class="func">fopen</span>(<span class="str">"students.txt"</span>, <span class="str">"r"</span>);
+    <span class="type">FILE</span> *out = <span class="func">fopen</span>(<span class="str">"report.txt"</span>,   <span class="str">"w"</span>);
+
+    <span class="kw">if</span> (!in  || !out) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
+
+    <span class="func">fprintf</span>(out, <span class="str">"=== Enrollment Report ===\n"</span>);
+
+    <span class="type">char</span> name[<span class="num">64</span>];
+    <span class="type">int</span>  count = <span class="num">0</span>;
+
+    <span class="kw">while</span> (<span class="func">fgets</span>(name, <span class="kw">sizeof</span>(name), in) != NULL) {
+        <span class="comment">// Strip trailing newline</span>
+        <span class="type">size_t</span> len = <span class="func">strlen</span>(name);
+        <span class="kw">if</span> (len &gt; <span class="num">0</span> &amp;&amp; name[len-<span class="num">1</span>] == <span class="str">'\n'</span>)
+            name[len-<span class="num">1</span>] = <span class="str">'\0'</span>;
+
+        count++;
+        <span class="func">fprintf</span>(out, <span class="str">"%3d. %s\n"</span>, count, name);
+    }
+
+    <span class="func">fprintf</span>(out, <span class="str">"\nTotal students: %d\n"</span>, count);
+
+    <span class="func">fclose</span>(in);
+    <span class="func">fclose</span>(out);
+    <span class="func">printf</span>(<span class="str">"Report written to report.txt\n"</span>);
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+  <h2>Pitfalls</h2>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 1 — Not checking fopen for NULL</div>
+    <p>If <code>fopen</code> fails and you ignore the return value, the first read or write call will dereference a NULL pointer and crash. Every <code>fopen</code> must be followed by a NULL check.</p>
+  </div>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 2 — Forgetting fclose</div>
+    <p>Data written to a file is often held in an internal buffer and not flushed to disk until <code>fclose</code> (or until the buffer fills). Skip <code>fclose</code> and your output file may be empty or truncated — even if no error was reported.</p>
+  </div>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 3 — Opening for write when you meant append</div>
+    <p>Mode <code>"w"</code> silently destroys the existing file contents the moment you call <code>fopen</code>. If you want to add to an existing file, use <code>"a"</code>.</p>
+  </div>
+
+  <div class="pitfall-card">
+    <div class="pitfall-title">⚠ Pitfall 4 — Mixing text and binary mode</div>
+    <p>On Windows, text mode (<code>"r"</code>, <code>"w"</code>) translates <code>\r\n</code> to <code>\n</code>. Binary mode (<code>"rb"</code>, <code>"wb"</code>) does no translation. For portability with binary files — images, structs — always use binary mode explicitly.</p>
+  </div>
+
+</main>
+</body>
+</html>

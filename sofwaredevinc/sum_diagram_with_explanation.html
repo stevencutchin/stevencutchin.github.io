@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calling sum(3, 4) — Memory Diagram</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0e1a; --panel:#111827; --border:#2a3550;
+  --stack-c:#1a3a5c; --stack-b:#4da6ff;
+  --heap-c:#1a3d2b;  --heap-b:#3ddc84;
+  --bss-c:#2a2a1a;   --bss-b:#f0c040;
+  --data-c:#2a1a1a;  --data-b:#ff7b5c;
+  --text-c:#1f1a35;  --text-b:#b48eff;
+  --reg-b:#50e890;   --step-c:#ff9d45;
+  --muted:#5a6a80;   --fg:#d8e4f0;
+  --mono:'JetBrains Mono',monospace;
+  --head:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--mono);display:flex;justify-content:center;padding:40px 20px 80px}
+.page{width:100%;max-width:880px}
+
+.title-block{text-align:center;margin-bottom:36px}
+.title-block h1{font-family:var(--head);font-size:clamp(1.4rem,3vw,2rem);font-weight:800;color:#fff;line-height:1.2}
+.title-block h1 span{color:var(--stack-b)}
+.title-block p{font-size:0.78rem;color:var(--muted);margin-top:8px;letter-spacing:.05em}
+
+.main-grid{display:grid;grid-template-columns:72px 1fr 200px;gap:0;align-items:stretch}
+.addr-col{display:flex;flex-direction:column;justify-content:space-between;padding:0 10px 0 0}
+.addr{font-size:.65rem;color:var(--step-c);text-align:right;line-height:1;white-space:nowrap}
+.addr.faint{color:var(--muted)}
+
+.mem-col{border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.mem-seg{padding:14px 18px;border-bottom:1px solid var(--border);position:relative}
+.mem-seg:last-child{border-bottom:none}
+.seg-name{font-family:var(--head);font-size:1rem;font-weight:700;letter-spacing:.04em;margin-bottom:4px}
+.seg-sub{font-size:.72rem;color:var(--muted);font-style:italic}
+
+.seg-stack{background:var(--stack-c);border-left:3px solid var(--stack-b)}
+.seg-stack .seg-name{color:var(--stack-b)}
+.seg-frame{background:#0f1e35;border-left:3px solid var(--stack-b);border-top:1px dashed rgba(77,166,255,.25)}
+.seg-unused{background:rgba(255,255,255,.02);border-left:3px solid var(--border);padding:8px 18px;text-align:center}
+.seg-unused span{font-size:.7rem;color:var(--muted)}
+.seg-heap{background:var(--heap-c);border-left:3px solid var(--heap-b)}
+.seg-heap .seg-name{color:var(--heap-b)}
+.seg-bss{background:var(--bss-c);border-left:3px solid var(--bss-b)}
+.seg-bss .seg-name{color:var(--bss-b)}
+.seg-data{background:var(--data-c);border-left:3px solid var(--data-b)}
+.seg-data .seg-name{color:var(--data-b)}
+.seg-text{background:var(--text-c);border-left:3px solid var(--text-b)}
+.seg-text .seg-name{color:var(--text-b)}
+
+.frame-label{font-size:.7rem;color:var(--stack-b);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.frame-label::after{content:'';flex:1;height:1px;background:rgba(77,166,255,.2)}
+.frame-row{display:grid;grid-template-columns:130px 1fr;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:.78rem}
+.frame-row:last-child{border-bottom:none}
+.frame-slot{background:rgba(255,255,255,.05);border:1px solid rgba(77,166,255,.2);border-radius:5px;padding:6px 10px;font-size:.75rem;color:var(--muted);text-align:center}
+.frame-slot.active{border-color:var(--stack-b);color:var(--stack-b);background:rgba(77,166,255,.1)}
+.frame-note{font-size:.72rem;color:#7a9acc;font-style:italic}
+.rsp-tag{display:inline-block;background:rgba(180,142,255,.15);border:1px solid rgba(180,142,255,.4);color:#b48eff;font-size:.67rem;padding:2px 7px;border-radius:4px;margin-left:8px;vertical-align:middle}
+
+.grow-ind{display:flex;align-items:center;gap:8px;padding:5px 18px;font-size:.7rem;color:var(--stack-b);background:rgba(77,166,255,.05);margin:8px -18px -14px}
+
+.right-col{padding-left:18px;display:flex;flex-direction:column;gap:16px}
+.reg-box{background:var(--panel);border:1px solid rgba(80,232,144,.35);border-radius:10px;overflow:hidden}
+.reg-hdr{background:rgba(80,232,144,.1);border-bottom:1px solid rgba(80,232,144,.25);padding:8px 14px;font-size:.72rem;color:var(--reg-b);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.reg-row{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:.8rem}
+.reg-row:last-child{border-bottom:none}
+.reg-name{color:var(--muted)} .reg-val{color:var(--reg-b);font-weight:600}
+.reg-desc{font-size:.67rem;color:#4a5a70;font-style:italic}
+
+.steps-box{background:var(--panel);border:1px solid rgba(255,157,69,.3);border-radius:10px;overflow:hidden;flex:1}
+.steps-hdr{background:rgba(255,157,69,.1);border-bottom:1px solid rgba(255,157,69,.25);padding:8px 14px;font-size:.72rem;color:var(--step-c);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.si{display:grid;grid-template-columns:24px 1fr;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.04);align-items:start}
+.si:last-child{border-bottom:none}
+.sn{width:22px;height:22px;border-radius:50%;background:rgba(255,157,69,.15);border:1px solid rgba(255,157,69,.4);color:var(--step-c);font-size:.67rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.st{font-size:.75rem;line-height:1.5;color:var(--fg)}
+.st code{color:var(--stack-b);background:rgba(77,166,255,.1);padding:1px 5px;border-radius:3px;font-size:.72rem}
+.st .kw{color:var(--step-c)} .st .val{color:var(--reg-b)}
+.si:hover{background:rgba(255,157,69,.04)}
+
+/* ── EXPLANATION ── */
+.explain{margin-top:50px;border-top:1px solid var(--border);padding-top:42px}
+.explain-title{font-family:var(--head);font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:6px}
+.explain-title span{color:var(--step-c)}
+.explain-sub{font-size:.78rem;color:var(--muted);margin-bottom:40px}
+
+.xstep{display:grid;grid-template-columns:56px 1fr;position:relative;margin-bottom:0}
+.xstep:not(:last-child) .xleft::after{content:'';position:absolute;top:54px;left:27px;width:2px;height:calc(100% - 12px);background:linear-gradient(to bottom,rgba(255,157,69,.3),rgba(255,157,69,.04))}
+.xleft{display:flex;flex-direction:column;align-items:center;padding-top:16px;position:relative}
+.bnum{width:42px;height:42px;border-radius:50%;background:rgba(255,157,69,.15);border:2px solid rgba(255,157,69,.5);color:var(--step-c);font-size:1rem;font-weight:700;font-family:var(--head);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.xright{padding:14px 0 34px 22px;border-bottom:1px solid rgba(255,255,255,.05)}
+.xstep:last-child .xright{border-bottom:none;padding-bottom:0}
+.xright h3{font-family:var(--head);font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:.7rem;padding:3px 10px;border-radius:20px;font-weight:400;border:1px solid}
+.tc{background:rgba(77,166,255,.1);border-color:rgba(77,166,255,.4);color:var(--stack-b)}
+.tr{background:rgba(80,232,144,.1);border-color:rgba(80,232,144,.4);color:var(--reg-b)}
+.ts{background:rgba(255,157,69,.1);border-color:rgba(255,157,69,.4);color:var(--step-c)}
+.tf{background:rgba(180,142,255,.1);border-color:rgba(180,142,255,.4);color:#b48eff}
+.tb{background:rgba(61,220,132,.1);border-color:rgba(61,220,132,.4);color:var(--heap-b)}
+.xright p{font-size:.9rem;color:#8aa0bc;line-height:1.8;margin-bottom:10px}
+.xright p strong{color:var(--fg)}
+.xright p code{font-family:var(--mono);color:var(--stack-b);background:rgba(77,166,255,.1);padding:1px 6px;border-radius:3px;font-size:.84rem}
+.xright p .g{color:var(--reg-b)} .xright p .o{color:var(--step-c)} .xright p .p{color:#b48eff}
+
+.asm{background:#080d18;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin:10px 0;font-size:.82rem;line-height:2}
+.al{display:flex;gap:16px}
+.ai{color:var(--step-c);min-width:90px}
+.ao{color:var(--reg-b);min-width:140px}
+.ac{color:var(--muted);font-style:italic}
+
+.co{border-radius:8px;padding:12px 16px;margin-top:12px;font-size:.84rem;line-height:1.7;display:flex;gap:12px;align-items:flex-start}
+.co.tip {background:rgba(80,232,144,.07);border:1px solid rgba(80,232,144,.2);color:#8aa0bc}
+.co.warn{background:rgba(255,157,69,.07);border:1px solid rgba(255,157,69,.2);color:#8aa0bc}
+.co.info{background:rgba(77,166,255,.07);border:1px solid rgba(77,166,255,.2);color:#8aa0bc}
+.co-i{font-size:1rem;flex-shrink:0;margin-top:2px}
+.co strong{color:var(--fg)}
+
+.page>*{animation:rise .5s ease both}
+.title-block{animation-delay:0s}.main-grid{animation-delay:.1s}.explain{animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:680px){.main-grid{grid-template-columns:55px 1fr}.right-col{display:none}.xstep{grid-template-columns:44px 1fr}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="title-block">
+  <h1>Calling <span>sum(3, 4)</span> — Memory &amp; CPU Registers</h1>
+  <p>x86-64 Linux &nbsp;·&nbsp; System V ABI &nbsp;·&nbsp; High addresses at top, low addresses at bottom</p>
+</div>
+
+<!-- DIAGRAM -->
+<div class="main-grid">
+  <!-- Addresses -->
+  <div class="addr-col">
+    <div class="addr" style="margin-top:14px">0x7FFF<br>FFFE000</div>
+    <div class="addr" style="margin-top:40px"></div>
+    <div class="addr" style="margin-top:60px"></div>
+    <div class="addr faint" style="margin-top:48px">grows ↑</div>
+    <div class="addr faint" style="margin-top:36px">grows ↓</div>
+    <div class="addr" style="margin-top:30px">~0x601000</div>
+    <div class="addr" style="margin-top:22px">~0x600000</div>
+    <div class="addr" style="margin-top:30px">~0x400000</div>
+    <div class="addr faint" style="margin-top:10px">0x000000</div>
+  </div>
+
+  <!-- Memory map -->
+  <div class="mem-col">
+    <div class="mem-seg seg-stack">
+      <div class="seg-name">Stack</div>
+      <div class="seg-sub">Local variables · saved registers · return addresses · grows ▼ toward lower addresses</div>
+      <div class="grow-ind">▼ stack grows downward (toward lower addresses)</div>
+    </div>
+    <div class="mem-seg seg-frame" style="padding:14px 18px">
+      <div class="frame-label">sum() stack frame — created by CALL + prologue</div>
+      <div class="frame-row">
+        <div class="frame-slot active">Return address<span class="rsp-tag">RSP+8</span></div>
+        <div class="frame-note">Pushed by <code style="color:var(--stack-b)">CALL</code> — address in main() to jump back to (step ④)</div>
+      </div>
+      <div class="frame-row">
+        <div class="frame-slot active">Saved RBP<span class="rsp-tag">RSP+0</span></div>
+        <div class="frame-note">Pushed by <code style="color:var(--stack-b)">push rbp</code> — saves caller's base pointer (step ⑤)</div>
+      </div>
+      <div class="frame-row">
+        <div class="frame-slot" style="color:#4a5a70;border-style:dashed">(no local vars)</div>
+        <div class="frame-note" style="color:#4a5a70">Params <strong style="color:#6a7a90">stay in RDI, RSI</strong> — not copied to stack</div>
+      </div>
+      <div class="frame-row" style="margin-top:4px;border-top:1px dashed rgba(255,255,255,.07);padding-top:8px">
+        <div class="frame-slot" style="color:var(--reg-b);border-color:rgba(80,232,144,.4);background:rgba(80,232,144,.08)">RAX = 7</div>
+        <div class="frame-note">Return value placed in <strong style="color:var(--reg-b)">RAX</strong> before RET (step ⑦). Never on the stack.</div>
+      </div>
+    </div>
+    <div class="mem-seg seg-unused"><span>⋮ &nbsp; Unused / Available &nbsp; ⋮</span></div>
+    <div class="mem-seg seg-heap">
+      <div class="seg-name">Heap</div>
+      <div class="seg-sub">Dynamic memory — malloc / free · grows ▲ toward higher addresses</div>
+    </div>
+    <div class="mem-seg seg-bss">
+      <div class="seg-name">BSS Segment</div>
+      <div class="seg-sub">Uninitialized global &amp; static variables · auto-zeroed by OS</div>
+    </div>
+    <div class="mem-seg seg-data">
+      <div class="seg-name">Data Segment</div>
+      <div class="seg-sub">Initialized global &amp; static variables &nbsp;·&nbsp; e.g. <code style="color:var(--data-b)">int x = 5;</code></div>
+    </div>
+    <div class="mem-seg seg-text" style="border-bottom:none">
+      <div class="seg-name">Text Segment (Code)</div>
+      <div class="seg-sub">Compiled machine instructions · Read-only · starts near <code style="color:var(--text-b)">0x400000</code> on Linux x86-64</div>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="right-col">
+    <div class="reg-box">
+      <div class="reg-hdr">CPU Registers</div>
+      <div class="reg-row"><span class="reg-name">RDI</span><span class="reg-val">= 3</span></div>
+      <div class="reg-row"><span class="reg-desc">1st integer argument</span></div>
+      <div class="reg-row"><span class="reg-name">RSI</span><span class="reg-val">= 4</span></div>
+      <div class="reg-row"><span class="reg-desc">2nd integer argument</span></div>
+      <div class="reg-row"><span class="reg-name">RAX</span><span class="reg-val">= 7</span></div>
+      <div class="reg-row"><span class="reg-desc">return value (after step ⑦)</span></div>
+      <div class="reg-row"><span class="reg-name">RSP</span><span class="reg-val" style="font-size:.67rem">stack ptr</span></div>
+      <div class="reg-row"><span class="reg-name">RBP</span><span class="reg-val" style="font-size:.67rem">base ptr</span></div>
+    </div>
+    <div class="steps-box">
+      <div class="steps-hdr">Call Sequence</div>
+      <div class="si"><div class="sn">①</div><div class="st">Evaluate arguments:<br><span class="val">3</span> and <span class="val">4</span></div></div>
+      <div class="si"><div class="sn">②</div><div class="st">Load <code>RDI = 3</code><br><span style="color:var(--muted);font-size:.68rem">1st arg → RDI</span></div></div>
+      <div class="si"><div class="sn">③</div><div class="st">Load <code>RSI = 4</code><br><span style="color:var(--muted);font-size:.68rem">2nd arg → RSI</span></div></div>
+      <div class="si"><div class="sn">④</div><div class="st"><span class="kw">CALL sum</span><br>push return addr; jump to <code>sum()</code></div></div>
+      <div class="si"><div class="sn">⑤</div><div class="st">Prologue:<br><code>push rbp</code><br><code>mov rbp, rsp</code></div></div>
+      <div class="si"><div class="sn">⑥</div><div class="st">Execute body:<br><code>RAX = RDI + RSI</code><br>→ <span class="val">RAX = 7</span></div></div>
+      <div class="si"><div class="sn">⑦</div><div class="st">Epilogue:<br><code>pop rbp</code><br>restore caller frame</div></div>
+      <div class="si"><div class="sn">⑧</div><div class="st"><span class="kw">RET</span><br>pop return addr; jump back;<br>result in <code>RAX</code></div></div>
+    </div>
+  </div>
+</div><!-- /main-grid -->
+
+
+<!-- ══════════════════════════════════════════
+     STEP-BY-STEP EXPLANATION
+══════════════════════════════════════════ -->
+<div class="explain">
+  <div class="explain-title">Step-by-Step <span>Explanation</span></div>
+  <div class="explain-sub">// What actually happens when your program executes &nbsp; sum(3, 4)</div>
+
+  <!-- ① -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">①</div></div>
+    <div class="xright">
+      <h3>Evaluate the Arguments <span class="tag tc">Caller side</span></h3>
+      <p>Before calling <code>sum()</code>, the CPU first <strong>figures out what the argument values are</strong>. Here they are simple literals — <strong class="g">3</strong> and <strong class="g">4</strong> — so no extra work is needed. If the call were <code>sum(a+1, b*2)</code>, those expressions would be computed here first and their results stored temporarily before moving to the next step.</p>
+      <div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> Before handing someone a package, you first prepare what goes inside. Step ① is that preparation.</div></div>
+    </div>
+  </div>
+
+  <!-- ② -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">②</div></div>
+    <div class="xright">
+      <h3>Load 1st Argument into RDI <span class="tag tr">CPU Register</span></h3>
+      <p>The x86-64 <strong>System V ABI</strong> — the calling convention used on Linux — has a strict rule: <strong>the first integer argument always goes into register <code>RDI</code></strong>. So the value <strong class="g">3</strong> is loaded into RDI.</p>
+      <div class="asm">
+        <div class="al"><span class="ai">mov</span><span class="ao">edi, 3</span><span class="ac">; RDI = 3  (1st argument)</span></div>
+      </div>
+      <div class="co tip"><span class="co-i">📌</span><div><strong>The 6-register argument order</strong> on Linux x86-64 is: <code>RDI, RSI, RDX, RCX, R8, R9</code>. Arguments beyond 6 spill onto the stack. Our function only needs 2, so both fit in registers.</div></div>
+    </div>
+  </div>
+
+  <!-- ③ -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">③</div></div>
+    <div class="xright">
+      <h3>Load 2nd Argument into RSI <span class="tag tr">CPU Register</span></h3>
+      <p>Following the same convention, <strong>the second integer argument goes into <code>RSI</code></strong>. The value <strong class="g">4</strong> is placed there. At this point <code>RDI = 3</code> and <code>RSI = 4</code> — the CPU is <em>ready</em> to call the function.</p>
+      <div class="asm">
+        <div class="al"><span class="ai">mov</span><span class="ao">esi, 4</span><span class="ac">; RSI = 4  (2nd argument)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">④</div></div>
+    <div class="xright">
+      <h3>CALL Instruction — Jump into sum() <span class="tag ts">Stack</span></h3>
+      <p>The <code>CALL sum</code> instruction does <strong>two things automatically in one instruction</strong>:</p>
+      <p><strong>1. Pushes the return address</strong> onto the stack. This is the address of the instruction immediately <em>after</em> the <code>CALL</code> inside <code>main()</code> — so the CPU knows where to come back to when <code>sum()</code> finishes.</p>
+      <p><strong>2. Jumps</strong> execution to the first instruction of <code>sum()</code>.</p>
+      <div class="asm">
+        <div class="al"><span class="ai">call</span><span class="ao">sum</span><span class="ac">; push next-instr addr, then jump to sum</span></div>
+      </div>
+      <div class="co warn"><span class="co-i">⚠️</span><div><strong>Note on RSP:</strong> Pushing the return address automatically decrements RSP (the stack pointer) by 8 bytes, because the stack grows <em>downward</em> in memory toward lower addresses.</div></div>
+    </div>
+  </div>
+
+  <!-- ⑤ -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">⑤</div></div>
+    <div class="xright">
+      <h3>Function Prologue — Set Up the Stack Frame <span class="tag tf">Inside sum()</span></h3>
+      <p>The very first instructions inside every function are called the <strong>prologue</strong>. They establish a clean workspace for this function call on the stack:</p>
+      <p><strong><code>push rbp</code></strong> — saves the <em>caller's</em> (main's) base pointer onto the stack. This is critical: it ensures main()'s frame can be fully restored after <code>sum()</code> returns.</p>
+      <p><strong><code>mov rbp, rsp</code></strong> — sets RBP to the current stack pointer. This creates a stable <strong>frame pointer</strong> for <code>sum()</code> that doesn't move even if RSP changes during the function body.</p>
+      <div class="asm">
+        <div class="al"><span class="ai">push</span><span class="ao">rbp</span><span class="ac">; save caller's (main's) base pointer</span></div>
+        <div class="al"><span class="ai">mov</span><span class="ao">rbp, rsp</span><span class="ac">; RBP now points to sum()'s frame base</span></div>
+      </div>
+      <div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> A chef clearing their workstation before starting a recipe, and placing a bookmark saying "my area starts here." The prologue is always generated automatically by the compiler.</div></div>
+    </div>
+  </div>
+
+  <!-- ⑥ -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">⑥</div></div>
+    <div class="xright">
+      <h3>Execute the Function Body <span class="tag tf">Inside sum()</span></h3>
+      <p>Now the actual work happens. The body of <code>sum()</code> adds the two parameters. Because both parameters are still sitting in <strong>registers RDI and RSI</strong> (they were never copied to the stack), the addition is a single fast register operation:</p>
+      <div class="asm">
+        <div class="al"><span class="ai">lea</span><span class="ao">eax, [rdi + rsi]</span><span class="ac">; RAX = 3 + 4 = 7</span></div>
+      </div>
+      <p style="margin-top:10px">The result <strong class="g">7</strong> is placed into <strong><code>RAX</code></strong> — the register designated for <em>integer return values</em> by the ABI. The computation is done.</p>
+      <div class="co tip"><span class="co-i">📌</span><div><strong>Key point:</strong> Parameters <code>a</code> and <code>b</code> are <em>never copied to stack memory</em> for a simple function like this. They stay in RDI and RSI the whole time. Copying to the stack ("spilling") only happens if the compiler runs out of registers or the address of a parameter is taken with <code>&amp;</code>.</div></div>
+    </div>
+  </div>
+
+  <!-- ⑦ -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">⑦</div></div>
+    <div class="xright">
+      <h3>Function Epilogue — Tear Down the Stack Frame <span class="tag tf">Inside sum()</span></h3>
+      <p>The <strong>epilogue</strong> is the exact mirror of the prologue — it restores everything that was saved and collapses the stack frame before leaving:</p>
+      <p><strong><code>pop rbp</code></strong> — pops the saved value of main()'s RBP back from the stack into the RBP register. The stack frame for <code>sum()</code> effectively disappears — RSP moves back up past it.</p>
+      <div class="asm">
+        <div class="al"><span class="ai">pop</span><span class="ao">rbp</span><span class="ac">; restore main()'s base pointer</span></div>
+      </div>
+      <div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> The chef wipes down and restores their workstation to exactly how it was before they started, then hands back control of the kitchen.</div></div>
+    </div>
+  </div>
+
+  <!-- ⑧ -->
+  <div class="xstep">
+    <div class="xleft"><div class="bnum">⑧</div></div>
+    <div class="xright">
+      <h3>RET Instruction — Return to Caller <span class="tag tb">Back in main()</span></h3>
+      <p>The <code>RET</code> instruction also does <strong>two things automatically</strong>:</p>
+      <p><strong>1. Pops the return address</strong> off the top of the stack (the one pushed in step ④) back into the instruction pointer register (RIP).</p>
+      <p><strong>2. Jumps execution</strong> to that address — which is the line inside <code>main()</code> immediately after the original <code>CALL</code>.</p>
+      <div class="asm">
+        <div class="al"><span class="ai">ret</span><span class="ao"></span><span class="ac">; pop return address into RIP and jump there</span></div>
+      </div>
+      <p style="margin-top:10px">Back in <code>main()</code>, the return value <strong class="g">7</strong> sits in <code>RAX</code> ready to be used. For example: <code>int result = sum(3, 4);</code> stores RAX's value — 7 — into <code>result</code>.</p>
+      <div class="co tip"><span class="co-i">🏁</span><div><strong>Big picture summary:</strong> The entire call used <em>no heap memory</em>. The stack is now <em>exactly</em> back to how it was before the <code>CALL</code> in step ④. Every <code>CALL</code> is always balanced by exactly one <code>RET</code> — the stack is self-cleaning.</div></div>
+    </div>
+  </div>
+
+</div><!-- /explain -->
+</div><!-- /page -->
+</body>
+</html>
