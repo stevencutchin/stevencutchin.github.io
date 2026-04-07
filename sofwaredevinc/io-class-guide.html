@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Input/Output — Class Guide</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --text: #1e1c1a;
@@ -162,174 +163,158 @@
 
   @media (max-width: 500px) { body { padding: 24px 20px; } }
 </style>
-</head>
-<body>
-
-<header>
-  <h1>Input/Output — Class Guide</h1>
-  <div class="meta">CS253 &nbsp;·&nbsp; ~85 min &nbsp;·&nbsp; Three sessions</div>
-  <div class="pages">
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><header>
+<h1>Input/Output — Class Guide</h1>
+<div class="meta">CS253  ·  ~85 min  ·  Three sessions</div>
+<div class="pages">
     Student pages:
-    <a href="io-01-terminal-io.html">io-01-terminal-io.html</a> &nbsp;·&nbsp;
-    <a href="io-02-file-io.html">io-02-file-io.html</a> &nbsp;·&nbsp;
-    <a href="io-03-parsing-csv.html">io-03-parsing-csv.html</a> &nbsp;·&nbsp;
+    <a href="io-01-terminal-io.html">io-01-terminal-io.html</a>  · 
+    <a href="io-02-file-io.html">io-02-file-io.html</a>  · 
+    <a href="io-03-parsing-csv.html">io-03-parsing-csv.html</a>  · 
     <a href="io-cookbook.html">io-cookbook.html</a>
-  </div>
-</header>
-
-
-<!-- ================================================ -->
-<div class="session-label">Session 1 &nbsp;·&nbsp; ~30 min &nbsp;·&nbsp; Streams + Output</div>
-
-<h2>Opening Frame — What Is I/O?</h2>
-<ol>
-  <li><div>Ask: where does printf actually send its output? What is "the terminal"? Let students guess. Don't correct yet — just get the question alive.</div></li>
-  <li><div>State the mental model: every C program starts with three pre-opened connections to the outside world. We call them streams.
+</div>
+</header><!-- ================================================ --><div class="session-label">Session 1  ·  ~30 min  ·  Streams + Output</div><h2>Opening Frame — What Is I/O?</h2><ol>
+<li><div>Ask: where does printf actually send its output? What is "the terminal"? Let students guess. Don't correct yet — just get the question alive.</div></li>
+<li><div>State the mental model: every C program starts with three pre-opened connections to the outside world. We call them streams.
     <div class="board">stdin  (fd 0) ← keyboard / pipe
 stdout (fd 1) → terminal / file
 stderr (fd 2) → terminal (always)</div>
-  </div></li>
-  <li><div>Key point to say aloud: <code>stdin</code>, <code>stdout</code>, <code>stderr</code> are just <code>FILE*</code> pointers — the same type you'll use for files. Terminal I/O and file I/O are the same machinery. This is the conceptual payoff of the whole lesson.</div></li>
-  <li><div>Ask: why have stdout AND stderr? What's the difference in practice?
-    <div class="ask">Hint: run ./prog > output.txt and ask where errors go.</div>
-  </div></li>
-  <li><div>Answer: they can be redirected independently. When stdout goes to a file, stderr still reaches the terminal. Errors written to stdout get silently buried in the file — a real bug in production programs.</div></li>
-</ol>
-
-<h2>printf — Formatted Output</h2>
-<ol>
-  <li><div>Write the basic call on the board. Point out the two parts: literal characters pass through unchanged, format specifiers get replaced.
+</div></li>
+<li><div>Key point to say aloud: <code>stdin</code>, <code>stdout</code>, <code>stderr</code> are just <code>FILE*</code> pointers — the same type you'll use for files. Terminal I/O and file I/O are the same machinery. This is the conceptual payoff of the whole lesson.</div></li>
+<li><div>Ask: why have stdout AND stderr? What's the difference in practice?
+    <div class="ask">Hint: run ./prog &gt; output.txt and ask where errors go.</div>
+</div></li>
+<li><div>Answer: they can be redirected independently. When stdout goes to a file, stderr still reaches the terminal. Errors written to stdout get silently buried in the file — a real bug in production programs.</div></li>
+</ol><h2>printf — Formatted Output</h2><ol>
+<li><div>Write the basic call on the board. Point out the two parts: literal characters pass through unchanged, format specifiers get replaced.
     <pre>printf("Name: %s, Age: %d, GPA: %.2f\n",
        name, age, gpa);</pre>
-  </div></li>
-  <li><div>Walk the specifier table — just the five they'll use constantly: <code>%d</code>, <code>%f</code>, <code>%.Nf</code>, <code>%s</code>, <code>%c</code>. Point out <code>%p</code> for pointers and <code>%%</code> for a literal percent. Skip the rest for now.</div></li>
-  <li><div>Demo the mismatch bug live:
+</div></li>
+<li><div>Walk the specifier table — just the five they'll use constantly: <code>%d</code>, <code>%f</code>, <code>%.Nf</code>, <code>%s</code>, <code>%c</code>. Point out <code>%p</code> for pointers and <code>%%</code> for a literal percent. Skip the rest for now.</div></li>
+<li><div>Demo the mismatch bug live:
     <pre>double gpa = 3.85;
 printf("%d\n", gpa);   // wrong specifier</pre>
-    <div class="warn">This is undefined behavior — the output is garbage and the compiler may not stop you. The format specifier and argument type must agree exactly.</div>
-  </div></li>
-  <li><div>Show <code>fprintf</code>. Emphasize: it's identical to <code>printf</code> with a stream prepended.
+<div class="warn">This is undefined behavior — the output is garbage and the compiler may not stop you. The format specifier and argument type must agree exactly.</div>
+</div></li>
+<li><div>Show <code>fprintf</code>. Emphasize: it's identical to <code>printf</code> with a stream prepended.
     <pre>fprintf(stdout, "same as printf\n");
 fprintf(stderr, "Error: %s\n", msg);</pre>
     Say: once you see this, <code>printf</code> is just shorthand. <strong>All output functions are really <code>fprintf</code> to some stream.</strong>
-  </div></li>
-  <li><div>Quickly show <code>puts</code> and <code>putchar</code> — simple cases, no format needed. Note <code>puts</code> appends <code>'\n'</code> automatically and most students forget it's there.</div></li>
-  <li><div>Practice check — ask the class to predict output before running:
+</div></li>
+<li><div>Quickly show <code>puts</code> and <code>putchar</code> — simple cases, no format needed. Note <code>puts</code> appends <code>'\n'</code> automatically and most students forget it's there.</div></li>
+<li><div>Practice check — ask the class to predict output before running:
     <pre>int x = 255;
 printf("dec=%d  hex=0x%x  char=%c\n", x, x, x);</pre>
-  </div></li>
-</ol>
-
-
-<!-- ================================================ -->
-<div class="session-label">Session 2 &nbsp;·&nbsp; ~30 min &nbsp;·&nbsp; Terminal Input + The Newline Problem</div>
-
-<h2>scanf — Reading Values</h2>
-<ol>
-  <li><div>Write the pattern. Pause on the <code>&amp;</code> before saying anything.
+</div></li>
+</ol><!-- ================================================ --><div class="session-label">Session 2  ·  ~30 min  ·  Terminal Input + The Newline Problem</div><h2>scanf — Reading Values</h2><ol>
+<li><div>Write the pattern. Pause on the <code>&amp;</code> before saying anything.
     <pre>int age;
-scanf("%d", &age);</pre>
-    <div class="ask">Ask: printf takes a value. scanf takes... what? Why?</div>
-  </div></li>
-  <li><div>Answer: printf reads. scanf writes. To write into a variable, it needs the variable's address — not its current value. That's the &amp;. This is the single most common scanf mistake.</div></li>
-  <li><div>Show the check pattern immediately after:
-    <pre>int n = scanf("%d", &age);
+scanf("%d", &amp;age);</pre>
+<div class="ask">Ask: printf takes a value. scanf takes... what? Why?</div>
+</div></li>
+<li><div>Answer: printf reads. scanf writes. To write into a variable, it needs the variable's address — not its current value. That's the &amp;. This is the single most common scanf mistake.</div></li>
+<li><div>Show the check pattern immediately after:
+    <pre>int n = scanf("%d", &amp;age);
 if (n != 1) {
     fprintf(stderr, "Expected an integer\n");
     return 1;
 }</pre>
-    <div class="warn">scanf returns the number of items successfully matched. If the user types "hello" and you expected %d, the return is 0 and the variable is uninitialized. Always check it.</div>
-  </div></li>
-  <li><div>Ask: what can scanf NOT read? Elicit "a sentence with spaces." Demonstrate: typing "Alice Smith" — <code>%s</code> stops at the space, name gets only "Alice".</div></li>
-</ol>
-
-<h2>fgets — Reading a Full Line</h2>
-<ol>
-  <li><div>Introduce fgets as the safe line reader:
+<div class="warn">scanf returns the number of items successfully matched. If the user types "hello" and you expected %d, the return is 0 and the variable is uninitialized. Always check it.</div>
+</div></li>
+<li><div>Ask: what can scanf NOT read? Elicit "a sentence with spaces." Demonstrate: typing "Alice Smith" — <code>%s</code> stops at the space, name gets only "Alice".</div></li>
+</ol><h2>fgets — Reading a Full Line</h2><ol>
+<li><div>Introduce fgets as the safe line reader:
     <pre>char buf[128];
 fgets(buf, sizeof(buf), stdin);</pre>
     Three arguments: buffer, size limit, stream. The size limit is the reason this is safe — it cannot overflow.
   </div></li>
-  <li><div>Immediately show what fgets puts in the buffer. Type "Alice" and hit Enter. Ask: what is in buf right now?
+<li><div>Immediately show what fgets puts in the buffer. Type "Alice" and hit Enter. Ask: what is in buf right now?
     <div class="board">buf = ['A','l','i','c','e','\n','\0', ...]</div>
     The <code>'\n'</code> is in there. This surprises everyone.
   </div></li>
-  <li><div>Show the strip pattern every time — make it muscle memory:
+<li><div>Show the strip pattern every time — make it muscle memory:
     <pre>size_t len = strlen(buf);
-if (len > 0 && buf[len-1] == '\n')
+if (len &gt; 0 &amp;&amp; buf[len-1] == '\n')
     buf[len-1] = '\0';</pre>
-  </div></li>
-  <li><div>Show the consequence of not stripping:
+</div></li>
+<li><div>Show the consequence of not stripping:
     <pre>fgets(buf, sizeof(buf), stdin);
 if (strcmp(buf, "quit") == 0) ...  // never true</pre>
-    <div class="warn">buf holds "quit\n". strcmp("quit\n", "quit") is not zero. This is the #2 most common fgets bug after not stripping the newline from a CSV field.</div>
-  </div></li>
-  <li><div>Show getchar briefly — return type is <code>int</code>, not <code>char</code>. Ask: why int?
+<div class="warn">buf holds "quit\n". strcmp("quit\n", "quit") is not zero. This is the #2 most common fgets bug after not stripping the newline from a CSV field.</div>
+</div></li>
+<li><div>Show getchar briefly — return type is <code>int</code>, not <code>char</code>. Ask: why int?
     <div class="ask">If getchar returns a char, what happens when EOF (-1) gets stored in an unsigned char? It becomes 255 — and the EOF check never triggers.</div>
-  </div></li>
-</ol>
-
-<h2>The scanf / fgets Newline Problem</h2>
-<ol>
-  <li><div>This is the most important live demo of the session. Write this and run it:
+</div></li>
+</ol><h2>The scanf / fgets Newline Problem</h2><ol>
+<li><div>This is the most important live demo of the session. Write this and run it:
     <pre>int n;
-scanf("%d", &n);
+scanf("%d", &amp;n);
 char name[64];
 fgets(name, sizeof(name), stdin);
 printf("n=%d, name=[%s]\n", n, name);</pre>
     Type 42 and press Enter. Output: <code>n=42, name=[]</code>. The name is empty.
   </div></li>
-  <li><div>Explain what happened. Draw the buffer on the board:
+<li><div>Explain what happened. Draw the buffer on the board:
     <div class="board">After scanf reads "42":
 buffer contains: '\n'
 
 fgets grabs '\n' immediately — returns ""</div>
-  </div></li>
-  <li><div>Show the fix:
-    <pre>scanf("%d", &n);
+</div></li>
+<li><div>Show the fix:
+    <pre>scanf("%d", &amp;n);
 /* Consume the rest of the line */
 int c;
-while ((c = getchar()) != '\n' && c != EOF);
+while ((c = getchar()) != '\n' &amp;&amp; c != EOF);
 /* Now safe to call fgets */
 fgets(name, sizeof(name), stdin);</pre>
-    <div class="tip">Alternatively: avoid mixing scanf and fgets entirely. Use fgets for everything and convert numbers with atoi/atof. Avoids the problem completely.</div>
-  </div></li>
-  <li><div>Point to the cookbook page — the scanf/fgets recipe has a diagram of exactly this. Good reference when they hit it in a lab.</div></li>
-</ol>
-
-
-<!-- ================================================ -->
-<div class="session-label">Session 3 &nbsp;·&nbsp; ~25 min &nbsp;·&nbsp; File I/O + CSV Capstone</div>
-
-<h2>FILE* and fopen</h2>
-<ol>
-  <li><div>Connect to what they already know: the stream they've been writing to (stdout) is a <code>FILE*</code>. When you open a file, you get back the same type.
+<div class="tip">Alternatively: avoid mixing scanf and fgets entirely. Use fgets for everything and convert numbers with atoi/atof. Avoids the problem completely.</div>
+</div></li>
+<li><div>Point to the cookbook page — the scanf/fgets recipe has a diagram of exactly this. Good reference when they hit it in a lab.</div></li>
+</ol><!-- ================================================ --><div class="session-label">Session 3  ·  ~25 min  ·  File I/O + CSV Capstone</div><h2>FILE* and fopen</h2><ol>
+<li><div>Connect to what they already know: the stream they've been writing to (stdout) is a <code>FILE*</code>. When you open a file, you get back the same type.
     <pre>FILE *fp = fopen("data.txt", "r");
 if (fp == NULL) {
     perror("fopen");
     return 1;
 }</pre>
-  </div></li>
-  <li><div>Draw the open/use/close lifecycle on the board. Write it as three numbered steps. This is the shape of every file operation they'll ever write.
+</div></li>
+<li><div>Draw the open/use/close lifecycle on the board. Write it as three numbered steps. This is the shape of every file operation they'll ever write.
     <div class="board">1. fopen  — get a FILE*,  check for NULL
 2. use    — fgets / fprintf / fscanf
 3. fclose — flush buffer, release handle</div>
-  </div></li>
-  <li><div>Ask: what happens if you skip fclose?
+</div></li>
+<li><div>Ask: what happens if you skip fclose?
     <div class="ask">The data you wrote may still be in a memory buffer — not on disk yet. Your output file could be empty or truncated.</div>
-  </div></li>
-  <li><div>Walk the mode string table — focus on the gotcha: mode <code>"w"</code> destroys the existing file immediately. Not when you write. Not when you close. When fopen succeeds.
+</div></li>
+<li><div>Walk the mode string table — focus on the gotcha: mode <code>"w"</code> destroys the existing file immediately. Not when you write. Not when you close. When fopen succeeds.
     <div class="warn">Opening the wrong file with "w" destroys it silently. There is no warning and no undo. Always double-check the filename in write mode.</div>
-  </div></li>
-  <li><div>Introduce perror — show the output format:
+</div></li>
+<li><div>Introduce perror — show the output format:
     <pre>fopen: No such file or directory</pre>
     Convention: pass the function name as the prefix. The OS fills in the reason. No need to look up errno manually.
   </div></li>
-</ol>
-
-<h2>The File Reading Loop</h2>
-<ol>
-  <li><div>Write the canonical pattern:
+</ol><h2>The File Reading Loop</h2><ol>
+<li><div>Write the canonical pattern:
     <pre>char line[256];
 while (fgets(line, sizeof(line), fp) != NULL) {
     /* process line */
@@ -337,32 +322,29 @@ while (fgets(line, sizeof(line), fp) != NULL) {
 fclose(fp);</pre>
     Point out: loop condition is the fgets return — not feof. This is important.
   </div></li>
-  <li><div>Show the feof loop bug right away — don't let them encounter it in the lab:
+<li><div>Show the feof loop bug right away — don't let them encounter it in the lab:
     <pre>while (!feof(fp)) {          // WRONG
     fgets(line, sizeof(line), fp);
     process(line);            // processes last line twice
 }</pre>
     Explain: feof only becomes true after a read returns NULL. So the loop runs one extra time with stale data in line.
   </div></li>
-  <li><div>Show fscanf for structured files — same as scanf but file instead of stdin:
+<li><div>Show fscanf for structured files — same as scanf but file instead of stdin:
     <pre>char name[64]; int score;
-while (fscanf(fp, "%63s %d", name, &score) == 2) {
+while (fscanf(fp, "%63s %d", name, &amp;score) == 2) {
     printf("%s: %d\n", name, score);
 }</pre>
     Check for exactly the count you expect (2), not <code>!= EOF</code>.
   </div></li>
-</ol>
-
-<h2>CSV Capstone</h2>
-<ol>
-  <li><div>Frame CSV as the payoff: it's not a new concept — it's everything from today applied to a real format. File I/O for the outer loop, string splitting for the inner loop, type conversion for the fields.</div></li>
-  <li><div>Write the file on the board:
+</ol><h2>CSV Capstone</h2><ol>
+<li><div>Frame CSV as the payoff: it's not a new concept — it's everything from today applied to a real format. File I/O for the outer loop, string splitting for the inner loop, type conversion for the fields.</div></li>
+<li><div>Write the file on the board:
     <div class="board">name,major,gpa,year
 Alice,CS,3.85,3
 Bob,EE,3.40,2</div>
     Ask: what do we need to do to turn line 2 into a struct? (fgets → strip '\n' → strtok → atof)
   </div></li>
-  <li><div>Introduce strtok. Emphasize the unusual pattern:
+<li><div>Introduce strtok. Emphasize the unusual pattern:
     <pre>char *tok = strtok(line, ",");    // first call: pass string
 while (tok != NULL) {
     printf("[%s]\n", tok);
@@ -370,29 +352,25 @@ while (tok != NULL) {
 }</pre>
     Ask: what does strtok actually do to the string?
   </div></li>
-  <li><div>Answer: it writes '\0' over each delimiter. The original string is destroyed. Tokens are pointers into the modified buffer. Never call strtok on a string literal.
+<li><div>Answer: it writes '\0' over each delimiter. The original string is destroyed. Tokens are pointers into the modified buffer. Never call strtok on a string literal.
     <div class="warn">This is the most common strtok crash: <code>char *s = "Alice,CS"; strtok(s, ",")</code> — string literals are read-only. Use a char array.</div>
-  </div></li>
-  <li><div>Walk the full parser from io-03-parsing-csv.html. Don't retype from scratch — open the page and read through parse_student() together. Ask: why does it check each tok for NULL before using it?</div></li>
-  <li><div>Build the main loop together — fopen, fgets outer loop, skip header, call parse_student, fclose. Let students supply the pieces.</div></li>
-  <li><div>Show what happens when a field is missing. strtok returns NULL. What does atof(NULL) do?
+</div></li>
+<li><div>Walk the full parser from io-03-parsing-csv.html. Don't retype from scratch — open the page and read through parse_student() together. Ask: why does it check each tok for NULL before using it?</div></li>
+<li><div>Build the main loop together — fopen, fgets outer loop, skip header, call parse_student, fclose. Let students supply the pieces.</div></li>
+<li><div>Show what happens when a field is missing. strtok returns NULL. What does atof(NULL) do?
     <div class="warn">Crash — segfault. Every strtok result must be checked before use.</div>
-  </div></li>
-</ol>
-
-<h2>Wrap-up</h2>
-<ol>
-  <li><div>The three functions they'll use in 90% of labs: <code>fopen</code> / <code>fgets</code> / <code>fclose</code>. Everything else is a variation on this pattern.</div></li>
-  <li><div>Point to the cookbook (io-cookbook.html). Walk the mistake grid briefly — name each one. The top four that will bite them on the next lab: no NULL check after fopen, missing fclose, feof loop, fgets keeps '\n'.</div></li>
-  <li><div>Name the two things that make CSV parsing tricky that we didn't cover: quoted fields (a field can contain a comma if it's in double quotes) and multi-line values. Reassure them: for lab data files, the simple approach is correct and sufficient.</div></li>
-  <li><div>Connection to the four-layer framework:
+</div></li>
+</ol><h2>Wrap-up</h2><ol>
+<li><div>The three functions they'll use in 90% of labs: <code>fopen</code> / <code>fgets</code> / <code>fclose</code>. Everything else is a variation on this pattern.</div></li>
+<li><div>Point to the cookbook (io-cookbook.html). Walk the mistake grid briefly — name each one. The top four that will bite them on the next lab: no NULL check after fopen, missing fclose, feof loop, fgets keeps '\n'.</div></li>
+<li><div>Name the two things that make CSV parsing tricky that we didn't cover: quoted fields (a field can contain a comma if it's in double quotes) and multi-line values. Reassure them: for lab data files, the simple approach is correct and sufficient.</div></li>
+<li><div>Connection to the four-layer framework:
     <div class="board">C Language layer:    printf / scanf / fopen / fgets / strtok
 C Runtime layer:     streams opened at startup, fclose flushes buffers
 Machine Environment: file descriptors 0/1/2, OS handles actual disk I/O
-Dev Ecosystem:       redirect with > and < in shell; pipe with |</div>
-  </div></li>
-  <li><div>Ask: if we redirect stdin from a file — <code>./prog &lt; data.txt</code> — what changes in the code? Answer: nothing. fgets(stdin) reads from the file automatically. The same code works for keyboard and file input. This is why streams matter.</div></li>
-</ol>
-
+Dev Ecosystem:       redirect with &gt; and &lt; in shell; pipe with |</div>
+</div></li>
+<li><div>Ask: if we redirect stdin from a file — <code>./prog &lt; data.txt</code> — what changes in the code? Answer: nothing. fgets(stdin) reads from the file automatically. The same code works for keyboard and file input. This is why streams matter.</div></li>
+</ol></main>
 </body>
 </html>

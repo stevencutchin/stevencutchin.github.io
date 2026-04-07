@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Inode &amp; Data Block Structure — Machine Environment</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f;
@@ -75,616 +76,534 @@
     .diagram-container { padding: 16px; }
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">Machine Environment</span>
-  <span class="layer-tag">File System Internals</span>
-  <div class="nav-links">
-    <a href="filesystem-navigation.html">← Navigating the FS</a>
-    <a href="filesystem-internals.html" class="active">Inode Structure</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">Machine Environment</span>
+<span class="layer-tag">File System Internals</span>
+<div class="nav-links">
+<a href="filesystem-navigation.html">← Navigating the FS</a>
+<a class="active" href="filesystem-internals.html">Inode Structure</a>
+</div>
 </nav>
-
 <!-- ═══════════════════════ HERO ═══════════════════════ -->
 <div class="hero">
-  <div class="number">Machine Environment &nbsp;·&nbsp; File System Internals</div>
-  <h1>Inodes &amp;<br><span class="highlight">Data Blocks</span></h1>
-  <p class="subtitle">When you call <code>stat()</code> or <code>readdir()</code>, the OS is reading internal structures it manages on disk — inodes and data blocks. Understanding these structures explains everything: why filenames are separate from files, how hard links work, and why a 1 TB file doesn't need a 1 TB pointer array.</p>
+<div class="number">Machine Environment  ·  File System Internals</div>
+<h1>Inodes &amp;<br/><span class="highlight">Data Blocks</span></h1>
+<p class="subtitle">When you call <code>stat()</code> or <code>readdir()</code>, the OS is reading internal structures it manages on disk — inodes and data blocks. Understanding these structures explains everything: why filenames are separate from files, how hard links work, and why a 1 TB file doesn't need a 1 TB pointer array.</p>
 </div>
-
 <!-- ═══════════════════════ CONTENT ═══════════════════════ -->
-<div class="content">
-
-  <h2>The Two Structures That Run Everything</h2>
-
-  <p>A Unix filesystem stores its content in exactly two kinds of on-disk objects. Every file, every directory, every symlink — no matter its size or type — maps onto these two primitives.</p>
-
-  <p>An <strong>inode</strong> is a fixed-size record that holds all the metadata about a file: its permissions, owner, timestamps, size, and — critically — a set of pointers that locate its actual content on disk. An inode does not store the file's name. It doesn't even know it has a name.</p>
-
-  <p>A <strong>data block</strong> is a fixed-size chunk of raw disk space (typically 4 KB) that holds the actual bytes of a file's content, or in the case of directories, a structured list of name-to-inode mappings.</p>
-
-  <div class="key-concept">
-    <strong>The Central Separation</strong><br>
+<main class="content" id="main-content">
+<h2>The Two Structures That Run Everything</h2>
+<p>A Unix filesystem stores its content in exactly two kinds of on-disk objects. Every file, every directory, every symlink — no matter its size or type — maps onto these two primitives.</p>
+<p>An <strong>inode</strong> is a fixed-size record that holds all the metadata about a file: its permissions, owner, timestamps, size, and — critically — a set of pointers that locate its actual content on disk. An inode does not store the file's name. It doesn't even know it has a name.</p>
+<p>A <strong>data block</strong> is a fixed-size chunk of raw disk space (typically 4 KB) that holds the actual bytes of a file's content, or in the case of directories, a structured list of name-to-inode mappings.</p>
+<div class="key-concept">
+<strong>The Central Separation</strong><br/>
     The name of a file is stored in a <em>directory</em>, not in the file itself. The file's inode holds its metadata and data. This separation — name over here, content over there — is what makes hard links, renaming, and atomic file replacement possible without copying any data.
   </div>
-
-  <!-- ═══════════════════════ SVG 1: Disk Layout ═══════════════════════ -->
-  <h2>How a Filesystem is Laid Out on Disk</h2>
-
-  <p>When you format a partition, the filesystem divides the raw block device into a fixed set of regions. Understanding this layout shows you where inodes live, where data lives, and how the OS keeps track of what's free.</p>
-
-  <div class="diagram-container">
-  <svg viewBox="0 0 820 210" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;display:block;margin:0 auto;">
-    <defs>
-      <filter id="glow-or" x="-30%" y="-30%" width="160%" height="160%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
-        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <rect width="820" height="210" fill="#0d1320" rx="8"/>
-
-    <!-- Top labels -->
-    <text x="35"  y="24" text-anchor="middle" fill="#2e3f5c" font-size="10" letter-spacing="1">BOOT</text>
-    <text x="110" y="24" text-anchor="middle" fill="#ffab40" font-size="10" letter-spacing="1">SUPERBLOCK</text>
-    <text x="196" y="24" text-anchor="middle" fill="#3a4e6e" font-size="10" letter-spacing="0.5">BLK BITMAP</text>
-    <text x="274" y="24" text-anchor="middle" fill="#3a4e6e" font-size="10" letter-spacing="0.5">INO BITMAP</text>
-    <text x="424" y="24" text-anchor="middle" fill="#b388ff" font-size="10" letter-spacing="1">INODE TABLE</text>
-    <text x="685" y="24" text-anchor="middle" fill="#00e5ff" font-size="10" letter-spacing="1">DATA BLOCKS</text>
-
-    <!-- ── BOOT ── -->
-    <rect x="10" y="32" width="50" height="80" rx="4" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1.5"/>
-    <text x="35" y="76" text-anchor="middle" fill="#2e3f5c" font-size="12">BOOT</text>
-
-    <!-- ── SUPERBLOCK ── (orange glow) -->
-    <rect x="68" y="32" width="84" height="80" rx="4" fill="#120e00" stroke="#ffab40" stroke-width="1.8" filter="url(#glow-or)"/>
-    <text x="110" y="62" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="600">SB</text>
-    <text x="110" y="78" text-anchor="middle" fill="#9a7030" font-size="10">block count</text>
-    <text x="110" y="91" text-anchor="middle" fill="#9a7030" font-size="10">inode count</text>
-    <text x="110" y="104" text-anchor="middle" fill="#9a7030" font-size="10">block size</text>
-
-    <!-- ── BLOCK BITMAP ── -->
-    <rect x="160" y="32" width="68" height="80" rx="4" fill="#0d1320" stroke="#2a3e5e" stroke-width="1.5"/>
-    <text x="194" y="68" text-anchor="middle" fill="#4a6080" font-size="11">BLOCK</text>
-    <text x="194" y="82" text-anchor="middle" fill="#4a6080" font-size="11">BITMAP</text>
-    <text x="194" y="100" text-anchor="middle" fill="#2e3f5c" font-size="10">1 bit/block</text>
-
-    <!-- ── INODE BITMAP ── -->
-    <rect x="236" y="32" width="68" height="80" rx="4" fill="#0d1320" stroke="#2a3e5e" stroke-width="1.5"/>
-    <text x="270" y="68" text-anchor="middle" fill="#4a6080" font-size="11">INODE</text>
-    <text x="270" y="82" text-anchor="middle" fill="#4a6080" font-size="11">BITMAP</text>
-    <text x="270" y="100" text-anchor="middle" fill="#2e3f5c" font-size="10">1 bit/inode</text>
-
-    <!-- ── INODE TABLE (outer box) ── -->
-    <rect x="312" y="32" width="240" height="80" rx="4" fill="#0f0c1a" stroke="#b388ff" stroke-width="1.8"/>
-    <!-- inode sub-cells -->
-    <rect x="312" y="32" width="48" height="80" rx="0" fill="#120f1e" stroke="none"/>
-    <line x1="360" y1="32" x2="360" y2="112" stroke="#1e1530" stroke-width="1"/>
-    <rect x="360" y="32" width="48" height="80" fill="#0f0c1a" stroke="none"/>
-    <line x1="408" y1="32" x2="408" y2="112" stroke="#1e1530" stroke-width="1"/>
-    <rect x="408" y="32" width="48" height="80" fill="#120f1e" stroke="none"/>
-    <line x1="456" y1="32" x2="456" y2="112" stroke="#1e1530" stroke-width="1"/>
-    <line x1="492" y1="32" x2="492" y2="112" stroke="#1e1530" stroke-width="1"/>
-    <rect x="492" y="32" width="60" height="80" fill="#0f0c1a" stroke="none"/>
-    <!-- Re-draw outer border on top -->
-    <rect x="312" y="32" width="240" height="80" rx="4" fill="none" stroke="#b388ff" stroke-width="1.8"/>
-    <!-- Labels inside -->
-    <text x="336" y="70" text-anchor="middle" fill="#b388ff" font-size="12">ino 0</text>
-    <text x="384" y="70" text-anchor="middle" fill="#b388ff" font-size="12">ino 1</text>
-    <text x="432" y="70" text-anchor="middle" fill="#b388ff" font-size="12">ino 2</text>
-    <text x="474" y="70" text-anchor="middle" fill="#3a2e5e" font-size="14">···</text>
-    <text x="522" y="70" text-anchor="middle" fill="#b388ff" font-size="12">ino N</text>
-    <!-- size annotation -->
-    <text x="432" y="100" text-anchor="middle" fill="#4a3870" font-size="10">fixed-size structs</text>
-
-    <!-- ── DATA BLOCKS (outer box) ── -->
-    <rect x="560" y="32" width="250" height="80" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.8"/>
-    <!-- data sub-cells -->
-    <rect x="560" y="32" width="50" height="80" fill="#091409" stroke="none"/>
-    <line x1="610" y1="32" x2="610" y2="112" stroke="#0d1e0d" stroke-width="1"/>
-    <rect x="610" y="32" width="50" height="80" fill="#081208" stroke="none"/>
-    <line x1="660" y1="32" x2="660" y2="112" stroke="#0d1e0d" stroke-width="1"/>
-    <rect x="660" y="32" width="50" height="80" fill="#091409" stroke="none"/>
-    <line x1="710" y1="32" x2="710" y2="112" stroke="#0d1e0d" stroke-width="1"/>
-    <line x1="742" y1="32" x2="742" y2="112" stroke="#0d1e0d" stroke-width="1"/>
-    <rect x="742" y="32" width="68" height="80" fill="#081208" stroke="none"/>
-    <rect x="560" y="32" width="250" height="80" rx="4" fill="none" stroke="#00e5ff" stroke-width="1.8"/>
-    <text x="585" y="70" text-anchor="middle" fill="#00e5ff" font-size="12">blk 0</text>
-    <text x="635" y="70" text-anchor="middle" fill="#00e5ff" font-size="12">blk 1</text>
-    <text x="685" y="70" text-anchor="middle" fill="#00e5ff" font-size="12">blk 2</text>
-    <text x="726" y="70" text-anchor="middle" fill="#0d3030" font-size="14">···</text>
-    <text x="776" y="70" text-anchor="middle" fill="#00e5ff" font-size="12">blk M</text>
-    <text x="685" y="100" text-anchor="middle" fill="#0a3030" font-size="10">4 KB each (typical)</text>
-
-    <!-- ── Bottom annotation lines ── -->
-    <!-- superblock bracket -->
-    <line x1="68" y1="124" x2="152" y2="124" stroke="#ffab40" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="110" y="140" text-anchor="middle" fill="#6b5030" font-size="11">filesystem metadata</text>
-    <text x="110" y="154" text-anchor="middle" fill="#6b5030" font-size="11">(size, health, layout)</text>
-
-    <!-- inode table bracket -->
-    <line x1="312" y1="124" x2="552" y2="124" stroke="#b388ff" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="432" y="140" text-anchor="middle" fill="#5a4880" font-size="11">one entry per file/dir</text>
-    <text x="432" y="154" text-anchor="middle" fill="#5a4880" font-size="11">fixed at format time</text>
-
-    <!-- data blocks bracket -->
-    <line x1="560" y1="124" x2="810" y2="124" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3,3"/>
-    <text x="685" y="140" text-anchor="middle" fill="#0a5050" font-size="11">file content &amp; directory</text>
-    <text x="685" y="154" text-anchor="middle" fill="#0a5050" font-size="11">entries live here</text>
-  </svg>
-  <p class="caption">Simplified ext2/ext4-style disk layout — real filesystems have multiple block groups, each with its own copies of these regions</p>
-  </div>
-
-  <p>The <strong>superblock</strong> is the filesystem's constitution — it records the block size, total inode count, total block count, and the counts of free inodes and blocks. If the superblock is corrupted, the entire filesystem is unreadable, which is why it is replicated in multiple block groups.</p>
-
-  <p>The <strong>bitmaps</strong> are compact free-space maps. One bit per block (or inode) — 1 means in-use, 0 means free. When you create a file the OS sets bits in both bitmaps. When you delete one, it clears them. The actual data is not zeroed — it just becomes "free."</p>
-
-  <!-- ═══════════════════════ SVG 2: Inode Anatomy ═══════════════════════ -->
-  <h2>Inside an Inode</h2>
-
-  <p>Every file and directory has exactly one inode. Its size is fixed at filesystem-format time (128 or 256 bytes on ext4). An inode holds two categories of information: <em>metadata</em> about the file, and an array of <em>block pointers</em> that locate the file's content.</p>
-
-  <p>The block pointer design is one of the cleverest in Unix — it handles tiny files efficiently with direct pointers, then telescopes outward through layers of indirection to handle files up to several terabytes, all within those same 128 bytes.</p>
-
-  <div class="diagram-container">
-  <svg viewBox="0 0 810 555" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:810px;display:block;margin:0 auto;">
-    <defs>
-      <marker id="a-or" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#ffab40"/>
-      </marker>
-      <marker id="a-pu" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#b388ff"/>
-      </marker>
-      <marker id="a-cy" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#00e5ff"/>
-      </marker>
-      <marker id="a-dim" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#2e3f5c"/>
-      </marker>
-      <filter id="glow-inode" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/>
-        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <rect width="810" height="555" fill="#0d1320" rx="8"/>
-
-    <!-- ════════════════════════════════════════════════
+<!-- ═══════════════════════ SVG 1: Disk Layout ═══════════════════════ -->
+<h2>How a Filesystem is Laid Out on Disk</h2>
+<p>When you format a partition, the filesystem divides the raw block device into a fixed set of regions. Understanding this layout shows you where inodes live, where data lives, and how the OS keeps track of what's free.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: How a Filesystem is Laid Out on Disk" role="img" style="width:100%;max-width:820px;display:block;margin:0 auto;" viewbox="0 0 820 210" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<filter height="160%" id="glow-or" width="160%" x="-30%" y="-30%">
+<fegaussianblur in="SourceGraphic" result="b" stddeviation="4"></fegaussianblur>
+<femerge><femergenode in="b"></femergenode><femergenode in="SourceGraphic"></femergenode></femerge>
+</filter>
+</defs>
+<rect fill="#0d1320" height="210" rx="8" width="820"></rect>
+<!-- Top labels -->
+<text fill="#2e3f5c" font-size="10" letter-spacing="1" text-anchor="middle" x="35" y="24">BOOT</text>
+<text fill="#ffab40" font-size="10" letter-spacing="1" text-anchor="middle" x="110" y="24">SUPERBLOCK</text>
+<text fill="#3a4e6e" font-size="10" letter-spacing="0.5" text-anchor="middle" x="196" y="24">BLK BITMAP</text>
+<text fill="#3a4e6e" font-size="10" letter-spacing="0.5" text-anchor="middle" x="274" y="24">INO BITMAP</text>
+<text fill="#b388ff" font-size="10" letter-spacing="1" text-anchor="middle" x="424" y="24">INODE TABLE</text>
+<text fill="#00e5ff" font-size="10" letter-spacing="1" text-anchor="middle" x="685" y="24">DATA BLOCKS</text>
+<!-- ── BOOT ── -->
+<rect fill="#0a0f1a" height="80" rx="4" stroke="#1e2d4a" stroke-width="1.5" width="50" x="10" y="32"></rect>
+<text fill="#2e3f5c" font-size="12" text-anchor="middle" x="35" y="76">BOOT</text>
+<!-- ── SUPERBLOCK ── (orange glow) -->
+<rect fill="#120e00" filter="url(#glow-or)" height="80" rx="4" stroke="#ffab40" stroke-width="1.8" width="84" x="68" y="32"></rect>
+<text fill="#ffab40" font-size="11" font-weight="600" text-anchor="middle" x="110" y="62">SB</text>
+<text fill="#9a7030" font-size="10" text-anchor="middle" x="110" y="78">block count</text>
+<text fill="#9a7030" font-size="10" text-anchor="middle" x="110" y="91">inode count</text>
+<text fill="#9a7030" font-size="10" text-anchor="middle" x="110" y="104">block size</text>
+<!-- ── BLOCK BITMAP ── -->
+<rect fill="#0d1320" height="80" rx="4" stroke="#2a3e5e" stroke-width="1.5" width="68" x="160" y="32"></rect>
+<text fill="#4a6080" font-size="11" text-anchor="middle" x="194" y="68">BLOCK</text>
+<text fill="#4a6080" font-size="11" text-anchor="middle" x="194" y="82">BITMAP</text>
+<text fill="#2e3f5c" font-size="10" text-anchor="middle" x="194" y="100">1 bit/block</text>
+<!-- ── INODE BITMAP ── -->
+<rect fill="#0d1320" height="80" rx="4" stroke="#2a3e5e" stroke-width="1.5" width="68" x="236" y="32"></rect>
+<text fill="#4a6080" font-size="11" text-anchor="middle" x="270" y="68">INODE</text>
+<text fill="#4a6080" font-size="11" text-anchor="middle" x="270" y="82">BITMAP</text>
+<text fill="#2e3f5c" font-size="10" text-anchor="middle" x="270" y="100">1 bit/inode</text>
+<!-- ── INODE TABLE (outer box) ── -->
+<rect fill="#0f0c1a" height="80" rx="4" stroke="#b388ff" stroke-width="1.8" width="240" x="312" y="32"></rect>
+<!-- inode sub-cells -->
+<rect fill="#120f1e" height="80" rx="0" stroke="none" width="48" x="312" y="32"></rect>
+<line stroke="#1e1530" stroke-width="1" x1="360" x2="360" y1="32" y2="112"></line>
+<rect fill="#0f0c1a" height="80" stroke="none" width="48" x="360" y="32"></rect>
+<line stroke="#1e1530" stroke-width="1" x1="408" x2="408" y1="32" y2="112"></line>
+<rect fill="#120f1e" height="80" stroke="none" width="48" x="408" y="32"></rect>
+<line stroke="#1e1530" stroke-width="1" x1="456" x2="456" y1="32" y2="112"></line>
+<line stroke="#1e1530" stroke-width="1" x1="492" x2="492" y1="32" y2="112"></line>
+<rect fill="#0f0c1a" height="80" stroke="none" width="60" x="492" y="32"></rect>
+<!-- Re-draw outer border on top -->
+<rect fill="none" height="80" rx="4" stroke="#b388ff" stroke-width="1.8" width="240" x="312" y="32"></rect>
+<!-- Labels inside -->
+<text fill="#b388ff" font-size="12" text-anchor="middle" x="336" y="70">ino 0</text>
+<text fill="#b388ff" font-size="12" text-anchor="middle" x="384" y="70">ino 1</text>
+<text fill="#b388ff" font-size="12" text-anchor="middle" x="432" y="70">ino 2</text>
+<text fill="#3a2e5e" font-size="14" text-anchor="middle" x="474" y="70">···</text>
+<text fill="#b388ff" font-size="12" text-anchor="middle" x="522" y="70">ino N</text>
+<!-- size annotation -->
+<text fill="#4a3870" font-size="10" text-anchor="middle" x="432" y="100">fixed-size structs</text>
+<!-- ── DATA BLOCKS (outer box) ── -->
+<rect fill="#081208" height="80" rx="4" stroke="#00e5ff" stroke-width="1.8" width="250" x="560" y="32"></rect>
+<!-- data sub-cells -->
+<rect fill="#091409" height="80" stroke="none" width="50" x="560" y="32"></rect>
+<line stroke="#0d1e0d" stroke-width="1" x1="610" x2="610" y1="32" y2="112"></line>
+<rect fill="#081208" height="80" stroke="none" width="50" x="610" y="32"></rect>
+<line stroke="#0d1e0d" stroke-width="1" x1="660" x2="660" y1="32" y2="112"></line>
+<rect fill="#091409" height="80" stroke="none" width="50" x="660" y="32"></rect>
+<line stroke="#0d1e0d" stroke-width="1" x1="710" x2="710" y1="32" y2="112"></line>
+<line stroke="#0d1e0d" stroke-width="1" x1="742" x2="742" y1="32" y2="112"></line>
+<rect fill="#081208" height="80" stroke="none" width="68" x="742" y="32"></rect>
+<rect fill="none" height="80" rx="4" stroke="#00e5ff" stroke-width="1.8" width="250" x="560" y="32"></rect>
+<text fill="#00e5ff" font-size="12" text-anchor="middle" x="585" y="70">blk 0</text>
+<text fill="#00e5ff" font-size="12" text-anchor="middle" x="635" y="70">blk 1</text>
+<text fill="#00e5ff" font-size="12" text-anchor="middle" x="685" y="70">blk 2</text>
+<text fill="#0d3030" font-size="14" text-anchor="middle" x="726" y="70">···</text>
+<text fill="#00e5ff" font-size="12" text-anchor="middle" x="776" y="70">blk M</text>
+<text fill="#0a3030" font-size="10" text-anchor="middle" x="685" y="100">4 KB each (typical)</text>
+<!-- ── Bottom annotation lines ── -->
+<!-- superblock bracket -->
+<line stroke="#ffab40" stroke-dasharray="3,3" stroke-width="1" x1="68" x2="152" y1="124" y2="124"></line>
+<text fill="#6b5030" font-size="11" text-anchor="middle" x="110" y="140">filesystem metadata</text>
+<text fill="#6b5030" font-size="11" text-anchor="middle" x="110" y="154">(size, health, layout)</text>
+<!-- inode table bracket -->
+<line stroke="#b388ff" stroke-dasharray="3,3" stroke-width="1" x1="312" x2="552" y1="124" y2="124"></line>
+<text fill="#5a4880" font-size="11" text-anchor="middle" x="432" y="140">one entry per file/dir</text>
+<text fill="#5a4880" font-size="11" text-anchor="middle" x="432" y="154">fixed at format time</text>
+<!-- data blocks bracket -->
+<line stroke="#00e5ff" stroke-dasharray="3,3" stroke-width="1" x1="560" x2="810" y1="124" y2="124"></line>
+<text fill="#0a5050" font-size="11" text-anchor="middle" x="685" y="140">file content &amp; directory</text>
+<text fill="#0a5050" font-size="11" text-anchor="middle" x="685" y="154">entries live here</text>
+</svg>
+<p class="caption">Simplified ext2/ext4-style disk layout — real filesystems have multiple block groups, each with its own copies of these regions</p>
+</div>
+<p>The <strong>superblock</strong> is the filesystem's constitution — it records the block size, total inode count, total block count, and the counts of free inodes and blocks. If the superblock is corrupted, the entire filesystem is unreadable, which is why it is replicated in multiple block groups.</p>
+<p>The <strong>bitmaps</strong> are compact free-space maps. One bit per block (or inode) — 1 means in-use, 0 means free. When you create a file the OS sets bits in both bitmaps. When you delete one, it clears them. The actual data is not zeroed — it just becomes "free."</p>
+<!-- ═══════════════════════ SVG 2: Inode Anatomy ═══════════════════════ -->
+<h2>Inside an Inode</h2>
+<p>Every file and directory has exactly one inode. Its size is fixed at filesystem-format time (128 or 256 bytes on ext4). An inode holds two categories of information: <em>metadata</em> about the file, and an array of <em>block pointers</em> that locate the file's content.</p>
+<p>The block pointer design is one of the cleverest in Unix — it handles tiny files efficiently with direct pointers, then telescopes outward through layers of indirection to handle files up to several terabytes, all within those same 128 bytes.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Inside an Inode" role="img" style="width:100%;max-width:810px;display:block;margin:0 auto;" viewbox="0 0 810 555" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="a-or" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#ffab40"></path>
+</marker>
+<marker id="a-pu" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#b388ff"></path>
+</marker>
+<marker id="a-cy" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#00e5ff"></path>
+</marker>
+<marker id="a-dim" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#2e3f5c"></path>
+</marker>
+<filter height="140%" id="glow-inode" width="140%" x="-20%" y="-20%">
+<fegaussianblur in="SourceGraphic" result="b" stddeviation="3"></fegaussianblur>
+<femerge><femergenode in="b"></femergenode><femergenode in="SourceGraphic"></femergenode></femerge>
+</filter>
+</defs>
+<rect fill="#0d1320" height="555" rx="8" width="810"></rect>
+<!-- ════════════════════════════════════════════════
          INODE BOX  x=10, y=10, w=155, h=530
          ════════════════════════════════════════════════ -->
-    <!-- outer box -->
-    <rect x="10" y="10" width="155" height="530" rx="8" fill="#0a0f1a" stroke="#ffab40" stroke-width="1.8" filter="url(#glow-inode)"/>
-
-    <!-- header bar -->
-    <rect x="10" y="10" width="155" height="38" rx="8" fill="#1a0e00"/>
-    <rect x="10" y="34" width="155" height="14" fill="#1a0e00"/><!-- square off bottom of header -->
-    <text x="87" y="27" text-anchor="middle" fill="#ffab40" font-size="11" letter-spacing="2">INODE</text>
-    <text x="87" y="42" text-anchor="middle" fill="#ffd740" font-size="14" font-weight="600">#42</text>
-
-    <!-- ── METADATA SECTION ── -->
-    <text x="87" y="66" text-anchor="middle" fill="#3a4e6e" font-size="10" letter-spacing="1">METADATA</text>
-
-    <!-- field rows (label | value) -->
-    <!-- mode -->
-    <text x="22" y="86" fill="#6b7fa3" font-size="12">mode</text>
-    <text x="150" y="86" text-anchor="end" fill="#69f0ae" font-size="12">-rw-r--r--</text>
-    <line x1="18" y1="92" x2="158" y2="92" stroke="#141d2f" stroke-width="1"/>
-
-    <!-- uid/gid -->
-    <text x="22" y="109" fill="#6b7fa3" font-size="12">uid/gid</text>
-    <text x="150" y="109" text-anchor="end" fill="#c8d6e5" font-size="12">1000/1000</text>
-    <line x1="18" y1="115" x2="158" y2="115" stroke="#141d2f" stroke-width="1"/>
-
-    <!-- size -->
-    <text x="22" y="132" fill="#6b7fa3" font-size="12">size</text>
-    <text x="150" y="132" text-anchor="end" fill="#c8d6e5" font-size="12">12,288 B</text>
-    <line x1="18" y1="138" x2="158" y2="138" stroke="#141d2f" stroke-width="1"/>
-
-    <!-- nlink -->
-    <text x="22" y="155" fill="#6b7fa3" font-size="12">nlink</text>
-    <text x="150" y="155" text-anchor="end" fill="#ffab40" font-size="12">1</text>
-    <line x1="18" y1="161" x2="158" y2="161" stroke="#141d2f" stroke-width="1"/>
-
-    <!-- mtime -->
-    <text x="22" y="178" fill="#6b7fa3" font-size="12">mtime</text>
-    <text x="150" y="178" text-anchor="end" fill="#c8d6e5" font-size="11">2026-03-14</text>
-
-    <!-- divider metadata → pointers -->
-    <line x1="10" y1="196" x2="165" y2="196" stroke="#ffab40" stroke-width="0.8" opacity="0.4"/>
-    <text x="87" y="210" text-anchor="middle" fill="#3a2e10" font-size="10" letter-spacing="1">BLOCK POINTERS</text>
-
-    <!-- ── DIRECT POINTERS (ptr 0–11) ── -->
-    <!-- ptr[0] -->
-    <rect x="18" y="216" width="134" height="22" rx="3" fill="#0f0a00" stroke="#4a3820" stroke-width="1"/>
-    <text x="28" y="231" fill="#a07040" font-size="11">ptr[0]</text>
-    <text x="148" y="231" text-anchor="end" fill="#ffab40" font-size="11">→ 0x0A20</text>
-    <!-- ptr[1] -->
-    <rect x="18" y="241" width="134" height="22" rx="3" fill="#0f0a00" stroke="#4a3820" stroke-width="1"/>
-    <text x="28" y="256" fill="#a07040" font-size="11">ptr[1]</text>
-    <text x="148" y="256" text-anchor="end" fill="#ffab40" font-size="11">→ 0x0A21</text>
-    <!-- ellipsis -->
-    <text x="87" y="278" text-anchor="middle" fill="#2e3020" font-size="16">···</text>
-    <!-- ptr[11] -->
-    <rect x="18" y="282" width="134" height="22" rx="3" fill="#0f0a00" stroke="#4a3820" stroke-width="1"/>
-    <text x="28" y="297" fill="#a07040" font-size="11">ptr[11]</text>
-    <text x="148" y="297" text-anchor="end" fill="#ffab40" font-size="11">→ 0x0A2B</text>
-
-    <!-- divider -->
-    <line x1="18" y1="313" x2="152" y2="313" stroke="#1e2d4a" stroke-width="1"/>
-    <text x="145" y="326" text-anchor="end" fill="#2e2860" font-size="10">1× indirect</text>
-
-    <!-- ptr[12] single indirect -->
-    <rect x="18" y="328" width="134" height="22" rx="3" fill="#0c0a18" stroke="#3a3060" stroke-width="1"/>
-    <text x="28" y="343" fill="#7060b0" font-size="11">ptr[12]</text>
-    <text x="148" y="343" text-anchor="end" fill="#b388ff" font-size="11">→ 0x1F00</text>
-
-    <!-- divider -->
-    <line x1="18" y1="360" x2="152" y2="360" stroke="#1e2d4a" stroke-width="1"/>
-    <text x="145" y="373" text-anchor="end" fill="#2e2860" font-size="10">2× indirect</text>
-
-    <!-- ptr[13] double indirect -->
-    <rect x="18" y="376" width="134" height="22" rx="3" fill="#0c0a18" stroke="#3a3060" stroke-width="1"/>
-    <text x="28" y="391" fill="#7060b0" font-size="11">ptr[13]</text>
-    <text x="148" y="391" text-anchor="end" fill="#b388ff" font-size="11">→ 0x2F00</text>
-
-    <!-- divider -->
-    <line x1="18" y1="408" x2="152" y2="408" stroke="#1e2d4a" stroke-width="1"/>
-    <text x="145" y="421" text-anchor="end" fill="#2e2860" font-size="10">3× indirect</text>
-
-    <!-- ptr[14] triple indirect (dim) -->
-    <rect x="18" y="424" width="134" height="22" rx="3" fill="#0a0a10" stroke="#252535" stroke-width="1"/>
-    <text x="28" y="439" fill="#3a3860" font-size="11">ptr[14]</text>
-    <text x="148" y="439" text-anchor="end" fill="#3a3860" font-size="11">→ 0x3F00</text>
-
-    <!-- bottom note inside inode -->
-    <text x="87" y="470" text-anchor="middle" fill="#2e2860" font-size="10">← 128 bytes total →</text>
-    <text x="87" y="484" text-anchor="middle" fill="#2e2860" font-size="10">fixed at format time</text>
-
-
-    <!-- ═══════════════════════════════════════════════════════
+<!-- outer box -->
+<rect fill="#0a0f1a" filter="url(#glow-inode)" height="530" rx="8" stroke="#ffab40" stroke-width="1.8" width="155" x="10" y="10"></rect>
+<!-- header bar -->
+<rect fill="#1a0e00" height="38" rx="8" width="155" x="10" y="10"></rect>
+<rect fill="#1a0e00" height="14" width="155" x="10" y="34"></rect><!-- square off bottom of header -->
+<text fill="#ffab40" font-size="11" letter-spacing="2" text-anchor="middle" x="87" y="27">INODE</text>
+<text fill="#ffd740" font-size="14" font-weight="600" text-anchor="middle" x="87" y="42">#42</text>
+<!-- ── METADATA SECTION ── -->
+<text fill="#3a4e6e" font-size="10" letter-spacing="1" text-anchor="middle" x="87" y="66">METADATA</text>
+<!-- field rows (label | value) -->
+<!-- mode -->
+<text fill="#6b7fa3" font-size="12" x="22" y="86">mode</text>
+<text fill="#69f0ae" font-size="12" text-anchor="end" x="150" y="86">-rw-r--r--</text>
+<line stroke="#141d2f" stroke-width="1" x1="18" x2="158" y1="92" y2="92"></line>
+<!-- uid/gid -->
+<text fill="#6b7fa3" font-size="12" x="22" y="109">uid/gid</text>
+<text fill="#c8d6e5" font-size="12" text-anchor="end" x="150" y="109">1000/1000</text>
+<line stroke="#141d2f" stroke-width="1" x1="18" x2="158" y1="115" y2="115"></line>
+<!-- size -->
+<text fill="#6b7fa3" font-size="12" x="22" y="132">size</text>
+<text fill="#c8d6e5" font-size="12" text-anchor="end" x="150" y="132">12,288 B</text>
+<line stroke="#141d2f" stroke-width="1" x1="18" x2="158" y1="138" y2="138"></line>
+<!-- nlink -->
+<text fill="#6b7fa3" font-size="12" x="22" y="155">nlink</text>
+<text fill="#ffab40" font-size="12" text-anchor="end" x="150" y="155">1</text>
+<line stroke="#141d2f" stroke-width="1" x1="18" x2="158" y1="161" y2="161"></line>
+<!-- mtime -->
+<text fill="#6b7fa3" font-size="12" x="22" y="178">mtime</text>
+<text fill="#c8d6e5" font-size="11" text-anchor="end" x="150" y="178">2026-03-14</text>
+<!-- divider metadata → pointers -->
+<line opacity="0.4" stroke="#ffab40" stroke-width="0.8" x1="10" x2="165" y1="196" y2="196"></line>
+<text fill="#3a2e10" font-size="10" letter-spacing="1" text-anchor="middle" x="87" y="210">BLOCK POINTERS</text>
+<!-- ── DIRECT POINTERS (ptr 0–11) ── -->
+<!-- ptr[0] -->
+<rect fill="#0f0a00" height="22" rx="3" stroke="#4a3820" stroke-width="1" width="134" x="18" y="216"></rect>
+<text fill="#a07040" font-size="11" x="28" y="231">ptr[0]</text>
+<text fill="#ffab40" font-size="11" text-anchor="end" x="148" y="231">→ 0x0A20</text>
+<!-- ptr[1] -->
+<rect fill="#0f0a00" height="22" rx="3" stroke="#4a3820" stroke-width="1" width="134" x="18" y="241"></rect>
+<text fill="#a07040" font-size="11" x="28" y="256">ptr[1]</text>
+<text fill="#ffab40" font-size="11" text-anchor="end" x="148" y="256">→ 0x0A21</text>
+<!-- ellipsis -->
+<text fill="#2e3020" font-size="16" text-anchor="middle" x="87" y="278">···</text>
+<!-- ptr[11] -->
+<rect fill="#0f0a00" height="22" rx="3" stroke="#4a3820" stroke-width="1" width="134" x="18" y="282"></rect>
+<text fill="#a07040" font-size="11" x="28" y="297">ptr[11]</text>
+<text fill="#ffab40" font-size="11" text-anchor="end" x="148" y="297">→ 0x0A2B</text>
+<!-- divider -->
+<line stroke="#1e2d4a" stroke-width="1" x1="18" x2="152" y1="313" y2="313"></line>
+<text fill="#2e2860" font-size="10" text-anchor="end" x="145" y="326">1× indirect</text>
+<!-- ptr[12] single indirect -->
+<rect fill="#0c0a18" height="22" rx="3" stroke="#3a3060" stroke-width="1" width="134" x="18" y="328"></rect>
+<text fill="#7060b0" font-size="11" x="28" y="343">ptr[12]</text>
+<text fill="#b388ff" font-size="11" text-anchor="end" x="148" y="343">→ 0x1F00</text>
+<!-- divider -->
+<line stroke="#1e2d4a" stroke-width="1" x1="18" x2="152" y1="360" y2="360"></line>
+<text fill="#2e2860" font-size="10" text-anchor="end" x="145" y="373">2× indirect</text>
+<!-- ptr[13] double indirect -->
+<rect fill="#0c0a18" height="22" rx="3" stroke="#3a3060" stroke-width="1" width="134" x="18" y="376"></rect>
+<text fill="#7060b0" font-size="11" x="28" y="391">ptr[13]</text>
+<text fill="#b388ff" font-size="11" text-anchor="end" x="148" y="391">→ 0x2F00</text>
+<!-- divider -->
+<line stroke="#1e2d4a" stroke-width="1" x1="18" x2="152" y1="408" y2="408"></line>
+<text fill="#2e2860" font-size="10" text-anchor="end" x="145" y="421">3× indirect</text>
+<!-- ptr[14] triple indirect (dim) -->
+<rect fill="#0a0a10" height="22" rx="3" stroke="#252535" stroke-width="1" width="134" x="18" y="424"></rect>
+<text fill="#3a3860" font-size="11" x="28" y="439">ptr[14]</text>
+<text fill="#3a3860" font-size="11" text-anchor="end" x="148" y="439">→ 0x3F00</text>
+<!-- bottom note inside inode -->
+<text fill="#2e2860" font-size="10" text-anchor="middle" x="87" y="470">← 128 bytes total →</text>
+<text fill="#2e2860" font-size="10" text-anchor="middle" x="87" y="484">fixed at format time</text>
+<!-- ═══════════════════════════════════════════════════════
          DIRECT DATA BLOCKS  x=228, y=216-305
          ═══════════════════════════════════════════════════════ -->
-    <!-- Column label -->
-    <text x="295" y="204" text-anchor="middle" fill="#4a5870" font-size="10" letter-spacing="1">DATA BLOCKS</text>
-
-    <!-- data block for ptr[0] -->
-    <rect x="228" y="216" width="134" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.4"/>
-    <text x="295" y="231" text-anchor="middle" fill="#00e5ff" font-size="11">data block 0x0A20</text>
-
-    <!-- data block for ptr[1] -->
-    <rect x="228" y="241" width="134" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.4"/>
-    <text x="295" y="256" text-anchor="middle" fill="#00e5ff" font-size="11">data block 0x0A21</text>
-
-    <!-- ptr[11] data block -->
-    <rect x="228" y="282" width="134" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.4"/>
-    <text x="295" y="297" text-anchor="middle" fill="#00e5ff" font-size="11">data block 0x0A2B</text>
-
-    <!-- ARROWS: inode ptr → data blocks -->
-    <line x1="165" y1="227" x2="228" y2="227" stroke="#ffab40" stroke-width="1.5" marker-end="url(#a-or)"/>
-    <line x1="165" y1="252" x2="228" y2="252" stroke="#ffab40" stroke-width="1.5" marker-end="url(#a-or)"/>
-    <line x1="165" y1="293" x2="228" y2="293" stroke="#ffab40" stroke-width="1.5" marker-end="url(#a-or)"/>
-
-    <!-- "12 direct pointers × 4 KB = 48 KB max" brace label -->
-    <line x1="370" y1="216" x2="374" y2="216" stroke="#4a5870" stroke-width="1"/>
-    <line x1="374" y1="216" x2="374" y2="304" stroke="#4a5870" stroke-width="1"/>
-    <line x1="374" y1="304" x2="370" y2="304" stroke="#4a5870" stroke-width="1"/>
-    <line x1="374" y1="260" x2="390" y2="260" stroke="#4a5870" stroke-width="1"/>
-    <text x="394" y="256" fill="#4a5870" font-size="11">12 direct × 4 KB</text>
-    <text x="394" y="270" fill="#4a5870" font-size="11">= 48 KB max</text>
-
-
-    <!-- ═══════════════════════════════════════════════════════
+<!-- Column label -->
+<text fill="#4a5870" font-size="10" letter-spacing="1" text-anchor="middle" x="295" y="204">DATA BLOCKS</text>
+<!-- data block for ptr[0] -->
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.4" width="134" x="228" y="216"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="295" y="231">data block 0x0A20</text>
+<!-- data block for ptr[1] -->
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.4" width="134" x="228" y="241"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="295" y="256">data block 0x0A21</text>
+<!-- ptr[11] data block -->
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.4" width="134" x="228" y="282"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="295" y="297">data block 0x0A2B</text>
+<!-- ARROWS: inode ptr → data blocks -->
+<line marker-end="url(#a-or)" stroke="#ffab40" stroke-width="1.5" x1="165" x2="228" y1="227" y2="227"></line>
+<line marker-end="url(#a-or)" stroke="#ffab40" stroke-width="1.5" x1="165" x2="228" y1="252" y2="252"></line>
+<line marker-end="url(#a-or)" stroke="#ffab40" stroke-width="1.5" x1="165" x2="228" y1="293" y2="293"></line>
+<!-- "12 direct pointers × 4 KB = 48 KB max" brace label -->
+<line stroke="#4a5870" stroke-width="1" x1="370" x2="374" y1="216" y2="216"></line>
+<line stroke="#4a5870" stroke-width="1" x1="374" x2="374" y1="216" y2="304"></line>
+<line stroke="#4a5870" stroke-width="1" x1="374" x2="370" y1="304" y2="304"></line>
+<line stroke="#4a5870" stroke-width="1" x1="374" x2="390" y1="260" y2="260"></line>
+<text fill="#4a5870" font-size="11" x="394" y="256">12 direct × 4 KB</text>
+<text fill="#4a5870" font-size="11" x="394" y="270">= 48 KB max</text>
+<!-- ═══════════════════════════════════════════════════════
          SINGLE INDIRECT  ptr[12] → indirect block → data blocks
          ═══════════════════════════════════════════════════════ -->
-
-    <!-- Indirect block (purple) -->
-    <rect x="228" y="318" width="148" height="58" rx="6" fill="#0c0a1e" stroke="#b388ff" stroke-width="1.6"/>
-    <text x="302" y="333" text-anchor="middle" fill="#b388ff" font-size="10" letter-spacing="1">INDIRECT BLOCK</text>
-    <!-- mini pointer cells inside -->
-    <rect x="236" y="338" width="20" height="16" rx="2" fill="#12103a" stroke="#4a3880" stroke-width="1"/>
-    <text x="246" y="350" text-anchor="middle" fill="#b388ff" font-size="9">→</text>
-    <rect x="259" y="338" width="20" height="16" rx="2" fill="#12103a" stroke="#4a3880" stroke-width="1"/>
-    <text x="269" y="350" text-anchor="middle" fill="#b388ff" font-size="9">→</text>
-    <rect x="282" y="338" width="20" height="16" rx="2" fill="#12103a" stroke="#4a3880" stroke-width="1"/>
-    <text x="292" y="350" text-anchor="middle" fill="#b388ff" font-size="9">→</text>
-    <rect x="305" y="338" width="20" height="16" rx="2" fill="#12103a" stroke="#4a3880" stroke-width="1"/>
-    <text x="315" y="350" text-anchor="middle" fill="#b388ff" font-size="9">→</text>
-    <text x="340" y="350" fill="#3a2860" font-size="12">···</text>
-    <text x="302" y="369" text-anchor="middle" fill="#4a3880" font-size="10">up to 1024 pointers</text>
-
-    <!-- arrow: ptr[12] → indirect block -->
-    <line x1="165" y1="339" x2="228" y2="347" stroke="#b388ff" stroke-width="1.5" marker-end="url(#a-pu)"/>
-
-    <!-- data blocks for single indirect -->
-    <rect x="440" y="314" width="132" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.3"/>
-    <text x="506" y="329" text-anchor="middle" fill="#00e5ff" font-size="11">data block ···</text>
-    <rect x="440" y="340" width="132" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.3"/>
-    <text x="506" y="355" text-anchor="middle" fill="#00e5ff" font-size="11">data block ···</text>
-    <rect x="440" y="366" width="132" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.3"/>
-    <text x="506" y="381" text-anchor="middle" fill="#00e5ff" font-size="11">data block ···</text>
-
-    <!-- arrows: indirect block → data blocks -->
-    <line x1="376" y1="340" x2="440" y2="325" stroke="#b388ff" stroke-width="1.3" marker-end="url(#a-pu)"/>
-    <line x1="376" y1="347" x2="440" y2="351" stroke="#b388ff" stroke-width="1.3" marker-end="url(#a-pu)"/>
-    <line x1="376" y1="355" x2="440" y2="377" stroke="#b388ff" stroke-width="1.3" marker-end="url(#a-pu)"/>
-
-    <!-- capacity label -->
-    <text x="506" y="402" text-anchor="middle" fill="#2e3a50" font-size="10">1024 × 4 KB = 4 MB more</text>
-
-
-    <!-- ═══════════════════════════════════════════════════════
+<!-- Indirect block (purple) -->
+<rect fill="#0c0a1e" height="58" rx="6" stroke="#b388ff" stroke-width="1.6" width="148" x="228" y="318"></rect>
+<text fill="#b388ff" font-size="10" letter-spacing="1" text-anchor="middle" x="302" y="333">INDIRECT BLOCK</text>
+<!-- mini pointer cells inside -->
+<rect fill="#12103a" height="16" rx="2" stroke="#4a3880" stroke-width="1" width="20" x="236" y="338"></rect>
+<text fill="#b388ff" font-size="9" text-anchor="middle" x="246" y="350">→</text>
+<rect fill="#12103a" height="16" rx="2" stroke="#4a3880" stroke-width="1" width="20" x="259" y="338"></rect>
+<text fill="#b388ff" font-size="9" text-anchor="middle" x="269" y="350">→</text>
+<rect fill="#12103a" height="16" rx="2" stroke="#4a3880" stroke-width="1" width="20" x="282" y="338"></rect>
+<text fill="#b388ff" font-size="9" text-anchor="middle" x="292" y="350">→</text>
+<rect fill="#12103a" height="16" rx="2" stroke="#4a3880" stroke-width="1" width="20" x="305" y="338"></rect>
+<text fill="#b388ff" font-size="9" text-anchor="middle" x="315" y="350">→</text>
+<text fill="#3a2860" font-size="12" x="340" y="350">···</text>
+<text fill="#4a3880" font-size="10" text-anchor="middle" x="302" y="369">up to 1024 pointers</text>
+<!-- arrow: ptr[12] → indirect block -->
+<line marker-end="url(#a-pu)" stroke="#b388ff" stroke-width="1.5" x1="165" x2="228" y1="339" y2="347"></line>
+<!-- data blocks for single indirect -->
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.3" width="132" x="440" y="314"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="506" y="329">data block ···</text>
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.3" width="132" x="440" y="340"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="506" y="355">data block ···</text>
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.3" width="132" x="440" y="366"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="506" y="381">data block ···</text>
+<!-- arrows: indirect block → data blocks -->
+<line marker-end="url(#a-pu)" stroke="#b388ff" stroke-width="1.3" x1="376" x2="440" y1="340" y2="325"></line>
+<line marker-end="url(#a-pu)" stroke="#b388ff" stroke-width="1.3" x1="376" x2="440" y1="347" y2="351"></line>
+<line marker-end="url(#a-pu)" stroke="#b388ff" stroke-width="1.3" x1="376" x2="440" y1="355" y2="377"></line>
+<!-- capacity label -->
+<text fill="#2e3a50" font-size="10" text-anchor="middle" x="506" y="402">1024 × 4 KB = 4 MB more</text>
+<!-- ═══════════════════════════════════════════════════════
          DOUBLE INDIRECT  ptr[13] → L1 block → L2 block → data
          ═══════════════════════════════════════════════════════ -->
-
-    <!-- L1 block -->
-    <rect x="228" y="420" width="148" height="52" rx="6" fill="#0c0a1e" stroke="#b388ff" stroke-width="1.6"/>
-    <text x="302" y="436" text-anchor="middle" fill="#b388ff" font-size="10" letter-spacing="1">L1 INDIRECT</text>
-    <rect x="236" y="441" width="18" height="14" rx="2" fill="#12103a" stroke="#4a3880" stroke-width="1"/>
-    <text x="245" y="452" text-anchor="middle" fill="#b388ff" font-size="9">→</text>
-    <rect x="257" y="441" width="18" height="14" rx="2" fill="#12103a" stroke="#4a3880" stroke-width="1"/>
-    <text x="266" y="452" text-anchor="middle" fill="#b388ff" font-size="9">→</text>
-    <rect x="278" y="441" width="18" height="14" rx="2" fill="#12103a" stroke="#4a3880" stroke-width="1"/>
-    <text x="287" y="452" text-anchor="middle" fill="#b388ff" font-size="9">→</text>
-    <text x="316" y="452" fill="#3a2860" font-size="12">···</text>
-    <text x="302" y="466" text-anchor="middle" fill="#4a3880" font-size="10">1024 ptrs to L2 blocks</text>
-
-    <!-- arrow: ptr[13] → L1 -->
-    <line x1="165" y1="387" x2="200" y2="446" stroke="#b388ff" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#a-pu)"/>
-    <line x1="200" y1="446" x2="228" y2="446" stroke="#b388ff" stroke-width="1.5" marker-end="url(#a-pu)"/>
-
-    <!-- L2 block -->
-    <rect x="440" y="420" width="148" height="52" rx="6" fill="#0c0a1e" stroke="#7060b0" stroke-width="1.4"/>
-    <text x="514" y="436" text-anchor="middle" fill="#9070d0" font-size="10" letter-spacing="1">L2 INDIRECT</text>
-    <rect x="448" y="441" width="18" height="14" rx="2" fill="#100e30" stroke="#4a3880" stroke-width="1"/>
-    <text x="457" y="452" text-anchor="middle" fill="#9070d0" font-size="9">→</text>
-    <rect x="469" y="441" width="18" height="14" rx="2" fill="#100e30" stroke="#4a3880" stroke-width="1"/>
-    <text x="478" y="452" text-anchor="middle" fill="#9070d0" font-size="9">→</text>
-    <rect x="490" y="441" width="18" height="14" rx="2" fill="#100e30" stroke="#4a3880" stroke-width="1"/>
-    <text x="499" y="452" text-anchor="middle" fill="#9070d0" font-size="9">→</text>
-    <text x="528" y="452" fill="#3a2860" font-size="12">···</text>
-    <text x="514" y="466" text-anchor="middle" fill="#4a3880" font-size="10">1024 ptrs to data</text>
-
-    <!-- arrow: L1 → L2 -->
-    <line x1="376" y1="446" x2="440" y2="446" stroke="#b388ff" stroke-width="1.5" marker-end="url(#a-pu)"/>
-
-    <!-- data blocks for double indirect -->
-    <rect x="652" y="416" width="128" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.2"/>
-    <text x="716" y="431" text-anchor="middle" fill="#00e5ff" font-size="11">data block ···</text>
-    <rect x="652" y="441" width="128" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.2"/>
-    <text x="716" y="456" text-anchor="middle" fill="#00e5ff" font-size="11">data block ···</text>
-    <rect x="652" y="466" width="128" height="22" rx="4" fill="#081208" stroke="#00e5ff" stroke-width="1.2"/>
-    <text x="716" y="481" text-anchor="middle" fill="#00e5ff" font-size="11">data block ···</text>
-
-    <!-- arrows: L2 → data -->
-    <line x1="588" y1="440" x2="652" y2="427" stroke="#7060b0" stroke-width="1.2" marker-end="url(#a-pu)"/>
-    <line x1="588" y1="446" x2="652" y2="452" stroke="#7060b0" stroke-width="1.2" marker-end="url(#a-pu)"/>
-    <line x1="588" y1="453" x2="652" y2="477" stroke="#7060b0" stroke-width="1.2" marker-end="url(#a-pu)"/>
-
-    <!-- capacity label -->
-    <text x="716" y="500" text-anchor="middle" fill="#2e3a50" font-size="10">1024² × 4 KB = 4 GB more</text>
-
-    <!-- ── Triple indirect dim annotation ── -->
-    <line x1="165" y1="435" x2="228" y2="515" stroke="#252535" stroke-width="1.2" stroke-dasharray="4,4" marker-end="url(#a-dim)"/>
-    <text x="250" y="520" fill="#252535" font-size="11">[ptr[14]  3× indirect → 4 TB more]</text>
-
-    <!-- ── Column header labels at top ── -->
-    <text x="87" y="14" text-anchor="middle" fill="#ffab40" font-size="10" letter-spacing="1.5">INODE</text>
-    <text x="506" y="14" text-anchor="middle" fill="#00e5ff" font-size="10" letter-spacing="1.5">DATA BLOCKS</text>
-
-  </svg>
-  <p class="caption">The block pointer hierarchy — direct pointers reach 48 KB, single indirect reaches 4 MB, double indirect 4 GB. The cost of a small file is exactly three disk reads: one for the inode, zero for a pointer block, one for the data.</p>
-  </div>
-
-  <!-- ═══════════════════════ Scaling table ═══════════════════════ -->
-  <h2>How Files Scale</h2>
-
-  <p>The indirection levels exist because they make the common case cheap. A 1 KB config file needs only one direct pointer — no indirection block is ever allocated. The indirect pointer blocks are allocated on demand, only when the file grows large enough to need them.</p>
-
-  <p>Assuming 4 KB blocks and 4-byte block pointers, each indirect block can hold 1024 pointers:</p>
-
-  <table class="scale-table">
-    <thead>
-      <tr>
-        <th>Level</th>
-        <th>Pointer path</th>
-        <th>Pointer count</th>
-        <th>Capacity added</th>
-        <th>Disk reads to get data</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td class="level">Direct</td>
-        <td>inode → data</td>
-        <td class="ptrs">12</td>
-        <td class="cap">48 KB</td>
-        <td>2 (inode + data)</td>
-      </tr>
-      <tr>
-        <td class="level">1× Indirect</td>
-        <td>inode → ptr block → data</td>
-        <td class="ptrs">1,024</td>
-        <td class="cap">~4 MB</td>
-        <td>3</td>
-      </tr>
-      <tr>
-        <td class="level">2× Indirect</td>
-        <td>inode → L1 → L2 → data</td>
-        <td class="ptrs">1,048,576</td>
-        <td class="cap">~4 GB</td>
-        <td>4</td>
-      </tr>
-      <tr>
-        <td class="level">3× Indirect</td>
-        <td>inode → L1 → L2 → L3 → data</td>
-        <td class="ptrs">~1 billion</td>
-        <td class="cap">~4 TB</td>
-        <td>5</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="insight">
-    <strong>Modern Filesystems Use Extents</strong><br>
+<!-- L1 block -->
+<rect fill="#0c0a1e" height="52" rx="6" stroke="#b388ff" stroke-width="1.6" width="148" x="228" y="420"></rect>
+<text fill="#b388ff" font-size="10" letter-spacing="1" text-anchor="middle" x="302" y="436">L1 INDIRECT</text>
+<rect fill="#12103a" height="14" rx="2" stroke="#4a3880" stroke-width="1" width="18" x="236" y="441"></rect>
+<text fill="#b388ff" font-size="9" text-anchor="middle" x="245" y="452">→</text>
+<rect fill="#12103a" height="14" rx="2" stroke="#4a3880" stroke-width="1" width="18" x="257" y="441"></rect>
+<text fill="#b388ff" font-size="9" text-anchor="middle" x="266" y="452">→</text>
+<rect fill="#12103a" height="14" rx="2" stroke="#4a3880" stroke-width="1" width="18" x="278" y="441"></rect>
+<text fill="#b388ff" font-size="9" text-anchor="middle" x="287" y="452">→</text>
+<text fill="#3a2860" font-size="12" x="316" y="452">···</text>
+<text fill="#4a3880" font-size="10" text-anchor="middle" x="302" y="466">1024 ptrs to L2 blocks</text>
+<!-- arrow: ptr[13] → L1 -->
+<line marker-end="url(#a-pu)" stroke="#b388ff" stroke-dasharray="4,3" stroke-width="1.5" x1="165" x2="200" y1="387" y2="446"></line>
+<line marker-end="url(#a-pu)" stroke="#b388ff" stroke-width="1.5" x1="200" x2="228" y1="446" y2="446"></line>
+<!-- L2 block -->
+<rect fill="#0c0a1e" height="52" rx="6" stroke="#7060b0" stroke-width="1.4" width="148" x="440" y="420"></rect>
+<text fill="#9070d0" font-size="10" letter-spacing="1" text-anchor="middle" x="514" y="436">L2 INDIRECT</text>
+<rect fill="#100e30" height="14" rx="2" stroke="#4a3880" stroke-width="1" width="18" x="448" y="441"></rect>
+<text fill="#9070d0" font-size="9" text-anchor="middle" x="457" y="452">→</text>
+<rect fill="#100e30" height="14" rx="2" stroke="#4a3880" stroke-width="1" width="18" x="469" y="441"></rect>
+<text fill="#9070d0" font-size="9" text-anchor="middle" x="478" y="452">→</text>
+<rect fill="#100e30" height="14" rx="2" stroke="#4a3880" stroke-width="1" width="18" x="490" y="441"></rect>
+<text fill="#9070d0" font-size="9" text-anchor="middle" x="499" y="452">→</text>
+<text fill="#3a2860" font-size="12" x="528" y="452">···</text>
+<text fill="#4a3880" font-size="10" text-anchor="middle" x="514" y="466">1024 ptrs to data</text>
+<!-- arrow: L1 → L2 -->
+<line marker-end="url(#a-pu)" stroke="#b388ff" stroke-width="1.5" x1="376" x2="440" y1="446" y2="446"></line>
+<!-- data blocks for double indirect -->
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.2" width="128" x="652" y="416"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="716" y="431">data block ···</text>
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.2" width="128" x="652" y="441"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="716" y="456">data block ···</text>
+<rect fill="#081208" height="22" rx="4" stroke="#00e5ff" stroke-width="1.2" width="128" x="652" y="466"></rect>
+<text fill="#00e5ff" font-size="11" text-anchor="middle" x="716" y="481">data block ···</text>
+<!-- arrows: L2 → data -->
+<line marker-end="url(#a-pu)" stroke="#7060b0" stroke-width="1.2" x1="588" x2="652" y1="440" y2="427"></line>
+<line marker-end="url(#a-pu)" stroke="#7060b0" stroke-width="1.2" x1="588" x2="652" y1="446" y2="452"></line>
+<line marker-end="url(#a-pu)" stroke="#7060b0" stroke-width="1.2" x1="588" x2="652" y1="453" y2="477"></line>
+<!-- capacity label -->
+<text fill="#2e3a50" font-size="10" text-anchor="middle" x="716" y="500">1024² × 4 KB = 4 GB more</text>
+<!-- ── Triple indirect dim annotation ── -->
+<line marker-end="url(#a-dim)" stroke="#252535" stroke-dasharray="4,4" stroke-width="1.2" x1="165" x2="228" y1="435" y2="515"></line>
+<text fill="#252535" font-size="11" x="250" y="520">[ptr[14]  3× indirect → 4 TB more]</text>
+<!-- ── Column header labels at top ── -->
+<text fill="#ffab40" font-size="10" letter-spacing="1.5" text-anchor="middle" x="87" y="14">INODE</text>
+<text fill="#00e5ff" font-size="10" letter-spacing="1.5" text-anchor="middle" x="506" y="14">DATA BLOCKS</text>
+</svg>
+<p class="caption">The block pointer hierarchy — direct pointers reach 48 KB, single indirect reaches 4 MB, double indirect 4 GB. The cost of a small file is exactly three disk reads: one for the inode, zero for a pointer block, one for the data.</p>
+</div>
+<!-- ═══════════════════════ Scaling table ═══════════════════════ -->
+<h2>How Files Scale</h2>
+<p>The indirection levels exist because they make the common case cheap. A 1 KB config file needs only one direct pointer — no indirection block is ever allocated. The indirect pointer blocks are allocated on demand, only when the file grows large enough to need them.</p>
+<p>Assuming 4 KB blocks and 4-byte block pointers, each indirect block can hold 1024 pointers:</p>
+<table class="scale-table">
+<thead>
+<tr>
+<th scope="col">Level</th>
+<th scope="col">Pointer path</th>
+<th scope="col">Pointer count</th>
+<th scope="col">Capacity added</th>
+<th scope="col">Disk reads to get data</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="level">Direct</td>
+<td>inode → data</td>
+<td class="ptrs">12</td>
+<td class="cap">48 KB</td>
+<td>2 (inode + data)</td>
+</tr>
+<tr>
+<td class="level">1× Indirect</td>
+<td>inode → ptr block → data</td>
+<td class="ptrs">1,024</td>
+<td class="cap">~4 MB</td>
+<td>3</td>
+</tr>
+<tr>
+<td class="level">2× Indirect</td>
+<td>inode → L1 → L2 → data</td>
+<td class="ptrs">1,048,576</td>
+<td class="cap">~4 GB</td>
+<td>4</td>
+</tr>
+<tr>
+<td class="level">3× Indirect</td>
+<td>inode → L1 → L2 → L3 → data</td>
+<td class="ptrs">~1 billion</td>
+<td class="cap">~4 TB</td>
+<td>5</td>
+</tr>
+</tbody>
+</table>
+<div class="insight">
+<strong>Modern Filesystems Use Extents</strong><br/>
     ext4, APFS, and XFS replace the classical pointer array with <em>extents</em> — each extent records a starting block and a length, efficiently describing a contiguous run. A 1 GB file stored contiguously needs only one extent record, versus 262,144 individual block pointers in the old scheme. The inode still exists; only the pointer format changed.
   </div>
-
-  <!-- ═══════════════════════ SVG 3: Directory + Hard Links ═══════════════════════ -->
-  <h2>Directories are Files Too</h2>
-
-  <p>A directory is not a special OS object — it is a regular file whose data blocks contain a table of <strong>(inode number, name)</strong> pairs. When you call <code>opendir()</code> / <code>readdir()</code>, you are reading this table. When you create a file, the OS allocates an inode and appends one row to the parent directory's data block.</p>
-
-  <p>This design has one profound consequence: <strong>the filename is not stored in the inode</strong>. It is stored in the directory that contains the file. You can therefore have two directory entries — in the same or different directories — that both point to the same inode. That is a <strong>hard link</strong>.</p>
-
-  <div class="diagram-container">
-  <svg viewBox="0 0 820 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;display:block;margin:0 auto;">
-    <defs>
-      <marker id="d-or" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#ffab40"/>
-      </marker>
-      <marker id="d-cy" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#00e5ff"/>
-      </marker>
-      <marker id="d-gr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#69f0ae"/>
-      </marker>
-      <marker id="d-ye" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-        <path d="M0,0 L0,6 L8,3 z" fill="#ffd740"/>
-      </marker>
-    </defs>
-    <rect width="820" height="360" fill="#0d1320" rx="8"/>
-
-    <!-- ══════════════════════════════
+<!-- ═══════════════════════ SVG 3: Directory + Hard Links ═══════════════════════ -->
+<h2>Directories are Files Too</h2>
+<p>A directory is not a special OS object — it is a regular file whose data blocks contain a table of <strong>(inode number, name)</strong> pairs. When you call <code>opendir()</code> / <code>readdir()</code>, you are reading this table. When you create a file, the OS allocates an inode and appends one row to the parent directory's data block.</p>
+<p>This design has one profound consequence: <strong>the filename is not stored in the inode</strong>. It is stored in the directory that contains the file. You can therefore have two directory entries — in the same or different directories — that both point to the same inode. That is a <strong>hard link</strong>.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Directories are Files Too" role="img" style="width:100%;max-width:820px;display:block;margin:0 auto;" viewbox="0 0 820 360" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="d-or" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#ffab40"></path>
+</marker>
+<marker id="d-cy" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#00e5ff"></path>
+</marker>
+<marker id="d-gr" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#69f0ae"></path>
+</marker>
+<marker id="d-ye" markerheight="9" markerwidth="9" orient="auto" refx="7" refy="3">
+<path d="M0,0 L0,6 L8,3 z" fill="#ffd740"></path>
+</marker>
+</defs>
+<rect fill="#0d1320" height="360" rx="8" width="820"></rect>
+<!-- ══════════════════════════════
          LEFT HALF: Directory structure
          ══════════════════════════════ -->
-    <text x="205" y="22" text-anchor="middle" fill="#ffab40" font-size="11" letter-spacing="1">DIRECTORY AS A FILE</text>
-
-    <!-- directory inode box -->
-    <rect x="12" y="38" width="118" height="86" rx="6" fill="#120e00" stroke="#ffab40" stroke-width="1.6"/>
-    <text x="71" y="57" text-anchor="middle" fill="#ffab40" font-size="10" letter-spacing="1">INODE #5</text>
-    <text x="71" y="74" text-anchor="middle" fill="#6b7fa3" font-size="11">mode: drwxr-xr-x</text>
-    <text x="71" y="90" text-anchor="middle" fill="#6b7fa3" font-size="11">type: directory</text>
-    <text x="71" y="106" text-anchor="middle" fill="#ffd740" font-size="11">→ data blocks</text>
-
-    <!-- arrow: dir inode → dir data block -->
-    <line x1="130" y1="81" x2="162" y2="81" stroke="#ffab40" stroke-width="1.6" marker-end="url(#d-or)"/>
-
-    <!-- directory data block (the table) -->
-    <rect x="162" y="34" width="220" height="240" rx="6" fill="#0a0f1a" stroke="#b388ff" stroke-width="1.6"/>
-    <text x="272" y="52" text-anchor="middle" fill="#b388ff" font-size="10" letter-spacing="1">DIRECTORY DATA BLOCK</text>
-    <!-- column headers -->
-    <text x="192" y="68" text-anchor="middle" fill="#3a4e6e" font-size="10">INODE #</text>
-    <text x="318" y="68" text-anchor="middle" fill="#3a4e6e" font-size="10">NAME</text>
-    <line x1="168" y1="72" x2="378" y2="72" stroke="#1e2d4a" stroke-width="1"/>
-    <line x1="248" y1="72" x2="248" y2="270" stroke="#1e2d4a" stroke-width="1"/>
-
-    <!-- entry rows -->
-    <!-- . -->
-    <text x="205" y="92" text-anchor="middle" fill="#4a6080" font-size="13">5</text>
-    <text x="310" y="92" fill="#4a6080" font-size="13">.</text>
-    <line x1="168" y1="98" x2="378" y2="98" stroke="#141d2f" stroke-width="1"/>
-    <!-- .. -->
-    <text x="205" y="118" text-anchor="middle" fill="#4a6080" font-size="13">2</text>
-    <text x="310" y="118" fill="#4a6080" font-size="13">..</text>
-    <line x1="168" y1="124" x2="378" y2="124" stroke="#141d2f" stroke-width="1"/>
-    <!-- hello.c -->
-    <rect x="164" y="126" width="214" height="28" rx="0" fill="rgba(255,171,64,0.06)"/>
-    <text x="205" y="146" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">42</text>
-    <text x="310" y="146" fill="#ffab40" font-size="13">hello.c</text>
-    <line x1="168" y1="154" x2="378" y2="154" stroke="#141d2f" stroke-width="1"/>
-    <!-- notes.txt -->
-    <rect x="164" y="156" width="214" height="28" rx="0" fill="rgba(0,229,255,0.04)"/>
-    <text x="205" y="175" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">17</text>
-    <text x="310" y="175" fill="#00e5ff" font-size="13">notes.txt</text>
-    <line x1="168" y1="182" x2="378" y2="182" stroke="#141d2f" stroke-width="1"/>
-    <!-- Makefile -->
-    <text x="205" y="202" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">31</text>
-    <text x="310" y="202" fill="#69f0ae" font-size="13">Makefile</text>
-    <line x1="168" y1="208" x2="378" y2="208" stroke="#141d2f" stroke-width="1"/>
-    <!-- more entries implied -->
-    <text x="272" y="230" text-anchor="middle" fill="#1e2d4a" font-size="14">···</text>
-
-    <!-- arrows from entries → file inodes -->
-    <!-- hello.c → inode 42 -->
-    <line x1="382" y1="140" x2="438" y2="105" stroke="#ffab40" stroke-width="1.6" marker-end="url(#d-or)"/>
-    <!-- notes.txt → inode 17 -->
-    <line x1="382" y1="168" x2="438" y2="195" stroke="#00e5ff" stroke-width="1.6" marker-end="url(#d-cy)"/>
-
-    <!-- file inode 42 -->
-    <rect x="438" y="68" width="124" height="72" rx="6" fill="#120e00" stroke="#ffab40" stroke-width="1.6"/>
-    <text x="500" y="87" text-anchor="middle" fill="#ffab40" font-size="10" letter-spacing="1">INODE #42</text>
-    <text x="500" y="103" text-anchor="middle" fill="#6b7fa3" font-size="11">hello.c data</text>
-    <text x="500" y="119" text-anchor="middle" fill="#6b7fa3" font-size="11">nlink = 1</text>
-    <text x="500" y="132" text-anchor="middle" fill="#4a6080" font-size="11">→ data blocks</text>
-
-    <!-- file inode 17 -->
-    <rect x="438" y="162" width="124" height="72" rx="6" fill="#001a1a" stroke="#00e5ff" stroke-width="1.6"/>
-    <text x="500" y="181" text-anchor="middle" fill="#00e5ff" font-size="10" letter-spacing="1">INODE #17</text>
-    <text x="500" y="197" text-anchor="middle" fill="#6b7fa3" font-size="11">notes.txt data</text>
-    <text x="500" y="213" text-anchor="middle" fill="#6b7fa3" font-size="11">nlink = 1</text>
-    <text x="500" y="226" text-anchor="middle" fill="#4a6080" font-size="11">→ data blocks</text>
-
-    <!-- ══════════════════════════════
+<text fill="#ffab40" font-size="11" letter-spacing="1" text-anchor="middle" x="205" y="22">DIRECTORY AS A FILE</text>
+<!-- directory inode box -->
+<rect fill="#120e00" height="86" rx="6" stroke="#ffab40" stroke-width="1.6" width="118" x="12" y="38"></rect>
+<text fill="#ffab40" font-size="10" letter-spacing="1" text-anchor="middle" x="71" y="57">INODE #5</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="71" y="74">mode: drwxr-xr-x</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="71" y="90">type: directory</text>
+<text fill="#ffd740" font-size="11" text-anchor="middle" x="71" y="106">→ data blocks</text>
+<!-- arrow: dir inode → dir data block -->
+<line marker-end="url(#d-or)" stroke="#ffab40" stroke-width="1.6" x1="130" x2="162" y1="81" y2="81"></line>
+<!-- directory data block (the table) -->
+<rect fill="#0a0f1a" height="240" rx="6" stroke="#b388ff" stroke-width="1.6" width="220" x="162" y="34"></rect>
+<text fill="#b388ff" font-size="10" letter-spacing="1" text-anchor="middle" x="272" y="52">DIRECTORY DATA BLOCK</text>
+<!-- column headers -->
+<text fill="#3a4e6e" font-size="10" text-anchor="middle" x="192" y="68">INODE #</text>
+<text fill="#3a4e6e" font-size="10" text-anchor="middle" x="318" y="68">NAME</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="168" x2="378" y1="72" y2="72"></line>
+<line stroke="#1e2d4a" stroke-width="1" x1="248" x2="248" y1="72" y2="270"></line>
+<!-- entry rows -->
+<!-- . -->
+<text fill="#4a6080" font-size="13" text-anchor="middle" x="205" y="92">5</text>
+<text fill="#4a6080" font-size="13" x="310" y="92">.</text>
+<line stroke="#141d2f" stroke-width="1" x1="168" x2="378" y1="98" y2="98"></line>
+<!-- .. -->
+<text fill="#4a6080" font-size="13" text-anchor="middle" x="205" y="118">2</text>
+<text fill="#4a6080" font-size="13" x="310" y="118">..</text>
+<line stroke="#141d2f" stroke-width="1" x1="168" x2="378" y1="124" y2="124"></line>
+<!-- hello.c -->
+<rect fill="rgba(255,171,64,0.06)" height="28" rx="0" width="214" x="164" y="126"></rect>
+<text fill="#ffab40" font-size="13" font-weight="600" text-anchor="middle" x="205" y="146">42</text>
+<text fill="#ffab40" font-size="13" x="310" y="146">hello.c</text>
+<line stroke="#141d2f" stroke-width="1" x1="168" x2="378" y1="154" y2="154"></line>
+<!-- notes.txt -->
+<rect fill="rgba(0,229,255,0.04)" height="28" rx="0" width="214" x="164" y="156"></rect>
+<text fill="#00e5ff" font-size="13" font-weight="600" text-anchor="middle" x="205" y="175">17</text>
+<text fill="#00e5ff" font-size="13" x="310" y="175">notes.txt</text>
+<line stroke="#141d2f" stroke-width="1" x1="168" x2="378" y1="182" y2="182"></line>
+<!-- Makefile -->
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="205" y="202">31</text>
+<text fill="#69f0ae" font-size="13" x="310" y="202">Makefile</text>
+<line stroke="#141d2f" stroke-width="1" x1="168" x2="378" y1="208" y2="208"></line>
+<!-- more entries implied -->
+<text fill="#1e2d4a" font-size="14" text-anchor="middle" x="272" y="230">···</text>
+<!-- arrows from entries → file inodes -->
+<!-- hello.c → inode 42 -->
+<line marker-end="url(#d-or)" stroke="#ffab40" stroke-width="1.6" x1="382" x2="438" y1="140" y2="105"></line>
+<!-- notes.txt → inode 17 -->
+<line marker-end="url(#d-cy)" stroke="#00e5ff" stroke-width="1.6" x1="382" x2="438" y1="168" y2="195"></line>
+<!-- file inode 42 -->
+<rect fill="#120e00" height="72" rx="6" stroke="#ffab40" stroke-width="1.6" width="124" x="438" y="68"></rect>
+<text fill="#ffab40" font-size="10" letter-spacing="1" text-anchor="middle" x="500" y="87">INODE #42</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="500" y="103">hello.c data</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="500" y="119">nlink = 1</text>
+<text fill="#4a6080" font-size="11" text-anchor="middle" x="500" y="132">→ data blocks</text>
+<!-- file inode 17 -->
+<rect fill="#001a1a" height="72" rx="6" stroke="#00e5ff" stroke-width="1.6" width="124" x="438" y="162"></rect>
+<text fill="#00e5ff" font-size="10" letter-spacing="1" text-anchor="middle" x="500" y="181">INODE #17</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="500" y="197">notes.txt data</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="500" y="213">nlink = 1</text>
+<text fill="#4a6080" font-size="11" text-anchor="middle" x="500" y="226">→ data blocks</text>
+<!-- ══════════════════════════════
          RIGHT HALF: Hard Links
          ══════════════════════════════ -->
-    <line x1="596" y1="22" x2="596" y2="345" stroke="#1e2d4a" stroke-width="1" stroke-dasharray="4,6"/>
-    <text x="708" y="22" text-anchor="middle" fill="#69f0ae" font-size="11" letter-spacing="1">HARD LINKS</text>
-
-    <!-- dir A entry -->
-    <rect x="608" y="48" width="158" height="42" rx="6" fill="#0a100a" stroke="#69f0ae" stroke-width="1.4"/>
-    <text x="687" y="65" text-anchor="middle" fill="#3a5a3a" font-size="10" letter-spacing="0.5">DIR A  entry</text>
-    <text x="650" y="83" fill="#69f0ae" font-size="13" font-weight="600">42</text>
-    <text x="700" y="83" fill="#69f0ae" font-size="13">hello.c</text>
-
-    <!-- dir B entry -->
-    <rect x="608" y="118" width="158" height="42" rx="6" fill="#0a100a" stroke="#69f0ae" stroke-width="1.4"/>
-    <text x="687" y="135" text-anchor="middle" fill="#3a5a3a" font-size="10" letter-spacing="0.5">DIR B  entry</text>
-    <text x="650" y="153" fill="#69f0ae" font-size="13" font-weight="600">42</text>
-    <text x="700" y="153" fill="#69f0ae" font-size="13">greeting.c</text>
-
-    <!-- arrows from both dirs → same inode 42 -->
-    <line x1="766" y1="69" x2="800" y2="95" stroke="#69f0ae" stroke-width="1.5" marker-end="url(#d-gr)"/>
-    <line x1="766" y1="139" x2="800" y2="120" stroke="#69f0ae" stroke-width="1.5" marker-end="url(#d-gr)"/>
-    <line x1="800" y1="95" x2="800" y2="120" stroke="#69f0ae" stroke-width="1.5"/>
-
-    <!-- shared inode 42 (highlighted) -->
-    <rect x="608" y="198" width="198" height="86" rx="6" fill="#120e00" stroke="#ffd740" stroke-width="2"/>
-    <text x="707" y="218" text-anchor="middle" fill="#ffd740" font-size="11" letter-spacing="1">INODE #42</text>
-    <line x1="616" y1="224" x2="798" y2="224" stroke="#2a1e00" stroke-width="1"/>
-    <text x="707" y="242" text-anchor="middle" fill="#6b7fa3" font-size="12">same file content</text>
-    <text x="707" y="260" text-anchor="middle" fill="#6b7fa3" font-size="12">same permissions</text>
-    <!-- nlink highlighted -->
-    <rect x="620" y="268" width="174" height="22" rx="3" fill="rgba(255,215,64,0.08)" stroke="#ffd740" stroke-width="1"/>
-    <text x="707" y="283" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">nlink = 2</text>
-
-    <!-- arrows: inode 42 → back up to dir entries (pointer lines) -->
-    <line x1="800" y1="120" x2="800" y2="208" stroke="#69f0ae" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#d-gr)"/>
-
-    <!-- annotation -->
-    <text x="707" y="310" text-anchor="middle" fill="#5a4800" font-size="11">Both names are equally real.</text>
-    <text x="707" y="325" text-anchor="middle" fill="#5a4800" font-size="11">Inode deleted only when nlink = 0.</text>
-    <text x="707" y="340" text-anchor="middle" fill="#5a4800" font-size="11">No "original" — no "copy".</text>
-  </svg>
-  <p class="caption">Left: a directory's data block is a table of (inode number, name) pairs — the name lives here, not in the inode.  Right: two directory entries pointing to inode #42 — a hard link. The inode's nlink field counts them; the data is freed only when nlink reaches zero.</p>
-  </div>
-
-  <h3>The nlink counter</h3>
-
-  <p>The <code>nlink</code> field in the inode counts how many directory entries point to it. When you create a file, <code>nlink</code> starts at 1. Each call to <code>link()</code> increments it. Each <code>unlink()</code> decrements it. The inode — and the data blocks it references — are freed <em>only when <code>nlink</code> reaches zero</em>.</p>
-
-  <p>This is why the system call for "delete a file" is called <code>unlink()</code>, not <code>delete()</code>. You are removing a name from a directory; the file's inode survives until all names pointing to it are gone.</p>
-
-  <div class="key-concept">
-    <strong>Directories get nlink too</strong><br>
+<line stroke="#1e2d4a" stroke-dasharray="4,6" stroke-width="1" x1="596" x2="596" y1="22" y2="345"></line>
+<text fill="#69f0ae" font-size="11" letter-spacing="1" text-anchor="middle" x="708" y="22">HARD LINKS</text>
+<!-- dir A entry -->
+<rect fill="#0a100a" height="42" rx="6" stroke="#69f0ae" stroke-width="1.4" width="158" x="608" y="48"></rect>
+<text fill="#3a5a3a" font-size="10" letter-spacing="0.5" text-anchor="middle" x="687" y="65">DIR A  entry</text>
+<text fill="#69f0ae" font-size="13" font-weight="600" x="650" y="83">42</text>
+<text fill="#69f0ae" font-size="13" x="700" y="83">hello.c</text>
+<!-- dir B entry -->
+<rect fill="#0a100a" height="42" rx="6" stroke="#69f0ae" stroke-width="1.4" width="158" x="608" y="118"></rect>
+<text fill="#3a5a3a" font-size="10" letter-spacing="0.5" text-anchor="middle" x="687" y="135">DIR B  entry</text>
+<text fill="#69f0ae" font-size="13" font-weight="600" x="650" y="153">42</text>
+<text fill="#69f0ae" font-size="13" x="700" y="153">greeting.c</text>
+<!-- arrows from both dirs → same inode 42 -->
+<line marker-end="url(#d-gr)" stroke="#69f0ae" stroke-width="1.5" x1="766" x2="800" y1="69" y2="95"></line>
+<line marker-end="url(#d-gr)" stroke="#69f0ae" stroke-width="1.5" x1="766" x2="800" y1="139" y2="120"></line>
+<line stroke="#69f0ae" stroke-width="1.5" x1="800" x2="800" y1="95" y2="120"></line>
+<!-- shared inode 42 (highlighted) -->
+<rect fill="#120e00" height="86" rx="6" stroke="#ffd740" stroke-width="2" width="198" x="608" y="198"></rect>
+<text fill="#ffd740" font-size="11" letter-spacing="1" text-anchor="middle" x="707" y="218">INODE #42</text>
+<line stroke="#2a1e00" stroke-width="1" x1="616" x2="798" y1="224" y2="224"></line>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="707" y="242">same file content</text>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="707" y="260">same permissions</text>
+<!-- nlink highlighted -->
+<rect fill="rgba(255,215,64,0.08)" height="22" rx="3" stroke="#ffd740" stroke-width="1" width="174" x="620" y="268"></rect>
+<text fill="#ffd740" font-size="13" font-weight="600" text-anchor="middle" x="707" y="283">nlink = 2</text>
+<!-- arrows: inode 42 → back up to dir entries (pointer lines) -->
+<line marker-end="url(#d-gr)" stroke="#69f0ae" stroke-dasharray="4,3" stroke-width="1.5" x1="800" x2="800" y1="120" y2="208"></line>
+<!-- annotation -->
+<text fill="#5a4800" font-size="11" text-anchor="middle" x="707" y="310">Both names are equally real.</text>
+<text fill="#5a4800" font-size="11" text-anchor="middle" x="707" y="325">Inode deleted only when nlink = 0.</text>
+<text fill="#5a4800" font-size="11" text-anchor="middle" x="707" y="340">No "original" — no "copy".</text>
+</svg>
+<p class="caption">Left: a directory's data block is a table of (inode number, name) pairs — the name lives here, not in the inode.  Right: two directory entries pointing to inode #42 — a hard link. The inode's nlink field counts them; the data is freed only when nlink reaches zero.</p>
+</div>
+<h3>The nlink counter</h3>
+<p>The <code>nlink</code> field in the inode counts how many directory entries point to it. When you create a file, <code>nlink</code> starts at 1. Each call to <code>link()</code> increments it. Each <code>unlink()</code> decrements it. The inode — and the data blocks it references — are freed <em>only when <code>nlink</code> reaches zero</em>.</p>
+<p>This is why the system call for "delete a file" is called <code>unlink()</code>, not <code>delete()</code>. You are removing a name from a directory; the file's inode survives until all names pointing to it are gone.</p>
+<div class="key-concept">
+<strong>Directories get nlink too</strong><br/>
     A fresh empty directory always has <code>nlink = 2</code>: one for its entry in the parent directory, and one for the <code>.</code> entry inside itself. Each subdirectory you create adds 1 more, because that subdirectory's <code>..</code> entry also points back to the parent inode.
   </div>
-
-  <!-- ═══════════════════════ stat() connection ═══════════════════════ -->
-  <h2>What <code>stat()</code> Actually Reads</h2>
-
-  <p>When you call <code>stat(path, &amp;st)</code> in your C program, the OS resolves the path — traversing directory data blocks to convert each name segment to an inode number — then reads the final inode off disk and copies its fields directly into your <code>struct stat</code>.</p>
-
+<!-- ═══════════════════════ stat() connection ═══════════════════════ -->
+<h2>What <code>stat()</code> Actually Reads</h2>
+<p>When you call <code>stat(path, &amp;st)</code> in your C program, the OS resolves the path — traversing directory data blocks to convert each name segment to an inode number — then reads the final inode off disk and copies its fields directly into your <code>struct stat</code>.</p>
 <pre><span class="comment">// Every field in struct stat maps directly to an inode field:</span>
 st.st_ino   <span class="comment">// ← inode number (the index in the inode table)</span>
 st.st_mode  <span class="comment">// ← type bits + permission bits from inode.mode</span>
@@ -698,16 +617,13 @@ st.st_atime <span class="comment">// ← inode.atime (last access)</span>
 st.st_blksize <span class="comment">// ← filesystem preferred I/O block size</span>
 st.st_blocks  <span class="comment">// ← 512-byte blocks actually allocated (≥ st_size/512)</span>
 </pre>
-
-  <div class="insight">
-    <strong>st_ctime is not "creation time"</strong><br>
-    <code>st_ctime</code> is the inode's <em>change time</em> — the last time the inode metadata changed (permissions, owner, nlink count, etc.). Unix has no standard "creation time" field. macOS adds <code>st_birthtime</code> as an extension; Linux ext4 stores it internally but POSIX does not expose it.
+<div class="insight">
+<strong>st_ctime is not "creation time"</strong><br/>
+<code>st_ctime</code> is the inode's <em>change time</em> — the last time the inode metadata changed (permissions, owner, nlink count, etc.). Unix has no standard "creation time" field. macOS adds <code>st_birthtime</code> as an extension; Linux ext4 stores it internally but POSIX does not expose it.
   </div>
-
-  <div class="warning">
-    <strong>⚠ Path resolution cost</strong>. Every component in a path like <code>/home/amti/cs253/lab1/main.c</code> requires reading the data block of each intermediate directory to find the next inode number. A stat() on a deeply nested file can take 5–10 disk reads before it even reaches the target inode. This is why keeping frequently-accessed files at shallow paths and using file descriptors (<code>fstatat()</code>, <code>openat()</code>) to avoid re-resolving paths matters in performance-sensitive code.
+<div class="warning">
+<strong>⚠ Path resolution cost</strong>. Every component in a path like <code>/home/amti/cs253/lab1/main.c</code> requires reading the data block of each intermediate directory to find the next inode number. A stat() on a deeply nested file can take 5–10 disk reads before it even reaches the target inode. This is why keeping frequently-accessed files at shallow paths and using file descriptors (<code>fstatat()</code>, <code>openat()</code>) to avoid re-resolving paths matters in performance-sensitive code.
   </div>
-
-</div><!-- /content -->
+</main><!-- /content -->
 </body>
 </html>

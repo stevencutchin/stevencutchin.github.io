@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 — Map App Architecture Guide</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -194,476 +195,350 @@
     pre { font-size: 12px; }
   }
 </style>
-</head>
-<body>
-
-<!-- ============================================================ -->
-<!-- HEADER -->
-<!-- ============================================================ -->
-<div class="doc-header">
-  <h1>CS 402 — Mobile Application Development</h1>
-  <div class="semester">Spring 2026 · Assignment 3 Reference</div>
-  <div class="subtitle">Map App — Architectural Guide</div>
-</div>
-
-<p>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><!-- ============================================================ --><!-- HEADER --><!-- ============================================================ --><div class="doc-header">
+<h1>CS 402 — Mobile Application Development</h1>
+<div class="semester">Spring 2026 · Assignment 3 Reference</div>
+<div class="subtitle">Map App — Architectural Guide</div>
+</div><p>
   This document explains the architecture of the <strong>scmapview</strong> reference implementation — a React Native map application that demonstrates location lists, geocoding, remote data persistence, and device-rotation handling. Use this as a companion to the source code to understand <em>why</em> the code is organized the way it is, not just <em>what</em> it does.
-</p>
-
-
-<!-- ============================================================ -->
-<!-- 1. PROJECT STRUCTURE -->
-<!-- ============================================================ -->
-<h2>1. Project Structure</h2>
-
-<div class="file-tree">
+</p><!-- ============================================================ --><!-- 1. PROJECT STRUCTURE --><!-- ============================================================ --><h2>1. Project Structure</h2><div class="file-tree">
 <span class="dir">scmapview/</span>
-├── <span class="file">App.js</span>             <span class="note">← Main component (MapList): all state, layout, and logic</span>
-├── <span class="file">index.js</span>           <span class="note">← Entry point, registers App component</span>
-├── <span class="file">package.json</span>       <span class="note">← Dependencies: maps, geocoding, dialog, expo</span>
-├── <span class="file">app.json</span>           <span class="note">← Expo configuration</span>
+├── <span class="file">App.js</span> <span class="note">← Main component (MapList): all state, layout, and logic</span>
+├── <span class="file">index.js</span> <span class="note">← Entry point, registers App component</span>
+├── <span class="file">package.json</span> <span class="note">← Dependencies: maps, geocoding, dialog, expo</span>
+├── <span class="file">app.json</span> <span class="note">← Expo configuration</span>
 ├── <span class="dir">components/</span>
-│   ├── <span class="file">listItem.js</span>    <span class="note">← Item: presentational component for list rows</span>
+│   ├── <span class="file">listItem.js</span> <span class="note">← Item: presentational component for list rows</span>
 │   ├── <span class="file">remoteAccess.js</span><span class="note">← loadList() / saveList(): remote data I/O</span>
-│   └── <span class="file">getinput.js</span>    <span class="note">← ModalApp: alternative modal input (unused in main app)</span>
-└── <span class="dir">assets/</span>            <span class="note">← App icons and splash screen images</span>
-</div>
-
-<p>
+│   └── <span class="file">getinput.js</span> <span class="note">← ModalApp: alternative modal input (unused in main app)</span>
+└── <span class="dir">assets/</span> <span class="note">← App icons and splash screen images</span>
+</div><p>
   The app follows a <strong>simple modular pattern</strong>: a single smart container component (<code>MapList</code> in App.js) owns all state and orchestrates the UI, while child components handle presentation (<code>Item</code>) and data access (<code>loadList</code>, <code>saveList</code>).
-</p>
-
-
-<!-- ============================================================ -->
-<!-- 2. HIGH-LEVEL ARCHITECTURE -->
-<!-- ============================================================ -->
-<h2>2. High-Level Architecture</h2>
-
-<p>
+</p><!-- ============================================================ --><!-- 2. HIGH-LEVEL ARCHITECTURE --><!-- ============================================================ --><h2>2. High-Level Architecture</h2><p>
   The diagram below shows the three architectural tiers of the application and how data flows between them.
-</p>
-
-<div class="diagram-wrap">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" width="880" height="520">
-  <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#2E5D8A"/>
-    </marker>
-    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#2D8A5E"/>
-    </marker>
-    <marker id="arrow-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-      <polygon points="0 0, 10 3.5, 0 7" fill="#B8860B"/>
-    </marker>
-    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.10"/>
-    </filter>
-  </defs>
-
-  <!-- Background -->
-  <rect width="880" height="520" rx="12" fill="#FAFBFD" stroke="#D4DDE6" stroke-width="1"/>
-
-  <!-- Title -->
-  <text x="440" y="36" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" fill="#1B3A5C">Three-Tiered Architecture Overview</text>
-
-  <!-- TIER 1: Presentation -->
-  <rect x="30" y="56" width="260" height="430" rx="10" fill="#E8F0F8" stroke="#2E5D8A" stroke-width="2" filter="url(#shadow)"/>
-  <rect x="30" y="56" width="260" height="36" rx="10" fill="#1B3A5C"/>
-  <rect x="30" y="82" width="260" height="10" fill="#1B3A5C"/>
-  <text x="160" y="80" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" fill="white">PRESENTATION TIER</text>
-  <text x="160" y="110" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="12" fill="#5A6672">React Native UI Components</text>
-
-  <!-- Map box -->
-  <rect x="52" y="126" width="216" height="60" rx="6" fill="white" stroke="#4A90C4" stroke-width="1.5"/>
-  <text x="160" y="150" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#1B3A5C">&lt;MapView&gt;</text>
-  <text x="160" y="168" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">+ Marker components</text>
-
-  <!-- List box -->
-  <rect x="52" y="196" width="216" height="60" rx="6" fill="white" stroke="#4A90C4" stroke-width="1.5"/>
-  <text x="160" y="220" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#1B3A5C">&lt;VirtualizedList&gt;</text>
-  <text x="160" y="238" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">Scrollable location items</text>
-
-  <!-- Buttons box -->
-  <rect x="52" y="266" width="216" height="50" rx="6" fill="white" stroke="#4A90C4" stroke-width="1.5"/>
-  <text x="160" y="286" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#1B3A5C">Button Row</text>
-  <text x="160" y="302" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">Plus · Delete · Load · Save · Auto</text>
-
-  <!-- Dialog box -->
-  <rect x="52" y="326" width="216" height="50" rx="6" fill="white" stroke="#4A90C4" stroke-width="1.5"/>
-  <text x="160" y="346" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#1B3A5C">&lt;DialogInput&gt;</text>
-  <text x="160" y="362" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">Address entry modal</text>
-
-  <!-- Rotation box -->
-  <rect x="52" y="390" width="216" height="54" rx="6" fill="#FFF8E7" stroke="#B8860B" stroke-width="1.5"/>
-  <text x="160" y="410" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#B8860B">useWindowDimensions()</text>
-  <text x="160" y="428" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">Portrait ↔ Landscape layout</text>
-
-  <!-- TIER 2: Logic -->
-  <rect x="310" y="56" width="260" height="430" rx="10" fill="#E8F5EE" stroke="#2D8A5E" stroke-width="2" filter="url(#shadow)"/>
-  <rect x="310" y="56" width="260" height="36" rx="10" fill="#2D8A5E"/>
-  <rect x="310" y="82" width="260" height="10" fill="#2D8A5E"/>
-  <text x="440" y="80" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" fill="white">LOGIC TIER</text>
-  <text x="440" y="110" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="12" fill="#5A6672">App.js — MapList Component</text>
-
-  <!-- State box -->
-  <rect x="332" y="126" width="216" height="96" rx="6" fill="white" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="440" y="146" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#2D8A5E">React State (useState)</text>
-  <text x="348" y="166" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">list       → location objects</text>
-  <text x="348" y="182" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">markers    → &lt;Marker&gt; elements</text>
-  <text x="348" y="198" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">autonav    → auto-pan toggle</text>
-  <text x="348" y="214" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">ashowme    → dialog visibility</text>
-
-  <!-- Functions box -->
-  <rect x="332" y="234" width="216" height="128" rx="6" fill="white" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="440" y="254" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#2D8A5E">Event Handlers</text>
-  <text x="348" y="274" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">addLocation()  → geocode + add</text>
-  <text x="348" y="290" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">delButton()    → remove selected</text>
-  <text x="348" y="306" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">toggleList()   → select + pan</text>
-  <text x="348" y="322" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">loadButton()   → fetch from URL</text>
-  <text x="348" y="338" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">saveButton()   → POST to URL</text>
-  <text x="348" y="354" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">plusButton()   → show dialog</text>
-
-  <!-- useEffect -->
-  <rect x="332" y="374" width="216" height="50" rx="6" fill="white" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="440" y="394" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#2D8A5E">useEffect([], …)</text>
-  <text x="440" y="412" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">Load initial data on mount</text>
-
-  <!-- Mapref -->
-  <rect x="332" y="436" width="216" height="38" rx="6" fill="white" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="440" y="460" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#2D8A5E">mapref → animateToRegion()</text>
-
-  <!-- TIER 3: Data -->
-  <rect x="590" y="56" width="260" height="430" rx="10" fill="#F3E8F9" stroke="#6C3483" stroke-width="2" filter="url(#shadow)"/>
-  <rect x="590" y="56" width="260" height="36" rx="10" fill="#6C3483"/>
-  <rect x="590" y="82" width="260" height="10" fill="#6C3483"/>
-  <text x="720" y="80" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" fill="white">DATA TIER</text>
-  <text x="720" y="110" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="12" fill="#5A6672">External APIs &amp; Services</text>
-
-  <!-- Remote server -->
-  <rect x="612" y="126" width="216" height="88" rx="6" fill="white" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="720" y="148" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#6C3483">BSU Server</text>
-  <text x="720" y="168" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#5A6672">loadjson.php?user={name}</text>
-  <text x="720" y="184" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#5A6672">savejson.php?user={name}</text>
-  <text x="720" y="202" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">JSON read/write via fetch()</text>
-
-  <!-- remoteAccess module -->
-  <rect x="612" y="226" width="216" height="64" rx="6" fill="white" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="720" y="248" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" fill="#6C3483">remoteAccess.js</text>
-  <text x="720" y="268" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">loadList()  ·  saveList()</text>
-  <text x="720" y="282" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">async fetch wrapper functions</text>
-
-  <!-- Geocoding -->
-  <rect x="612" y="302" width="216" height="72" rx="6" fill="white" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="720" y="324" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#6C3483">Google Geocoding API</text>
-  <text x="720" y="344" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#5A6672">Geocoder.from(address)</text>
-  <text x="720" y="362" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">Address → {lat, lng}</text>
-
-  <!-- Data model -->
-  <rect x="612" y="386" width="216" height="88" rx="6" fill="white" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="720" y="406" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#6C3483">Location Data Model</text>
-  <text x="628" y="426" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">{ key:       "Boise, ID",</text>
-  <text x="628" y="442" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">  latitude:  43.6150,</text>
-  <text x="628" y="458" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">  longitude: -116.2023,</text>
-  <text x="628" y="474" font-family="JetBrains Mono, monospace" font-size="11" fill="#2C2C2C">  selected:  false }</text>
-
-  <!-- Arrows: Presentation → Logic -->
-  <line x1="268" y1="156" x2="330" y2="170" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="268" y1="226" x2="330" y2="265" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="268" y1="291" x2="330" y2="310" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <!-- Arrows: Logic → Data -->
-  <line x1="548" y1="340" x2="610" y2="330" stroke="#6C3483" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="none"/>
-  <line x1="548" y1="250" x2="610" y2="258" stroke="#6C3483" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <line x1="548" y1="396" x2="610" y2="396" stroke="#6C3483" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <!-- Arrow: remoteAccess → server -->
-  <line x1="720" y1="226" x2="720" y2="216" stroke="#6C3483" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="4 3"/>
+</p><div class="diagram-wrap">
+<svg aria-label="Diagram: 2. High-Level Architecture" height="520" role="img" viewbox="0 0 880 520" width="880" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arrow" markerheight="7" markerwidth="10" orient="auto" refx="9" refy="3.5">
+<polygon fill="#2E5D8A" points="0 0, 10 3.5, 0 7"></polygon>
+</marker>
+<marker id="arrow-green" markerheight="7" markerwidth="10" orient="auto" refx="9" refy="3.5">
+<polygon fill="#2D8A5E" points="0 0, 10 3.5, 0 7"></polygon>
+</marker>
+<marker id="arrow-amber" markerheight="7" markerwidth="10" orient="auto" refx="9" refy="3.5">
+<polygon fill="#B8860B" points="0 0, 10 3.5, 0 7"></polygon>
+</marker>
+<filter height="112%" id="shadow" width="108%" x="-4%" y="-4%">
+<fedropshadow dx="0" dy="2" flood-opacity="0.10" stddeviation="3"></fedropshadow>
+</filter>
+</defs>
+<!-- Background -->
+<rect fill="#FAFBFD" height="520" rx="12" stroke="#D4DDE6" stroke-width="1" width="880"></rect>
+<!-- Title -->
+<text fill="#1B3A5C" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" text-anchor="middle" x="440" y="36">Three-Tiered Architecture Overview</text>
+<!-- TIER 1: Presentation -->
+<rect fill="#E8F0F8" filter="url(#shadow)" height="430" rx="10" stroke="#2E5D8A" stroke-width="2" width="260" x="30" y="56"></rect>
+<rect fill="#1B3A5C" height="36" rx="10" width="260" x="30" y="56"></rect>
+<rect fill="#1B3A5C" height="10" width="260" x="30" y="82"></rect>
+<text fill="white" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" text-anchor="middle" x="160" y="80">PRESENTATION TIER</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="12" text-anchor="middle" x="160" y="110">React Native UI Components</text>
+<!-- Map box -->
+<rect fill="white" height="60" rx="6" stroke="#4A90C4" stroke-width="1.5" width="216" x="52" y="126"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="160" y="150">&lt;MapView&gt;</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="160" y="168">+ Marker components</text>
+<!-- List box -->
+<rect fill="white" height="60" rx="6" stroke="#4A90C4" stroke-width="1.5" width="216" x="52" y="196"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="160" y="220">&lt;VirtualizedList&gt;</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="160" y="238">Scrollable location items</text>
+<!-- Buttons box -->
+<rect fill="white" height="50" rx="6" stroke="#4A90C4" stroke-width="1.5" width="216" x="52" y="266"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="160" y="286">Button Row</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="160" y="302">Plus · Delete · Load · Save · Auto</text>
+<!-- Dialog box -->
+<rect fill="white" height="50" rx="6" stroke="#4A90C4" stroke-width="1.5" width="216" x="52" y="326"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="160" y="346">&lt;DialogInput&gt;</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="160" y="362">Address entry modal</text>
+<!-- Rotation box -->
+<rect fill="#FFF8E7" height="54" rx="6" stroke="#B8860B" stroke-width="1.5" width="216" x="52" y="390"></rect>
+<text fill="#B8860B" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="160" y="410">useWindowDimensions()</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="160" y="428">Portrait ↔ Landscape layout</text>
+<!-- TIER 2: Logic -->
+<rect fill="#E8F5EE" filter="url(#shadow)" height="430" rx="10" stroke="#2D8A5E" stroke-width="2" width="260" x="310" y="56"></rect>
+<rect fill="#2D8A5E" height="36" rx="10" width="260" x="310" y="56"></rect>
+<rect fill="#2D8A5E" height="10" width="260" x="310" y="82"></rect>
+<text fill="white" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" text-anchor="middle" x="440" y="80">LOGIC TIER</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="12" text-anchor="middle" x="440" y="110">App.js — MapList Component</text>
+<!-- State box -->
+<rect fill="white" height="96" rx="6" stroke="#2D8A5E" stroke-width="1.5" width="216" x="332" y="126"></rect>
+<text fill="#2D8A5E" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="440" y="146">React State (useState)</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="166">list       → location objects</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="182">markers    → &lt;Marker&gt; elements</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="198">autonav    → auto-pan toggle</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="214">ashowme    → dialog visibility</text>
+<!-- Functions box -->
+<rect fill="white" height="128" rx="6" stroke="#2D8A5E" stroke-width="1.5" width="216" x="332" y="234"></rect>
+<text fill="#2D8A5E" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="440" y="254">Event Handlers</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="274">addLocation()  → geocode + add</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="290">delButton()    → remove selected</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="306">toggleList()   → select + pan</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="322">loadButton()   → fetch from URL</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="338">saveButton()   → POST to URL</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="348" y="354">plusButton()   → show dialog</text>
+<!-- useEffect -->
+<rect fill="white" height="50" rx="6" stroke="#2D8A5E" stroke-width="1.5" width="216" x="332" y="374"></rect>
+<text fill="#2D8A5E" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="440" y="394">useEffect([], …)</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="440" y="412">Load initial data on mount</text>
+<!-- Mapref -->
+<rect fill="white" height="38" rx="6" stroke="#2D8A5E" stroke-width="1.5" width="216" x="332" y="436"></rect>
+<text fill="#2D8A5E" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="440" y="460">mapref → animateToRegion()</text>
+<!-- TIER 3: Data -->
+<rect fill="#F3E8F9" filter="url(#shadow)" height="430" rx="10" stroke="#6C3483" stroke-width="2" width="260" x="590" y="56"></rect>
+<rect fill="#6C3483" height="36" rx="10" width="260" x="590" y="56"></rect>
+<rect fill="#6C3483" height="10" width="260" x="590" y="82"></rect>
+<text fill="white" font-family="Source Sans 3, sans-serif" font-size="14" font-weight="700" text-anchor="middle" x="720" y="80">DATA TIER</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="12" text-anchor="middle" x="720" y="110">External APIs &amp; Services</text>
+<!-- Remote server -->
+<rect fill="white" height="88" rx="6" stroke="#6C3483" stroke-width="1.5" width="216" x="612" y="126"></rect>
+<text fill="#6C3483" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="720" y="148">BSU Server</text>
+<text fill="#5A6672" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle" x="720" y="168">loadjson.php?user={name}</text>
+<text fill="#5A6672" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle" x="720" y="184">savejson.php?user={name}</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="720" y="202">JSON read/write via fetch()</text>
+<!-- remoteAccess module -->
+<rect fill="white" height="64" rx="6" stroke="#6C3483" stroke-width="1.5" width="216" x="612" y="226"></rect>
+<text fill="#6C3483" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" text-anchor="middle" x="720" y="248">remoteAccess.js</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="720" y="268">loadList()  ·  saveList()</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="720" y="282">async fetch wrapper functions</text>
+<!-- Geocoding -->
+<rect fill="white" height="72" rx="6" stroke="#6C3483" stroke-width="1.5" width="216" x="612" y="302"></rect>
+<text fill="#6C3483" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="720" y="324">Google Geocoding API</text>
+<text fill="#5A6672" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="720" y="344">Geocoder.from(address)</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="720" y="362">Address → {lat, lng}</text>
+<!-- Data model -->
+<rect fill="white" height="88" rx="6" stroke="#6C3483" stroke-width="1.5" width="216" x="612" y="386"></rect>
+<text fill="#6C3483" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" text-anchor="middle" x="720" y="406">Location Data Model</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="628" y="426">{ key:       "Boise, ID",</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="628" y="442">  latitude:  43.6150,</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="628" y="458">  longitude: -116.2023,</text>
+<text fill="#2C2C2C" font-family="JetBrains Mono, monospace" font-size="11" x="628" y="474">  selected:  false }</text>
+<!-- Arrows: Presentation → Logic -->
+<line marker-end="url(#arrow)" stroke="#2E5D8A" stroke-width="1.5" x1="268" x2="330" y1="156" y2="170"></line>
+<line marker-end="url(#arrow)" stroke="#2E5D8A" stroke-width="1.5" x1="268" x2="330" y1="226" y2="265"></line>
+<line marker-end="url(#arrow)" stroke="#2E5D8A" stroke-width="1.5" x1="268" x2="330" y1="291" y2="310"></line>
+<!-- Arrows: Logic → Data -->
+<line marker-end="url(#arrow)" stroke="#6C3483" stroke-dasharray="none" stroke-width="1.5" x1="548" x2="610" y1="340" y2="330"></line>
+<line marker-end="url(#arrow)" stroke="#6C3483" stroke-width="1.5" x1="548" x2="610" y1="250" y2="258"></line>
+<line marker-end="url(#arrow)" stroke="#6C3483" stroke-width="1.5" x1="548" x2="610" y1="396" y2="396"></line>
+<!-- Arrow: remoteAccess → server -->
+<line marker-end="url(#arrow)" stroke="#6C3483" stroke-dasharray="4 3" stroke-width="1.5" x1="720" x2="720" y1="226" y2="216"></line>
 </svg>
 <div class="diagram-caption">Figure 1 — The three-tiered architecture maps directly to the project's file structure.</div>
-</div>
-
-<div class="callout callout-blue">
-  <strong>Key Architectural Insight</strong>
+</div><div class="callout callout-blue">
+<strong>Key Architectural Insight</strong>
   The <code>MapList</code> component in App.js acts as the single "smart" component — it owns all state and passes data down to presentational children. This is a common pattern in smaller React Native apps where a full state-management library (Redux, Zustand) would be overkill.
-</div>
-
-
-<!-- ============================================================ -->
-<!-- 3. COMPONENT HIERARCHY -->
-<!-- ============================================================ -->
-<h2>3. Component Hierarchy &amp; Rendering</h2>
-
-<p>
+</div><!-- ============================================================ --><!-- 3. COMPONENT HIERARCHY --><!-- ============================================================ --><h2>3. Component Hierarchy &amp; Rendering</h2><p>
   The UI is composed of four primary elements arranged in a single-column layout (portrait) or side-by-side layout (landscape). The <code>MapList</code> component builds these as JSX variables and conditionally returns one layout or the other.
-</p>
-
-<div class="diagram-wrap">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 440" width="880" height="440">
-  <defs>
-    <marker id="arr2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#1B3A5C"/>
-    </marker>
-  </defs>
-
-  <rect width="880" height="440" rx="12" fill="#FAFBFD" stroke="#D4DDE6" stroke-width="1"/>
-  <text x="440" y="32" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" fill="#1B3A5C">Component Hierarchy &amp; Conditional Layout</text>
-
-  <!-- MapList root -->
-  <rect x="340" y="50" width="200" height="40" rx="8" fill="#1B3A5C"/>
-  <text x="440" y="75" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500" fill="white">MapList</text>
-
-  <!-- Branch line -->
-  <line x1="440" y1="90" x2="440" y2="110" stroke="#1B3A5C" stroke-width="2"/>
-  <line x1="220" y1="110" x2="660" y2="110" stroke="#1B3A5C" stroke-width="2"/>
-
-  <!-- PORTRAIT column -->
-  <line x1="220" y1="110" x2="220" y2="130" stroke="#1B3A5C" stroke-width="2"/>
-  <rect x="120" y="130" width="200" height="34" rx="6" fill="#2E5D8A"/>
-  <text x="220" y="152" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="600" fill="white">Portrait (W &lt; H)</text>
-
-  <rect x="104" y="176" width="232" height="246" rx="8" fill="white" stroke="#2E5D8A" stroke-width="2"/>
-  <text x="120" y="196" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">container (flex: column)</text>
-
-  <!-- Portrait children -->
-  <rect x="120" y="206" width="200" height="40" rx="5" fill="#E8F0F8" stroke="#4A90C4" stroke-width="1"/>
-  <text x="220" y="230" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#1B3A5C">&lt;MapView&gt;  (50% height)</text>
-
-  <rect x="120" y="254" width="200" height="34" rx="5" fill="#E8F0F8" stroke="#4A90C4" stroke-width="1"/>
-  <text x="220" y="276" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#1B3A5C">Button Row</text>
-
-  <rect x="120" y="296" width="200" height="40" rx="5" fill="#E8F0F8" stroke="#4A90C4" stroke-width="1"/>
-  <text x="220" y="320" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#1B3A5C">&lt;VirtualizedList&gt;</text>
-
-  <rect x="120" y="344" width="200" height="34" rx="5" fill="#FFF8E7" stroke="#B8860B" stroke-width="1" stroke-dasharray="4 2"/>
-  <text x="220" y="366" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#B8860B">&lt;DialogInput&gt;  (modal)</text>
-
-  <!-- LANDSCAPE column -->
-  <line x1="660" y1="110" x2="660" y2="130" stroke="#1B3A5C" stroke-width="2"/>
-  <rect x="560" y="130" width="200" height="34" rx="6" fill="#2E5D8A"/>
-  <text x="660" y="152" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="600" fill="white">Landscape (W &gt; H)</text>
-
-  <rect x="544" y="176" width="232" height="246" rx="8" fill="white" stroke="#2E5D8A" stroke-width="2"/>
-  <text x="560" y="196" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">bcontainer (flex: row)</text>
-
-  <!-- Landscape left pane -->
-  <rect x="556" y="206" width="100" height="34" rx="5" fill="#E8F0F8" stroke="#4A90C4" stroke-width="1"/>
-  <text x="606" y="228" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#1B3A5C">Buttons</text>
-
-  <rect x="556" y="248" width="100" height="40" rx="5" fill="#E8F0F8" stroke="#4A90C4" stroke-width="1"/>
-  <text x="606" y="272" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#1B3A5C">VirtList</text>
-
-  <rect x="556" y="296" width="100" height="34" rx="5" fill="#FFF8E7" stroke="#B8860B" stroke-width="1" stroke-dasharray="4 2"/>
-  <text x="606" y="318" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#B8860B">DialogInput</text>
-
-  <!-- Landscape right pane -->
-  <rect x="664" y="206" width="100" height="124" rx="5" fill="#E8F0F8" stroke="#4A90C4" stroke-width="1"/>
-  <text x="714" y="262" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#1B3A5C">&lt;MapView&gt;</text>
-  <text x="714" y="278" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="10" fill="#5A6672">full height</text>
-
-  <!-- Decision diamond -->
-  <polygon points="440,380 470,400 440,420 410,400" fill="white" stroke="#B8860B" stroke-width="2"/>
-  <text x="440" y="404" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="10" font-weight="600" fill="#B8860B">W&gt;H?</text>
-  <line x1="410" y1="400" x2="336" y2="400" stroke="#B8860B" stroke-width="1.5" marker-end="url(#arr2)"/>
-  <text x="365" y="394" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="10" fill="#B8860B">no</text>
-  <line x1="470" y1="400" x2="544" y2="400" stroke="#B8860B" stroke-width="1.5" marker-end="url(#arr2)"/>
-  <text x="515" y="394" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="10" fill="#B8860B">yes</text>
+</p><div class="diagram-wrap">
+<svg aria-label="Diagram: 3. Component Hierarchy &amp; Rendering" height="440" role="img" viewbox="0 0 880 440" width="880" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="arr2" markerheight="6" markerwidth="8" orient="auto" refx="7" refy="3">
+<polygon fill="#1B3A5C" points="0 0, 8 3, 0 6"></polygon>
+</marker>
+</defs>
+<rect fill="#FAFBFD" height="440" rx="12" stroke="#D4DDE6" stroke-width="1" width="880"></rect>
+<text fill="#1B3A5C" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" text-anchor="middle" x="440" y="32">Component Hierarchy &amp; Conditional Layout</text>
+<!-- MapList root -->
+<rect fill="#1B3A5C" height="40" rx="8" width="200" x="340" y="50"></rect>
+<text fill="white" font-family="JetBrains Mono, monospace" font-size="13" font-weight="500" text-anchor="middle" x="440" y="75">MapList</text>
+<!-- Branch line -->
+<line stroke="#1B3A5C" stroke-width="2" x1="440" x2="440" y1="90" y2="110"></line>
+<line stroke="#1B3A5C" stroke-width="2" x1="220" x2="660" y1="110" y2="110"></line>
+<!-- PORTRAIT column -->
+<line stroke="#1B3A5C" stroke-width="2" x1="220" x2="220" y1="110" y2="130"></line>
+<rect fill="#2E5D8A" height="34" rx="6" width="200" x="120" y="130"></rect>
+<text fill="white" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="600" text-anchor="middle" x="220" y="152">Portrait (W &lt; H)</text>
+<rect fill="white" height="246" rx="8" stroke="#2E5D8A" stroke-width="2" width="232" x="104" y="176"></rect>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" x="120" y="196">container (flex: column)</text>
+<!-- Portrait children -->
+<rect fill="#E8F0F8" height="40" rx="5" stroke="#4A90C4" stroke-width="1" width="200" x="120" y="206"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle" x="220" y="230">&lt;MapView&gt;  (50% height)</text>
+<rect fill="#E8F0F8" height="34" rx="5" stroke="#4A90C4" stroke-width="1" width="200" x="120" y="254"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle" x="220" y="276">Button Row</text>
+<rect fill="#E8F0F8" height="40" rx="5" stroke="#4A90C4" stroke-width="1" width="200" x="120" y="296"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle" x="220" y="320">&lt;VirtualizedList&gt;</text>
+<rect fill="#FFF8E7" height="34" rx="5" stroke="#B8860B" stroke-dasharray="4 2" stroke-width="1" width="200" x="120" y="344"></rect>
+<text fill="#B8860B" font-family="JetBrains Mono, monospace" font-size="12" text-anchor="middle" x="220" y="366">&lt;DialogInput&gt;  (modal)</text>
+<!-- LANDSCAPE column -->
+<line stroke="#1B3A5C" stroke-width="2" x1="660" x2="660" y1="110" y2="130"></line>
+<rect fill="#2E5D8A" height="34" rx="6" width="200" x="560" y="130"></rect>
+<text fill="white" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="600" text-anchor="middle" x="660" y="152">Landscape (W &gt; H)</text>
+<rect fill="white" height="246" rx="8" stroke="#2E5D8A" stroke-width="2" width="232" x="544" y="176"></rect>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" x="560" y="196">bcontainer (flex: row)</text>
+<!-- Landscape left pane -->
+<rect fill="#E8F0F8" height="34" rx="5" stroke="#4A90C4" stroke-width="1" width="100" x="556" y="206"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle" x="606" y="228">Buttons</text>
+<rect fill="#E8F0F8" height="40" rx="5" stroke="#4A90C4" stroke-width="1" width="100" x="556" y="248"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle" x="606" y="272">VirtList</text>
+<rect fill="#FFF8E7" height="34" rx="5" stroke="#B8860B" stroke-dasharray="4 2" stroke-width="1" width="100" x="556" y="296"></rect>
+<text fill="#B8860B" font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle" x="606" y="318">DialogInput</text>
+<!-- Landscape right pane -->
+<rect fill="#E8F0F8" height="124" rx="5" stroke="#4A90C4" stroke-width="1" width="100" x="664" y="206"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="714" y="262">&lt;MapView&gt;</text>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="10" text-anchor="middle" x="714" y="278">full height</text>
+<!-- Decision diamond -->
+<polygon fill="white" points="440,380 470,400 440,420 410,400" stroke="#B8860B" stroke-width="2"></polygon>
+<text fill="#B8860B" font-family="Source Sans 3, sans-serif" font-size="10" font-weight="600" text-anchor="middle" x="440" y="404">W&gt;H?</text>
+<line marker-end="url(#arr2)" stroke="#B8860B" stroke-width="1.5" x1="410" x2="336" y1="400" y2="400"></line>
+<text fill="#B8860B" font-family="Source Sans 3, sans-serif" font-size="10" text-anchor="middle" x="365" y="394">no</text>
+<line marker-end="url(#arr2)" stroke="#B8860B" stroke-width="1.5" x1="470" x2="544" y1="400" y2="400"></line>
+<text fill="#B8860B" font-family="Source Sans 3, sans-serif" font-size="10" text-anchor="middle" x="515" y="394">yes</text>
 </svg>
 <div class="diagram-caption">Figure 2 — The component tree branches at render time based on device orientation.</div>
-</div>
-
-
-<!-- ============================================================ -->
-<!-- 4. DATA FLOW -->
-<!-- ============================================================ -->
-<h2>4. Data Flow</h2>
-
-<p>
+</div><!-- ============================================================ --><!-- 4. DATA FLOW --><!-- ============================================================ --><h2>4. Data Flow</h2><p>
   Data moves through the app in three primary flows: loading from the server, adding a location via geocoding, and user interaction with the list.
-</p>
-
-<div class="diagram-wrap">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 360" width="880" height="360">
-  <defs>
-    <marker id="af" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#2E5D8A"/>
-    </marker>
-    <marker id="af-g" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#2D8A5E"/>
-    </marker>
-    <marker id="af-a" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#B8860B"/>
-    </marker>
-  </defs>
-
-  <rect width="880" height="360" rx="12" fill="#FAFBFD" stroke="#D4DDE6" stroke-width="1"/>
-  <text x="440" y="30" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" fill="#1B3A5C">Data Flow Sequences</text>
-
-  <!-- FLOW 1: Load from server -->
-  <text x="40" y="66" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#2E5D8A">① Load from Server (useEffect on mount, or Load button)</text>
-
-  <rect x="40" y="78" width="130" height="32" rx="5" fill="#E8F0F8" stroke="#2E5D8A" stroke-width="1.5"/>
-  <text x="105" y="99" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#1B3A5C">loadButton()</text>
-
-  <line x1="170" y1="94" x2="208" y2="94" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#af)"/>
-
-  <rect x="210" y="78" width="140" height="32" rx="5" fill="#F3E8F9" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="280" y="99" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#6C3483">loadList(url)</text>
-
-  <line x1="350" y1="94" x2="388" y2="94" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#af)"/>
-
-  <rect x="390" y="78" width="140" height="32" rx="5" fill="#F3E8F9" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="460" y="99" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#6C3483">fetch(url)</text>
-
-  <line x1="530" y1="94" x2="568" y2="94" stroke="#2E5D8A" stroke-width="1.5" marker-end="url(#af)"/>
-
-  <rect x="570" y="78" width="120" height="32" rx="5" fill="#E8F5EE" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="630" y="99" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#2D8A5E">setlist()</text>
-
-  <line x1="690" y1="94" x2="728" y2="94" stroke="#2D8A5E" stroke-width="1.5" marker-end="url(#af-g)"/>
-
-  <rect x="730" y="78" width="120" height="32" rx="5" fill="#E8F5EE" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="790" y="99" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#2D8A5E">setMarks()</text>
-
-  <!-- FLOW 2: Add location -->
-  <text x="40" y="148" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#2D8A5E">② Add Location (user types address in DialogInput)</text>
-
-  <rect x="40" y="160" width="130" height="32" rx="5" fill="#E8F0F8" stroke="#2E5D8A" stroke-width="1.5"/>
-  <text x="105" y="181" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#1B3A5C">DialogInput</text>
-
-  <line x1="170" y1="176" x2="208" y2="176" stroke="#2D8A5E" stroke-width="1.5" marker-end="url(#af-g)"/>
-
-  <rect x="210" y="160" width="140" height="32" rx="5" fill="#E8F5EE" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="280" y="181" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#2D8A5E">addLocation()</text>
-
-  <line x1="350" y1="176" x2="388" y2="176" stroke="#2D8A5E" stroke-width="1.5" marker-end="url(#af-g)"/>
-
-  <rect x="390" y="160" width="160" height="32" rx="5" fill="#F3E8F9" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="470" y="181" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#6C3483">Geocoder.from()</text>
-
-  <line x1="550" y1="176" x2="588" y2="176" stroke="#2D8A5E" stroke-width="1.5" marker-end="url(#af-g)"/>
-
-  <rect x="590" y="160" width="130" height="32" rx="5" fill="#E8F5EE" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="655" y="181" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#2D8A5E">Update state</text>
-
-  <line x1="720" y1="176" x2="748" y2="176" stroke="#2D8A5E" stroke-width="1.5" marker-end="url(#af-g)"/>
-
-  <rect x="750" y="160" width="100" height="32" rx="5" fill="#E8F0F8" stroke="#2E5D8A" stroke-width="1.5"/>
-  <text x="800" y="181" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#2E5D8A">Re-render</text>
-
-  <!-- FLOW 3: Toggle / navigate -->
-  <text x="40" y="230" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" fill="#B8860B">③ Select Location (user taps list item)</text>
-
-  <rect x="40" y="242" width="130" height="32" rx="5" fill="#E8F0F8" stroke="#2E5D8A" stroke-width="1.5"/>
-  <text x="105" y="263" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#1B3A5C">TouchableOpacity</text>
-
-  <line x1="170" y1="258" x2="208" y2="258" stroke="#B8860B" stroke-width="1.5" marker-end="url(#af-a)"/>
-
-  <rect x="210" y="242" width="140" height="32" rx="5" fill="#FFF8E7" stroke="#B8860B" stroke-width="1.5"/>
-  <text x="280" y="263" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#B8860B">toggleList(idx)</text>
-
-  <line x1="350" y1="258" x2="388" y2="258" stroke="#B8860B" stroke-width="1.5" marker-end="url(#af-a)"/>
-
-  <rect x="390" y="242" width="140" height="32" rx="5" fill="#FFF8E7" stroke="#B8860B" stroke-width="1.5"/>
-  <text x="460" y="263" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-size="11" fill="#B8860B">Mark selected</text>
-
-  <line x1="530" y1="250" x2="588" y2="240" stroke="#B8860B" stroke-width="1.5" marker-end="url(#af-a)"/>
-  <line x1="530" y1="266" x2="588" y2="276" stroke="#B8860B" stroke-width="1.5" marker-end="url(#af-a)"/>
-
-  <rect x="590" y="224" width="170" height="32" rx="5" fill="#E8F5EE" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="675" y="245" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#2D8A5E">setlist(newList)</text>
-
-  <rect x="590" y="264" width="170" height="32" rx="5" fill="#E8F0F8" stroke="#2E5D8A" stroke-width="1.5"/>
-  <text x="675" y="285" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#1B3A5C">animateToRegion()</text>
-
-  <!-- Legend -->
-  <rect x="40" y="310" width="800" height="36" rx="6" fill="#E8F0F8" stroke="#D4DDE6" stroke-width="1"/>
-  <rect x="56" y="322" width="12" height="12" rx="2" fill="#E8F0F8" stroke="#2E5D8A" stroke-width="1.5"/>
-  <text x="76" y="333" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">UI Component</text>
-  <rect x="176" y="322" width="12" height="12" rx="2" fill="#E8F5EE" stroke="#2D8A5E" stroke-width="1.5"/>
-  <text x="196" y="333" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">State Update</text>
-  <rect x="296" y="322" width="12" height="12" rx="2" fill="#F3E8F9" stroke="#6C3483" stroke-width="1.5"/>
-  <text x="316" y="333" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">External API Call</text>
-  <rect x="436" y="322" width="12" height="12" rx="2" fill="#FFF8E7" stroke="#B8860B" stroke-width="1.5"/>
-  <text x="456" y="333" font-family="Source Sans 3, sans-serif" font-size="11" fill="#5A6672">Logic / Handler</text>
+</p><div class="diagram-wrap">
+<svg aria-label="Diagram: 4. Data Flow" height="360" role="img" viewbox="0 0 880 360" width="880" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="af" markerheight="6" markerwidth="8" orient="auto" refx="7" refy="3">
+<polygon fill="#2E5D8A" points="0 0, 8 3, 0 6"></polygon>
+</marker>
+<marker id="af-g" markerheight="6" markerwidth="8" orient="auto" refx="7" refy="3">
+<polygon fill="#2D8A5E" points="0 0, 8 3, 0 6"></polygon>
+</marker>
+<marker id="af-a" markerheight="6" markerwidth="8" orient="auto" refx="7" refy="3">
+<polygon fill="#B8860B" points="0 0, 8 3, 0 6"></polygon>
+</marker>
+</defs>
+<rect fill="#FAFBFD" height="360" rx="12" stroke="#D4DDE6" stroke-width="1" width="880"></rect>
+<text fill="#1B3A5C" font-family="Source Sans 3, sans-serif" font-size="16" font-weight="700" text-anchor="middle" x="440" y="30">Data Flow Sequences</text>
+<!-- FLOW 1: Load from server -->
+<text fill="#2E5D8A" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" x="40" y="66">① Load from Server (useEffect on mount, or Load button)</text>
+<rect fill="#E8F0F8" height="32" rx="5" stroke="#2E5D8A" stroke-width="1.5" width="130" x="40" y="78"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="105" y="99">loadButton()</text>
+<line marker-end="url(#af)" stroke="#2E5D8A" stroke-width="1.5" x1="170" x2="208" y1="94" y2="94"></line>
+<rect fill="#F3E8F9" height="32" rx="5" stroke="#6C3483" stroke-width="1.5" width="140" x="210" y="78"></rect>
+<text fill="#6C3483" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="280" y="99">loadList(url)</text>
+<line marker-end="url(#af)" stroke="#2E5D8A" stroke-width="1.5" x1="350" x2="388" y1="94" y2="94"></line>
+<rect fill="#F3E8F9" height="32" rx="5" stroke="#6C3483" stroke-width="1.5" width="140" x="390" y="78"></rect>
+<text fill="#6C3483" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="460" y="99">fetch(url)</text>
+<line marker-end="url(#af)" stroke="#2E5D8A" stroke-width="1.5" x1="530" x2="568" y1="94" y2="94"></line>
+<rect fill="#E8F5EE" height="32" rx="5" stroke="#2D8A5E" stroke-width="1.5" width="120" x="570" y="78"></rect>
+<text fill="#2D8A5E" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="630" y="99">setlist()</text>
+<line marker-end="url(#af-g)" stroke="#2D8A5E" stroke-width="1.5" x1="690" x2="728" y1="94" y2="94"></line>
+<rect fill="#E8F5EE" height="32" rx="5" stroke="#2D8A5E" stroke-width="1.5" width="120" x="730" y="78"></rect>
+<text fill="#2D8A5E" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="790" y="99">setMarks()</text>
+<!-- FLOW 2: Add location -->
+<text fill="#2D8A5E" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" x="40" y="148">② Add Location (user types address in DialogInput)</text>
+<rect fill="#E8F0F8" height="32" rx="5" stroke="#2E5D8A" stroke-width="1.5" width="130" x="40" y="160"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="105" y="181">DialogInput</text>
+<line marker-end="url(#af-g)" stroke="#2D8A5E" stroke-width="1.5" x1="170" x2="208" y1="176" y2="176"></line>
+<rect fill="#E8F5EE" height="32" rx="5" stroke="#2D8A5E" stroke-width="1.5" width="140" x="210" y="160"></rect>
+<text fill="#2D8A5E" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="280" y="181">addLocation()</text>
+<line marker-end="url(#af-g)" stroke="#2D8A5E" stroke-width="1.5" x1="350" x2="388" y1="176" y2="176"></line>
+<rect fill="#F3E8F9" height="32" rx="5" stroke="#6C3483" stroke-width="1.5" width="160" x="390" y="160"></rect>
+<text fill="#6C3483" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="470" y="181">Geocoder.from()</text>
+<line marker-end="url(#af-g)" stroke="#2D8A5E" stroke-width="1.5" x1="550" x2="588" y1="176" y2="176"></line>
+<rect fill="#E8F5EE" height="32" rx="5" stroke="#2D8A5E" stroke-width="1.5" width="130" x="590" y="160"></rect>
+<text fill="#2D8A5E" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="655" y="181">Update state</text>
+<line marker-end="url(#af-g)" stroke="#2D8A5E" stroke-width="1.5" x1="720" x2="748" y1="176" y2="176"></line>
+<rect fill="#E8F0F8" height="32" rx="5" stroke="#2E5D8A" stroke-width="1.5" width="100" x="750" y="160"></rect>
+<text fill="#2E5D8A" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="800" y="181">Re-render</text>
+<!-- FLOW 3: Toggle / navigate -->
+<text fill="#B8860B" font-family="Source Sans 3, sans-serif" font-size="13" font-weight="700" x="40" y="230">③ Select Location (user taps list item)</text>
+<rect fill="#E8F0F8" height="32" rx="5" stroke="#2E5D8A" stroke-width="1.5" width="130" x="40" y="242"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="105" y="263">TouchableOpacity</text>
+<line marker-end="url(#af-a)" stroke="#B8860B" stroke-width="1.5" x1="170" x2="208" y1="258" y2="258"></line>
+<rect fill="#FFF8E7" height="32" rx="5" stroke="#B8860B" stroke-width="1.5" width="140" x="210" y="242"></rect>
+<text fill="#B8860B" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="280" y="263">toggleList(idx)</text>
+<line marker-end="url(#af-a)" stroke="#B8860B" stroke-width="1.5" x1="350" x2="388" y1="258" y2="258"></line>
+<rect fill="#FFF8E7" height="32" rx="5" stroke="#B8860B" stroke-width="1.5" width="140" x="390" y="242"></rect>
+<text fill="#B8860B" font-family="Source Sans 3, sans-serif" font-size="11" text-anchor="middle" x="460" y="263">Mark selected</text>
+<line marker-end="url(#af-a)" stroke="#B8860B" stroke-width="1.5" x1="530" x2="588" y1="250" y2="240"></line>
+<line marker-end="url(#af-a)" stroke="#B8860B" stroke-width="1.5" x1="530" x2="588" y1="266" y2="276"></line>
+<rect fill="#E8F5EE" height="32" rx="5" stroke="#2D8A5E" stroke-width="1.5" width="170" x="590" y="224"></rect>
+<text fill="#2D8A5E" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="675" y="245">setlist(newList)</text>
+<rect fill="#E8F0F8" height="32" rx="5" stroke="#2E5D8A" stroke-width="1.5" width="170" x="590" y="264"></rect>
+<text fill="#1B3A5C" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" x="675" y="285">animateToRegion()</text>
+<!-- Legend -->
+<rect fill="#E8F0F8" height="36" rx="6" stroke="#D4DDE6" stroke-width="1" width="800" x="40" y="310"></rect>
+<rect fill="#E8F0F8" height="12" rx="2" stroke="#2E5D8A" stroke-width="1.5" width="12" x="56" y="322"></rect>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" x="76" y="333">UI Component</text>
+<rect fill="#E8F5EE" height="12" rx="2" stroke="#2D8A5E" stroke-width="1.5" width="12" x="176" y="322"></rect>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" x="196" y="333">State Update</text>
+<rect fill="#F3E8F9" height="12" rx="2" stroke="#6C3483" stroke-width="1.5" width="12" x="296" y="322"></rect>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" x="316" y="333">External API Call</text>
+<rect fill="#FFF8E7" height="12" rx="2" stroke="#B8860B" stroke-width="1.5" width="12" x="436" y="322"></rect>
+<text fill="#5A6672" font-family="Source Sans 3, sans-serif" font-size="11" x="456" y="333">Logic / Handler</text>
 </svg>
 <div class="diagram-caption">Figure 3 — The three primary data flow sequences in the application.</div>
-</div>
-
-
-<!-- ============================================================ -->
-<!-- 5. STATE MANAGEMENT -->
-<!-- ============================================================ -->
-<h2>5. State Management</h2>
-
-<p>
+</div><!-- ============================================================ --><!-- 5. STATE MANAGEMENT --><!-- ============================================================ --><h2>5. State Management</h2><p>
   All application state lives in the <code>MapList</code> component via four <code>useState</code> hooks. There is no external state library — the component is the single source of truth.
-</p>
-
-<table>
-  <thead>
-    <tr>
-      <th>State Variable</th>
-      <th>Type</th>
-      <th>Purpose</th>
-      <th>Modified By</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>list</code></td>
-      <td>Array of location objects</td>
-      <td>Primary data model — drives both the list UI and marker generation</td>
-      <td><code>loadList</code>, <code>addLocation</code>, <code>delButton</code>, <code>toggleList</code></td>
-    </tr>
-    <tr>
-      <td><code>markers</code></td>
-      <td>Array of <code>&lt;Marker&gt;</code> JSX</td>
-      <td>Map marker elements rendered inside <code>&lt;MapView&gt;</code></td>
-      <td><code>loadList</code>, <code>addLocation</code></td>
-    </tr>
-    <tr>
-      <td><code>autonav</code></td>
-      <td>Boolean</td>
-      <td>When <code>true</code>, tapping a list item pans the map to that location</td>
-      <td>Auto button toggle</td>
-    </tr>
-    <tr>
-      <td><code>ashowme</code></td>
-      <td>Boolean</td>
-      <td>Controls visibility of the <code>&lt;DialogInput&gt;</code> modal</td>
-      <td><code>plusButton</code>, dialog submit/close</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="callout callout-amber">
-  <strong>Design Note: Markers as JSX in State</strong>
+</p><table>
+<thead>
+<tr>
+<th scope="col">State Variable</th>
+<th scope="col">Type</th>
+<th scope="col">Purpose</th>
+<th scope="col">Modified By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>list</code></td>
+<td>Array of location objects</td>
+<td>Primary data model — drives both the list UI and marker generation</td>
+<td><code>loadList</code>, <code>addLocation</code>, <code>delButton</code>, <code>toggleList</code></td>
+</tr>
+<tr>
+<td><code>markers</code></td>
+<td>Array of <code>&lt;Marker&gt;</code> JSX</td>
+<td>Map marker elements rendered inside <code>&lt;MapView&gt;</code></td>
+<td><code>loadList</code>, <code>addLocation</code></td>
+</tr>
+<tr>
+<td><code>autonav</code></td>
+<td>Boolean</td>
+<td>When <code>true</code>, tapping a list item pans the map to that location</td>
+<td>Auto button toggle</td>
+</tr>
+<tr>
+<td><code>ashowme</code></td>
+<td>Boolean</td>
+<td>Controls visibility of the <code>&lt;DialogInput&gt;</code> modal</td>
+<td><code>plusButton</code>, dialog submit/close</td>
+</tr>
+</tbody>
+</table><div class="callout callout-amber">
+<strong>Design Note: Markers as JSX in State</strong>
   The <code>markers</code> array stores pre-built <code>&lt;Marker&gt;</code> JSX elements rather than raw coordinate data. This is a pragmatic shortcut — it avoids re-mapping data to components on every render — but it means the marker list can drift out of sync with the <code>list</code> array if not carefully maintained (for example, deleting a list item does not currently remove its marker).
-</div>
-
-
-<!-- ============================================================ -->
-<!-- 6. KEY PATTERNS -->
-<!-- ============================================================ -->
-<h2>6. Key Patterns &amp; Techniques</h2>
-
-<h3>6.1 Geocoding: Address → Coordinates</h3>
-<p>
+</div><!-- ============================================================ --><!-- 6. KEY PATTERNS --><!-- ============================================================ --><h2>6. Key Patterns &amp; Techniques</h2><h3>6.1 Geocoding: Address → Coordinates</h3><p>
   When the user enters an address string, <code>addLocation()</code> calls the Google Geocoding API through the <code>react-native-geocoding</code> library. The async <code>.then()</code> chain extracts latitude and longitude from the API response, creates a new list item and a new <code>&lt;Marker&gt;</code>, and updates both state arrays.
-</p>
-
-<pre><span class="fn">Geocoder</span>.<span class="fn">from</span>(<span class="str">"Boise Idaho, USA"</span>)
-  .<span class="fn">then</span>(json => {
+</p><pre><span class="fn">Geocoder</span>.<span class="fn">from</span>(<span class="str">"Boise Idaho, USA"</span>)
+  .<span class="fn">then</span>(json =&gt; {
     <span class="kw">const</span> location = json.results[<span class="num">0</span>].geometry.location;
     <span class="cmt">// location.lat, location.lng → used for Marker + list item</span>
-  })</pre>
-
-<h3>6.2 Remote Persistence with fetch()</h3>
-<p>
+  })</pre><h3>6.2 Remote Persistence with fetch()</h3><p>
   The <code>remoteAccess.js</code> module provides two async functions. <code>loadList()</code> performs a GET request, parses the JSON array, and calls both <code>setlist()</code> and <code>setMarks()</code> to rebuild the UI from server data. <code>saveList()</code> performs a POST with the current list serialized as JSON.
-</p>
-
-<pre><span class="cmt">// Load: GET request → parse JSON → update state</span>
+</p><pre><span class="cmt">// Load: GET request → parse JSON → update state</span>
 <span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(url);
 <span class="kw">const</span> names = <span class="kw">await</span> response.<span class="fn">json</span>();
 
@@ -672,103 +547,66 @@
   method: <span class="str">'POST'</span>,
   headers: { <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span> },
   body: <span class="fn">JSON</span>.<span class="fn">stringify</span>(list)
-});</pre>
-
-<h3>6.3 Device Rotation Handling</h3>
-<p>
+});</pre><h3>6.3 Device Rotation Handling</h3><p>
   The app uses <code>useWindowDimensions()</code> to get live screen width and height. When width exceeds height (landscape), it returns a horizontal layout with the list on the left and a full-height map on the right. In portrait, the map sits above the list at 50% screen height. React Native automatically re-renders when dimensions change, so no explicit event listener is needed.
-</p>
-
-<pre><span class="kw">const</span> SCREEN_WIDTH  = <span class="fn">useWindowDimensions</span>().width;
+</p><pre><span class="kw">const</span> SCREEN_WIDTH  = <span class="fn">useWindowDimensions</span>().width;
 <span class="kw">const</span> SCREEN_HEIGHT = <span class="fn">useWindowDimensions</span>().height;
 
-<span class="kw">if</span> (SCREEN_WIDTH > SCREEN_HEIGHT) {
+<span class="kw">if</span> (SCREEN_WIDTH &gt; SCREEN_HEIGHT) {
   <span class="kw">return</span> ablist;   <span class="cmt">// landscape layout</span>
 }
-<span class="kw">return</span> alist;       <span class="cmt">// portrait layout</span></pre>
-
-<h3>6.4 Map Navigation via Ref</h3>
-<p>
+<span class="kw">return</span> alist;       <span class="cmt">// portrait layout</span></pre><h3>6.4 Map Navigation via Ref</h3><p>
   A React ref (<code>mapref = React.createRef()</code>) is attached to the <code>&lt;MapView&gt;</code>. When a list item is tapped with auto-navigation enabled, <code>toggleList()</code> calls <code>mapref.current.animateToRegion()</code> to smoothly pan and zoom the map to the selected location's coordinates.
-</p>
-
-<h3>6.5 VirtualizedList for Performance</h3>
-<p>
+</p><h3>6.5 VirtualizedList for Performance</h3><p>
   Instead of <code>FlatList</code>, the app uses <code>VirtualizedList</code> directly with custom <code>getItem</code> and <code>getItemCount</code> functions. This gives full control over data access — the list reads from the <code>list</code> state array while the <code>data</code> prop receives an empty array (a common pattern when managing data externally).
-</p>
-
-
-<!-- ============================================================ -->
-<!-- 7. DEPENDENCY MAP -->
-<!-- ============================================================ -->
-<h2>7. External Dependencies</h2>
-
-<table>
-  <thead>
-    <tr>
-      <th>Package</th>
-      <th>Role</th>
-      <th>Used In</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>react-native-maps</code></td>
-      <td>MapView and Marker components for native map rendering</td>
-      <td>App.js, remoteAccess.js</td>
-    </tr>
-    <tr>
-      <td><code>react-native-geocoding</code></td>
-      <td>Google Geocoding API wrapper (address → lat/lng)</td>
-      <td>App.js</td>
-    </tr>
-    <tr>
-      <td><code>react-native-dialog-input</code></td>
-      <td>Cross-platform modal dialog for text input</td>
-      <td>App.js</td>
-    </tr>
-    <tr>
-      <td><code>expo-location</code></td>
-      <td>Device GPS access (listed in deps, available for GPS feature)</td>
-      <td>—</td>
-    </tr>
-    <tr>
-      <td><code>expo-constants</code></td>
-      <td>Expo runtime constants and environment info</td>
-      <td>—</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="callout callout-coral">
-  <strong>⚠️ Device Only</strong>
-  <code>react-native-maps</code> requires a native map SDK (Google Maps on Android, Apple Maps on iOS). It does not render in the Expo web environment. Students must test on a physical device or device emulator.
-</div>
-
-
-<!-- ============================================================ -->
-<!-- 8. WHAT'S MISSING -->
-<!-- ============================================================ -->
-<h2>8. What Students Need to Add</h2>
-
-<p>
+</p><!-- ============================================================ --><!-- 7. DEPENDENCY MAP --><!-- ============================================================ --><h2>7. External Dependencies</h2><table>
+<thead>
+<tr>
+<th scope="col">Package</th>
+<th scope="col">Role</th>
+<th scope="col">Used In</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>react-native-maps</code></td>
+<td>MapView and Marker components for native map rendering</td>
+<td>App.js, remoteAccess.js</td>
+</tr>
+<tr>
+<td><code>react-native-geocoding</code></td>
+<td>Google Geocoding API wrapper (address → lat/lng)</td>
+<td>App.js</td>
+</tr>
+<tr>
+<td><code>react-native-dialog-input</code></td>
+<td>Cross-platform modal dialog for text input</td>
+<td>App.js</td>
+</tr>
+<tr>
+<td><code>expo-location</code></td>
+<td>Device GPS access (listed in deps, available for GPS feature)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>expo-constants</code></td>
+<td>Expo runtime constants and environment info</td>
+<td>—</td>
+</tr>
+</tbody>
+</table><div class="callout callout-coral">
+<strong>⚠️ Device Only</strong>
+<code>react-native-maps</code> requires a native map SDK (Google Maps on Android, Apple Maps on iOS). It does not render in the Expo web environment. Students must test on a physical device or device emulator.
+</div><!-- ============================================================ --><!-- 8. WHAT'S MISSING --><!-- ============================================================ --><h2>8. What Students Need to Add</h2><p>
   This architectural guide is provided as a <strong>learning reference</strong> — use it to understand how the pieces of a map application fit together, how state flows between components, and how external APIs integrate into a React Native app. However, you should <strong>write your own code from scratch</strong>. Copying the reference implementation will not help you learn, and your submission should reflect your own design decisions and coding style.
-</p>
-
-<p>
+</p><p>
   Use the diagrams above to plan your architecture before you start coding. Decide how you will organize your components, where state will live, and how data flows through your app. Your implementation does not need to match this reference — there are many valid ways to structure a map application.
-</p>
-
-<p>
+</p><p>
   In addition to the core requirements, consider the following areas where the reference implementation is incomplete or could be improved:
-</p>
-
-<ul>
-  <li><strong>GPS Location:</strong> The <code>expo-location</code> package is listed as a dependency but not yet wired up. You need to use it to get the device's current coordinates and add them as a list entry.</li>
-  <li><strong>Marker Cleanup on Delete:</strong> In the reference, <code>delButton()</code> removes items from <code>list</code> but does not update the <code>markers</code> array — deleted locations still show pins on the map. Your implementation should keep these in sync.</li>
-  <li><strong>README:</strong> Required submission file documenting your app, setup instructions, and any known issues (5 points).</li>
-</ul>
-
-
+</p><ul>
+<li><strong>GPS Location:</strong> The <code>expo-location</code> package is listed as a dependency but not yet wired up. You need to use it to get the device's current coordinates and add them as a list entry.</li>
+<li><strong>Marker Cleanup on Delete:</strong> In the reference, <code>delButton()</code> removes items from <code>list</code> but does not update the <code>markers</code> array — deleted locations still show pins on the map. Your implementation should keep these in sync.</li>
+<li><strong>README:</strong> Required submission file documenting your app, setup instructions, and any known issues (5 points).</li>
+</ul></main>
 </body>
 </html>

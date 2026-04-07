@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Virtual Memory — Machine Environment</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f; --surface: #0d1320; --surface2: #141d2f; --border: #1e2d4a;
@@ -56,268 +57,237 @@
   .pitfall-card .pitfall-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
   @media (max-width: 700px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .series-bar .nav-links { display: none; } .diagram-container { padding: 16px; } .pitfalls { grid-template-columns: 1fr; } }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-<nav class="series-bar">
-  <span class="chip">1 / 3</span>
-  <span>Machine Environment</span>
-  <div class="nav-links">
-    <a href="vm-01-virtual-memory.html" class="active">Virtual Memory</a>
-    <a href="vm-02-paging.html">Paging</a>
-    <a href="vm-03-process-layout.html">Process Layout</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">1 / 3</span>
+<span>Machine Environment</span>
+<div class="nav-links">
+<a class="active" href="vm-01-virtual-memory.html">Virtual Memory</a>
+<a href="vm-02-paging.html">Paging</a>
+<a href="vm-03-process-layout.html">Process Layout</a>
+</div>
 </nav>
 <header class="hero">
-  <div class="number">Machine Environment · 01</div>
-  <h1><span class="highlight">Virtual Memory</span></h1>
-  <p class="subtitle">Your program thinks it has 64-bit address space all to itself. That's a lie — a very useful, carefully maintained lie told by the operating system and the hardware working together.</p>
+<div class="number">Machine Environment · 01</div>
+<h1><span class="highlight">Virtual Memory</span></h1>
+<p class="subtitle">Your program thinks it has 64-bit address space all to itself. That's a lie — a very useful, carefully maintained lie told by the operating system and the hardware working together.</p>
 </header>
-<main class="content">
-
-  <div class="layer-badge">Machine Environment Layer</div>
-
-  <h2>The Problem Virtual Memory Solves</h2>
-
-  <p>Imagine a system with 8 GB of physical RAM running thirty programs simultaneously. Their combined memory demands exceed what physically exists. How does each program get memory addresses that don't collide with every other program? How does a bug in one program not corrupt another? How can a program use more memory than the machine has RAM?</p>
-
-  <p>The answer to all three questions is <strong>virtual memory</strong> — an abstraction layer between the addresses your program uses and the physical RAM chips on the motherboard.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 320" width="100%" height="320">
-      <defs>
-        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
-        </marker>
-        <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
-        </marker>
-      </defs>
-
-      <!-- Three processes on left -->
-      <text x="110" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">Three processes running</text>
-
-      <rect x="20"  y="30"  width="180" height="70" rx="6" fill="rgba(255,171,64,0.08)"  stroke="#ffab40" stroke-width="1.5"/>
-      <text x="110" y="56"  text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">Process A</text>
-      <text x="110" y="74"  text-anchor="middle" fill="#6b7fa3" font-size="11">thinks it owns</text>
-      <text x="110" y="90"  text-anchor="middle" fill="#ffab40" font-size="12">0x0000 → 0xFFFF…</text>
-
-      <rect x="20"  y="120" width="180" height="70" rx="6" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="110" y="146" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">Process B</text>
-      <text x="110" y="164" text-anchor="middle" fill="#6b7fa3" font-size="11">also thinks it owns</text>
-      <text x="110" y="180" text-anchor="middle" fill="#69f0ae" font-size="12">0x0000 → 0xFFFF…</text>
-
-      <rect x="20"  y="210" width="180" height="70" rx="6" fill="rgba(68,138,255,0.08)"  stroke="#448aff" stroke-width="1.5"/>
-      <text x="110" y="236" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">Process C</text>
-      <text x="110" y="254" text-anchor="middle" fill="#6b7fa3" font-size="11">also thinks it owns</text>
-      <text x="110" y="270" text-anchor="middle" fill="#448aff" font-size="12">0x0000 → 0xFFFF…</text>
-
-      <!-- MMU box in middle -->
-      <rect x="270" y="110" width="160" height="100" rx="8" fill="rgba(255,215,64,0.07)" stroke="#ffd740" stroke-width="2"/>
-      <text x="350" y="150" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">OS + MMU</text>
-      <text x="350" y="170" text-anchor="middle" fill="#6b7fa3" font-size="11">translates addresses</text>
-      <text x="350" y="186" text-anchor="middle" fill="#6b7fa3" font-size="11">enforces isolation</text>
-
-      <!-- Arrows from processes to MMU -->
-      <path d="M 200 65  Q 240 65  268 148" stroke="#ffab40" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
-      <path d="M 200 155 L 268 160"          stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#arrg)"/>
-      <path d="M 200 245 Q 240 245 268 172"  stroke="#448aff" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
-
-      <!-- Physical RAM on right -->
-      <text x="590" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">Physical RAM</text>
-      <rect x="490" y="30" width="200" height="270" rx="6" fill="rgba(107,127,163,0.06)" stroke="#6b7fa3" stroke-width="1.5"/>
-
-      <rect x="500" y="40"  width="180" height="38" rx="4" fill="rgba(255,171,64,0.12)"  stroke="#ffab40" stroke-width="1"/>
-      <text x="590" y="64"  text-anchor="middle" fill="#ffab40" font-size="11">A's data (some of it)</text>
-
-      <rect x="500" y="82"  width="180" height="38" rx="4" fill="rgba(68,138,255,0.12)"  stroke="#448aff" stroke-width="1"/>
-      <text x="590" y="106" text-anchor="middle" fill="#448aff" font-size="11">C's code</text>
-
-      <rect x="500" y="124" width="180" height="38" rx="4" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="590" y="148" text-anchor="middle" fill="#69f0ae" font-size="11">B's stack</text>
-
-      <rect x="500" y="166" width="180" height="38" rx="4" fill="rgba(255,171,64,0.12)"  stroke="#ffab40" stroke-width="1"/>
-      <text x="590" y="190" text-anchor="middle" fill="#ffab40" font-size="11">A's stack</text>
-
-      <rect x="500" y="208" width="180" height="38" rx="4" fill="rgba(68,138,255,0.12)"  stroke="#448aff" stroke-width="1"/>
-      <text x="590" y="232" text-anchor="middle" fill="#448aff" font-size="11">C's heap</text>
-
-      <rect x="500" y="250" width="180" height="38" rx="4" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="590" y="274" text-anchor="middle" fill="#69f0ae" font-size="11">B's code + heap</text>
-
-      <!-- Arrow MMU to RAM -->
-      <path d="M 430 160 L 488 160" stroke="#ffd740" stroke-width="2" fill="none" marker-end="url(#arr)"/>
-
-      <text x="350" y="300" text-anchor="middle" fill="#6b7fa3" font-size="11">Each process sees one contiguous address space.</text>
-      <text x="350" y="316" text-anchor="middle" fill="#6b7fa3" font-size="11">Physical RAM is shared but kept strictly separate.</text>
-    </svg>
-    <div class="caption">Every process believes it has its own full address space. The OS and MMU cooperate to map those virtual addresses to different physical locations.</div>
-  </div>
-
-  <h2>Virtual vs Physical Addresses</h2>
-
-  <p>Every address in your C program — every pointer, every variable, every function pointer — is a <strong>virtual address</strong>. It exists in your process's address space, which is a contiguous range of numbers from 0 to some maximum (2⁶⁴ − 1 on 64-bit systems, though only the lower 48 bits are typically used).</p>
-
-  <p>A <strong>physical address</strong> is an actual location in RAM — a real row and column in a real chip. Your program never sees or uses physical addresses. The translation from virtual to physical happens automatically in hardware, every single time your program reads or writes memory.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 200" width="100%" height="200">
-      <defs>
-        <marker id="ta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffd740"/>
-        </marker>
-      </defs>
-
-      <!-- Program issues virtual address -->
-      <rect x="20" y="60" width="180" height="80" rx="8" fill="rgba(255,171,64,0.07)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="110" y="92"  text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">your program</text>
-      <text x="110" y="112" text-anchor="middle" fill="#c8d6e5" font-size="13" font-family="IBM Plex Mono, monospace">int *p = &amp;x;</text>
-      <text x="110" y="130" text-anchor="middle" fill="#6b7fa3" font-size="11">virtual addr: 0x7ffd2a40</text>
-
-      <!-- MMU -->
-      <path d="M 200 100 L 278 100" stroke="#ffd740" stroke-width="2" fill="none" marker-end="url(#ta)"/>
-      <rect x="280" y="55" width="160" height="90" rx="8" fill="rgba(255,215,64,0.08)" stroke="#ffd740" stroke-width="2"/>
-      <text x="360" y="87"  text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">MMU</text>
-      <text x="360" y="107" text-anchor="middle" fill="#6b7fa3" font-size="11">Memory Management</text>
-      <text x="360" y="123" text-anchor="middle" fill="#6b7fa3" font-size="11">Unit (hardware)</text>
-
-      <!-- Physical RAM -->
-      <path d="M 440 100 L 518 100" stroke="#ffd740" stroke-width="2" fill="none" marker-end="url(#ta)"/>
-      <rect x="520" y="60" width="180" height="80" rx="8" fill="rgba(107,127,163,0.08)" stroke="#6b7fa3" stroke-width="1.5"/>
-      <text x="610" y="92"  text-anchor="middle" fill="#c8d6e5" font-size="13" font-weight="600">physical RAM</text>
-      <text x="610" y="112" text-anchor="middle" fill="#6b7fa3" font-size="11">phys addr: 0x1a4f8000</text>
-      <text x="610" y="128" text-anchor="middle" fill="#6b7fa3" font-size="11">actual chip location</text>
-
-      <text x="200" y="170" fill="#ffd740" font-size="11">virtual addr</text>
-      <text x="448" y="170" fill="#6b7fa3" font-size="11">physical addr</text>
-      <text x="360" y="185" text-anchor="middle" fill="#6b7fa3" font-size="11">Translation happens in hardware on every memory access — no software overhead</text>
-    </svg>
-    <div class="caption">Virtual-to-physical translation is performed by the MMU on every single memory access. Your program only ever deals in virtual addresses.</div>
-  </div>
-
-  <div class="analogy">
-    <strong>Analogy — The Hotel Key Card</strong><br>
+<main class="content" id="main-content">
+<div class="layer-badge">Machine Environment Layer</div>
+<h2>The Problem Virtual Memory Solves</h2>
+<p>Imagine a system with 8 GB of physical RAM running thirty programs simultaneously. Their combined memory demands exceed what physically exists. How does each program get memory addresses that don't collide with every other program? How does a bug in one program not corrupt another? How can a program use more memory than the machine has RAM?</p>
+<p>The answer to all three questions is <strong>virtual memory</strong> — an abstraction layer between the addresses your program uses and the physical RAM chips on the motherboard.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: The Problem Virtual Memory Solves" height="320" role="img" viewbox="0 0 720 320" width="100%">
+<defs>
+<marker id="arr" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"></path>
+</marker>
+<marker id="arrg" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"></path>
+</marker>
+</defs>
+<!-- Three processes on left -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="110" y="18">Three processes running</text>
+<rect fill="rgba(255,171,64,0.08)" height="70" rx="6" stroke="#ffab40" stroke-width="1.5" width="180" x="20" y="30"></rect>
+<text fill="#ffab40" font-size="13" font-weight="600" text-anchor="middle" x="110" y="56">Process A</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="110" y="74">thinks it owns</text>
+<text fill="#ffab40" font-size="12" text-anchor="middle" x="110" y="90">0x0000 → 0xFFFF…</text>
+<rect fill="rgba(105,240,174,0.08)" height="70" rx="6" stroke="#69f0ae" stroke-width="1.5" width="180" x="20" y="120"></rect>
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="110" y="146">Process B</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="110" y="164">also thinks it owns</text>
+<text fill="#69f0ae" font-size="12" text-anchor="middle" x="110" y="180">0x0000 → 0xFFFF…</text>
+<rect fill="rgba(68,138,255,0.08)" height="70" rx="6" stroke="#448aff" stroke-width="1.5" width="180" x="20" y="210"></rect>
+<text fill="#448aff" font-size="13" font-weight="600" text-anchor="middle" x="110" y="236">Process C</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="110" y="254">also thinks it owns</text>
+<text fill="#448aff" font-size="12" text-anchor="middle" x="110" y="270">0x0000 → 0xFFFF…</text>
+<!-- MMU box in middle -->
+<rect fill="rgba(255,215,64,0.07)" height="100" rx="8" stroke="#ffd740" stroke-width="2" width="160" x="270" y="110"></rect>
+<text fill="#ffd740" font-size="13" font-weight="600" text-anchor="middle" x="350" y="150">OS + MMU</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="350" y="170">translates addresses</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="350" y="186">enforces isolation</text>
+<!-- Arrows from processes to MMU -->
+<path d="M 200 65  Q 240 65  268 148" fill="none" marker-end="url(#arr)" stroke="#ffab40" stroke-width="1.5"></path>
+<path d="M 200 155 L 268 160" fill="none" marker-end="url(#arrg)" stroke="#69f0ae" stroke-width="1.5"></path>
+<path d="M 200 245 Q 240 245 268 172" fill="none" marker-end="url(#arr)" stroke="#448aff" stroke-width="1.5"></path>
+<!-- Physical RAM on right -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="590" y="18">Physical RAM</text>
+<rect fill="rgba(107,127,163,0.06)" height="270" rx="6" stroke="#6b7fa3" stroke-width="1.5" width="200" x="490" y="30"></rect>
+<rect fill="rgba(255,171,64,0.12)" height="38" rx="4" stroke="#ffab40" stroke-width="1" width="180" x="500" y="40"></rect>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="590" y="64">A's data (some of it)</text>
+<rect fill="rgba(68,138,255,0.12)" height="38" rx="4" stroke="#448aff" stroke-width="1" width="180" x="500" y="82"></rect>
+<text fill="#448aff" font-size="11" text-anchor="middle" x="590" y="106">C's code</text>
+<rect fill="rgba(105,240,174,0.12)" height="38" rx="4" stroke="#69f0ae" stroke-width="1" width="180" x="500" y="124"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="590" y="148">B's stack</text>
+<rect fill="rgba(255,171,64,0.12)" height="38" rx="4" stroke="#ffab40" stroke-width="1" width="180" x="500" y="166"></rect>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="590" y="190">A's stack</text>
+<rect fill="rgba(68,138,255,0.12)" height="38" rx="4" stroke="#448aff" stroke-width="1" width="180" x="500" y="208"></rect>
+<text fill="#448aff" font-size="11" text-anchor="middle" x="590" y="232">C's heap</text>
+<rect fill="rgba(105,240,174,0.12)" height="38" rx="4" stroke="#69f0ae" stroke-width="1" width="180" x="500" y="250"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="590" y="274">B's code + heap</text>
+<!-- Arrow MMU to RAM -->
+<path d="M 430 160 L 488 160" fill="none" marker-end="url(#arr)" stroke="#ffd740" stroke-width="2"></path>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="350" y="300">Each process sees one contiguous address space.</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="350" y="316">Physical RAM is shared but kept strictly separate.</text>
+</svg>
+<div class="caption">Every process believes it has its own full address space. The OS and MMU cooperate to map those virtual addresses to different physical locations.</div>
+</div>
+<h2>Virtual vs Physical Addresses</h2>
+<p>Every address in your C program — every pointer, every variable, every function pointer — is a <strong>virtual address</strong>. It exists in your process's address space, which is a contiguous range of numbers from 0 to some maximum (2⁶⁴ − 1 on 64-bit systems, though only the lower 48 bits are typically used).</p>
+<p>A <strong>physical address</strong> is an actual location in RAM — a real row and column in a real chip. Your program never sees or uses physical addresses. The translation from virtual to physical happens automatically in hardware, every single time your program reads or writes memory.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Virtual vs Physical Addresses" height="200" role="img" viewbox="0 0 720 200" width="100%">
+<defs>
+<marker id="ta" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ffd740"></path>
+</marker>
+</defs>
+<!-- Program issues virtual address -->
+<rect fill="rgba(255,171,64,0.07)" height="80" rx="8" stroke="#ffab40" stroke-width="1.5" width="180" x="20" y="60"></rect>
+<text fill="#ffab40" font-size="13" font-weight="600" text-anchor="middle" x="110" y="92">your program</text>
+<text fill="#c8d6e5" font-family="IBM Plex Mono, monospace" font-size="13" text-anchor="middle" x="110" y="112">int *p = &amp;x;</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="110" y="130">virtual addr: 0x7ffd2a40</text>
+<!-- MMU -->
+<path d="M 200 100 L 278 100" fill="none" marker-end="url(#ta)" stroke="#ffd740" stroke-width="2"></path>
+<rect fill="rgba(255,215,64,0.08)" height="90" rx="8" stroke="#ffd740" stroke-width="2" width="160" x="280" y="55"></rect>
+<text fill="#ffd740" font-size="13" font-weight="600" text-anchor="middle" x="360" y="87">MMU</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="360" y="107">Memory Management</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="360" y="123">Unit (hardware)</text>
+<!-- Physical RAM -->
+<path d="M 440 100 L 518 100" fill="none" marker-end="url(#ta)" stroke="#ffd740" stroke-width="2"></path>
+<rect fill="rgba(107,127,163,0.08)" height="80" rx="8" stroke="#6b7fa3" stroke-width="1.5" width="180" x="520" y="60"></rect>
+<text fill="#c8d6e5" font-size="13" font-weight="600" text-anchor="middle" x="610" y="92">physical RAM</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="610" y="112">phys addr: 0x1a4f8000</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="610" y="128">actual chip location</text>
+<text fill="#ffd740" font-size="11" x="200" y="170">virtual addr</text>
+<text fill="#6b7fa3" font-size="11" x="448" y="170">physical addr</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="360" y="185">Translation happens in hardware on every memory access — no software overhead</text>
+</svg>
+<div class="caption">Virtual-to-physical translation is performed by the MMU on every single memory access. Your program only ever deals in virtual addresses.</div>
+</div>
+<div class="analogy">
+<strong>Analogy — The Hotel Key Card</strong><br/>
     Every hotel guest is handed a key that opens "Room 101." But Room 101 on the 3rd floor isn't Room 101 on the 7th floor — they're different physical rooms. The front desk (the OS) issues the keys and maintains the mapping. Each guest thinks they have Room 101 to themselves. Virtual memory works the same way: every process has address 0x400000, but they map to completely different physical locations.
   </div>
-
-  <h2>The Three Problems Virtual Memory Solves</h2>
-
-  <h3>1. Isolation</h3>
-  <p>Each process has its own private address space. Process A cannot read or write memory belonging to Process B — those virtual addresses either don't exist in A's mapping or map to different physical locations. This is why a bug in one program can't corrupt another program's data, and why a crash in one process doesn't take down the system.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 180" width="100%" height="180">
-      <!-- Process A space -->
-      <rect x="40"  y="20" width="240" height="140" rx="8" fill="rgba(255,171,64,0.05)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="160" y="42" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">Process A address space</text>
-      <rect x="60"  y="55"  width="200" height="30" rx="4" fill="rgba(255,171,64,0.12)" stroke="#ffab40" stroke-width="1"/>
-      <text x="160" y="75" text-anchor="middle" fill="#ffab40" font-size="11">stack: 0x7fff0000</text>
-      <rect x="60"  y="92"  width="200" height="30" rx="4" fill="rgba(255,171,64,0.12)" stroke="#ffab40" stroke-width="1"/>
-      <text x="160" y="112" text-anchor="middle" fill="#ffab40" font-size="11">heap: 0x01a00000</text>
-      <rect x="60"  y="129" width="200" height="22" rx="4" fill="rgba(255,171,64,0.12)" stroke="#ffab40" stroke-width="1"/>
-      <text x="160" y="144" text-anchor="middle" fill="#ffab40" font-size="11">code: 0x00400000</text>
-
-      <!-- Process B space -->
-      <rect x="440" y="20" width="240" height="140" rx="8" fill="rgba(105,240,174,0.05)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="560" y="42" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">Process B address space</text>
-      <rect x="460" y="55"  width="200" height="30" rx="4" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="560" y="75" text-anchor="middle" fill="#69f0ae" font-size="11">stack: 0x7fff0000</text>
-      <rect x="460" y="92"  width="200" height="30" rx="4" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="560" y="112" text-anchor="middle" fill="#69f0ae" font-size="11">heap: 0x01a00000</text>
-      <rect x="460" y="129" width="200" height="22" rx="4" fill="rgba(105,240,174,0.12)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="560" y="144" text-anchor="middle" fill="#69f0ae" font-size="11">code: 0x00400000</text>
-
-      <!-- barrier -->
-      <line x1="360" y1="20" x2="360" y2="160" stroke="#ff5252" stroke-width="2" stroke-dasharray="6,4"/>
-      <text x="360" y="172" text-anchor="middle" fill="#ff5252" font-size="11">isolated — same virtual addresses, completely separate physical memory</text>
-    </svg>
-    <div class="caption">Two processes can have identical virtual addresses without conflict. Their mappings point to completely different physical pages.</div>
-  </div>
-
-  <h3>2. More Memory Than You Have</h3>
-  <p>Virtual memory allows programs to use more address space than physical RAM exists. Pages of memory that haven't been accessed recently can be written to disk (the <em>swap space</em>), freeing physical RAM for other uses. When the program accesses them again, the OS loads them back. This is transparent — the program never knows it happened. From its perspective, the memory was always there.</p>
-
-  <h3>3. Simplified Linking and Loading</h3>
-  <p>Because every process has its own address space starting from the same base addresses, the compiler and linker can produce code with fixed addresses. The program's code always loads at the same virtual address. Without virtual memory, every program would need to be relinked every time it ran to avoid colliding with whatever else happened to be in RAM.</p>
-
-  <h2>Address Space Size</h2>
-  <p>On a 64-bit system, the virtual address space is enormous: 2⁶⁴ bytes = 16 exabytes. In practice, current processors only use 48 of those bits (256 terabytes) due to hardware limitations, split evenly between user space (low addresses) and kernel space (high addresses). Your programs live in the lower half; the OS kernel lives in the upper half.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 280" width="100%" height="280">
-      <!-- Address space bar -->
-      <text x="360" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">64-bit virtual address space (schematic — not to scale)</text>
-
-      <rect x="200" y="30" width="320" height="230" rx="6" fill="rgba(20,30,48,0.6)" stroke="#1e2d4a" stroke-width="1.5"/>
-
-      <!-- Kernel space top -->
-      <rect x="200" y="30" width="320" height="70" rx="0" fill="rgba(255,82,82,0.08)" stroke="none"/>
-      <rect x="200" y="30" width="320" height="70" rx="6" fill="none" stroke="#1e2d4a" stroke-width="1"/>
-      <text x="360" y="62"  text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">Kernel space</text>
-      <text x="360" y="82"  text-anchor="middle" fill="#6b7fa3" font-size="11">0xFFFF800000000000 → 0xFFFFFFFFFFFFFFFF</text>
-
-      <!-- Non-canonical gap -->
-      <rect x="200" y="100" width="320" height="30" rx="0" fill="rgba(30,45,74,0.8)" stroke="none"/>
-      <text x="360" y="120" text-anchor="middle" fill="#6b7fa3" font-size="11" font-style="italic">non-canonical hole (inaccessible)</text>
-
-      <!-- Stack region -->
-      <rect x="200" y="130" width="320" height="35" rx="0" fill="rgba(179,136,255,0.1)" stroke="none"/>
-      <text x="360" y="152" text-anchor="middle" fill="#b388ff" font-size="12">stack ↓</text>
-
-      <!-- Mmap / shared libs -->
-      <rect x="200" y="165" width="320" height="30" rx="0" fill="rgba(68,138,255,0.08)" stroke="none"/>
-      <text x="360" y="184" text-anchor="middle" fill="#448aff" font-size="11">shared libs / mmap region</text>
-
-      <!-- Heap -->
-      <rect x="200" y="195" width="320" height="30" rx="0" fill="rgba(105,240,174,0.1)" stroke="none"/>
-      <text x="360" y="215" text-anchor="middle" fill="#69f0ae" font-size="12">heap ↑</text>
-
-      <!-- Code + data bottom -->
-      <rect x="200" y="225" width="320" height="35" rx="0" fill="rgba(255,171,64,0.1)" stroke="none"/>
-      <rect x="200" y="225" width="320" height="35" rx="0" style="border-radius: 0 0 6px 6px;" fill="rgba(255,171,64,0.1)" stroke="none"/>
-      <text x="360" y="245" text-anchor="middle" fill="#ffab40" font-size="12">code + data (low addresses)</text>
-
-      <!-- Address labels right -->
-      <text x="540" y="67"  fill="#ff5252"  font-size="10">kernel</text>
-      <text x="540" y="148" fill="#b388ff"  font-size="10">~0x7fff…</text>
-      <text x="540" y="181" fill="#448aff"  font-size="10">~0x7f00…</text>
-      <text x="540" y="211" fill="#69f0ae"  font-size="10">varies</text>
-      <text x="540" y="246" fill="#ffab40"  font-size="10">~0x0040…</text>
-
-      <text x="360" y="276" text-anchor="middle" fill="#6b7fa3" font-size="11">User space: low half · Kernel space: high half · Middle: a large inaccessible gap</text>
-    </svg>
-    <div class="caption">The 64-bit virtual address space. User programs occupy low addresses; the kernel occupies high addresses. The canonical hole in the middle is unmapped by hardware.</div>
-  </div>
-
-  <div class="key-concept">
-    <strong>The Core Idea</strong><br>
+<h2>The Three Problems Virtual Memory Solves</h2>
+<h3>1. Isolation</h3>
+<p>Each process has its own private address space. Process A cannot read or write memory belonging to Process B — those virtual addresses either don't exist in A's mapping or map to different physical locations. This is why a bug in one program can't corrupt another program's data, and why a crash in one process doesn't take down the system.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: 1. Isolation" height="180" role="img" viewbox="0 0 720 180" width="100%">
+<!-- Process A space -->
+<rect fill="rgba(255,171,64,0.05)" height="140" rx="8" stroke="#ffab40" stroke-width="1.5" width="240" x="40" y="20"></rect>
+<text fill="#ffab40" font-size="12" font-weight="600" text-anchor="middle" x="160" y="42">Process A address space</text>
+<rect fill="rgba(255,171,64,0.12)" height="30" rx="4" stroke="#ffab40" stroke-width="1" width="200" x="60" y="55"></rect>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="160" y="75">stack: 0x7fff0000</text>
+<rect fill="rgba(255,171,64,0.12)" height="30" rx="4" stroke="#ffab40" stroke-width="1" width="200" x="60" y="92"></rect>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="160" y="112">heap: 0x01a00000</text>
+<rect fill="rgba(255,171,64,0.12)" height="22" rx="4" stroke="#ffab40" stroke-width="1" width="200" x="60" y="129"></rect>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="160" y="144">code: 0x00400000</text>
+<!-- Process B space -->
+<rect fill="rgba(105,240,174,0.05)" height="140" rx="8" stroke="#69f0ae" stroke-width="1.5" width="240" x="440" y="20"></rect>
+<text fill="#69f0ae" font-size="12" font-weight="600" text-anchor="middle" x="560" y="42">Process B address space</text>
+<rect fill="rgba(105,240,174,0.12)" height="30" rx="4" stroke="#69f0ae" stroke-width="1" width="200" x="460" y="55"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="560" y="75">stack: 0x7fff0000</text>
+<rect fill="rgba(105,240,174,0.12)" height="30" rx="4" stroke="#69f0ae" stroke-width="1" width="200" x="460" y="92"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="560" y="112">heap: 0x01a00000</text>
+<rect fill="rgba(105,240,174,0.12)" height="22" rx="4" stroke="#69f0ae" stroke-width="1" width="200" x="460" y="129"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="560" y="144">code: 0x00400000</text>
+<!-- barrier -->
+<line stroke="#ff5252" stroke-dasharray="6,4" stroke-width="2" x1="360" x2="360" y1="20" y2="160"></line>
+<text fill="#ff5252" font-size="11" text-anchor="middle" x="360" y="172">isolated — same virtual addresses, completely separate physical memory</text>
+</svg>
+<div class="caption">Two processes can have identical virtual addresses without conflict. Their mappings point to completely different physical pages.</div>
+</div>
+<h3>2. More Memory Than You Have</h3>
+<p>Virtual memory allows programs to use more address space than physical RAM exists. Pages of memory that haven't been accessed recently can be written to disk (the <em>swap space</em>), freeing physical RAM for other uses. When the program accesses them again, the OS loads them back. This is transparent — the program never knows it happened. From its perspective, the memory was always there.</p>
+<h3>3. Simplified Linking and Loading</h3>
+<p>Because every process has its own address space starting from the same base addresses, the compiler and linker can produce code with fixed addresses. The program's code always loads at the same virtual address. Without virtual memory, every program would need to be relinked every time it ran to avoid colliding with whatever else happened to be in RAM.</p>
+<h2>Address Space Size</h2>
+<p>On a 64-bit system, the virtual address space is enormous: 2⁶⁴ bytes = 16 exabytes. In practice, current processors only use 48 of those bits (256 terabytes) due to hardware limitations, split evenly between user space (low addresses) and kernel space (high addresses). Your programs live in the lower half; the OS kernel lives in the upper half.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Address Space Size" height="280" role="img" viewbox="0 0 720 280" width="100%">
+<!-- Address space bar -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="360" y="18">64-bit virtual address space (schematic — not to scale)</text>
+<rect fill="rgba(20,30,48,0.6)" height="230" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="320" x="200" y="30"></rect>
+<!-- Kernel space top -->
+<rect fill="rgba(255,82,82,0.08)" height="70" rx="0" stroke="none" width="320" x="200" y="30"></rect>
+<rect fill="none" height="70" rx="6" stroke="#1e2d4a" stroke-width="1" width="320" x="200" y="30"></rect>
+<text fill="#ff5252" font-size="13" font-weight="600" text-anchor="middle" x="360" y="62">Kernel space</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="360" y="82">0xFFFF800000000000 → 0xFFFFFFFFFFFFFFFF</text>
+<!-- Non-canonical gap -->
+<rect fill="rgba(30,45,74,0.8)" height="30" rx="0" stroke="none" width="320" x="200" y="100"></rect>
+<text fill="#6b7fa3" font-size="11" font-style="italic" text-anchor="middle" x="360" y="120">non-canonical hole (inaccessible)</text>
+<!-- Stack region -->
+<rect fill="rgba(179,136,255,0.1)" height="35" rx="0" stroke="none" width="320" x="200" y="130"></rect>
+<text fill="#b388ff" font-size="12" text-anchor="middle" x="360" y="152">stack ↓</text>
+<!-- Mmap / shared libs -->
+<rect fill="rgba(68,138,255,0.08)" height="30" rx="0" stroke="none" width="320" x="200" y="165"></rect>
+<text fill="#448aff" font-size="11" text-anchor="middle" x="360" y="184">shared libs / mmap region</text>
+<!-- Heap -->
+<rect fill="rgba(105,240,174,0.1)" height="30" rx="0" stroke="none" width="320" x="200" y="195"></rect>
+<text fill="#69f0ae" font-size="12" text-anchor="middle" x="360" y="215">heap ↑</text>
+<!-- Code + data bottom -->
+<rect fill="rgba(255,171,64,0.1)" height="35" rx="0" stroke="none" width="320" x="200" y="225"></rect>
+<rect fill="rgba(255,171,64,0.1)" height="35" rx="0" stroke="none" style="border-radius: 0 0 6px 6px;" width="320" x="200" y="225"></rect>
+<text fill="#ffab40" font-size="12" text-anchor="middle" x="360" y="245">code + data (low addresses)</text>
+<!-- Address labels right -->
+<text fill="#ff5252" font-size="10" x="540" y="67">kernel</text>
+<text fill="#b388ff" font-size="10" x="540" y="148">~0x7fff…</text>
+<text fill="#448aff" font-size="10" x="540" y="181">~0x7f00…</text>
+<text fill="#69f0ae" font-size="10" x="540" y="211">varies</text>
+<text fill="#ffab40" font-size="10" x="540" y="246">~0x0040…</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="360" y="276">User space: low half · Kernel space: high half · Middle: a large inaccessible gap</text>
+</svg>
+<div class="caption">The 64-bit virtual address space. User programs occupy low addresses; the kernel occupies high addresses. The canonical hole in the middle is unmapped by hardware.</div>
+</div>
+<div class="key-concept">
+<strong>The Core Idea</strong><br/>
     Every address in your C program is a virtual address — a number in a private, process-specific address space. The hardware (MMU) translates these to physical RAM locations on every access, using a mapping maintained by the OS. Programs are isolated from each other. The address space can exceed available RAM. This all happens transparently, with no action required from your program.
   </div>
-
-  <h2>Common Misconceptions</h2>
-  <div class="pitfalls">
-    <div class="pitfall-card">
-      <div class="pitfall-num">Misconception 01</div>
-      <div class="pitfall-title">"Pointers are RAM addresses"</div>
-      <div class="pitfall-desc">Pointers hold virtual addresses, not physical ones. The number 0x7ffd2a40 in a pointer tells you where in your process's virtual address space the data lives — not which physical chip or which row of DRAM. The physical location can change (e.g., after swapping) while the virtual address stays constant.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Misconception 02</div>
-      <div class="pitfall-title">"malloc gives you raw memory"</div>
-      <div class="pitfall-desc"><code>malloc</code> carves space out of your process's heap, which is already part of the virtual address space the OS set up when the process started. The OS doesn't see individual <code>malloc</code> calls — it sees larger requests when the heap needs to grow. <code>malloc</code> manages virtual memory your process already owns.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Misconception 03</div>
-      <div class="pitfall-title">"Two processes can share memory"</div>
-      <div class="pitfall-desc">By default, processes are completely isolated — the same virtual address in two processes maps to different physical pages. However, the OS can deliberately map the same physical page into multiple processes' address spaces (shared memory). This is how processes communicate via <code>mmap</code> and <code>shm_open</code>.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Misconception 04</div>
-      <div class="pitfall-title">"If malloc succeeds, the memory exists"</div>
-      <div class="pitfall-desc">Many OSes use <em>optimistic allocation</em> — <code>malloc</code> and <code>mmap</code> can succeed even when no physical page is immediately available. The physical page is only assigned when you actually write to it (demand paging). A program can receive a valid pointer and then crash with OOM much later when it first touches that memory.</div>
-    </div>
-  </div>
-
+<h2>Common Misconceptions</h2>
+<div class="pitfalls">
+<div class="pitfall-card">
+<div class="pitfall-num">Misconception 01</div>
+<div class="pitfall-title">"Pointers are RAM addresses"</div>
+<div class="pitfall-desc">Pointers hold virtual addresses, not physical ones. The number 0x7ffd2a40 in a pointer tells you where in your process's virtual address space the data lives — not which physical chip or which row of DRAM. The physical location can change (e.g., after swapping) while the virtual address stays constant.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Misconception 02</div>
+<div class="pitfall-title">"malloc gives you raw memory"</div>
+<div class="pitfall-desc"><code>malloc</code> carves space out of your process's heap, which is already part of the virtual address space the OS set up when the process started. The OS doesn't see individual <code>malloc</code> calls — it sees larger requests when the heap needs to grow. <code>malloc</code> manages virtual memory your process already owns.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Misconception 03</div>
+<div class="pitfall-title">"Two processes can share memory"</div>
+<div class="pitfall-desc">By default, processes are completely isolated — the same virtual address in two processes maps to different physical pages. However, the OS can deliberately map the same physical page into multiple processes' address spaces (shared memory). This is how processes communicate via <code>mmap</code> and <code>shm_open</code>.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Misconception 04</div>
+<div class="pitfall-title">"If malloc succeeds, the memory exists"</div>
+<div class="pitfall-desc">Many OSes use <em>optimistic allocation</em> — <code>malloc</code> and <code>mmap</code> can succeed even when no physical page is immediately available. The physical page is only assigned when you actually write to it (demand paging). A program can receive a valid pointer and then crash with OOM much later when it first touches that memory.</div>
+</div>
+</div>
 </main>
 </body>
 </html>

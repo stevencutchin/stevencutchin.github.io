@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 – Instructor Plan: Building for Specific Platforms</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -113,301 +114,267 @@
     pre { break-inside: avoid; }
   }
 </style>
-</head>
-<body>
-
-<div class="doc-header">
-  <div class="eyebrow">📋 Instructor Lesson Plan</div>
-  <h1>CS 402 — Mobile Application Development</h1>
-  <div class="subtitle">Building for Specific Platforms — Inline Branching to Native Modules</div>
-  <div class="meta-row">
-    <span>🕐 <strong>Total time:</strong> 75 minutes</span>
-    <span>📅 <strong>Semester:</strong> Spring 2026</span>
-    <span>🎯 <strong>Themes:</strong> Theme 1 (Foundations) · Theme 2 (Building)</span>
-    <span>📐 <strong>Structure:</strong> Two-part lecture — inline then native</span>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><div class="doc-header">
+<div class="eyebrow">📋 Instructor Lesson Plan</div>
+<h1>CS 402 — Mobile Application Development</h1>
+<div class="subtitle">Building for Specific Platforms — Inline Branching to Native Modules</div>
+<div class="meta-row">
+<span>🕐 <strong>Total time:</strong> 75 minutes</span>
+<span>📅 <strong>Semester:</strong> Spring 2026</span>
+<span>🎯 <strong>Themes:</strong> Theme 1 (Foundations) · Theme 2 (Building)</span>
+<span>📐 <strong>Structure:</strong> Two-part lecture — inline then native</span>
 </div>
-
-
-<h2>Learning Objectives</h2>
-<div class="obj-grid">
-  <div class="obj-item">
-    <div class="bloom">Understand</div>
+</div><h2>Learning Objectives</h2><div class="obj-grid">
+<div class="obj-item">
+<div class="bloom">Understand</div>
     Identify where a platform difference falls on the detection spectrum, from a one-liner to a native module.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Apply</div>
+<div class="obj-item">
+<div class="bloom">Apply</div>
     Use <code>Platform.OS</code>, <code>Platform.select()</code>, and <code>Platform.Version</code> to handle inline differences.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Apply</div>
+<div class="obj-item">
+<div class="bloom">Apply</div>
     Write platform-specific permission logic that handles the iOS one-shot rule and Android API level branching.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Apply</div>
+<div class="obj-item">
+<div class="bloom">Apply</div>
     Create <code>.ios.js</code> / <code>.android.js</code> platform files with a shared interface and Metro-resolved imports.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Understand</div>
+<div class="obj-item">
+<div class="bloom">Understand</div>
     Explain what a native module is, how the Expo Modules API bridges JS to native code, and when to reach for one.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Create</div>
+<div class="obj-item">
+<div class="bloom">Create</div>
     Write a no-op fallback stub for an unsupported platform that fails gracefully instead of crashing.
   </div>
+</div><h2>Session at a Glance</h2><div class="timing-overview">
+<div class="timing-header">75-Minute Session — Two-Part Structure</div>
+<div class="timing-bar">
+<div class="timing-seg t1" style="width:10.7%">Intro<br/>8 min</div>
+<div class="timing-seg t2" style="width:16%">Platform.OS<br/>12 min</div>
+<div class="timing-seg t3" style="width:18.7%">Permissions<br/>14 min</div>
+<div class="timing-seg t4" style="width:16%">File routing<br/>12 min</div>
+<div class="timing-seg t5" style="width:18.7%">Native modules<br/>14 min</div>
+<div class="timing-seg t6" style="width:20%">Stubs + CFU<br/>15 min</div>
 </div>
-
-
-<h2>Session at a Glance</h2>
-<div class="timing-overview">
-  <div class="timing-header">75-Minute Session — Two-Part Structure</div>
-  <div class="timing-bar">
-    <div class="timing-seg t1" style="width:10.7%">Intro<br>8 min</div>
-    <div class="timing-seg t2" style="width:16%">Platform.OS<br>12 min</div>
-    <div class="timing-seg t3" style="width:18.7%">Permissions<br>14 min</div>
-    <div class="timing-seg t4" style="width:16%">File routing<br>12 min</div>
-    <div class="timing-seg t5" style="width:18.7%">Native modules<br>14 min</div>
-    <div class="timing-seg t6" style="width:20%">Stubs + CFU<br>15 min</div>
-  </div>
-  <div class="timing-legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Spectrum framing + two-layer diagram</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>Platform.OS / select() / Version + shadow demo</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#3a7ab5"></div>Permissions — iOS one-shot + Android versioning</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>File-extension routing + HapticEngine demo</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#3a9a7a"></div>Native modules — what they are, installing, using</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#4a2a8a"></div>Fallback stubs + pairs activity + CFU</div>
-  </div>
+<div class="timing-legend">
+<div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Spectrum framing + two-layer diagram</div>
+<div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>Platform.OS / select() / Version + shadow demo</div>
+<div class="legend-item"><div class="legend-dot" style="background:#3a7ab5"></div>Permissions — iOS one-shot + Android versioning</div>
+<div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>File-extension routing + HapticEngine demo</div>
+<div class="legend-item"><div class="legend-dot" style="background:#3a9a7a"></div>Native modules — what they are, installing, using</div>
+<div class="legend-item"><div class="legend-dot" style="background:#4a2a8a"></div>Fallback stubs + pairs activity + CFU</div>
 </div>
-
-
-<!-- ─── SEGMENT 1: Intro ─── -->
-<div class="segment seg-p1">
-  <div class="segment-header">
-    <div class="segment-num">1</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Introduction — The Detection Spectrum</div>
-      <div class="segment-subtitle">Two platforms, one codebase, and where the seams show</div>
-    </div>
-    <div class="segment-time">0:00 – 0:08 · 8 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>Opening framing</h3>
-    <ul class="talking-points">
-      <li>"React Native's pitch is write once, run everywhere. That's mostly true. But iOS and Android are not the same OS — they just speak enough of the same language that we can write shared code for most things. Today is about the exceptions."</li>
-      <li>Display the detection spectrum from the student document: <code>Platform.OS</code> → <code>Platform.select()</code> → <code>.ios.js/.android.js</code> → native modules. This is the tool ladder. Bigger differences need bigger tools.</li>
-      <li>The two-part structure of this lecture follows the ladder: Part 1 is everything you can handle in JS; Part 2 is what needs to go below JS.</li>
-    </ul>
-
-    <div class="discussion">
-      <strong>🗣 Quick opener:</strong> "Name something you've noticed looks or works differently
+</div><!-- ─── SEGMENT 1: Intro ─── --><div class="segment seg-p1">
+<div class="segment-header">
+<div class="segment-num">1</div>
+<div class="segment-title-block">
+<div class="segment-title">Introduction — The Detection Spectrum</div>
+<div class="segment-subtitle">Two platforms, one codebase, and where the seams show</div>
+</div>
+<div class="segment-time">0:00 – 0:08 · 8 min</div>
+</div>
+<div class="segment-body">
+<h3>Opening framing</h3>
+<ul class="talking-points">
+<li>"React Native's pitch is write once, run everywhere. That's mostly true. But iOS and Android are not the same OS — they just speak enough of the same language that we can write shared code for most things. Today is about the exceptions."</li>
+<li>Display the detection spectrum from the student document: <code>Platform.OS</code> → <code>Platform.select()</code> → <code>.ios.js/.android.js</code> → native modules. This is the tool ladder. Bigger differences need bigger tools.</li>
+<li>The two-part structure of this lecture follows the ladder: Part 1 is everything you can handle in JS; Part 2 is what needs to go below JS.</li>
+</ul>
+<div class="discussion">
+<strong>🗣 Quick opener:</strong> "Name something you've noticed looks or works differently
       between the same app on iPhone vs Android." Students usually mention shadows, back button
       behavior, notification style, or swipe gestures. All of these are either Part 1 or Part 2
       topics — use their answers to motivate the two sections.
     </div>
-
-    <div class="instructor-note">
-      <strong>📝 Frame the principle up front:</strong> State the underlying principle early and
+<div class="instructor-note">
+<strong>📝 Frame the principle up front:</strong> State the underlying principle early and
       return to it throughout: <em>program to an interface, not an implementation.</em> Whether
       the platform split is a <code>Platform.OS</code> ternary or a native module in Swift, the
       consuming component should see a stable, named API. The platform handling is an
       implementation detail — it belongs behind the interface, not scattered through components.
       Students who internalize this write much cleaner code.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 2: Platform.OS / select ─── -->
-<div class="segment seg-p1">
-  <div class="segment-header">
-    <div class="segment-num">2</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Part 1 — Platform.OS, Platform.select(), Platform.Version</div>
-      <div class="segment-subtitle">Inline branching · Style differences · Version checks</div>
-    </div>
-    <div class="segment-time">0:08 – 0:20 · 12 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>Platform.OS — the simplest tool</h3>
-    <ul class="talking-points">
-      <li><code>Platform.OS</code> is a string evaluated at runtime. It never changes in a session. Use it for one or two conditional values anywhere — labels, heights, behavior flags.</li>
-      <li><code>Platform.Version</code>: a number on Android (API level), a string on iOS (version string). The most common use is the Android API level check — permissions behavior changed at API 23, storage at 29, granular media at 33.</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥 Demo 1 (5 min) — Shadow vs. elevation:</strong> The most immediately visible
+</div><!-- ─── SEGMENT 2: Platform.OS / select ─── --><div class="segment seg-p1">
+<div class="segment-header">
+<div class="segment-num">2</div>
+<div class="segment-title-block">
+<div class="segment-title">Part 1 — Platform.OS, Platform.select(), Platform.Version</div>
+<div class="segment-subtitle">Inline branching · Style differences · Version checks</div>
+</div>
+<div class="segment-time">0:08 – 0:20 · 12 min</div>
+</div>
+<div class="segment-body">
+<h3>Platform.OS — the simplest tool</h3>
+<ul class="talking-points">
+<li><code>Platform.OS</code> is a string evaluated at runtime. It never changes in a session. Use it for one or two conditional values anywhere — labels, heights, behavior flags.</li>
+<li><code>Platform.Version</code>: a number on Android (API level), a string on iOS (version string). The most common use is the Android API level check — permissions behavior changed at API 23, storage at 29, granular media at 33.</li>
+</ul>
+<div class="demo-block">
+<strong>🖥 Demo 1 (5 min) — Shadow vs. elevation:</strong> The most immediately visible
       platform style difference. Open a Snack with a white card on a gray background. Add
       iOS shadow props — show nothing happening on Android. Then add elevation — show nothing
       happening on iOS simulator. Then show the <code>...Platform.select()</code> spread pattern
       that handles both. The visual difference is immediate and students remember it.
     </div>
-
-    <h3>Platform.select() — multiple values at once</h3>
-    <ul class="talking-points">
-      <li><code>Platform.select()</code> takes an object, returns the matching platform's value. The <code>default</code> key catches anything not explicitly listed.</li>
-      <li>The spread pattern inside <code>StyleSheet.create</code> is idiomatic: write shared styles once, spread in only the differences. Don't duplicate the whole style object per platform.</li>
-      <li>Works for style objects, strings, numbers, functions — any value at all.</li>
-    </ul>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Quick Check</div>
-      <ol>
-        <li>A student adds <code>shadowColor: '#000'</code> and <code>shadowOpacity: 0.2</code> to a card style. It looks perfect in the iOS Simulator. Why does the Android emulator show no shadow?
+<h3>Platform.select() — multiple values at once</h3>
+<ul class="talking-points">
+<li><code>Platform.select()</code> takes an object, returns the matching platform's value. The <code>default</code> key catches anything not explicitly listed.</li>
+<li>The spread pattern inside <code>StyleSheet.create</code> is idiomatic: write shared styles once, spread in only the differences. Don't duplicate the whole style object per platform.</li>
+<li>Works for style objects, strings, numbers, functions — any value at all.</li>
+</ul>
+<div class="cfu">
+<div class="cfu-label">✅ Quick Check</div>
+<ol>
+<li>A student adds <code>shadowColor: '#000'</code> and <code>shadowOpacity: 0.2</code> to a card style. It looks perfect in the iOS Simulator. Why does the Android emulator show no shadow?
           <div class="answer">→ Android ignores shadow* props. It uses elevation instead. The fix is to use Platform.select() to provide elevation for Android alongside the iOS shadow props.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<!-- ─── SEGMENT 3: Permissions ─── -->
-<div class="segment seg-p1">
-  <div class="segment-header">
-    <div class="segment-num">3</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Part 1 — Permissions</div>
-      <div class="segment-subtitle">iOS one-shot rule · Android API level branching · Settings fallback</div>
-    </div>
-    <div class="segment-time">0:20 – 0:34 · 14 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>Why permissions are the most important Part 1 topic</h3>
-    <ul class="talking-points">
-      <li>Permissions are where the platforms diverge most sharply in behavior. Getting them wrong produces either a crash, a denied user experience, or an App Store rejection.</li>
-      <li>Expo packages abstract most of this — but students need to understand what's happening underneath, especially the iOS one-shot rule and the Android version ladder.</li>
-    </ul>
-
-    <div class="danger">
-      <strong>🚨 Burn the iOS one-shot rule into memory:</strong> On iOS, the permission dialog
+</div>
+</div><!-- ─── SEGMENT 3: Permissions ─── --><div class="segment seg-p1">
+<div class="segment-header">
+<div class="segment-num">3</div>
+<div class="segment-title-block">
+<div class="segment-title">Part 1 — Permissions</div>
+<div class="segment-subtitle">iOS one-shot rule · Android API level branching · Settings fallback</div>
+</div>
+<div class="segment-time">0:20 – 0:34 · 14 min</div>
+</div>
+<div class="segment-body">
+<h3>Why permissions are the most important Part 1 topic</h3>
+<ul class="talking-points">
+<li>Permissions are where the platforms diverge most sharply in behavior. Getting them wrong produces either a crash, a denied user experience, or an App Store rejection.</li>
+<li>Expo packages abstract most of this — but students need to understand what's happening underneath, especially the iOS one-shot rule and the Android version ladder.</li>
+</ul>
+<div class="danger">
+<strong>🚨 Burn the iOS one-shot rule into memory:</strong> On iOS, the permission dialog
       appears <em>exactly once per permission per app install.</em> If the user taps "Don't Allow"
       — even accidentally — the dialog never appears again. They must go to Settings → [App] →
       enable manually. This is not a bug you can fix in code. The only defense is to ask at the
       right moment — contextually, when the user already understands why you need it.
-      <br><br>
+      <br/><br/>
       Tell students: "If you ask for camera permission when the app first launches, before the
       user has ever tried to take a photo, a significant percentage of users will tap Don't Allow
       out of reflex. You've permanently lost that permission on their device."
     </div>
-
-    <h3>Android API level branching</h3>
-    <ul class="talking-points">
-      <li><strong>API &lt; 23 (Android 5):</strong> Permissions granted at install time. Runtime requests not needed and will crash.</li>
-      <li><strong>API 23–28 (Android 6–9):</strong> Runtime dangerous permissions. The standard flow.</li>
-      <li><strong>API 29+ (Android 10):</strong> Background location requires a separate, follow-up request after foreground is granted. You cannot ask for both at once.</li>
-      <li><strong>API 33+ (Android 13):</strong> Granular media permissions. <code>READ_MEDIA_IMAGES</code> and <code>READ_MEDIA_VIDEO</code> replace <code>READ_EXTERNAL_STORAGE</code>.</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥 Demo 2 (7 min) — The photo permission flow:</strong> Walk through the
+<h3>Android API level branching</h3>
+<ul class="talking-points">
+<li><strong>API &lt; 23 (Android 5):</strong> Permissions granted at install time. Runtime requests not needed and will crash.</li>
+<li><strong>API 23–28 (Android 6–9):</strong> Runtime dangerous permissions. The standard flow.</li>
+<li><strong>API 29+ (Android 10):</strong> Background location requires a separate, follow-up request after foreground is granted. You cannot ask for both at once.</li>
+<li><strong>API 33+ (Android 13):</strong> Granular media permissions. <code>READ_MEDIA_IMAGES</code> and <code>READ_MEDIA_VIDEO</code> replace <code>READ_EXTERNAL_STORAGE</code>.</li>
+</ul>
+<div class="demo-block">
+<strong>🖥 Demo 2 (7 min) — The photo permission flow:</strong> Walk through the
       <code>requestPhotoAccess()</code> function from the student document. Show: (1) the Android
       API level branch for API 33+, (2) the iOS denied → Settings redirect with
       <code>Linking.openURL('app-settings:')</code>. Run on iOS Simulator — tap "Don't Allow,"
       then show the Alert with "Open Settings" appearing. This is the exact experience users
       will have in real apps.
     </div>
-
-    <div class="instructor-note">
-      <strong>📝 Expo abstracts most of this:</strong> The <code>expo-*</code> permission packages
+<div class="instructor-note">
+<strong>📝 Expo abstracts most of this:</strong> The <code>expo-*</code> permission packages
       handle platform differences internally. Students don't need to write this branching code for
       every permission — they need to understand it exists so they know what the packages are
       doing and can handle the edge cases (like the iOS Settings redirect) themselves.
     </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Check for Understanding</div>
-      <ol>
-        <li>A user's Android device has API level 21. Your app calls <code>Location.requestForegroundPermissionsAsync()</code>. What should happen?
-          <div class="answer">→ On API 21 (Android 5), permissions are granted at install time. The correct behavior is to skip the runtime request and return 'granted'. Calling the request on API < 23 can crash on some devices.</div>
-        </li>
-        <li>iOS user taps "Don't Allow" on the camera permission dialog. What can your app do?
+<div class="cfu">
+<div class="cfu-label">✅ Check for Understanding</div>
+<ol>
+<li>A user's Android device has API level 21. Your app calls <code>Location.requestForegroundPermissionsAsync()</code>. What should happen?
+          <div class="answer">→ On API 21 (Android 5), permissions are granted at install time. The correct behavior is to skip the runtime request and return 'granted'. Calling the request on API &lt; 23 can crash on some devices.</div>
+</li>
+<li>iOS user taps "Don't Allow" on the camera permission dialog. What can your app do?
           <div class="answer">→ It cannot re-prompt. It should detect the denied status and show an Alert explaining why the permission is needed, with a button that opens app-settings: via Linking.openURL(). The user must manually re-enable it.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<!-- ─── SEGMENT 4: File routing ─── -->
-<div class="segment seg-p2">
-  <div class="segment-header">
-    <div class="segment-num">4</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Part 2 — File-Extension Routing</div>
-      <div class="segment-subtitle">Metro resolution · .ios.js / .android.js / .native.js · HapticEngine build</div>
-    </div>
-    <div class="segment-time">0:34 – 0:46 · 12 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>When to move from inline to file-level</h3>
-    <ul class="talking-points">
-      <li>The signal: when the platform difference is large enough that having both implementations in one file makes the file hard to read, test, or maintain.</li>
-      <li>File-extension routing moves the branching to build time. No runtime check. No dead code shipped to either platform. The bundle for iOS never contains the Android implementation, and vice versa.</li>
-      <li>Metro's resolution order: <code>.ios.js</code> → <code>.native.js</code> → <code>.js</code> (for iOS). Android checks <code>.android.js</code> first. Web checks <code>.web.js</code> first.</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥 Demo 3 (8 min) — HapticEngine build:</strong> This is the most satisfying
+</div>
+</div><!-- ─── SEGMENT 4: File routing ─── --><div class="segment seg-p2">
+<div class="segment-header">
+<div class="segment-num">4</div>
+<div class="segment-title-block">
+<div class="segment-title">Part 2 — File-Extension Routing</div>
+<div class="segment-subtitle">Metro resolution · .ios.js / .android.js / .native.js · HapticEngine build</div>
+</div>
+<div class="segment-time">0:34 – 0:46 · 12 min</div>
+</div>
+<div class="segment-body">
+<h3>When to move from inline to file-level</h3>
+<ul class="talking-points">
+<li>The signal: when the platform difference is large enough that having both implementations in one file makes the file hard to read, test, or maintain.</li>
+<li>File-extension routing moves the branching to build time. No runtime check. No dead code shipped to either platform. The bundle for iOS never contains the Android implementation, and vice versa.</li>
+<li>Metro's resolution order: <code>.ios.js</code> → <code>.native.js</code> → <code>.js</code> (for iOS). Android checks <code>.android.js</code> first. Web checks <code>.web.js</code> first.</li>
+</ul>
+<div class="demo-block">
+<strong>🖥 Demo 3 (8 min) — HapticEngine build:</strong> This is the most satisfying
       demo in the session. Create three files in a Snack: <code>HapticEngine.ios.js</code>,
       <code>HapticEngine.android.js</code>, and a component that imports from
       <code>'./HapticEngine'</code>. In the ios file, add a console.log "iOS haptic." In the
       android file, add "Android haptic." Run on iOS Simulator — show the iOS log. Switch to
       Android emulator — show the Android log. Same import. Different code. Metro did the routing.
-      <br><br>
+      <br/><br/>
       Then evolve it to the actual HapticEngine from the student document — expo-haptics with
       the full/limited implementation on each side.
     </div>
-
-    <div class="instructor-note">
-      <strong>📝 The shared interface principle in action:</strong> Point explicitly to the
+<div class="instructor-note">
+<strong>📝 The shared interface principle in action:</strong> Point explicitly to the
       consuming component and note: it just calls <code>impact('light')</code>. It doesn't know
       which file ran. This is the principle from the intro — program to the interface, not the
       implementation — made concrete. Students who haven't fully internalized it will see it
       clearly here.
     </div>
-
-    <div class="callout">
-      <strong>Always provide a fallback:</strong> Ask students: "What happens if someone builds
+<div class="callout">
+<strong>Always provide a fallback:</strong> Ask students: "What happens if someone builds
       your HapticEngine module for web and there's no <code>HapticEngine.web.js</code>?" → Metro
       falls back to <code>HapticEngine.js</code>. If that doesn't exist, the import fails at
       build time. Always provide a fallback — either a <code>.js</code> or a
       <code>.native.js</code> that covers the non-web case.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 5: Native modules ─── -->
-<div class="segment seg-p2">
-  <div class="segment-header">
-    <div class="segment-num">5</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Part 2 — Native Modules</div>
-      <div class="segment-subtitle">What they are · Installing · Using expo-local-authentication · Writing your own (overview)</div>
-    </div>
-    <div class="segment-time">0:46 – 1:00 · 14 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>What a native module is</h3>
-    <ul class="talking-points">
-      <li>Some device capabilities have no JavaScript layer at all — Face ID, HealthKit, Android BiometricPrompt, background geofencing. These are accessible only through native APIs (Swift/Kotlin).</li>
-      <li>A native module is a package that contains both JS and native code. The Expo Modules API generates the bridge — the JS side calls a named function, the bridge calls native code, the result comes back via a Promise or callback.</li>
-      <li>From the consuming side, it looks like any other module: <code>import * as LocalAuth from 'expo-local-authentication'</code>. The native plumbing is invisible.</li>
-      <li>The cost: native modules require a full native build. They can't run in Expo Go — they need a development build. This is the tradeoff for getting access to deeper platform APIs.</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥 Demo 4 (7 min) — expo-local-authentication:</strong> Walk through the
+</div><!-- ─── SEGMENT 5: Native modules ─── --><div class="segment seg-p2">
+<div class="segment-header">
+<div class="segment-num">5</div>
+<div class="segment-title-block">
+<div class="segment-title">Part 2 — Native Modules</div>
+<div class="segment-subtitle">What they are · Installing · Using expo-local-authentication · Writing your own (overview)</div>
+</div>
+<div class="segment-time">0:46 – 1:00 · 14 min</div>
+</div>
+<div class="segment-body">
+<h3>What a native module is</h3>
+<ul class="talking-points">
+<li>Some device capabilities have no JavaScript layer at all — Face ID, HealthKit, Android BiometricPrompt, background geofencing. These are accessible only through native APIs (Swift/Kotlin).</li>
+<li>A native module is a package that contains both JS and native code. The Expo Modules API generates the bridge — the JS side calls a named function, the bridge calls native code, the result comes back via a Promise or callback.</li>
+<li>From the consuming side, it looks like any other module: <code>import * as LocalAuth from 'expo-local-authentication'</code>. The native plumbing is invisible.</li>
+<li>The cost: native modules require a full native build. They can't run in Expo Go — they need a development build. This is the tradeoff for getting access to deeper platform APIs.</li>
+</ul>
+<div class="demo-block">
+<strong>🖥 Demo 4 (7 min) — expo-local-authentication:</strong> Walk through the
       <code>authenticateUser()</code> function from the student document. Show:
       (1) <code>supportedAuthenticationTypesAsync()</code> to check hardware,
       (2) <code>Platform.select()</code> to customize the prompt string,
@@ -416,150 +383,122 @@
       Face ID (iOS Simulator → Features → Face ID → Enrolled, then Matching Face). Students
       are always surprised that the simulator can simulate Face ID.
     </div>
-
-    <h3>Writing your own — awareness only</h3>
-    <ul class="talking-points">
-      <li>Writing a custom native module is out of scope for CS 402, but students should know it's possible and understand the pattern at a high level.</li>
-      <li>Expo Modules API: you write a Swift class and a Kotlin class, each with exported functions. Expo generates the JS interface. You get TypeScript types for free.</li>
-      <li>Use case: a capability that exists on device hardware but no package exposes it. In practice, this is rare — the Expo and community ecosystems are comprehensive.</li>
-    </ul>
-
-    <div class="instructor-note">
-      <strong>📝 Don't get pulled into native module implementation details:</strong> Students
+<h3>Writing your own — awareness only</h3>
+<ul class="talking-points">
+<li>Writing a custom native module is out of scope for CS 402, but students should know it's possible and understand the pattern at a high level.</li>
+<li>Expo Modules API: you write a Swift class and a Kotlin class, each with exported functions. Expo generates the JS interface. You get TypeScript types for free.</li>
+<li>Use case: a capability that exists on device hardware but no package exposes it. In practice, this is rare — the Expo and community ecosystems are comprehensive.</li>
+</ul>
+<div class="instructor-note">
+<strong>📝 Don't get pulled into native module implementation details:</strong> Students
       curious about writing native modules can pursue Expo's Modules API documentation
       independently. The goal here is awareness — they should understand what a native module
       is, why it exists, and roughly how the bridge works. Not how to write Swift.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 6: Stubs + CFU ─── -->
-<div class="segment seg-sync">
-  <div class="segment-header">
-    <div class="segment-num">6</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Fallback Stubs, Pairs Activity, and Wrap-Up</div>
-      <div class="segment-subtitle">Stub pattern · Graceful degradation · Strategy selection activity · Final CFU</div>
-    </div>
-    <div class="segment-time">1:00 – 1:15 · 15 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>The fallback stub (3 min)</h3>
-    <ul class="talking-points">
-      <li>Every platform-specific module should have a fallback. The fallback can be a no-op, a stub that returns a safe value, or a function that throws a descriptive error. Any of these is better than a missing-module crash.</li>
-      <li>Show the <code>BiometricAuth.web.js</code> stub from the student document. It exports the same function names, returns <code>false</code>, and logs a <code>console.warn</code>. The consumer never crashes — it just doesn't get biometric authentication on web, which is the correct behavior.</li>
-      <li>Key insight: the stub's return value should be the same type as the real implementation. A function that returns <code>Promise&lt;boolean&gt;</code> in the native version should also return <code>Promise&lt;boolean&gt;</code> in the stub.</li>
-    </ul>
-
-    <div class="activity">
-      <div class="act-label">🏋 Pairs Activity (8 min) — Strategy Selection</div>
-      <p>
+</div><!-- ─── SEGMENT 6: Stubs + CFU ─── --><div class="segment seg-sync">
+<div class="segment-header">
+<div class="segment-num">6</div>
+<div class="segment-title-block">
+<div class="segment-title">Fallback Stubs, Pairs Activity, and Wrap-Up</div>
+<div class="segment-subtitle">Stub pattern · Graceful degradation · Strategy selection activity · Final CFU</div>
+</div>
+<div class="segment-time">1:00 – 1:15 · 15 min</div>
+</div>
+<div class="segment-body">
+<h3>The fallback stub (3 min)</h3>
+<ul class="talking-points">
+<li>Every platform-specific module should have a fallback. The fallback can be a no-op, a stub that returns a safe value, or a function that throws a descriptive error. Any of these is better than a missing-module crash.</li>
+<li>Show the <code>BiometricAuth.web.js</code> stub from the student document. It exports the same function names, returns <code>false</code>, and logs a <code>console.warn</code>. The consumer never crashes — it just doesn't get biometric authentication on web, which is the correct behavior.</li>
+<li>Key insight: the stub's return value should be the same type as the real implementation. A function that returns <code>Promise&lt;boolean&gt;</code> in the native version should also return <code>Promise&lt;boolean&gt;</code> in the stub.</li>
+</ul>
+<div class="activity">
+<div class="act-label">🏋 Pairs Activity (8 min) — Strategy Selection</div>
+<p>
         Give pairs a list of platform differences and ask them to choose the correct tool from
         the spectrum for each. Speed matters — most pairs should finish in 5–6 minutes.
       </p>
-      <ol>
-        <li>The submit button says "Done" on iOS and "Submit" on Android.</li>
-        <li>Card shadows work on iOS but not Android.</li>
-        <li>You need to access iOS HealthKit step count data.</li>
-        <li>Your app uses a tab navigator — on Android, pressing the hardware back button from Tab 2 should go to Tab 1, not exit the app.</li>
-        <li>You want a shared <code>Analytics</code> module that calls the native SDK on iOS/Android and does nothing on web.</li>
-        <li>Location permission behavior needs to handle the Android API 29 background location rule.</li>
-      </ol>
-      <p style="margin-top:10px"><strong>Answers:</strong> (1) <code>Platform.OS</code> ternary · (2) <code>Platform.select()</code> spread in styles · (3) Native module (<code>expo-health</code> or custom) · (4) <code>BackHandler</code> API with <code>Platform.OS === 'android'</code> check · (5) <code>.ios.js</code> / <code>.android.js</code> / <code>.web.js</code> stub · (6) <code>Platform.OS + Platform.Version</code> branch in permission logic</p>
-    </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Final Check for Understanding</div>
-      <ol>
-        <li>You import <code>./ShareSheet</code> in a component. You have <code>ShareSheet.ios.js</code> and <code>ShareSheet.android.js</code> but no <code>ShareSheet.js</code>. A teammate adds a web build. What happens?
-          <div class="answer">→ The web build fails — Metro cannot find a matching file (no .web.js, no .js fallback). Fix: add ShareSheet.web.js as a stub that either does nothing or opens a browser-native share mechanism.</div>
-        </li>
-        <li>When should you reach for a native module instead of a Platform.select() branch?
-          <div class="answer">→ When the capability requires platform-native code that doesn't exist in JavaScript — e.g. Face ID, HealthKit, BiometricPrompt. If the capability can be handled entirely in JS with different values or behavior, Platform.OS and Platform.select() are sufficient.</div>
-        </li>
-        <li>What is the rule about the return type of a platform fallback stub?
-          <div class="answer">→ It must match the real implementation's return type. If the real function returns Promise&lt;boolean&gt;, the stub returns Promise&lt;boolean&gt; (typically Promise.resolve(false)). This ensures the consumer's code — which checks the return value — works identically on all platforms.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+<ol>
+<li>The submit button says "Done" on iOS and "Submit" on Android.</li>
+<li>Card shadows work on iOS but not Android.</li>
+<li>You need to access iOS HealthKit step count data.</li>
+<li>Your app uses a tab navigator — on Android, pressing the hardware back button from Tab 2 should go to Tab 1, not exit the app.</li>
+<li>You want a shared <code>Analytics</code> module that calls the native SDK on iOS/Android and does nothing on web.</li>
+<li>Location permission behavior needs to handle the Android API 29 background location rule.</li>
+</ol>
+<p style="margin-top:10px"><strong>Answers:</strong> (1) <code>Platform.OS</code> ternary · (2) <code>Platform.select()</code> spread in styles · (3) Native module (<code>expo-health</code> or custom) · (4) <code>BackHandler</code> API with <code>Platform.OS === 'android'</code> check · (5) <code>.ios.js</code> / <code>.android.js</code> / <code>.web.js</code> stub · (6) <code>Platform.OS + Platform.Version</code> branch in permission logic</p>
 </div>
-
-
-<h2>Common Student Mistakes</h2>
-<table>
-  <thead>
-    <tr><th>Mistake</th><th>What goes wrong</th><th>Fix</th></tr>
-  </thead>
-  <tbody>
-    <tr class="mistake-row">
-      <td>Using shadow* props expecting Android shadows</td>
-      <td>Android ignores all shadow* style properties. Card looks flat on Android.</td>
-      <td>Use <code>Platform.select()</code> to provide <code>elevation</code> for Android.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Asking for iOS permission too early</td>
-      <td>User hasn't established context; denies reflexively. Dialog never appears again.</td>
-      <td>Ask at the contextually obvious moment — when the user first tries to use the feature.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>No platform fallback file</td>
-      <td>Build succeeds on iOS and Android but fails when a web build is added later.</td>
-      <td>Always provide a <code>.js</code> or <code>.web.js</code> fallback for every platform module.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Fallback stub returns the wrong type</td>
-      <td>Consumer code calls <code>result.success</code> on the stub's return value; stub returns <code>false</code> (not an object); crash.</td>
-      <td>Stub must return the same shape as the real implementation: if real returns <code>{success: bool}</code>, stub returns <code>{success: false}</code>.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Platform detection scattered through components</td>
-      <td>Platform branches duplicated everywhere. Changing behavior for one platform requires hunting through all files.</td>
-      <td>Isolate all platform-specific logic in a module. Components call the module interface; the module owns the branching.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Requesting Android background location with foreground in one call</td>
-      <td>Android 10+ requires background location to be requested as a separate, sequential permission after foreground is granted. Combined request is silently rejected.</td>
-      <td>Check <code>Platform.Version >= 29</code> and make the background request as a follow-up after foreground succeeds.</td>
-    </tr>
-  </tbody>
-</table>
-
-
-<h2>Grading &amp; Assessment Notes</h2>
-<p>
+<div class="cfu">
+<div class="cfu-label">✅ Final Check for Understanding</div>
+<ol>
+<li>You import <code>./ShareSheet</code> in a component. You have <code>ShareSheet.ios.js</code> and <code>ShareSheet.android.js</code> but no <code>ShareSheet.js</code>. A teammate adds a web build. What happens?
+          <div class="answer">→ The web build fails — Metro cannot find a matching file (no .web.js, no .js fallback). Fix: add ShareSheet.web.js as a stub that either does nothing or opens a browser-native share mechanism.</div>
+</li>
+<li>When should you reach for a native module instead of a Platform.select() branch?
+          <div class="answer">→ When the capability requires platform-native code that doesn't exist in JavaScript — e.g. Face ID, HealthKit, BiometricPrompt. If the capability can be handled entirely in JS with different values or behavior, Platform.OS and Platform.select() are sufficient.</div>
+</li>
+<li>What is the rule about the return type of a platform fallback stub?
+          <div class="answer">→ It must match the real implementation's return type. If the real function returns Promise&lt;boolean&gt;, the stub returns Promise&lt;boolean&gt; (typically Promise.resolve(false)). This ensures the consumer's code — which checks the return value — works identically on all platforms.</div>
+</li>
+</ol>
+</div>
+</div>
+</div><h2>Common Student Mistakes</h2><table>
+<thead>
+<tr><th scope="col">Mistake</th><th scope="col">What goes wrong</th><th scope="col">Fix</th></tr>
+</thead>
+<tbody>
+<tr class="mistake-row">
+<td>Using shadow* props expecting Android shadows</td>
+<td>Android ignores all shadow* style properties. Card looks flat on Android.</td>
+<td>Use <code>Platform.select()</code> to provide <code>elevation</code> for Android.</td>
+</tr>
+<tr class="mistake-row">
+<td>Asking for iOS permission too early</td>
+<td>User hasn't established context; denies reflexively. Dialog never appears again.</td>
+<td>Ask at the contextually obvious moment — when the user first tries to use the feature.</td>
+</tr>
+<tr class="mistake-row">
+<td>No platform fallback file</td>
+<td>Build succeeds on iOS and Android but fails when a web build is added later.</td>
+<td>Always provide a <code>.js</code> or <code>.web.js</code> fallback for every platform module.</td>
+</tr>
+<tr class="mistake-row">
+<td>Fallback stub returns the wrong type</td>
+<td>Consumer code calls <code>result.success</code> on the stub's return value; stub returns <code>false</code> (not an object); crash.</td>
+<td>Stub must return the same shape as the real implementation: if real returns <code>{success: bool}</code>, stub returns <code>{success: false}</code>.</td>
+</tr>
+<tr class="mistake-row">
+<td>Platform detection scattered through components</td>
+<td>Platform branches duplicated everywhere. Changing behavior for one platform requires hunting through all files.</td>
+<td>Isolate all platform-specific logic in a module. Components call the module interface; the module owns the branching.</td>
+</tr>
+<tr class="mistake-row">
+<td>Requesting Android background location with foreground in one call</td>
+<td>Android 10+ requires background location to be requested as a separate, sequential permission after foreground is granted. Combined request is silently rejected.</td>
+<td>Check <code>Platform.Version &gt;= 29</code> and make the background request as a follow-up after foreground succeeds.</td>
+</tr>
+</tbody>
+</table><h2>Grading &amp; Assessment Notes</h2><p>
   Platform handling shows up most in assignments that involve styling (shadow/elevation),
   permissions (camera, location), or cross-platform navigation behavior. Grade the pattern,
   not the polish.
-</p>
-<ul>
-  <li><strong>Full credit:</strong> Correct API for the platform difference (select() for styles, version branch for permissions), working on both platforms, fallback present for file-extension modules.</li>
-  <li><strong>Partial credit:</strong> Correct on one platform only (e.g. shadow props work on iOS, nothing on Android) — the concept is there, the cross-platform follow-through is missing.</li>
-  <li><strong>Comment, not deduction:</strong> Shadow on iOS without elevation on Android (if Android styling isn't the assignment's focus). Note it in feedback.</li>
-  <li><strong>Significant deduction:</strong> Runtime crash due to missing module fallback, or Android background location requested simultaneously with foreground causing silent permission failure.</li>
-</ul>
-
-
-<h2>Before Class — Preparation Checklist</h2>
-<ul>
-  <li>✅ Open <strong>CS402_Platform_Specific.html</strong> — verify both SVG diagrams (spectrum strip + Metro resolution) render correctly.</li>
-  <li>✅ Pre-build Demo 1 Snack (shadow vs. elevation) — have the broken version and the fixed version ready. The before/after is the demo.</li>
-  <li>✅ Pre-build Demo 3 Snack (HapticEngine file routing) — create all three files. Test that switching iOS/Android in Snack shows different console logs.</li>
-  <li>✅ For Demo 4 (biometrics): enable Face ID in iOS Simulator (Features → Face ID → Enrolled, then Matching Face during the prompt). Test it cold — biometric demos have a way of failing live.</li>
-  <li>✅ Print or share the pairs activity scenario list before class (or paste into a Canvas announcement). Pairs work better with something physical to look at.</li>
-  <li>✅ Have the Android API level table visible — students always ask "what version is API 23?" Keep it handy: API 23 = Android 6, API 29 = Android 10, API 33 = Android 13.</li>
-</ul>
-
-
-<div class="doc-footer">
-  <span>CS 402 · Spring 2026 · Boise State University</span>
-  <span>Building for Specific Platforms — Instructor Plan</span>
-  <span>Internal use only — not for student distribution</span>
-</div>
-
+</p><ul>
+<li><strong>Full credit:</strong> Correct API for the platform difference (select() for styles, version branch for permissions), working on both platforms, fallback present for file-extension modules.</li>
+<li><strong>Partial credit:</strong> Correct on one platform only (e.g. shadow props work on iOS, nothing on Android) — the concept is there, the cross-platform follow-through is missing.</li>
+<li><strong>Comment, not deduction:</strong> Shadow on iOS without elevation on Android (if Android styling isn't the assignment's focus). Note it in feedback.</li>
+<li><strong>Significant deduction:</strong> Runtime crash due to missing module fallback, or Android background location requested simultaneously with foreground causing silent permission failure.</li>
+</ul><h2>Before Class — Preparation Checklist</h2><ul>
+<li>✅ Open <strong>CS402_Platform_Specific.html</strong> — verify both SVG diagrams (spectrum strip + Metro resolution) render correctly.</li>
+<li>✅ Pre-build Demo 1 Snack (shadow vs. elevation) — have the broken version and the fixed version ready. The before/after is the demo.</li>
+<li>✅ Pre-build Demo 3 Snack (HapticEngine file routing) — create all three files. Test that switching iOS/Android in Snack shows different console logs.</li>
+<li>✅ For Demo 4 (biometrics): enable Face ID in iOS Simulator (Features → Face ID → Enrolled, then Matching Face during the prompt). Test it cold — biometric demos have a way of failing live.</li>
+<li>✅ Print or share the pairs activity scenario list before class (or paste into a Canvas announcement). Pairs work better with something physical to look at.</li>
+<li>✅ Have the Android API level table visible — students always ask "what version is API 23?" Keep it handy: API 23 = Android 6, API 29 = Android 10, API 33 = Android 13.</li>
+</ul><div class="doc-footer">
+<span>CS 402 · Spring 2026 · Boise State University</span>
+<span>Building for Specific Platforms — Instructor Plan</span>
+<span>Internal use only — not for student distribution</span>
+</div></main>
 </body>
 </html>

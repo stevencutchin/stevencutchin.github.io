@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 – Integrated Service Support</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -109,160 +110,128 @@
     pre, .callout, .warning, .tip, .correction { break-inside: avoid; }
   }
 </style>
-</head>
-<body>
-
-<!-- ════════════════════════════════════════ HEADER ══ -->
-<header class="doc-header">
-  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
-  <h1>Integrated Service Support</h1>
-  <div class="subtitle">URL Schemes and the Linking API — Reaching Beyond Your App</div>
-  <div class="lesson-meta">
-    <span>🔗 URL scheme protocol</span>
-    <span>📞 Phone, SMS, Mail</span>
-    <span>🗺 Maps &amp; Directions</span>
-    <span>📷 Media &amp; Contacts</span>
-    <span>🔄 Deep links</span>
-  </div>
-</header>
-
-<!-- ════════════════════════════════════════ INTRO ══ -->
-<p class="section-intro">
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><!-- ════════════════════════════════════════ HEADER ══ --><header class="doc-header">
+<div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+<h1>Integrated Service Support</h1>
+<div class="subtitle">URL Schemes and the Linking API — Reaching Beyond Your App</div>
+<div class="lesson-meta">
+<span>🔗 URL scheme protocol</span>
+<span>📞 Phone, SMS, Mail</span>
+<span>🗺 Maps &amp; Directions</span>
+<span>📷 Media &amp; Contacts</span>
+<span>🔄 Deep links</span>
+</div>
+</header><!-- ════════════════════════════════════════ INTRO ══ --><p class="section-intro">
   A mobile app doesn't live in isolation. The phone around it contains a phone dialer,
   a messaging app, a camera, a contacts database, a map, a browser, and dozens of other
   services — all accessible to your React Native app through a single, elegant mechanism:
   URL schemes. This lecture explains how that mechanism works, what services are available,
   and how to use Expo's Linking API to hand off to native services gracefully and safely.
-</p>
-
-<div class="callout">
-  <strong>The core idea:</strong> On the web, a URL like <code>https://</code> means "open
+</p><div class="callout">
+<strong>The core idea:</strong> On the web, a URL like <code>https://</code> means "open
   this page in a browser." Mobile operating systems extend this idea: <code>tel:</code> means
   "dial this number," <code>sms:</code> means "open a message thread," <code>mailto:</code>
   means "compose an email." Your app constructs the URL and asks the OS to handle it — you
   never touch the native app directly.
-</div>
-
-
-<!-- ════════════════════════════════════════ 1. THE MECHANISM ══ -->
-<h2>1. The Mechanism — URL Schemes as Inter-App Protocol</h2>
-
-<p>
+</div><!-- ════════════════════════════════════════ 1. THE MECHANISM ══ --><h2>1. The Mechanism — URL Schemes as Inter-App Protocol</h2><p>
   Every app on iOS and Android can register one or more <strong>URL schemes</strong> — prefixes
   that the OS will route to that app when another app opens a URL with that prefix. Apple Maps
   registers <code>maps://</code>. The Phone app registers <code>tel://</code>. Gmail registers
   <code>googlegmail://</code>. Your own app can register a custom scheme too.
-</p>
-
-<p>
+</p><p>
   When your React Native app calls <code>Linking.openURL('tel:+12085551234')</code>, the
   sequence looks like this:
-</p>
-
-<!-- DIAGRAM: Handoff flow -->
-<div class="diagram-wrap">
-  <svg viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
-    <rect width="760" height="130" fill="#fafbfc" rx="10"/>
-
-    <!-- Your App -->
-    <rect x="20" y="30" width="140" height="70" rx="8" fill="#1B3A5C"/>
-    <text x="90" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Your App</text>
-    <text x="90" y="80" text-anchor="middle" font-size="11" fill="#a0c8e8">Linking.openURL(</text>
-    <text x="90" y="95" text-anchor="middle" font-size="11" fill="#a6e3a1">'tel:+12085551234'</text>
-
-    <!-- Arrow 1 -->
-    <path d="M162 65 L210 65" stroke="#2E5D8A" stroke-width="2.5" marker-end="url(#a1)"/>
-    <text x="186" y="58" text-anchor="middle" font-size="10" fill="#666">URL</text>
-
-    <!-- OS Router -->
-    <rect x="212" y="30" width="140" height="70" rx="8" fill="#7a5abf"/>
-    <text x="282" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">OS URL Router</text>
-    <text x="282" y="76" text-anchor="middle" font-size="11" fill="#d0b8ff">Looks up scheme</text>
-    <text x="282" y="91" text-anchor="middle" font-size="11" fill="#d0b8ff">registry → tel:</text>
-
-    <!-- Arrow 2 -->
-    <path d="M354 65 L402 65" stroke="#7a5abf" stroke-width="2.5" marker-end="url(#a2)"/>
-    <text x="378" y="58" text-anchor="middle" font-size="10" fill="#666">Handoff</text>
-
-    <!-- Native Phone App -->
-    <rect x="404" y="30" width="155" height="70" rx="8" fill="#2e7a5d"/>
-    <text x="481" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Phone App</text>
-    <text x="481" y="76" text-anchor="middle" font-size="11" fill="#a0e8c8">Pre-filled with number</text>
-    <text x="481" y="91" text-anchor="middle" font-size="11" fill="#a0e8c8">User confirms to dial</text>
-
-    <!-- User outcome -->
-    <rect x="580" y="30" width="160" height="70" rx="8" fill="#2E5D8A"/>
-    <text x="660" y="58" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">User Experience</text>
-    <text x="660" y="76" text-anchor="middle" font-size="11" fill="#a0c8e8">Native UI appears,</text>
-    <text x="660" y="91" text-anchor="middle" font-size="11" fill="#a0c8e8">app stays intact</text>
-
-    <!-- Arrow 3 -->
-    <path d="M561 65 L578 65" stroke="#2e7a5d" stroke-width="2.5" marker-end="url(#a3)"/>
-
-    <defs>
-      <marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#2E5D8A"/></marker>
-      <marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#7a5abf"/></marker>
-      <marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#2e7a5d"/></marker>
-    </defs>
-  </svg>
-  <div class="diagram-caption">URL scheme handoff sequence. Your app constructs a URL, the OS looks up which app handles that scheme, and hands off — your app remains in memory and the user can return to it.</div>
-</div>
-
-<p>
+</p><!-- DIAGRAM: Handoff flow --><div class="diagram-wrap">
+<svg aria-label="Diagram: 1. The Mechanism — URL Schemes as Inter-App Protocol" font-family="Source Sans 3, Arial, sans-serif" role="img" viewbox="0 0 760 130" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#fafbfc" height="130" rx="10" width="760"></rect>
+<!-- Your App -->
+<rect fill="#1B3A5C" height="70" rx="8" width="140" x="20" y="30"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="90" y="62">Your App</text>
+<text fill="#a0c8e8" font-size="11" text-anchor="middle" x="90" y="80">Linking.openURL(</text>
+<text fill="#a6e3a1" font-size="11" text-anchor="middle" x="90" y="95">'tel:+12085551234'</text>
+<!-- Arrow 1 -->
+<path d="M162 65 L210 65" marker-end="url(#a1)" stroke="#2E5D8A" stroke-width="2.5"></path>
+<text fill="#666" font-size="10" text-anchor="middle" x="186" y="58">URL</text>
+<!-- OS Router -->
+<rect fill="#7a5abf" height="70" rx="8" width="140" x="212" y="30"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="282" y="58">OS URL Router</text>
+<text fill="#d0b8ff" font-size="11" text-anchor="middle" x="282" y="76">Looks up scheme</text>
+<text fill="#d0b8ff" font-size="11" text-anchor="middle" x="282" y="91">registry → tel:</text>
+<!-- Arrow 2 -->
+<path d="M354 65 L402 65" marker-end="url(#a2)" stroke="#7a5abf" stroke-width="2.5"></path>
+<text fill="#666" font-size="10" text-anchor="middle" x="378" y="58">Handoff</text>
+<!-- Native Phone App -->
+<rect fill="#2e7a5d" height="70" rx="8" width="155" x="404" y="30"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="481" y="58">Phone App</text>
+<text fill="#a0e8c8" font-size="11" text-anchor="middle" x="481" y="76">Pre-filled with number</text>
+<text fill="#a0e8c8" font-size="11" text-anchor="middle" x="481" y="91">User confirms to dial</text>
+<!-- User outcome -->
+<rect fill="#2E5D8A" height="70" rx="8" width="160" x="580" y="30"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="660" y="58">User Experience</text>
+<text fill="#a0c8e8" font-size="11" text-anchor="middle" x="660" y="76">Native UI appears,</text>
+<text fill="#a0c8e8" font-size="11" text-anchor="middle" x="660" y="91">app stays intact</text>
+<!-- Arrow 3 -->
+<path d="M561 65 L578 65" marker-end="url(#a3)" stroke="#2e7a5d" stroke-width="2.5"></path>
+<defs>
+<marker id="a1" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#2E5D8A"></path></marker>
+<marker id="a2" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#7a5abf"></path></marker>
+<marker id="a3" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#2e7a5d"></path></marker>
+</defs>
+</svg>
+<div class="diagram-caption">URL scheme handoff sequence. Your app constructs a URL, the OS looks up which app handles that scheme, and hands off — your app remains in memory and the user can return to it.</div>
+</div><p>
   Notice what your app does <em>not</em> do directly: it doesn't access the phone's call
   hardware, it doesn't read the user's contacts. It constructs a URL and the OS takes it
   from there — your app steps back, and the user sees a native interface they already trust.
-</p>
-
-<div class="callout">
-  <strong>Why this matters for UX:</strong> Using the phone's native Phone app to place a call
+</p><div class="callout">
+<strong>Why this matters for UX:</strong> Using the phone's native Phone app to place a call
   gives the user the interface they already know, with their contacts, their audio preferences,
   their Do Not Disturb settings. You get the capability for free; the OS provides the polish.
-</div>
-
-
-<!-- ════════════════════════════════════════ 2. THE API ══ -->
-<h2>2. Triggering URL Schemes — Concept First, Then the Right Tool</h2>
-
-<h3>The concept — with a tool you already know</h3>
-
-<p>
+</div><!-- ════════════════════════════════════════ 2. THE API ══ --><h2>2. Triggering URL Schemes — Concept First, Then the Right Tool</h2><h3>The concept — with a tool you already know</h3><p>
   The fastest way to see URL schemes in action is with <code>fetch()</code> — a function you
   already know. Try this in a React Native component:
-</p>
-
-<pre><span class="cm">// You already know fetch. Now watch what it can do.</span>
+</p><pre><span class="cm">// You already know fetch. Now watch what it can do.</span>
 <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'sms:+12085551234'</span>);   <span class="cm">// opens Messages</span>
 <span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'tel:+12085551234'</span>);   <span class="cm">// opens the dialer</span>
-<span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'mailto:help@example.com'</span>); <span class="cm">// opens Mail</span></pre>
-
-<p>
+<span class="kw">await</span> <span class="fn">fetch</span>(<span class="str">'mailto:help@example.com'</span>); <span class="cm">// opens Mail</span></pre><p>
   These work because React Native's <code>fetch()</code> runs through the device's
   <strong>native networking layer</strong>, not a Node.js HTTP stack. When that native layer
   encounters a non-HTTP scheme, it behaves exactly like the built-in browser following a link —
   it looks up the scheme in the OS registry and hands off to the registered app.
   One line. No imports. The phone's entire service ecosystem is reachable.
-</p>
-
-<div class="callout">
-  <strong>That's the concept.</strong> Your app constructs a URL string. The mobile OS
+</p><div class="callout">
+<strong>That's the concept.</strong> Your app constructs a URL string. The mobile OS
   reads the scheme prefix — <code>sms:</code>, <code>tel:</code>, <code>mailto:</code>,
   <code>maps:</code> — looks up which app registered for that scheme, and launches it with
   your URL as the payload. You never touch the native app directly; the OS mediates everything.
-</div>
-
-<h3>The proper implementation — Linking.openURL()</h3>
-
-<p>
+</div><h3>The proper implementation — Linking.openURL()</h3><p>
   In production code, use <code>Linking.openURL()</code> from <code>expo-linking</code>.
   It does the same thing as the <code>fetch()</code> approach above — same OS handoff, same
   result — but it adds a critical capability: <code>canOpenURL()</code>, which lets you check
   whether the device supports a scheme <em>before</em> you try to open it. This is what makes
   your app behave gracefully on simulators, tablets, and restricted devices where some services
   aren't available.
-</p>
-
-<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Linking</span> <span class="kw">from</span> <span class="str">'expo-linking'</span>;
+</p><pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Linking</span> <span class="kw">from</span> <span class="str">'expo-linking'</span>;
 
 <span class="kw">async function</span> <span class="fn">openService</span>(url) {
   <span class="kw">const</span> supported = <span class="kw">await</span> <span class="cls">Linking</span>.<span class="fn">canOpenURL</span>(url);
@@ -273,42 +242,32 @@
     <span class="cm">// Graceful fallback — the scheme isn't available on this device</span>
     <span class="cls">Alert</span>.<span class="fn">alert</span>(<span class="str">'Not available'</span>, <span class="str">`This device cannot open: </span>${url}<span class="str">`</span>);
   }
-}</pre>
-
-<p>
+}</pre><p>
   Every scheme URL in the rest of this document can be opened with either approach. All the
   examples use <code>Linking</code> because of the <code>canOpenURL()</code> safety check —
   but the URLs themselves are the same either way.
-</p>
-
-<p>The <code>Linking</code> API provides three methods you'll use regularly:</p>
-
-<table>
-  <thead>
-    <tr><th>Method</th><th>What it does</th><th>Returns</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>Linking.openURL(url)</code></td>
-      <td>Hands the URL to the OS. The OS finds the registered handler and launches it.</td>
-      <td><code>Promise&lt;void&gt;</code> — resolves when handoff succeeds, rejects if no handler found.</td>
-    </tr>
-    <tr>
-      <td><code>Linking.canOpenURL(url)</code></td>
-      <td>Asks the OS whether any installed app handles this scheme. Use before <code>openURL</code> to avoid errors.</td>
-      <td><code>Promise&lt;boolean&gt;</code></td>
-    </tr>
-    <tr>
-      <td><code>Linking.getInitialURL()</code></td>
-      <td>Returns the URL that launched your app (if it was opened via a URL scheme). Used for deep link handling on startup.</td>
-      <td><code>Promise&lt;string | null&gt;</code></td>
-    </tr>
-  </tbody>
-</table>
-
-<p>The basic pattern for any URL scheme handoff is the same:</p>
-
-<pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Linking</span> <span class="kw">from</span> <span class="str">'expo-linking'</span>;
+</p><p>The <code>Linking</code> API provides three methods you'll use regularly:</p><table>
+<thead>
+<tr><th scope="col">Method</th><th scope="col">What it does</th><th scope="col">Returns</th></tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Linking.openURL(url)</code></td>
+<td>Hands the URL to the OS. The OS finds the registered handler and launches it.</td>
+<td><code>Promise&lt;void&gt;</code> — resolves when handoff succeeds, rejects if no handler found.</td>
+</tr>
+<tr>
+<td><code>Linking.canOpenURL(url)</code></td>
+<td>Asks the OS whether any installed app handles this scheme. Use before <code>openURL</code> to avoid errors.</td>
+<td><code>Promise&lt;boolean&gt;</code></td>
+</tr>
+<tr>
+<td><code>Linking.getInitialURL()</code></td>
+<td>Returns the URL that launched your app (if it was opened via a URL scheme). Used for deep link handling on startup.</td>
+<td><code>Promise&lt;string | null&gt;</code></td>
+</tr>
+</tbody>
+</table><p>The basic pattern for any URL scheme handoff is the same:</p><pre><span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Linking</span> <span class="kw">from</span> <span class="str">'expo-linking'</span>;
 
 <span class="kw">async function</span> <span class="fn">openService</span>(url) {
   <span class="kw">const</span> supported = <span class="kw">await</span> <span class="cls">Linking</span>.<span class="fn">canOpenURL</span>(url);
@@ -319,210 +278,165 @@
     <span class="cm">// The scheme is not supported on this device</span>
     <span class="fn">Alert</span>.<span class="fn">alert</span>(<span class="str">'Not available'</span>, <span class="str">`This device cannot open: </span>${url}<span class="str">`</span>);
   }
-}</pre>
-
-<div class="warning">
-  <strong>⚠ iOS requires scheme registration:</strong> On iOS, <code>canOpenURL()</code> only
+}</pre><div class="warning">
+<strong>⚠ iOS requires scheme registration:</strong> On iOS, <code>canOpenURL()</code> only
   returns <code>true</code> for schemes you have declared in your <code>app.json</code> under
   <code>ios.infoPlist.LSApplicationQueriesSchemes</code>. Add every scheme you intend to query.
   Android has no equivalent requirement for the built-in schemes.
-</div>
-
-
-<!-- ════════════════════════════════════════ 3. SCHEME CATALOG ══ -->
-<h2>3. The Built-In Scheme Catalog</h2>
-
-<p>
+</div><!-- ════════════════════════════════════════ 3. SCHEME CATALOG ══ --><h2>3. The Built-In Scheme Catalog</h2><p>
   The following schemes are available on both iOS and Android for the system's built-in
   services, unless noted. Third-party app schemes (FaceTime, Google Maps, Spotify, etc.)
   depend on the app being installed.
-</p>
-
-<div class="service-grid">
-  <div class="svc-card sc-1">
-    <div class="svc-icon">📞</div>
-    <div class="svc-name">Phone Call</div>
-    <div class="svc-scheme">tel:</div>
-    <p>Opens the dialer pre-filled with a number. User confirms before dialing. Works on physical devices only.</p>
-  </div>
-  <div class="svc-card sc-2">
-    <div class="svc-icon">💬</div>
-    <div class="svc-name">SMS / Text</div>
-    <div class="svc-scheme">sms:</div>
-    <p>Opens the native Messages app with a pre-filled recipient. Body text can be pre-filled on most devices.</p>
-  </div>
-  <div class="svc-card sc-3">
-    <div class="svc-icon">📧</div>
-    <div class="svc-name">Email</div>
-    <div class="svc-scheme">mailto:</div>
-    <p>Opens the default mail client. Supports pre-filling to, cc, bcc, subject, and body via query parameters.</p>
-  </div>
-  <div class="svc-card sc-4">
-    <div class="svc-icon">🗺</div>
-    <div class="svc-name">Maps</div>
-    <div class="svc-scheme">maps: / geo:</div>
-    <p>Opens Apple Maps (iOS) or Google Maps (Android). Supports addresses, coordinates, and turn-by-turn directions.</p>
-  </div>
-  <div class="svc-card sc-5">
-    <div class="svc-icon">🌐</div>
-    <div class="svc-name">Browser</div>
-    <div class="svc-scheme">https: / http:</div>
-    <p>Opens the user's default browser. Alternatively, use <code>expo-web-browser</code> to open in-app.</p>
-  </div>
-  <div class="svc-card sc-6">
-    <div class="svc-icon">📅</div>
-    <div class="svc-name">Calendar</div>
-    <div class="svc-scheme">calshow:</div>
-    <p>Opens the system Calendar app to a specific date (iOS). Android uses intent-based URIs instead.</p>
-  </div>
+</p><div class="service-grid">
+<div class="svc-card sc-1">
+<div class="svc-icon">📞</div>
+<div class="svc-name">Phone Call</div>
+<div class="svc-scheme">tel:</div>
+<p>Opens the dialer pre-filled with a number. User confirms before dialing. Works on physical devices only.</p>
 </div>
-
-<div class="service-grid">
-  <div class="svc-card sc-1">
-    <div class="svc-icon">🎵</div>
-    <div class="svc-name">Music / Media</div>
-    <div class="svc-scheme">music: / audio:</div>
-    <p>Opens the system music app (iOS: Apple Music via <code>music://</code>). Spotify, YouTube Music use their own schemes.</p>
-  </div>
-  <div class="svc-card sc-2">
-    <div class="svc-icon">📍</div>
-    <div class="svc-name">Directions</div>
-    <div class="svc-scheme">maps:?daddr=</div>
-    <p>Launches navigation to a destination. Use <code>google.navigation:</code> for Android users with Google Maps.</p>
-  </div>
-  <div class="svc-card sc-3">
-    <div class="svc-icon">📸</div>
-    <div class="svc-name">Camera / Photos</div>
-    <div class="svc-scheme">Expo API</div>
-    <p>Camera and photo library access require Expo's <code>expo-camera</code> and <code>expo-image-picker</code> — not URL schemes.</p>
-  </div>
-  <div class="svc-card sc-4">
-    <div class="svc-icon">📱</div>
-    <div class="svc-name">App Store</div>
-    <div class="svc-scheme">itms-apps:</div>
-    <p>Opens the iOS App Store directly to an app listing. Useful for "Rate this app" prompts. Android uses <code>market://</code>.</p>
-  </div>
-  <div class="svc-card sc-5">
-    <div class="svc-icon">⚙️</div>
-    <div class="svc-name">Settings</div>
-    <div class="svc-scheme">app-settings:</div>
-    <p>On iOS, opens your app's Settings page. Useful after a permission denial — guide users to re-enable.</p>
-  </div>
-  <div class="svc-card sc-6">
-    <div class="svc-icon">🤝</div>
-    <div class="svc-name">FaceTime</div>
-    <div class="svc-scheme">facetime:</div>
-    <p>Initiates a FaceTime call (iOS only). <code>facetime-audio:</code> for audio-only. Requires the other device to have FaceTime.</p>
-  </div>
+<div class="svc-card sc-2">
+<div class="svc-icon">💬</div>
+<div class="svc-name">SMS / Text</div>
+<div class="svc-scheme">sms:</div>
+<p>Opens the native Messages app with a pre-filled recipient. Body text can be pre-filled on most devices.</p>
 </div>
-
-<div class="tip">
-  <strong>💡 Contacts access is different:</strong> Reading and writing the system contacts database
+<div class="svc-card sc-3">
+<div class="svc-icon">📧</div>
+<div class="svc-name">Email</div>
+<div class="svc-scheme">mailto:</div>
+<p>Opens the default mail client. Supports pre-filling to, cc, bcc, subject, and body via query parameters.</p>
+</div>
+<div class="svc-card sc-4">
+<div class="svc-icon">🗺</div>
+<div class="svc-name">Maps</div>
+<div class="svc-scheme">maps: / geo:</div>
+<p>Opens Apple Maps (iOS) or Google Maps (Android). Supports addresses, coordinates, and turn-by-turn directions.</p>
+</div>
+<div class="svc-card sc-5">
+<div class="svc-icon">🌐</div>
+<div class="svc-name">Browser</div>
+<div class="svc-scheme">https: / http:</div>
+<p>Opens the user's default browser. Alternatively, use <code>expo-web-browser</code> to open in-app.</p>
+</div>
+<div class="svc-card sc-6">
+<div class="svc-icon">📅</div>
+<div class="svc-name">Calendar</div>
+<div class="svc-scheme">calshow:</div>
+<p>Opens the system Calendar app to a specific date (iOS). Android uses intent-based URIs instead.</p>
+</div>
+</div><div class="service-grid">
+<div class="svc-card sc-1">
+<div class="svc-icon">🎵</div>
+<div class="svc-name">Music / Media</div>
+<div class="svc-scheme">music: / audio:</div>
+<p>Opens the system music app (iOS: Apple Music via <code>music://</code>). Spotify, YouTube Music use their own schemes.</p>
+</div>
+<div class="svc-card sc-2">
+<div class="svc-icon">📍</div>
+<div class="svc-name">Directions</div>
+<div class="svc-scheme">maps:?daddr=</div>
+<p>Launches navigation to a destination. Use <code>google.navigation:</code> for Android users with Google Maps.</p>
+</div>
+<div class="svc-card sc-3">
+<div class="svc-icon">📸</div>
+<div class="svc-name">Camera / Photos</div>
+<div class="svc-scheme">Expo API</div>
+<p>Camera and photo library access require Expo's <code>expo-camera</code> and <code>expo-image-picker</code> — not URL schemes.</p>
+</div>
+<div class="svc-card sc-4">
+<div class="svc-icon">📱</div>
+<div class="svc-name">App Store</div>
+<div class="svc-scheme">itms-apps:</div>
+<p>Opens the iOS App Store directly to an app listing. Useful for "Rate this app" prompts. Android uses <code>market://</code>.</p>
+</div>
+<div class="svc-card sc-5">
+<div class="svc-icon">⚙️</div>
+<div class="svc-name">Settings</div>
+<div class="svc-scheme">app-settings:</div>
+<p>On iOS, opens your app's Settings page. Useful after a permission denial — guide users to re-enable.</p>
+</div>
+<div class="svc-card sc-6">
+<div class="svc-icon">🤝</div>
+<div class="svc-name">FaceTime</div>
+<div class="svc-scheme">facetime:</div>
+<p>Initiates a FaceTime call (iOS only). <code>facetime-audio:</code> for audio-only. Requires the other device to have FaceTime.</p>
+</div>
+</div><div class="tip">
+<strong>💡 Contacts access is different:</strong> Reading and writing the system contacts database
   is not done via URL schemes — it requires the <code>expo-contacts</code> package and a user
   permission grant. URL schemes can only <em>open</em> the dialer or Messages with a pre-filled
   number; they cannot enumerate the address book.
-</div>
-
-
-<!-- ════════════════════════════════════════ 4. URL ANATOMY ══ -->
-<h2>4. URL Anatomy — Building Scheme URLs</h2>
-
-<p>
+</div><!-- ════════════════════════════════════════ 4. URL ANATOMY ══ --><h2>4. URL Anatomy — Building Scheme URLs</h2><p>
   URL scheme strings follow the same structure as HTTP URLs: a scheme, optionally a host,
   and query parameters for additional data. Understanding the anatomy lets you construct
   any URL correctly without guessing.
-</p>
-
-<!-- DIAGRAM: URL Anatomy -->
-<div class="diagram-wrap">
-  <svg viewBox="0 0 720 160" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono, Consolas, monospace">
-    <rect width="720" height="160" fill="#fafbfc" rx="10"/>
-
-    <!-- The full URL string -->
-    <text x="360" y="38" text-anchor="middle" font-size="17" fill="#1B3A5C" font-weight="700">
-      mailto:<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="03707673736c717743667b626e736f662d606c6e">[email&#160;protected]</a>?subject=Help&amp;body=Hi
+</p><!-- DIAGRAM: URL Anatomy --><div class="diagram-wrap">
+<svg aria-label="Diagram: 4. URL Anatomy — Building Scheme URLs" font-family="JetBrains Mono, Consolas, monospace" role="img" viewbox="0 0 720 160" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#fafbfc" height="160" rx="10" width="720"></rect>
+<!-- The full URL string -->
+<text fill="#1B3A5C" font-size="17" font-weight="700" text-anchor="middle" x="360" y="38">
+      mailto:<a class="__cf_email__" data-cfemail="03707673736c717743667b626e736f662d606c6e" href="/cdn-cgi/l/email-protection">[email protected]</a>?subject=Help&amp;body=Hi
     </text>
-
-    <!-- Underline segments -->
-    <!-- scheme -->
-    <rect x="46" y="45" width="80" height="4" rx="2" fill="#2E5D8A"/>
-    <!-- recipient -->
-    <rect x="130" y="45" width="222" height="4" rx="2" fill="#2e8a5d"/>
-    <!-- query -->
-    <rect x="356" y="45" width="328" height="4" rx="2" fill="#c8890f"/>
-
-    <!-- Labels -->
-    <line x1="86" y1="49" x2="86" y2="90" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="4,3"/>
-    <text x="86" y="105" text-anchor="middle" font-size="12" fill="#2E5D8A" font-weight="700">scheme</text>
-    <text x="86" y="120" text-anchor="middle" font-size="11" fill="#2E5D8A">mailto</text>
-
-    <line x1="240" y1="49" x2="240" y2="90" stroke="#2e8a5d" stroke-width="1.5" stroke-dasharray="4,3"/>
-    <text x="240" y="105" text-anchor="middle" font-size="12" fill="#2e8a5d" font-weight="700">recipient / path</text>
-    <text x="240" y="120" text-anchor="middle" font-size="11" fill="#2e8a5d"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b1c2c4c1c1dec3c5f1d4c9d0dcc1ddd49fd2dedc">[email&#160;protected]</a></text>
-
-    <line x1="520" y1="49" x2="520" y2="90" stroke="#c8890f" stroke-width="1.5" stroke-dasharray="4,3"/>
-    <text x="520" y="105" text-anchor="middle" font-size="12" fill="#c8890f" font-weight="700">query params</text>
-    <text x="520" y="120" text-anchor="middle" font-size="11" fill="#c8890f">subject=Help&amp;body=Hi</text>
-
-    <!-- Colon separator call-out -->
-    <text x="360" y="148" text-anchor="middle" font-size="11" fill="#888" font-style="italic" font-family="Source Sans 3, Arial">The colon after the scheme name is the separator — it's always required</text>
-  </svg>
-  <div class="diagram-caption">Anatomy of a URL scheme string. The scheme identifies the handler; everything after the colon is scheme-specific. Query parameters use standard URL encoding.</div>
-</div>
-
-<p>
+<!-- Underline segments -->
+<!-- scheme -->
+<rect fill="#2E5D8A" height="4" rx="2" width="80" x="46" y="45"></rect>
+<!-- recipient -->
+<rect fill="#2e8a5d" height="4" rx="2" width="222" x="130" y="45"></rect>
+<!-- query -->
+<rect fill="#c8890f" height="4" rx="2" width="328" x="356" y="45"></rect>
+<!-- Labels -->
+<line stroke="#2E5D8A" stroke-dasharray="4,3" stroke-width="1.5" x1="86" x2="86" y1="49" y2="90"></line>
+<text fill="#2E5D8A" font-size="12" font-weight="700" text-anchor="middle" x="86" y="105">scheme</text>
+<text fill="#2E5D8A" font-size="11" text-anchor="middle" x="86" y="120">mailto</text>
+<line stroke="#2e8a5d" stroke-dasharray="4,3" stroke-width="1.5" x1="240" x2="240" y1="49" y2="90"></line>
+<text fill="#2e8a5d" font-size="12" font-weight="700" text-anchor="middle" x="240" y="105">recipient / path</text>
+<text fill="#2e8a5d" font-size="11" text-anchor="middle" x="240" y="120"><a class="__cf_email__" data-cfemail="b1c2c4c1c1dec3c5f1d4c9d0dcc1ddd49fd2dedc" href="/cdn-cgi/l/email-protection">[email protected]</a></text>
+<line stroke="#c8890f" stroke-dasharray="4,3" stroke-width="1.5" x1="520" x2="520" y1="49" y2="90"></line>
+<text fill="#c8890f" font-size="12" font-weight="700" text-anchor="middle" x="520" y="105">query params</text>
+<text fill="#c8890f" font-size="11" text-anchor="middle" x="520" y="120">subject=Help&amp;body=Hi</text>
+<!-- Colon separator call-out -->
+<text fill="#888" font-family="Source Sans 3, Arial" font-size="11" font-style="italic" text-anchor="middle" x="360" y="148">The colon after the scheme name is the separator — it's always required</text>
+</svg>
+<div class="diagram-caption">Anatomy of a URL scheme string. The scheme identifies the handler; everything after the colon is scheme-specific. Query parameters use standard URL encoding.</div>
+</div><p>
   Special characters in query parameter values — spaces, ampersands, non-ASCII — must be
   URL-encoded. Use <code>encodeURIComponent()</code> to encode individual values, then
   assemble the URL with string concatenation or a template literal.
-</p>
-
-<pre><span class="cm">// Always encode user-supplied values</span>
+</p><pre><span class="cm">// Always encode user-supplied values</span>
 <span class="kw">const</span> subject = <span class="fn">encodeURIComponent</span>(<span class="str">'Help with my order #1042'</span>);
 <span class="kw">const</span> body    = <span class="fn">encodeURIComponent</span>(<span class="str">'Hello,\n\nI need help with…'</span>);
-<span class="kw">const</span> url     = <span class="str">`mailto:<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7d4d2d7d7c8d5d3e7c2dfc6cad7cbc289c4c8ca">[email&#160;protected]</a>?subject=</span>${subject}<span class="str">&body=</span>${body}<span class="str">`</span>;
+<span class="kw">const</span> url     = <span class="str">`mailto:<a class="__cf_email__" data-cfemail="a7d4d2d7d7c8d5d3e7c2dfc6cad7cbc289c4c8ca" href="/cdn-cgi/l/email-protection">[email protected]</a>?subject=</span>${subject}<span class="str">&amp;body=</span>${body}<span class="str">`</span>;
 
-<span class="kw">await</span> <span class="cls">Linking</span>.<span class="fn">openURL</span>(url);</pre>
-
-
-<!-- ════════════════════════════════════════ 5. PLATFORM DIFFERENCES ══ -->
-<h2>5. Platform Differences</h2>
-
-<p>
+<span class="kw">await</span> <span class="cls">Linking</span>.<span class="fn">openURL</span>(url);</pre><!-- ════════════════════════════════════════ 5. PLATFORM DIFFERENCES ══ --><h2>5. Platform Differences</h2><p>
   iOS and Android handle URL schemes slightly differently. Your app needs to account for
   both, especially for maps and sms body text.
-</p>
-
-<div class="platform-row">
-  <div class="p-badge p-ios">
-    <div class="p-label">🍎 iOS</div>
-    <ul>
-      <li>Maps scheme: <code>maps:?q=address</code></li>
-      <li>SMS with body: <code>sms:+1555...&body=Hello</code></li>
-      <li>FaceTime: <code>facetime://+15551234</code></li>
-      <li>App Settings: <code>app-settings:</code></li>
-      <li><code>canOpenURL()</code> requires scheme in <code>LSApplicationQueriesSchemes</code></li>
-      <li>App Store: <code>itms-apps://itunes.apple.com/app/id123</code></li>
-    </ul>
-  </div>
-  <div class="p-badge p-and">
-    <div class="p-label">🤖 Android</div>
-    <ul>
-      <li>Maps scheme: <code>geo:lat,lng?q=address</code></li>
-      <li>SMS with body: <code>sms:+1555...?body=Hello</code> (note <code>?</code> not <code>&</code>)</li>
-      <li>No FaceTime equivalent via URL scheme</li>
-      <li>App Settings: use <code>expo-intent-launcher</code></li>
-      <li><code>canOpenURL()</code> works without pre-declaration for system schemes</li>
-      <li>Play Store: <code>market://details?id=com.app.id</code></li>
-    </ul>
-  </div>
+</p><div class="platform-row">
+<div class="p-badge p-ios">
+<div class="p-label">🍎 iOS</div>
+<ul>
+<li>Maps scheme: <code>maps:?q=address</code></li>
+<li>SMS with body: <code>sms:+1555...&amp;body=Hello</code></li>
+<li>FaceTime: <code>facetime://+15551234</code></li>
+<li>App Settings: <code>app-settings:</code></li>
+<li><code>canOpenURL()</code> requires scheme in <code>LSApplicationQueriesSchemes</code></li>
+<li>App Store: <code>itms-apps://itunes.apple.com/app/id123</code></li>
+</ul>
 </div>
-
-<p>
+<div class="p-badge p-and">
+<div class="p-label">🤖 Android</div>
+<ul>
+<li>Maps scheme: <code>geo:lat,lng?q=address</code></li>
+<li>SMS with body: <code>sms:+1555...?body=Hello</code> (note <code>?</code> not <code>&amp;</code>)</li>
+<li>No FaceTime equivalent via URL scheme</li>
+<li>App Settings: use <code>expo-intent-launcher</code></li>
+<li><code>canOpenURL()</code> works without pre-declaration for system schemes</li>
+<li>Play Store: <code>market://details?id=com.app.id</code></li>
+</ul>
+</div>
+</div><p>
   For maps in particular, the scheme syntax differs enough that cross-platform code needs
   a small helper. A common pattern is to branch on <code>Platform.OS</code>:
-</p>
-
-<pre><span class="kw">import</span> { <span class="cls">Platform</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
+</p><pre><span class="kw">import</span> { <span class="cls">Platform</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
 <span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Linking</span> <span class="kw">from</span> <span class="str">'expo-linking'</span>;
 
 <span class="kw">function</span> <span class="fn">getMapsURL</span>(address) {
@@ -536,20 +450,12 @@
   <span class="kw">const</span> url = <span class="fn">getMapsURL</span>(address);
   <span class="kw">const</span> ok  = <span class="kw">await</span> <span class="cls">Linking</span>.<span class="fn">canOpenURL</span>(url);
   <span class="kw">if</span> (ok) <span class="kw">await</span> <span class="cls">Linking</span>.<span class="fn">openURL</span>(url);
-}</pre>
-
-
-<!-- ════════════════════════════════════════ 6. COMPLETE EXAMPLE ══ -->
-<h2>6. Complete Example — A Contact Actions Card</h2>
-
-<p>
+}</pre><!-- ════════════════════════════════════════ 6. COMPLETE EXAMPLE ══ --><h2>6. Complete Example — A Contact Actions Card</h2><p>
   The following is a real-world component: a "Contact Card" that exposes seven different
   native service handoffs for a single person — call, SMS, email, directions, FaceTime,
   share contact, and view on a map. This pattern appears in nearly every business-facing
   mobile app.
-</p>
-
-<pre><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+</p><pre><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
 <span class="kw">import</span> {
   <span class="cls">View</span>, <span class="cls">Text</span>, <span class="cls">TouchableOpacity</span>, <span class="cls">StyleSheet</span>,
   <span class="cls">Alert</span>, <span class="cls">Platform</span>, <span class="cls">ActivityIndicator</span>
@@ -581,9 +487,9 @@
 
 <span class="kw">function</span> <span class="fn">getSMSURL</span>(phone, message = <span class="str">''</span>) {
   <span class="kw">const</span> body = <span class="fn">encodeURIComponent</span>(message);
-  <span class="cm">// iOS uses & to separate number and body; Android uses ?</span>
+  <span class="cm">// iOS uses &amp; to separate number and body; Android uses ?</span>
   <span class="kw">return</span> <span class="cls">Platform</span>.OS === <span class="str">'ios'</span>
-    ? <span class="str">`sms:</span>${phone}<span class="str">&body=</span>${body}<span class="str">`</span>
+    ? <span class="str">`sms:</span>${phone}<span class="str">&amp;body=</span>${body}<span class="str">`</span>
     : <span class="str">`sms:</span>${phone}<span class="str">?body=</span>${body}<span class="str">`</span>;
 }
 
@@ -665,41 +571,27 @@
   actionBtn:   { alignItems: <span class="str">'center'</span>, padding: <span class="num">10</span> },
   actionIcon:  { fontSize: <span class="num">28</span>, marginBottom: <span class="num">4</span> },
   actionLabel: { fontSize: <span class="num">12</span>, color: <span class="str">'#2E5D8A'</span>, fontWeight: <span class="str">'600'</span> },
-});</pre>
-
-<div class="callout">
-  <strong>What makes this pattern powerful:</strong> Five lines of data in the <code>actions</code>
+});</pre><div class="callout">
+<strong>What makes this pattern powerful:</strong> Five lines of data in the <code>actions</code>
   array give the user five different native services — phone, messaging, email, maps, and video
   call — all using interfaces they already know. Your app contributed the data and the trigger;
   the OS contributed everything else.
-</div>
-
-
-<!-- ════════════════════════════════════════ 7. DEEP LINKS ══ -->
-<h2>7. Deep Links — Other Apps Calling Into Yours</h2>
-
-<p>
+</div><!-- ════════════════════════════════════════ 7. DEEP LINKS ══ --><h2>7. Deep Links — Other Apps Calling Into Yours</h2><p>
   URL schemes are a two-way street. Just as your app can open other apps, other apps (and
   websites, emails, and QR codes) can open yours — at a specific screen, with specific data.
   This is called a <strong>deep link</strong>.
-</p>
-
-<p>
+</p><p>
   Expo Router handles deep links automatically when you configure your app's scheme in
   <code>app.json</code>. A URL like <code>myapp://product/42</code> will open your app and
   navigate to the <code>/product/42</code> route — exactly as if the user had navigated there
   manually.
-</p>
-
-<pre><span class="cm">// app.json — register your scheme</span>
+</p><pre><span class="cm">// app.json — register your scheme</span>
 {
   <span class="str">"expo"</span>: {
     <span class="str">"scheme"</span>: <span class="str">"myapp"</span>,   <span class="cm">// enables myapp://... links</span>
     <span class="str">"name"</span>: <span class="str">"My App"</span>
   }
-}</pre>
-
-<pre><span class="cm">// In a component — handle a deep link that arrives while app is running</span>
+}</pre><pre><span class="cm">// In a component — handle a deep link that arrives while app is running</span>
 <span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Linking</span> <span class="kw">from</span> <span class="str">'expo-linking'</span>;
 <span class="kw">import</span> { <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
 
@@ -712,68 +604,53 @@
   });
 
   <span class="kw">return</span> () =&gt; subscription.<span class="fn">remove</span>(); <span class="cm">// cleanup</span>
-}, []);</pre>
-
-<div class="tip">
-  <strong>💡 Universal Links (iOS) and App Links (Android):</strong> Both platforms support a
+}, []);</pre><div class="tip">
+<strong>💡 Universal Links (iOS) and App Links (Android):</strong> Both platforms support a
   more powerful form of deep linking where a standard <code>https://</code> URL opens your app
   instead of the browser — if your app is installed. This requires a verified
   <code>apple-app-site-association</code> (iOS) or <code>assetlinks.json</code> (Android) file
   hosted on your server. Expo's documentation covers this under "Linking."
+</div><!-- ════════════════════════════════════════ 8. DESIGN PRINCIPLES ══ --><h2>8. Design Principles — When and How to Use URL Schemes</h2><div class="two-col">
+<div class="card">
+<h4>✅ Good uses</h4>
+<ul>
+<li>Tapping a phone number in a profile opens the dialer</li>
+<li>A "Get directions" button opens the user's preferred maps app</li>
+<li>"Email support" pre-fills a support address with a subject</li>
+<li>A "Rate us" prompt links to the App Store listing</li>
+<li>Permission denied → guide user to app Settings with one tap</li>
+</ul>
 </div>
-
-
-<!-- ════════════════════════════════════════ 8. DESIGN PRINCIPLES ══ -->
-<h2>8. Design Principles — When and How to Use URL Schemes</h2>
-
-<div class="two-col">
-  <div class="card">
-    <h4>✅ Good uses</h4>
-    <ul>
-      <li>Tapping a phone number in a profile opens the dialer</li>
-      <li>A "Get directions" button opens the user's preferred maps app</li>
-      <li>"Email support" pre-fills a support address with a subject</li>
-      <li>A "Rate us" prompt links to the App Store listing</li>
-      <li>Permission denied → guide user to app Settings with one tap</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h4>❌ Things to avoid</h4>
-    <ul>
-      <li>Opening native services without user intent (no surprise dials)</li>
-      <li>Skipping <code>canOpenURL()</code> and letting the app crash on unsupported devices</li>
-      <li>Pre-filling SMS/email body text that sounds like it came from the user when it didn't</li>
-      <li>Relying on a third-party scheme (e.g. Spotify) without a fallback for users who don't have it</li>
-    </ul>
-  </div>
+<div class="card">
+<h4>❌ Things to avoid</h4>
+<ul>
+<li>Opening native services without user intent (no surprise dials)</li>
+<li>Skipping <code>canOpenURL()</code> and letting the app crash on unsupported devices</li>
+<li>Pre-filling SMS/email body text that sounds like it came from the user when it didn't</li>
+<li>Relying on a third-party scheme (e.g. Spotify) without a fallback for users who don't have it</li>
+</ul>
 </div>
-
-<div class="warning">
-  <strong>⚠ You are not sending the SMS or making the call.</strong> <code>Linking.openURL('sms:...')</code>
+</div><div class="warning">
+<strong>⚠ You are not sending the SMS or making the call.</strong> <code>Linking.openURL('sms:...')</code>
   opens the user's Messages app with a pre-addressed draft. The user sees it, reads it, and
   decides whether to send. This is the correct behavior — it preserves user agency and avoids
   the legal and trust problems that come with sending communications silently on someone's behalf.
-</div>
-
-
-<!-- ════════════════════════════════════════ 9. QUICK REFERENCE ══ -->
-<h2>9. Quick Reference — Common Scheme Strings</h2>
-
-<table>
-  <thead>
-    <tr><th>Action</th><th>URL scheme</th><th>Platform</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>Dial a number</td><td><code>tel:+12085551234</code></td><td>Both</td></tr>
-    <tr><td>Open SMS thread</td><td><code>sms:+12085551234</code></td><td>Both</td></tr>
-    <tr><td>SMS with pre-filled body (iOS)</td><td><code>sms:+1555...&body=Hello</code></td><td>iOS</td></tr>
-    <tr><td>SMS with pre-filled body (Android)</td><td><code>sms:+1555...?body=Hello</code></td><td>Android</td></tr>
-    <tr><td>Compose email</td><td><code>mailto:<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d3a6a0b6a193b6abb2bea3bfb6fdb0bcbe">[email&#160;protected]</a></code></td><td>Both</td></tr>
-    <tr><td>Email with subject &amp; body</td><td><code>mailto:<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b5d4f5d79bd6dad8">[email&#160;protected]</a>?subject=Hi&amp;body=...</code></td><td>Both</td></tr>
-    <tr><td>Open Apple Maps to address</td><td><code>maps:?q=1600+Pennsylvania+Ave</code></td><td>iOS</td></tr>
-    <tr><td>Open Google Maps to address</td><td><code>geo:0,0?q=1600+Pennsylvania+Ave</code></td><td>Android</td></tr>
-    <tr><td>Get driving directions</td><td><code>maps:?daddr=Boise+ID</code></td><td>iOS</td></tr>
-    <tr><td>FaceTime video call</td><td><code>facetime:+12085551234</code></td><td>iOS</td></tr>
-    <tr><td>FaceTime audio call</td><td><code>facetime-audio:+12085551234</code></td><td>iOS</td></tr>
-    <tr><td>Open your app's Settings</td><td><code>app-settings:</code></td><td>iOS</td></tr>
-    <tr><td>Open iOS App Store listing</td><td><code>itms-apps://itunes.
+</div><!-- ════════════════════════════════════════ 9. QUICK REFERENCE ══ --><h2>9. Quick Reference — Common Scheme Strings</h2><table>
+<thead>
+<tr><th scope="col">Action</th><th scope="col">URL scheme</th><th scope="col">Platform</th></tr>
+</thead>
+<tbody>
+<tr><td>Dial a number</td><td><code>tel:+12085551234</code></td><td>Both</td></tr>
+<tr><td>Open SMS thread</td><td><code>sms:+12085551234</code></td><td>Both</td></tr>
+<tr><td>SMS with pre-filled body (iOS)</td><td><code>sms:+1555...&amp;body=Hello</code></td><td>iOS</td></tr>
+<tr><td>SMS with pre-filled body (Android)</td><td><code>sms:+1555...?body=Hello</code></td><td>Android</td></tr>
+<tr><td>Compose email</td><td><code>mailto:<a class="__cf_email__" data-cfemail="d3a6a0b6a193b6abb2bea3bfb6fdb0bcbe" href="/cdn-cgi/l/email-protection">[email protected]</a></code></td><td>Both</td></tr>
+<tr><td>Email with subject &amp; body</td><td><code>mailto:<a class="__cf_email__" data-cfemail="b5d4f5d79bd6dad8" href="/cdn-cgi/l/email-protection">[email protected]</a>?subject=Hi&amp;body=...</code></td><td>Both</td></tr>
+<tr><td>Open Apple Maps to address</td><td><code>maps:?q=1600+Pennsylvania+Ave</code></td><td>iOS</td></tr>
+<tr><td>Open Google Maps to address</td><td><code>geo:0,0?q=1600+Pennsylvania+Ave</code></td><td>Android</td></tr>
+<tr><td>Get driving directions</td><td><code>maps:?daddr=Boise+ID</code></td><td>iOS</td></tr>
+<tr><td>FaceTime video call</td><td><code>facetime:+12085551234</code></td><td>iOS</td></tr>
+<tr><td>FaceTime audio call</td><td><code>facetime-audio:+12085551234</code></td><td>iOS</td></tr>
+<tr><td>Open your app's Settings</td><td><code>app-settings:</code></td><td>iOS</td></tr>
+<tr><td>Open iOS App Store listing</td><td><code>itms-apps://itunes.</code></td></tr></tbody></table></main>
+</body></html>

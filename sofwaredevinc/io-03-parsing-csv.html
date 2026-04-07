@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Parsing CSV — C Input/Output</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f;
@@ -288,88 +289,86 @@
     .diagram-container { padding: 16px; }
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">3 / 3</span>
-  <span>C Input/Output</span>
-  <div class="nav-links">
-    <a href="io-01-terminal-io.html">Terminal I/O</a>
-    <a href="io-02-file-io.html">File I/O</a>
-    <a href="io-03-parsing-csv.html" class="active">Parsing CSV</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">3 / 3</span>
+<span>C Input/Output</span>
+<div class="nav-links">
+<a href="io-01-terminal-io.html">Terminal I/O</a>
+<a href="io-02-file-io.html">File I/O</a>
+<a class="active" href="io-03-parsing-csv.html">Parsing CSV</a>
+</div>
 </nav>
-
 <header class="hero">
-  <div class="number">Chapter 03</div>
-  <h1>Parsing <span class="highlight">CSV Data</span></h1>
-  <p class="subtitle">CSV is the universal format for tabular data. Parsing it in C puts everything together: file I/O, string splitting, type conversion, and error handling — all at once.</p>
+<div class="number">Chapter 03</div>
+<h1>Parsing <span class="highlight">CSV Data</span></h1>
+<p class="subtitle">CSV is the universal format for tabular data. Parsing it in C puts everything together: file I/O, string splitting, type conversion, and error handling — all at once.</p>
 </header>
-
-<main class="content">
-
-  <h2>What Is CSV?</h2>
-
-  <p>CSV — <em>Comma-Separated Values</em> — is a plain-text format for tables. Each line is one row. Within a line, fields are separated by commas. The first line is usually a header row that names the columns.</p>
-
-  <div class="csv-file">
-    <span class="csv-header">name</span><span class="csv-comma">,</span><span class="csv-header">major</span><span class="csv-comma">,</span><span class="csv-header">gpa</span><span class="csv-comma">,</span><span class="csv-header">year</span><br>
-    <span class="csv-val">Alice</span><span class="csv-comma">,</span><span class="csv-val">CS</span><span class="csv-comma">,</span><span class="csv-num">3.85</span><span class="csv-comma">,</span><span class="csv-num">3</span><br>
-    <span class="csv-val">Bob</span><span class="csv-comma">,</span><span class="csv-val">EE</span><span class="csv-comma">,</span><span class="csv-num">3.40</span><span class="csv-comma">,</span><span class="csv-num">2</span><br>
-    <span class="csv-val">Carol</span><span class="csv-comma">,</span><span class="csv-val">Math</span><span class="csv-comma">,</span><span class="csv-num">3.95</span><span class="csv-comma">,</span><span class="csv-num">4</span><br>
-    <span class="csv-val">Dave</span><span class="csv-comma">,</span><span class="csv-val">CS</span><span class="csv-comma">,</span><span class="csv-num">2.90</span><span class="csv-comma">,</span><span class="csv-num">1</span>
-  </div>
-
-  <p>CSV is ubiquitous: spreadsheets export it, databases dump to it, data-science pipelines read it. Knowing how to parse it in C means you can process real-world data with nothing but the standard library.</p>
-
-  <h2>The Two-Level Structure</h2>
-
-  <p>Parsing CSV is a two-level problem. At the outer level you handle <strong style="color:var(--accent-main)">lines</strong> — one row per iteration. At the inner level you handle <strong style="color:var(--accent-orange)">fields</strong> — one value per comma-separated token within the line.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 700 240" width="100%">
-      <!-- Row box -->
-      <rect x="30" y="30" width="640" height="60" rx="6" fill="rgba(29,233,182,0.05)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-      <text x="46" y="22" fill="var(--accent-teal)" font-size="11" text-transform="uppercase">fgets reads one line</text>
-      <text x="50" y="68" fill="var(--text)" font-size="16">Alice,CS,3.85,3\n</text>
-
-      <!-- Field boxes -->
-      <rect x="30"  y="130" width="112" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-      <text x="86"  y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">Alice</text>
-      <text x="86"  y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">name</text>
-
-      <text x="155" y="158" text-anchor="middle" fill="var(--accent-orange)" font-size="18">,</text>
-
-      <rect x="170" y="130" width="82" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-      <text x="211" y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">CS</text>
-      <text x="211" y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">major</text>
-
-      <text x="265" y="158" text-anchor="middle" fill="var(--accent-orange)" font-size="18">,</text>
-
-      <rect x="280" y="130" width="100" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-      <text x="330" y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">3.85</text>
-      <text x="330" y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">gpa</text>
-
-      <text x="393" y="158" text-anchor="middle" fill="var(--accent-orange)" font-size="18">,</text>
-
-      <rect x="408" y="130" width="82" height="50" rx="5" fill="rgba(29,233,182,0.10)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-      <text x="449" y="160" text-anchor="middle" fill="var(--accent-teal)" font-size="15" font-weight="600">3</text>
-      <text x="449" y="196" text-anchor="middle" fill="var(--text-dim)" font-size="11">year</text>
-
-      <!-- Arrow -->
-      <line x1="360" y1="92" x2="360" y2="120" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="3,3"/>
-      <text x="380" y="113" fill="var(--text-dim)" font-size="11">strtok splits on ','</text>
-    </svg>
-    <p class="caption">fgets handles the outer loop; strtok handles the inner field extraction</p>
-  </div>
-
-  <h2>strtok — Splitting a String on a Delimiter</h2>
-
-  <p><code>strtok</code> breaks a string into tokens separated by delimiter characters. Its interface is unusual because it uses a <strong style="color:var(--accent-orange)">stateful, two-call pattern</strong>:</p>
-
-  <pre><span class="type">char</span> line[] = <span class="str">"Alice,CS,3.85,3"</span>;
+<main class="content" id="main-content">
+<h2>What Is CSV?</h2>
+<p>CSV — <em>Comma-Separated Values</em> — is a plain-text format for tables. Each line is one row. Within a line, fields are separated by commas. The first line is usually a header row that names the columns.</p>
+<div class="csv-file">
+<span class="csv-header">name</span><span class="csv-comma">,</span><span class="csv-header">major</span><span class="csv-comma">,</span><span class="csv-header">gpa</span><span class="csv-comma">,</span><span class="csv-header">year</span><br/>
+<span class="csv-val">Alice</span><span class="csv-comma">,</span><span class="csv-val">CS</span><span class="csv-comma">,</span><span class="csv-num">3.85</span><span class="csv-comma">,</span><span class="csv-num">3</span><br/>
+<span class="csv-val">Bob</span><span class="csv-comma">,</span><span class="csv-val">EE</span><span class="csv-comma">,</span><span class="csv-num">3.40</span><span class="csv-comma">,</span><span class="csv-num">2</span><br/>
+<span class="csv-val">Carol</span><span class="csv-comma">,</span><span class="csv-val">Math</span><span class="csv-comma">,</span><span class="csv-num">3.95</span><span class="csv-comma">,</span><span class="csv-num">4</span><br/>
+<span class="csv-val">Dave</span><span class="csv-comma">,</span><span class="csv-val">CS</span><span class="csv-comma">,</span><span class="csv-num">2.90</span><span class="csv-comma">,</span><span class="csv-num">1</span>
+</div>
+<p>CSV is ubiquitous: spreadsheets export it, databases dump to it, data-science pipelines read it. Knowing how to parse it in C means you can process real-world data with nothing but the standard library.</p>
+<h2>The Two-Level Structure</h2>
+<p>Parsing CSV is a two-level problem. At the outer level you handle <strong style="color:var(--accent-main)">lines</strong> — one row per iteration. At the inner level you handle <strong style="color:var(--accent-orange)">fields</strong> — one value per comma-separated token within the line.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: The Two-Level Structure" role="img" viewbox="0 0 700 240" width="100%">
+<!-- Row box -->
+<rect fill="rgba(29,233,182,0.05)" height="60" rx="6" stroke="var(--accent-teal)" stroke-width="1.5" width="640" x="30" y="30"></rect>
+<text fill="var(--accent-teal)" font-size="11" text-transform="uppercase" x="46" y="22">fgets reads one line</text>
+<text fill="var(--text)" font-size="16" x="50" y="68">Alice,CS,3.85,3\n</text>
+<!-- Field boxes -->
+<rect fill="rgba(29,233,182,0.10)" height="50" rx="5" stroke="var(--accent-teal)" stroke-width="1.5" width="112" x="30" y="130"></rect>
+<text fill="var(--accent-teal)" font-size="15" font-weight="600" text-anchor="middle" x="86" y="160">Alice</text>
+<text fill="var(--text-dim)" font-size="11" text-anchor="middle" x="86" y="196">name</text>
+<text fill="var(--accent-orange)" font-size="18" text-anchor="middle" x="155" y="158">,</text>
+<rect fill="rgba(29,233,182,0.10)" height="50" rx="5" stroke="var(--accent-teal)" stroke-width="1.5" width="82" x="170" y="130"></rect>
+<text fill="var(--accent-teal)" font-size="15" font-weight="600" text-anchor="middle" x="211" y="160">CS</text>
+<text fill="var(--text-dim)" font-size="11" text-anchor="middle" x="211" y="196">major</text>
+<text fill="var(--accent-orange)" font-size="18" text-anchor="middle" x="265" y="158">,</text>
+<rect fill="rgba(29,233,182,0.10)" height="50" rx="5" stroke="var(--accent-teal)" stroke-width="1.5" width="100" x="280" y="130"></rect>
+<text fill="var(--accent-teal)" font-size="15" font-weight="600" text-anchor="middle" x="330" y="160">3.85</text>
+<text fill="var(--text-dim)" font-size="11" text-anchor="middle" x="330" y="196">gpa</text>
+<text fill="var(--accent-orange)" font-size="18" text-anchor="middle" x="393" y="158">,</text>
+<rect fill="rgba(29,233,182,0.10)" height="50" rx="5" stroke="var(--accent-teal)" stroke-width="1.5" width="82" x="408" y="130"></rect>
+<text fill="var(--accent-teal)" font-size="15" font-weight="600" text-anchor="middle" x="449" y="160">3</text>
+<text fill="var(--text-dim)" font-size="11" text-anchor="middle" x="449" y="196">year</text>
+<!-- Arrow -->
+<line stroke="var(--border)" stroke-dasharray="3,3" stroke-width="1.5" x1="360" x2="360" y1="92" y2="120"></line>
+<text fill="var(--text-dim)" font-size="11" x="380" y="113">strtok splits on ','</text>
+</svg>
+<p class="caption">fgets handles the outer loop; strtok handles the inner field extraction</p>
+</div>
+<h2>strtok — Splitting a String on a Delimiter</h2>
+<p><code>strtok</code> breaks a string into tokens separated by delimiter characters. Its interface is unusual because it uses a <strong style="color:var(--accent-orange)">stateful, two-call pattern</strong>:</p>
+<pre><span class="type">char</span> line[] = <span class="str">"Alice,CS,3.85,3"</span>;
 
 <span class="comment">// First call: pass the string</span>
 <span class="type">char</span> *token = <span class="func">strtok</span>(line, <span class="str">","</span>);
@@ -384,22 +383,17 @@
 // field: [CS]
 // field: [3.85]
 // field: [3]</span></pre>
-
-  <div class="key-concept">
-    <strong>How strtok works</strong><br>
-    <code>strtok</code> modifies the original string in place: it writes <code>'\0'</code> over each delimiter it finds, turning the single string into a sequence of substrings. The tokens it returns are just pointers into the modified original. Do <em>not</em> pass a string literal — it must be a writable character array.
+<div class="key-concept">
+<strong>How strtok works</strong><br/>
+<code>strtok</code> modifies the original string in place: it writes <code>'\0'</code> over each delimiter it finds, turning the single string into a sequence of substrings. The tokens it returns are just pointers into the modified original. Do <em>not</em> pass a string literal — it must be a writable character array.
   </div>
-
-  <div class="warning">
-    <strong>strtok modifies its input</strong><br>
+<div class="warning">
+<strong>strtok modifies its input</strong><br/>
     Because <code>strtok</code> overwrites delimiters with null terminators, the original string is destroyed. If you need to keep the original, copy it with <code>strcpy</code> or <code>strncpy</code> before calling <code>strtok</code>.
   </div>
-
-  <h2>Type Conversion — Strings to Numbers</h2>
-
-  <p>All CSV fields arrive as strings. To use numeric fields mathematically, you must convert them. The standard library provides conversion functions for the most common types:</p>
-
-  <pre><span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<h2>Type Conversion — Strings to Numbers</h2>
+<p>All CSV fields arrive as strings. To use numeric fields mathematically, you must convert them. The standard library provides conversion functions for the most common types:</p>
+<pre><span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
 
 <span class="type">char</span> *field = <span class="str">"3.85"</span>;
 
@@ -414,14 +408,10 @@
 <span class="kw">if</span> (end == field) {
     <span class="func">fprintf</span>(stderr, <span class="str">"Not a valid number\n"</span>);
 }</pre>
-
-  <p>For simple labs, <code>atoi</code> and <code>atof</code> are fine. In production code, prefer <code>strtol</code>/<code>strtod</code> because they tell you whether conversion succeeded and where it stopped.</p>
-
-  <h2>A Complete CSV Parser</h2>
-
-  <p>Here is a full program that reads the student CSV file, parses every field, and computes the class average GPA:</p>
-
-  <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<p>For simple labs, <code>atoi</code> and <code>atof</code> are fine. In production code, prefer <code>strtol</code>/<code>strtod</code> because they tell you whether conversion succeeded and where it stopped.</p>
+<h2>A Complete CSV Parser</h2>
+<p>Here is a full program that reads the student CSV file, parses every field, and computes the class average GPA:</p>
+<pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
 <span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
 <span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
 
@@ -502,66 +492,47 @@
 
     <span class="kw">return</span> <span class="num">0</span>;
 }</pre>
-
-  <p>Sample output for the file shown at the top of this page:</p>
-
-  <pre><span class="comment">Alice        CS      GPA: 3.85  Year: 3
+<p>Sample output for the file shown at the top of this page:</p>
+<pre><span class="comment">Alice        CS      GPA: 3.85  Year: 3
 Bob          EE      GPA: 3.40  Year: 2
 Carol        Math    GPA: 3.95  Year: 4
 Dave         CS      GPA: 2.90  Year: 1
 
 Average GPA: 3.53  (4 students)</span></pre>
-
-  <h2>Walking Through the Key Decisions</h2>
-
-  <h3>Why strip the newline before parsing?</h3>
-
-  <p><code>fgets</code> includes the <code>'\n'</code> in the buffer. If you don't strip it, the last field in every row gets a hidden newline appended — <code>"3\n"</code> instead of <code>"3"</code>. <code>atoi("3\n")</code> still works, but <code>strcmp(s.major, "CS")</code> would fail because the stored value is <code>"CS\n"</code>, not <code>"CS"</code>.</p>
-
-  <h3>Why skip line 1 (the header)?</h3>
-
-  <p>The first line contains column names, not data. If you tried to parse <code>"name,major,gpa,year"</code> into a <code>Student</code> struct, <code>atof("gpa")</code> would return 0.0 silently and you'd get a garbage record. Skipping it is simpler than detecting and rejecting it after the fact.</p>
-
-  <h3>Why pull parse_student into its own function?</h3>
-
-  <p>Separating parsing from the main I/O loop keeps each piece testable and readable. You can call <code>parse_student</code> from a unit test with a hard-coded string — no file I/O needed. This is the <strong style="color:var(--accent-main)">separation of concerns</strong> principle in practice.</p>
-
-  <h2>Limits of This Approach</h2>
-
-  <div class="key-concept">
-    <strong>Full CSV Has More Rules</strong><br>
+<h2>Walking Through the Key Decisions</h2>
+<h3>Why strip the newline before parsing?</h3>
+<p><code>fgets</code> includes the <code>'\n'</code> in the buffer. If you don't strip it, the last field in every row gets a hidden newline appended — <code>"3\n"</code> instead of <code>"3"</code>. <code>atoi("3\n")</code> still works, but <code>strcmp(s.major, "CS")</code> would fail because the stored value is <code>"CS\n"</code>, not <code>"CS"</code>.</p>
+<h3>Why skip line 1 (the header)?</h3>
+<p>The first line contains column names, not data. If you tried to parse <code>"name,major,gpa,year"</code> into a <code>Student</code> struct, <code>atof("gpa")</code> would return 0.0 silently and you'd get a garbage record. Skipping it is simpler than detecting and rejecting it after the fact.</p>
+<h3>Why pull parse_student into its own function?</h3>
+<p>Separating parsing from the main I/O loop keeps each piece testable and readable. You can call <code>parse_student</code> from a unit test with a hard-coded string — no file I/O needed. This is the <strong style="color:var(--accent-main)">separation of concerns</strong> principle in practice.</p>
+<h2>Limits of This Approach</h2>
+<div class="key-concept">
+<strong>Full CSV Has More Rules</strong><br/>
     The simple parser above handles the common case. Real CSV (RFC 4180) also allows fields to be quoted — <code>"Smith, John"</code> contains a comma but is one field. Quoted fields can span multiple lines. Quotes inside a quoted field are escaped by doubling them: <code>"He said ""hello"""</code>. For production code that must handle arbitrary CSV, consider a dedicated parsing library.
   </div>
-
-  <p>For coursework and data files you control, the simple approach is exactly right — and understanding its limitations is just as valuable as knowing how to use it.</p>
-
-  <h2>Pitfalls</h2>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 1 — Calling strtok on a string literal</div>
-    <p><code>strtok</code> writes into its first argument. String literals are read-only — writing to them is undefined behavior. Always pass a character array: <code>char line[256]</code>, not <code>char *line = "..."</code>.</p>
-  </div>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 2 — Forgetting to strip the trailing newline</div>
-    <p>The last field of every line parsed with <code>fgets</code> will have a hidden <code>'\n'</code> appended. String comparisons and numeric conversions may still work, but the stored string won't match what you expect. Always strip it before parsing.</p>
-  </div>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 3 — Trusting atoi / atof with invalid data</div>
-    <p><code>atoi("hello")</code> silently returns 0. <code>atof("")</code> silently returns 0.0. If your CSV might have missing or malformed fields, use <code>strtol</code>/<code>strtod</code> and check whether the end pointer advanced.</p>
-  </div>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 4 — strtok skips consecutive delimiters</div>
-    <p><code>strtok</code> treats consecutive delimiters as a single delimiter, so empty fields — <code>"Alice,,3.85,3"</code> — are silently swallowed. If empty fields are valid in your data, you'll need a character-by-character approach or a dedicated CSV library instead.</p>
-  </div>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 5 — strtok is not re-entrant</div>
-    <p><code>strtok</code> stores its position in a hidden static variable. Calling it on a second string before finishing the first will corrupt the first parse. Never interleave two <code>strtok</code> parses. If you need that, POSIX provides <code>strtok_r</code>, a re-entrant version.</p>
-  </div>
-
+<p>For coursework and data files you control, the simple approach is exactly right — and understanding its limitations is just as valuable as knowing how to use it.</p>
+<h2>Pitfalls</h2>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 1 — Calling strtok on a string literal</div>
+<p><code>strtok</code> writes into its first argument. String literals are read-only — writing to them is undefined behavior. Always pass a character array: <code>char line[256]</code>, not <code>char *line = "..."</code>.</p>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 2 — Forgetting to strip the trailing newline</div>
+<p>The last field of every line parsed with <code>fgets</code> will have a hidden <code>'\n'</code> appended. String comparisons and numeric conversions may still work, but the stored string won't match what you expect. Always strip it before parsing.</p>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 3 — Trusting atoi / atof with invalid data</div>
+<p><code>atoi("hello")</code> silently returns 0. <code>atof("")</code> silently returns 0.0. If your CSV might have missing or malformed fields, use <code>strtol</code>/<code>strtod</code> and check whether the end pointer advanced.</p>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 4 — strtok skips consecutive delimiters</div>
+<p><code>strtok</code> treats consecutive delimiters as a single delimiter, so empty fields — <code>"Alice,,3.85,3"</code> — are silently swallowed. If empty fields are valid in your data, you'll need a character-by-character approach or a dedicated CSV library instead.</p>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 5 — strtok is not re-entrant</div>
+<p><code>strtok</code> stores its position in a hidden static variable. Calling it on a second string before finishing the first will corrupt the first parse. Never interleave two <code>strtok</code> parses. If you need that, POSIX provides <code>strtok_r</code>, a re-entrant version.</p>
+</div>
 </main>
 </body>
 </html>

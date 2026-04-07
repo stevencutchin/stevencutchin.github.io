@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Calling sum(3, 4) — Memory Diagram</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&amp;family=Syne:wght@700;800&amp;display=swap" rel="stylesheet"/>
 <style>
 :root {
   --bg:#0a0e1a; --panel:#111827; --border:#2a3550;
@@ -123,221 +124,224 @@ body{background:var(--bg);color:var(--fg);font-family:var(--mono);display:flex;j
 @keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:680px){.main-grid{grid-template-columns:55px 1fr}.right-col{display:none}.xstep{grid-template-columns:44px 1fr}}
 </style>
-</head>
-<body>
-<div class="page">
-
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><div class="page">
 <div class="title-block">
-  <h1>Calling <span>sum(3, 4)</span> — Memory &amp; CPU Registers</h1>
-  <p>x86-64 Linux &nbsp;·&nbsp; System V ABI &nbsp;·&nbsp; High addresses at top, low addresses at bottom</p>
+<h1>Calling <span>sum(3, 4)</span> — Memory &amp; CPU Registers</h1>
+<p>x86-64 Linux  ·  System V ABI  ·  High addresses at top, low addresses at bottom</p>
 </div>
-
 <!-- DIAGRAM -->
 <div class="main-grid">
-  <!-- Addresses -->
-  <div class="addr-col">
-    <div class="addr" style="margin-top:14px">0x7FFF<br>FFFE000</div>
-    <div class="addr" style="margin-top:40px"></div>
-    <div class="addr" style="margin-top:60px"></div>
-    <div class="addr faint" style="margin-top:48px">grows ↑</div>
-    <div class="addr faint" style="margin-top:36px">grows ↓</div>
-    <div class="addr" style="margin-top:30px">~0x601000</div>
-    <div class="addr" style="margin-top:22px">~0x600000</div>
-    <div class="addr" style="margin-top:30px">~0x400000</div>
-    <div class="addr faint" style="margin-top:10px">0x000000</div>
-  </div>
-
-  <!-- Memory map -->
-  <div class="mem-col">
-    <div class="mem-seg seg-stack">
-      <div class="seg-name">Stack</div>
-      <div class="seg-sub">Local variables · saved registers · return addresses · grows ▼ toward lower addresses</div>
-      <div class="grow-ind">▼ stack grows downward (toward lower addresses)</div>
-    </div>
-    <div class="mem-seg seg-frame" style="padding:14px 18px">
-      <div class="frame-label">sum() stack frame — created by CALL + prologue</div>
-      <div class="frame-row">
-        <div class="frame-slot active">Return address<span class="rsp-tag">RSP+8</span></div>
-        <div class="frame-note">Pushed by <code style="color:var(--stack-b)">CALL</code> — address in main() to jump back to (step ④)</div>
-      </div>
-      <div class="frame-row">
-        <div class="frame-slot active">Saved RBP<span class="rsp-tag">RSP+0</span></div>
-        <div class="frame-note">Pushed by <code style="color:var(--stack-b)">push rbp</code> — saves caller's base pointer (step ⑤)</div>
-      </div>
-      <div class="frame-row">
-        <div class="frame-slot" style="color:#4a5a70;border-style:dashed">(no local vars)</div>
-        <div class="frame-note" style="color:#4a5a70">Params <strong style="color:#6a7a90">stay in RDI, RSI</strong> — not copied to stack</div>
-      </div>
-      <div class="frame-row" style="margin-top:4px;border-top:1px dashed rgba(255,255,255,.07);padding-top:8px">
-        <div class="frame-slot" style="color:var(--reg-b);border-color:rgba(80,232,144,.4);background:rgba(80,232,144,.08)">RAX = 7</div>
-        <div class="frame-note">Return value placed in <strong style="color:var(--reg-b)">RAX</strong> before RET (step ⑦). Never on the stack.</div>
-      </div>
-    </div>
-    <div class="mem-seg seg-unused"><span>⋮ &nbsp; Unused / Available &nbsp; ⋮</span></div>
-    <div class="mem-seg seg-heap">
-      <div class="seg-name">Heap</div>
-      <div class="seg-sub">Dynamic memory — malloc / free · grows ▲ toward higher addresses</div>
-    </div>
-    <div class="mem-seg seg-bss">
-      <div class="seg-name">BSS Segment</div>
-      <div class="seg-sub">Uninitialized global &amp; static variables · auto-zeroed by OS</div>
-    </div>
-    <div class="mem-seg seg-data">
-      <div class="seg-name">Data Segment</div>
-      <div class="seg-sub">Initialized global &amp; static variables &nbsp;·&nbsp; e.g. <code style="color:var(--data-b)">int x = 5;</code></div>
-    </div>
-    <div class="mem-seg seg-text" style="border-bottom:none">
-      <div class="seg-name">Text Segment (Code)</div>
-      <div class="seg-sub">Compiled machine instructions · Read-only · starts near <code style="color:var(--text-b)">0x400000</code> on Linux x86-64</div>
-    </div>
-  </div>
-
-  <!-- Right column -->
-  <div class="right-col">
-    <div class="reg-box">
-      <div class="reg-hdr">CPU Registers</div>
-      <div class="reg-row"><span class="reg-name">RDI</span><span class="reg-val">= 3</span></div>
-      <div class="reg-row"><span class="reg-desc">1st integer argument</span></div>
-      <div class="reg-row"><span class="reg-name">RSI</span><span class="reg-val">= 4</span></div>
-      <div class="reg-row"><span class="reg-desc">2nd integer argument</span></div>
-      <div class="reg-row"><span class="reg-name">RAX</span><span class="reg-val">= 7</span></div>
-      <div class="reg-row"><span class="reg-desc">return value (after step ⑦)</span></div>
-      <div class="reg-row"><span class="reg-name">RSP</span><span class="reg-val" style="font-size:.67rem">stack ptr</span></div>
-      <div class="reg-row"><span class="reg-name">RBP</span><span class="reg-val" style="font-size:.67rem">base ptr</span></div>
-    </div>
-    <div class="steps-box">
-      <div class="steps-hdr">Call Sequence</div>
-      <div class="si"><div class="sn">①</div><div class="st">Evaluate arguments:<br><span class="val">3</span> and <span class="val">4</span></div></div>
-      <div class="si"><div class="sn">②</div><div class="st">Load <code>RDI = 3</code><br><span style="color:var(--muted);font-size:.68rem">1st arg → RDI</span></div></div>
-      <div class="si"><div class="sn">③</div><div class="st">Load <code>RSI = 4</code><br><span style="color:var(--muted);font-size:.68rem">2nd arg → RSI</span></div></div>
-      <div class="si"><div class="sn">④</div><div class="st"><span class="kw">CALL sum</span><br>push return addr; jump to <code>sum()</code></div></div>
-      <div class="si"><div class="sn">⑤</div><div class="st">Prologue:<br><code>push rbp</code><br><code>mov rbp, rsp</code></div></div>
-      <div class="si"><div class="sn">⑥</div><div class="st">Execute body:<br><code>RAX = RDI + RSI</code><br>→ <span class="val">RAX = 7</span></div></div>
-      <div class="si"><div class="sn">⑦</div><div class="st">Epilogue:<br><code>pop rbp</code><br>restore caller frame</div></div>
-      <div class="si"><div class="sn">⑧</div><div class="st"><span class="kw">RET</span><br>pop return addr; jump back;<br>result in <code>RAX</code></div></div>
-    </div>
-  </div>
+<!-- Addresses -->
+<div class="addr-col">
+<div class="addr" style="margin-top:14px">0x7FFF<br/>FFFE000</div>
+<div class="addr" style="margin-top:40px"></div>
+<div class="addr" style="margin-top:60px"></div>
+<div class="addr faint" style="margin-top:48px">grows ↑</div>
+<div class="addr faint" style="margin-top:36px">grows ↓</div>
+<div class="addr" style="margin-top:30px">~0x601000</div>
+<div class="addr" style="margin-top:22px">~0x600000</div>
+<div class="addr" style="margin-top:30px">~0x400000</div>
+<div class="addr faint" style="margin-top:10px">0x000000</div>
+</div>
+<!-- Memory map -->
+<div class="mem-col">
+<div class="mem-seg seg-stack">
+<div class="seg-name">Stack</div>
+<div class="seg-sub">Local variables · saved registers · return addresses · grows ▼ toward lower addresses</div>
+<div class="grow-ind">▼ stack grows downward (toward lower addresses)</div>
+</div>
+<div class="mem-seg seg-frame" style="padding:14px 18px">
+<div class="frame-label">sum() stack frame — created by CALL + prologue</div>
+<div class="frame-row">
+<div class="frame-slot active">Return address<span class="rsp-tag">RSP+8</span></div>
+<div class="frame-note">Pushed by <code style="color:var(--stack-b)">CALL</code> — address in main() to jump back to (step ④)</div>
+</div>
+<div class="frame-row">
+<div class="frame-slot active">Saved RBP<span class="rsp-tag">RSP+0</span></div>
+<div class="frame-note">Pushed by <code style="color:var(--stack-b)">push rbp</code> — saves caller's base pointer (step ⑤)</div>
+</div>
+<div class="frame-row">
+<div class="frame-slot" style="color:#4a5a70;border-style:dashed">(no local vars)</div>
+<div class="frame-note" style="color:#4a5a70">Params <strong style="color:#6a7a90">stay in RDI, RSI</strong> — not copied to stack</div>
+</div>
+<div class="frame-row" style="margin-top:4px;border-top:1px dashed rgba(255,255,255,.07);padding-top:8px">
+<div class="frame-slot" style="color:var(--reg-b);border-color:rgba(80,232,144,.4);background:rgba(80,232,144,.08)">RAX = 7</div>
+<div class="frame-note">Return value placed in <strong style="color:var(--reg-b)">RAX</strong> before RET (step ⑦). Never on the stack.</div>
+</div>
+</div>
+<div class="mem-seg seg-unused"><span>⋮   Unused / Available   ⋮</span></div>
+<div class="mem-seg seg-heap">
+<div class="seg-name">Heap</div>
+<div class="seg-sub">Dynamic memory — malloc / free · grows ▲ toward higher addresses</div>
+</div>
+<div class="mem-seg seg-bss">
+<div class="seg-name">BSS Segment</div>
+<div class="seg-sub">Uninitialized global &amp; static variables · auto-zeroed by OS</div>
+</div>
+<div class="mem-seg seg-data">
+<div class="seg-name">Data Segment</div>
+<div class="seg-sub">Initialized global &amp; static variables  ·  e.g. <code style="color:var(--data-b)">int x = 5;</code></div>
+</div>
+<div class="mem-seg seg-text" style="border-bottom:none">
+<div class="seg-name">Text Segment (Code)</div>
+<div class="seg-sub">Compiled machine instructions · Read-only · starts near <code style="color:var(--text-b)">0x400000</code> on Linux x86-64</div>
+</div>
+</div>
+<!-- Right column -->
+<div class="right-col">
+<div class="reg-box">
+<div class="reg-hdr">CPU Registers</div>
+<div class="reg-row"><span class="reg-name">RDI</span><span class="reg-val">= 3</span></div>
+<div class="reg-row"><span class="reg-desc">1st integer argument</span></div>
+<div class="reg-row"><span class="reg-name">RSI</span><span class="reg-val">= 4</span></div>
+<div class="reg-row"><span class="reg-desc">2nd integer argument</span></div>
+<div class="reg-row"><span class="reg-name">RAX</span><span class="reg-val">= 7</span></div>
+<div class="reg-row"><span class="reg-desc">return value (after step ⑦)</span></div>
+<div class="reg-row"><span class="reg-name">RSP</span><span class="reg-val" style="font-size:.67rem">stack ptr</span></div>
+<div class="reg-row"><span class="reg-name">RBP</span><span class="reg-val" style="font-size:.67rem">base ptr</span></div>
+</div>
+<div class="steps-box">
+<div class="steps-hdr">Call Sequence</div>
+<div class="si"><div class="sn">①</div><div class="st">Evaluate arguments:<br/><span class="val">3</span> and <span class="val">4</span></div></div>
+<div class="si"><div class="sn">②</div><div class="st">Load <code>RDI = 3</code><br/><span style="color:var(--muted);font-size:.68rem">1st arg → RDI</span></div></div>
+<div class="si"><div class="sn">③</div><div class="st">Load <code>RSI = 4</code><br/><span style="color:var(--muted);font-size:.68rem">2nd arg → RSI</span></div></div>
+<div class="si"><div class="sn">④</div><div class="st"><span class="kw">CALL sum</span><br/>push return addr; jump to <code>sum()</code></div></div>
+<div class="si"><div class="sn">⑤</div><div class="st">Prologue:<br/><code>push rbp</code><br/><code>mov rbp, rsp</code></div></div>
+<div class="si"><div class="sn">⑥</div><div class="st">Execute body:<br/><code>RAX = RDI + RSI</code><br/>→ <span class="val">RAX = 7</span></div></div>
+<div class="si"><div class="sn">⑦</div><div class="st">Epilogue:<br/><code>pop rbp</code><br/>restore caller frame</div></div>
+<div class="si"><div class="sn">⑧</div><div class="st"><span class="kw">RET</span><br/>pop return addr; jump back;<br/>result in <code>RAX</code></div></div>
+</div>
+</div>
 </div><!-- /main-grid -->
-
-
 <!-- ══════════════════════════════════════════
      STEP-BY-STEP EXPLANATION
 ══════════════════════════════════════════ -->
 <div class="explain">
-  <div class="explain-title">Step-by-Step <span>Explanation</span></div>
-  <div class="explain-sub">// What actually happens when your program executes &nbsp; sum(3, 4)</div>
-
-  <!-- ① -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">①</div></div>
-    <div class="xright">
-      <h3>Evaluate the Arguments <span class="tag tc">Caller side</span></h3>
-      <p>Before calling <code>sum()</code>, the CPU first <strong>figures out what the argument values are</strong>. Here they are simple literals — <strong class="g">3</strong> and <strong class="g">4</strong> — so no extra work is needed. If the call were <code>sum(a+1, b*2)</code>, those expressions would be computed here first and their results stored temporarily before moving to the next step.</p>
-      <div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> Before handing someone a package, you first prepare what goes inside. Step ① is that preparation.</div></div>
-    </div>
-  </div>
-
-  <!-- ② -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">②</div></div>
-    <div class="xright">
-      <h3>Load 1st Argument into RDI <span class="tag tr">CPU Register</span></h3>
-      <p>The x86-64 <strong>System V ABI</strong> — the calling convention used on Linux — has a strict rule: <strong>the first integer argument always goes into register <code>RDI</code></strong>. So the value <strong class="g">3</strong> is loaded into RDI.</p>
-      <div class="asm">
-        <div class="al"><span class="ai">mov</span><span class="ao">edi, 3</span><span class="ac">; RDI = 3  (1st argument)</span></div>
-      </div>
-      <div class="co tip"><span class="co-i">📌</span><div><strong>The 6-register argument order</strong> on Linux x86-64 is: <code>RDI, RSI, RDX, RCX, R8, R9</code>. Arguments beyond 6 spill onto the stack. Our function only needs 2, so both fit in registers.</div></div>
-    </div>
-  </div>
-
-  <!-- ③ -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">③</div></div>
-    <div class="xright">
-      <h3>Load 2nd Argument into RSI <span class="tag tr">CPU Register</span></h3>
-      <p>Following the same convention, <strong>the second integer argument goes into <code>RSI</code></strong>. The value <strong class="g">4</strong> is placed there. At this point <code>RDI = 3</code> and <code>RSI = 4</code> — the CPU is <em>ready</em> to call the function.</p>
-      <div class="asm">
-        <div class="al"><span class="ai">mov</span><span class="ao">esi, 4</span><span class="ac">; RSI = 4  (2nd argument)</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ④ -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">④</div></div>
-    <div class="xright">
-      <h3>CALL Instruction — Jump into sum() <span class="tag ts">Stack</span></h3>
-      <p>The <code>CALL sum</code> instruction does <strong>two things automatically in one instruction</strong>:</p>
-      <p><strong>1. Pushes the return address</strong> onto the stack. This is the address of the instruction immediately <em>after</em> the <code>CALL</code> inside <code>main()</code> — so the CPU knows where to come back to when <code>sum()</code> finishes.</p>
-      <p><strong>2. Jumps</strong> execution to the first instruction of <code>sum()</code>.</p>
-      <div class="asm">
-        <div class="al"><span class="ai">call</span><span class="ao">sum</span><span class="ac">; push next-instr addr, then jump to sum</span></div>
-      </div>
-      <div class="co warn"><span class="co-i">⚠️</span><div><strong>Note on RSP:</strong> Pushing the return address automatically decrements RSP (the stack pointer) by 8 bytes, because the stack grows <em>downward</em> in memory toward lower addresses.</div></div>
-    </div>
-  </div>
-
-  <!-- ⑤ -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">⑤</div></div>
-    <div class="xright">
-      <h3>Function Prologue — Set Up the Stack Frame <span class="tag tf">Inside sum()</span></h3>
-      <p>The very first instructions inside every function are called the <strong>prologue</strong>. They establish a clean workspace for this function call on the stack:</p>
-      <p><strong><code>push rbp</code></strong> — saves the <em>caller's</em> (main's) base pointer onto the stack. This is critical: it ensures main()'s frame can be fully restored after <code>sum()</code> returns.</p>
-      <p><strong><code>mov rbp, rsp</code></strong> — sets RBP to the current stack pointer. This creates a stable <strong>frame pointer</strong> for <code>sum()</code> that doesn't move even if RSP changes during the function body.</p>
-      <div class="asm">
-        <div class="al"><span class="ai">push</span><span class="ao">rbp</span><span class="ac">; save caller's (main's) base pointer</span></div>
-        <div class="al"><span class="ai">mov</span><span class="ao">rbp, rsp</span><span class="ac">; RBP now points to sum()'s frame base</span></div>
-      </div>
-      <div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> A chef clearing their workstation before starting a recipe, and placing a bookmark saying "my area starts here." The prologue is always generated automatically by the compiler.</div></div>
-    </div>
-  </div>
-
-  <!-- ⑥ -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">⑥</div></div>
-    <div class="xright">
-      <h3>Execute the Function Body <span class="tag tf">Inside sum()</span></h3>
-      <p>Now the actual work happens. The body of <code>sum()</code> adds the two parameters. Because both parameters are still sitting in <strong>registers RDI and RSI</strong> (they were never copied to the stack), the addition is a single fast register operation:</p>
-      <div class="asm">
-        <div class="al"><span class="ai">lea</span><span class="ao">eax, [rdi + rsi]</span><span class="ac">; RAX = 3 + 4 = 7</span></div>
-      </div>
-      <p style="margin-top:10px">The result <strong class="g">7</strong> is placed into <strong><code>RAX</code></strong> — the register designated for <em>integer return values</em> by the ABI. The computation is done.</p>
-      <div class="co tip"><span class="co-i">📌</span><div><strong>Key point:</strong> Parameters <code>a</code> and <code>b</code> are <em>never copied to stack memory</em> for a simple function like this. They stay in RDI and RSI the whole time. Copying to the stack ("spilling") only happens if the compiler runs out of registers or the address of a parameter is taken with <code>&amp;</code>.</div></div>
-    </div>
-  </div>
-
-  <!-- ⑦ -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">⑦</div></div>
-    <div class="xright">
-      <h3>Function Epilogue — Tear Down the Stack Frame <span class="tag tf">Inside sum()</span></h3>
-      <p>The <strong>epilogue</strong> is the exact mirror of the prologue — it restores everything that was saved and collapses the stack frame before leaving:</p>
-      <p><strong><code>pop rbp</code></strong> — pops the saved value of main()'s RBP back from the stack into the RBP register. The stack frame for <code>sum()</code> effectively disappears — RSP moves back up past it.</p>
-      <div class="asm">
-        <div class="al"><span class="ai">pop</span><span class="ao">rbp</span><span class="ac">; restore main()'s base pointer</span></div>
-      </div>
-      <div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> The chef wipes down and restores their workstation to exactly how it was before they started, then hands back control of the kitchen.</div></div>
-    </div>
-  </div>
-
-  <!-- ⑧ -->
-  <div class="xstep">
-    <div class="xleft"><div class="bnum">⑧</div></div>
-    <div class="xright">
-      <h3>RET Instruction — Return to Caller <span class="tag tb">Back in main()</span></h3>
-      <p>The <code>RET</code> instruction also does <strong>two things automatically</strong>:</p>
-      <p><strong>1. Pops the return address</strong> off the top of the stack (the one pushed in step ④) back into the instruction pointer register (RIP).</p>
-      <p><strong>2. Jumps execution</strong> to that address — which is the line inside <code>main()</code> immediately after the original <code>CALL</code>.</p>
-      <div class="asm">
-        <div class="al"><span class="ai">ret</span><span class="ao"></span><span class="ac">; pop return address into RIP and jump there</span></div>
-      </div>
-      <p style="margin-top:10px">Back in <code>main()</code>, the return value <strong class="g">7</strong> sits in <code>RAX</code> ready to be used. For example: <code>int result = sum(3, 4);</code> stores RAX's value — 7 — into <code>result</code>.</p>
-      <div class="co tip"><span class="co-i">🏁</span><div><strong>Big picture summary:</strong> The entire call used <em>no heap memory</em>. The stack is now <em>exactly</em> back to how it was before the <code>CALL</code> in step ④. Every <code>CALL</code> is always balanced by exactly one <code>RET</code> — the stack is self-cleaning.</div></div>
-    </div>
-  </div>
-
+<div class="explain-title">Step-by-Step <span>Explanation</span></div>
+<div class="explain-sub">// What actually happens when your program executes   sum(3, 4)</div>
+<!-- ① -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">①</div></div>
+<div class="xright">
+<h3>Evaluate the Arguments <span class="tag tc">Caller side</span></h3>
+<p>Before calling <code>sum()</code>, the CPU first <strong>figures out what the argument values are</strong>. Here they are simple literals — <strong class="g">3</strong> and <strong class="g">4</strong> — so no extra work is needed. If the call were <code>sum(a+1, b*2)</code>, those expressions would be computed here first and their results stored temporarily before moving to the next step.</p>
+<div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> Before handing someone a package, you first prepare what goes inside. Step ① is that preparation.</div></div>
+</div>
+</div>
+<!-- ② -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">②</div></div>
+<div class="xright">
+<h3>Load 1st Argument into RDI <span class="tag tr">CPU Register</span></h3>
+<p>The x86-64 <strong>System V ABI</strong> — the calling convention used on Linux — has a strict rule: <strong>the first integer argument always goes into register <code>RDI</code></strong>. So the value <strong class="g">3</strong> is loaded into RDI.</p>
+<div class="asm">
+<div class="al"><span class="ai">mov</span><span class="ao">edi, 3</span><span class="ac">; RDI = 3  (1st argument)</span></div>
+</div>
+<div class="co tip"><span class="co-i">📌</span><div><strong>The 6-register argument order</strong> on Linux x86-64 is: <code>RDI, RSI, RDX, RCX, R8, R9</code>. Arguments beyond 6 spill onto the stack. Our function only needs 2, so both fit in registers.</div></div>
+</div>
+</div>
+<!-- ③ -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">③</div></div>
+<div class="xright">
+<h3>Load 2nd Argument into RSI <span class="tag tr">CPU Register</span></h3>
+<p>Following the same convention, <strong>the second integer argument goes into <code>RSI</code></strong>. The value <strong class="g">4</strong> is placed there. At this point <code>RDI = 3</code> and <code>RSI = 4</code> — the CPU is <em>ready</em> to call the function.</p>
+<div class="asm">
+<div class="al"><span class="ai">mov</span><span class="ao">esi, 4</span><span class="ac">; RSI = 4  (2nd argument)</span></div>
+</div>
+</div>
+</div>
+<!-- ④ -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">④</div></div>
+<div class="xright">
+<h3>CALL Instruction — Jump into sum() <span class="tag ts">Stack</span></h3>
+<p>The <code>CALL sum</code> instruction does <strong>two things automatically in one instruction</strong>:</p>
+<p><strong>1. Pushes the return address</strong> onto the stack. This is the address of the instruction immediately <em>after</em> the <code>CALL</code> inside <code>main()</code> — so the CPU knows where to come back to when <code>sum()</code> finishes.</p>
+<p><strong>2. Jumps</strong> execution to the first instruction of <code>sum()</code>.</p>
+<div class="asm">
+<div class="al"><span class="ai">call</span><span class="ao">sum</span><span class="ac">; push next-instr addr, then jump to sum</span></div>
+</div>
+<div class="co warn"><span class="co-i">⚠️</span><div><strong>Note on RSP:</strong> Pushing the return address automatically decrements RSP (the stack pointer) by 8 bytes, because the stack grows <em>downward</em> in memory toward lower addresses.</div></div>
+</div>
+</div>
+<!-- ⑤ -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">⑤</div></div>
+<div class="xright">
+<h3>Function Prologue — Set Up the Stack Frame <span class="tag tf">Inside sum()</span></h3>
+<p>The very first instructions inside every function are called the <strong>prologue</strong>. They establish a clean workspace for this function call on the stack:</p>
+<p><strong><code>push rbp</code></strong> — saves the <em>caller's</em> (main's) base pointer onto the stack. This is critical: it ensures main()'s frame can be fully restored after <code>sum()</code> returns.</p>
+<p><strong><code>mov rbp, rsp</code></strong> — sets RBP to the current stack pointer. This creates a stable <strong>frame pointer</strong> for <code>sum()</code> that doesn't move even if RSP changes during the function body.</p>
+<div class="asm">
+<div class="al"><span class="ai">push</span><span class="ao">rbp</span><span class="ac">; save caller's (main's) base pointer</span></div>
+<div class="al"><span class="ai">mov</span><span class="ao">rbp, rsp</span><span class="ac">; RBP now points to sum()'s frame base</span></div>
+</div>
+<div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> A chef clearing their workstation before starting a recipe, and placing a bookmark saying "my area starts here." The prologue is always generated automatically by the compiler.</div></div>
+</div>
+</div>
+<!-- ⑥ -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">⑥</div></div>
+<div class="xright">
+<h3>Execute the Function Body <span class="tag tf">Inside sum()</span></h3>
+<p>Now the actual work happens. The body of <code>sum()</code> adds the two parameters. Because both parameters are still sitting in <strong>registers RDI and RSI</strong> (they were never copied to the stack), the addition is a single fast register operation:</p>
+<div class="asm">
+<div class="al"><span class="ai">lea</span><span class="ao">eax, [rdi + rsi]</span><span class="ac">; RAX = 3 + 4 = 7</span></div>
+</div>
+<p style="margin-top:10px">The result <strong class="g">7</strong> is placed into <strong><code>RAX</code></strong> — the register designated for <em>integer return values</em> by the ABI. The computation is done.</p>
+<div class="co tip"><span class="co-i">📌</span><div><strong>Key point:</strong> Parameters <code>a</code> and <code>b</code> are <em>never copied to stack memory</em> for a simple function like this. They stay in RDI and RSI the whole time. Copying to the stack ("spilling") only happens if the compiler runs out of registers or the address of a parameter is taken with <code>&amp;</code>.</div></div>
+</div>
+</div>
+<!-- ⑦ -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">⑦</div></div>
+<div class="xright">
+<h3>Function Epilogue — Tear Down the Stack Frame <span class="tag tf">Inside sum()</span></h3>
+<p>The <strong>epilogue</strong> is the exact mirror of the prologue — it restores everything that was saved and collapses the stack frame before leaving:</p>
+<p><strong><code>pop rbp</code></strong> — pops the saved value of main()'s RBP back from the stack into the RBP register. The stack frame for <code>sum()</code> effectively disappears — RSP moves back up past it.</p>
+<div class="asm">
+<div class="al"><span class="ai">pop</span><span class="ao">rbp</span><span class="ac">; restore main()'s base pointer</span></div>
+</div>
+<div class="co info"><span class="co-i">💡</span><div><strong>Analogy:</strong> The chef wipes down and restores their workstation to exactly how it was before they started, then hands back control of the kitchen.</div></div>
+</div>
+</div>
+<!-- ⑧ -->
+<div class="xstep">
+<div class="xleft"><div class="bnum">⑧</div></div>
+<div class="xright">
+<h3>RET Instruction — Return to Caller <span class="tag tb">Back in main()</span></h3>
+<p>The <code>RET</code> instruction also does <strong>two things automatically</strong>:</p>
+<p><strong>1. Pops the return address</strong> off the top of the stack (the one pushed in step ④) back into the instruction pointer register (RIP).</p>
+<p><strong>2. Jumps execution</strong> to that address — which is the line inside <code>main()</code> immediately after the original <code>CALL</code>.</p>
+<div class="asm">
+<div class="al"><span class="ai">ret</span><span class="ao"></span><span class="ac">; pop return address into RIP and jump there</span></div>
+</div>
+<p style="margin-top:10px">Back in <code>main()</code>, the return value <strong class="g">7</strong> sits in <code>RAX</code> ready to be used. For example: <code>int result = sum(3, 4);</code> stores RAX's value — 7 — into <code>result</code>.</p>
+<div class="co tip"><span class="co-i">🏁</span><div><strong>Big picture summary:</strong> The entire call used <em>no heap memory</em>. The stack is now <em>exactly</em> back to how it was before the <code>CALL</code> in step ④. Every <code>CALL</code> is always balanced by exactly one <code>RET</code> — the stack is self-cleaning.</div></div>
+</div>
+</div>
 </div><!-- /explain -->
-</div><!-- /page -->
+</div><!-- /page --></main>
 </body>
 </html>

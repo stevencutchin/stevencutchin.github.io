@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>What Is a Pointer? — C Memory Concepts</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f;
@@ -236,228 +237,199 @@
     .diagram-container { padding: 16px; }
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">1 / 5</span>
-  <span>C Memory Concepts</span>
-  <div class="nav-links">
-    <a href="00-overview.html">Overview</a>
-    <a href="01-pointers.html" class="active">Pointers</a>
-    <a href="02-arrays-are-pointers.html">Arrays</a>
-    <a href="03-malloc-free.html">malloc &amp; free</a>
-    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
-    <a href="05-garbage-collection.html">Garbage Collection</a>
-    <a href="06-pointer-training-cases.html">Training Cases</a>
-    <a href="07-pointer-types-and-casting.html">Types &amp; Casting</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">1 / 5</span>
+<span>C Memory Concepts</span>
+<div class="nav-links">
+<a href="00-overview.html">Overview</a>
+<a class="active" href="01-pointers.html">Pointers</a>
+<a href="02-arrays-are-pointers.html">Arrays</a>
+<a href="03-malloc-free.html">malloc &amp; free</a>
+<a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+<a href="05-garbage-collection.html">Garbage Collection</a>
+<a href="06-pointer-training-cases.html">Training Cases</a>
+<a href="07-pointer-types-and-casting.html">Types &amp; Casting</a>
+</div>
 </nav>
-
 <header class="hero">
-  <div class="number">Chapter 01</div>
-  <h1>What Is a <span class="highlight">Pointer</span>?</h1>
-  <p class="subtitle">A pointer is just a variable whose value is a memory address. That's it. Everything else is built on top of this single idea.</p>
+<div class="number">Chapter 01</div>
+<h1>What Is a <span class="highlight">Pointer</span>?</h1>
+<p class="subtitle">A pointer is just a variable whose value is a memory address. That's it. Everything else is built on top of this single idea.</p>
 </header>
-
-<main class="content">
-
-  <h2>Variables Live in Memory</h2>
-
-  <p>When you declare a variable like <code>int x = 42;</code>, the computer reserves a slot in memory for it. Every slot has two things: a <strong style="color:var(--accent-green)">value</strong> stored there, and an <strong style="color:var(--accent-orange)">address</strong> — the numbered location of that slot.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 700 200" width="100%" height="200">
-      <!-- Memory strip -->
-      <rect x="50" y="60" width="600" height="70" rx="6" fill="#141d2f" stroke="#1e2d4a" stroke-width="1.5"/>
-
-      <!-- Cells -->
-      <rect x="50" y="60" width="120" height="70" rx="6" fill="#141d2f" stroke="#1e2d4a" stroke-width="1.5"/>
-      <rect x="170" y="60" width="120" height="70" rx="6" fill="#141d2f" stroke="#1e2d4a" stroke-width="1.5"/>
-      <rect x="290" y="60" width="120" height="70" rx="6" fill="rgba(0,229,255,0.08)" stroke="var(--accent-cyan)" stroke-width="2"/>
-      <rect x="410" y="60" width="120" height="70" rx="6" fill="#141d2f" stroke="#1e2d4a" stroke-width="1.5"/>
-      <rect x="530" y="60" width="120" height="70" rx="6" fill="#141d2f" stroke="#1e2d4a" stroke-width="1.5"/>
-
-      <!-- Addresses -->
-      <text x="110" y="52" text-anchor="middle" fill="#ffab40" font-size="11">0x1000</text>
-      <text x="230" y="52" text-anchor="middle" fill="#ffab40" font-size="11">0x1004</text>
-      <text x="350" y="52" text-anchor="middle" fill="#ffab40" font-size="11">0x1008</text>
-      <text x="470" y="52" text-anchor="middle" fill="#ffab40" font-size="11">0x100C</text>
-      <text x="590" y="52" text-anchor="middle" fill="#ffab40" font-size="11">0x1010</text>
-
-      <!-- Values -->
-      <text x="110" y="100" text-anchor="middle" fill="#6b7fa3" font-size="16">??</text>
-      <text x="230" y="100" text-anchor="middle" fill="#6b7fa3" font-size="16">??</text>
-      <text x="350" y="100" text-anchor="middle" fill="#69f0ae" font-size="22" font-weight="600">42</text>
-      <text x="470" y="100" text-anchor="middle" fill="#6b7fa3" font-size="16">??</text>
-      <text x="590" y="100" text-anchor="middle" fill="#6b7fa3" font-size="16">??</text>
-
-      <!-- Label -->
-      <text x="350" y="155" text-anchor="middle" fill="#00e5ff" font-size="14" font-weight="600">x</text>
-      <line x1="350" y1="142" x2="350" y2="132" stroke="#00e5ff" stroke-width="1.5" stroke-dasharray="3,3"/>
-
-      <!-- Legend -->
-      <circle cx="80" cy="180" r="5" fill="#ffab40"/>
-      <text x="92" y="184" fill="#6b7fa3" font-size="11">Address</text>
-      <circle cx="180" cy="180" r="5" fill="#69f0ae"/>
-      <text x="192" y="184" fill="#6b7fa3" font-size="11">Value</text>
-      <circle cx="260" cy="180" r="5" fill="#00e5ff"/>
-      <text x="272" y="184" fill="#6b7fa3" font-size="11">Variable name</text>
-    </svg>
-    <div class="caption">Memory is a long row of numbered slots. Variable "x" lives at address 0x1008 and holds the value 42.</div>
-  </div>
-
-  <div class="analogy">
-    <strong>Analogy</strong><br>
+<main class="content" id="main-content">
+<h2>Variables Live in Memory</h2>
+<p>When you declare a variable like <code>int x = 42;</code>, the computer reserves a slot in memory for it. Every slot has two things: a <strong style="color:var(--accent-green)">value</strong> stored there, and an <strong style="color:var(--accent-orange)">address</strong> — the numbered location of that slot.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Variables Live in Memory" height="200" role="img" viewbox="0 0 700 200" width="100%">
+<!-- Memory strip -->
+<rect fill="#141d2f" height="70" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="600" x="50" y="60"></rect>
+<!-- Cells -->
+<rect fill="#141d2f" height="70" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="120" x="50" y="60"></rect>
+<rect fill="#141d2f" height="70" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="120" x="170" y="60"></rect>
+<rect fill="rgba(0,229,255,0.08)" height="70" rx="6" stroke="var(--accent-cyan)" stroke-width="2" width="120" x="290" y="60"></rect>
+<rect fill="#141d2f" height="70" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="120" x="410" y="60"></rect>
+<rect fill="#141d2f" height="70" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="120" x="530" y="60"></rect>
+<!-- Addresses -->
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="110" y="52">0x1000</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="230" y="52">0x1004</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="350" y="52">0x1008</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="470" y="52">0x100C</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="590" y="52">0x1010</text>
+<!-- Values -->
+<text fill="#6b7fa3" font-size="16" text-anchor="middle" x="110" y="100">??</text>
+<text fill="#6b7fa3" font-size="16" text-anchor="middle" x="230" y="100">??</text>
+<text fill="#69f0ae" font-size="22" font-weight="600" text-anchor="middle" x="350" y="100">42</text>
+<text fill="#6b7fa3" font-size="16" text-anchor="middle" x="470" y="100">??</text>
+<text fill="#6b7fa3" font-size="16" text-anchor="middle" x="590" y="100">??</text>
+<!-- Label -->
+<text fill="#00e5ff" font-size="14" font-weight="600" text-anchor="middle" x="350" y="155">x</text>
+<line stroke="#00e5ff" stroke-dasharray="3,3" stroke-width="1.5" x1="350" x2="350" y1="142" y2="132"></line>
+<!-- Legend -->
+<circle cx="80" cy="180" fill="#ffab40" r="5"></circle>
+<text fill="#6b7fa3" font-size="11" x="92" y="184">Address</text>
+<circle cx="180" cy="180" fill="#69f0ae" r="5"></circle>
+<text fill="#6b7fa3" font-size="11" x="192" y="184">Value</text>
+<circle cx="260" cy="180" fill="#00e5ff" r="5"></circle>
+<text fill="#6b7fa3" font-size="11" x="272" y="184">Variable name</text>
+</svg>
+<div class="caption">Memory is a long row of numbered slots. Variable "x" lives at address 0x1008 and holds the value 42.</div>
+</div>
+<div class="analogy">
+<strong>Analogy</strong><br/>
     Think of memory as a street of houses. Each house has a <span style="color:var(--accent-orange)">street address</span> (the memory address) and something <span style="color:var(--accent-green)">inside it</span> (the value). A variable name like <code>x</code> is just a friendly name for one of those houses. A <span style="color:var(--accent-cyan)">pointer</span> is a slip of paper that has someone else's street address written on it.
   </div>
-
-  <h2>A Pointer Stores an Address</h2>
-
-  <p>A pointer is a variable that holds the <em>address</em> of another variable, rather than a regular data value. You declare a pointer with the <code>*</code> symbol in its type:</p>
-
-  <pre><span class="type">int</span>  x  = <span class="num">42</span>;       <span class="comment">// a normal int variable</span>
+<h2>A Pointer Stores an Address</h2>
+<p>A pointer is a variable that holds the <em>address</em> of another variable, rather than a regular data value. You declare a pointer with the <code>*</code> symbol in its type:</p>
+<pre><span class="type">int</span>  x  = <span class="num">42</span>;       <span class="comment">// a normal int variable</span>
 <span class="type">int</span> *p  = &amp;x;      <span class="comment">// a pointer-to-int, holding the address of x</span></pre>
-
-  <p>The <code>&amp;</code> operator ("address-of") gives you the memory address of a variable. So <code>&amp;x</code> evaluates to something like <code>0x1008</code> — the slot where <code>x</code> lives. That address gets stored inside <code>p</code>.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 700 260" width="100%" height="260">
-      <!-- Variable x -->
-      <rect x="400" y="40" width="160" height="80" rx="8" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="2"/>
-      <text x="480" y="30" text-anchor="middle" fill="#ffab40" font-size="11">0x1008</text>
-      <text x="480" y="75" text-anchor="middle" fill="#69f0ae" font-size="28" font-weight="600">42</text>
-      <text x="480" y="103" text-anchor="middle" fill="#69f0ae" font-size="13">int x</text>
-
-      <!-- Pointer p -->
-      <rect x="80" y="40" width="200" height="80" rx="8" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="2"/>
-      <text x="180" y="30" text-anchor="middle" fill="#ffab40" font-size="11">0x2000</text>
-      <text x="180" y="75" text-anchor="middle" fill="#00e5ff" font-size="20" font-weight="600">0x1008</text>
-      <text x="180" y="103" text-anchor="middle" fill="#00e5ff" font-size="13">int *p</text>
-
-      <!-- Arrow from p to x -->
-      <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"/>
-        </marker>
-      </defs>
-      <path d="M 280 80 C 330 80, 350 80, 400 80" stroke="#00e5ff" stroke-width="2.5" fill="none" marker-end="url(#arrow)" stroke-dasharray="8,4"/>
-
-      <!-- Annotations -->
-      <text x="340" y="65" text-anchor="middle" fill="#6b7fa3" font-size="11">points to</text>
-
-      <!-- Dereference annotation -->
-      <text x="180" y="180" text-anchor="middle" fill="#b388ff" font-size="14" font-weight="600">*p == 42</text>
-      <text x="180" y="200" text-anchor="middle" fill="#6b7fa3" font-size="12">"follow the pointer to get the value"</text>
-
-      <text x="480" y="180" text-anchor="middle" fill="#ffab40" font-size="14" font-weight="600">&amp;x == 0x1008</text>
-      <text x="480" y="200" text-anchor="middle" fill="#6b7fa3" font-size="12">"the address of x"</text>
-
-      <!-- Connecting lines -->
-      <line x1="180" y1="120" x2="180" y2="165" stroke="#b388ff" stroke-width="1" stroke-dasharray="3,3"/>
-      <line x1="480" y1="120" x2="480" y2="165" stroke="#ffab40" stroke-width="1" stroke-dasharray="3,3"/>
-    </svg>
-    <div class="caption">Pointer p holds the address of x. Dereferencing (*p) follows the arrow to get the value 42.</div>
-  </div>
-
-  <h2>The Two Key Operators</h2>
-
-  <h3>&amp; — Address-Of</h3>
-  <p>Put <code>&amp;</code> in front of any variable to get its address. The result is a pointer value — a number representing where that variable sits in memory.</p>
-
-  <pre><span class="type">int</span> x = <span class="num">42</span>;
+<p>The <code>&amp;</code> operator ("address-of") gives you the memory address of a variable. So <code>&amp;x</code> evaluates to something like <code>0x1008</code> — the slot where <code>x</code> lives. That address gets stored inside <code>p</code>.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: A Pointer Stores an Address" height="260" role="img" viewbox="0 0 700 260" width="100%">
+<!-- Variable x -->
+<rect fill="rgba(105,240,174,0.07)" height="80" rx="8" stroke="#69f0ae" stroke-width="2" width="160" x="400" y="40"></rect>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="480" y="30">0x1008</text>
+<text fill="#69f0ae" font-size="28" font-weight="600" text-anchor="middle" x="480" y="75">42</text>
+<text fill="#69f0ae" font-size="13" text-anchor="middle" x="480" y="103">int x</text>
+<!-- Pointer p -->
+<rect fill="rgba(0,229,255,0.07)" height="80" rx="8" stroke="#00e5ff" stroke-width="2" width="200" x="80" y="40"></rect>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="180" y="30">0x2000</text>
+<text fill="#00e5ff" font-size="20" font-weight="600" text-anchor="middle" x="180" y="75">0x1008</text>
+<text fill="#00e5ff" font-size="13" text-anchor="middle" x="180" y="103">int *p</text>
+<!-- Arrow from p to x -->
+<defs>
+<marker id="arrow" markerheight="8" markerwidth="8" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#00e5ff"></path>
+</marker>
+</defs>
+<path d="M 280 80 C 330 80, 350 80, 400 80" fill="none" marker-end="url(#arrow)" stroke="#00e5ff" stroke-dasharray="8,4" stroke-width="2.5"></path>
+<!-- Annotations -->
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="340" y="65">points to</text>
+<!-- Dereference annotation -->
+<text fill="#b388ff" font-size="14" font-weight="600" text-anchor="middle" x="180" y="180">*p == 42</text>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="180" y="200">"follow the pointer to get the value"</text>
+<text fill="#ffab40" font-size="14" font-weight="600" text-anchor="middle" x="480" y="180">&amp;x == 0x1008</text>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="480" y="200">"the address of x"</text>
+<!-- Connecting lines -->
+<line stroke="#b388ff" stroke-dasharray="3,3" stroke-width="1" x1="180" x2="180" y1="120" y2="165"></line>
+<line stroke="#ffab40" stroke-dasharray="3,3" stroke-width="1" x1="480" x2="480" y1="120" y2="165"></line>
+</svg>
+<div class="caption">Pointer p holds the address of x. Dereferencing (*p) follows the arrow to get the value 42.</div>
+</div>
+<h2>The Two Key Operators</h2>
+<h3>&amp; — Address-Of</h3>
+<p>Put <code>&amp;</code> in front of any variable to get its address. The result is a pointer value — a number representing where that variable sits in memory.</p>
+<pre><span class="type">int</span> x = <span class="num">42</span>;
 <span class="func">printf</span>(<span class="str">"%p\n"</span>, &amp;x);  <span class="comment">// prints something like: 0x7ffd5e8c1008</span></pre>
-
-  <h3>* — Dereference</h3>
-  <p>Put <code>*</code> in front of a pointer to <em>follow it</em> — to go to the address it contains and read (or write) the value stored there. This is called <strong>dereferencing</strong>.</p>
-
-  <pre><span class="type">int</span>  x = <span class="num">42</span>;
+<h3>* — Dereference</h3>
+<p>Put <code>*</code> in front of a pointer to <em>follow it</em> — to go to the address it contains and read (or write) the value stored there. This is called <strong>dereferencing</strong>.</p>
+<pre><span class="type">int</span>  x = <span class="num">42</span>;
 <span class="type">int</span> *p = &amp;x;
 
 <span class="func">printf</span>(<span class="str">"%d\n"</span>, *p);   <span class="comment">// 42  — reads the value at the address p holds</span>
 *p = <span class="num">99</span>;              <span class="comment">// changes x to 99 — writes through the pointer!</span>
 <span class="func">printf</span>(<span class="str">"%d\n"</span>, x);    <span class="comment">// 99  — x itself changed</span></pre>
-
-  <div class="key-concept">
-    <strong>Key Concept</strong><br>
+<div class="key-concept">
+<strong>Key Concept</strong><br/>
     The <code>*</code> symbol has two completely different meanings depending on context. In a <em>declaration</em> like <code>int *p</code>, it means "p is a pointer." In an <em>expression</em> like <code>*p = 99</code>, it means "dereference p — follow the address."
   </div>
-
-  <h2>Why Pointers Exist</h2>
-
-  <p>Pointers are essential for three foundational reasons in C:</p>
-
-  <p><strong style="color:var(--accent-cyan)">1. Functions can modify the caller's variables.</strong> Without pointers, C functions only receive <em>copies</em> of arguments. By passing a pointer, the function can reach back and modify the original variable.</p>
-
-  <pre><span class="kw">void</span> <span class="func">double_it</span>(<span class="type">int</span> *p) {
+<h2>Why Pointers Exist</h2>
+<p>Pointers are essential for three foundational reasons in C:</p>
+<p><strong style="color:var(--accent-cyan)">1. Functions can modify the caller's variables.</strong> Without pointers, C functions only receive <em>copies</em> of arguments. By passing a pointer, the function can reach back and modify the original variable.</p>
+<pre><span class="kw">void</span> <span class="func">double_it</span>(<span class="type">int</span> *p) {
     *p = *p * <span class="num">2</span>;   <span class="comment">// modifies the original variable</span>
 }
 
 <span class="type">int</span> x = <span class="num">5</span>;
 <span class="func">double_it</span>(&amp;x);    <span class="comment">// pass the address of x</span>
 <span class="comment">// x is now 10</span></pre>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 700 220" width="100%" height="220">
-      <!-- main's stack -->
-      <rect x="40" y="30" width="250" height="160" rx="8" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="165" y="22" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">main()</text>
-      <rect x="70" y="60" width="190" height="50" rx="6" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="100" y="90" fill="#69f0ae" font-size="14">x = 5</text>
-      <text x="225" y="82" fill="#ffab40" font-size="10">0x1008</text>
-
-      <!-- double_it's stack -->
-      <rect x="400" y="30" width="260" height="160" rx="8" fill="rgba(0,229,255,0.04)" stroke="#00e5ff" stroke-width="1.5"/>
-      <text x="530" y="22" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">double_it()</text>
-      <rect x="430" y="60" width="200" height="50" rx="6" fill="rgba(0,229,255,0.07)" stroke="#00e5ff" stroke-width="1"/>
-      <text x="460" y="90" fill="#00e5ff" font-size="14">p = 0x1008</text>
-
-      <!-- Arrow -->
-      <path d="M 430 85 C 370 85, 330 85, 260 85" stroke="#00e5ff" stroke-width="2" fill="none" marker-end="url(#arrow)" stroke-dasharray="6,4"/>
-      <text x="345" y="75" text-anchor="middle" fill="#6b7fa3" font-size="11">*p reaches x</text>
-
-      <!-- Result -->
-      <text x="165" y="150" text-anchor="middle" fill="#69f0ae" font-size="13">After: x = 10</text>
-      <text x="530" y="150" text-anchor="middle" fill="#00e5ff" font-size="13">*p = *p * 2</text>
-    </svg>
-    <div class="caption">The function double_it receives a pointer to x. By dereferencing *p, it modifies main's variable directly.</div>
-  </div>
-
-  <p><strong style="color:var(--accent-cyan)">2. Dynamic memory.</strong> Functions like <code>malloc</code> return pointers to newly allocated memory on the heap. This lets your program request memory at runtime — crucial for data structures whose size isn't known at compile time.</p>
-
-  <p><strong style="color:var(--accent-cyan)">3. Efficient data handling.</strong> Instead of copying a large struct through function calls, you pass a pointer — just 4 or 8 bytes regardless of how large the original data is.</p>
-
-  <h2>NULL — The Pointer to Nowhere</h2>
-
-  <p>A pointer can be set to <code>NULL</code> (which is the value 0), meaning "I don't point to anything right now." This is useful for indicating the absence of data, but dereferencing a NULL pointer is one of the most common causes of crashes in C programs (the infamous "segmentation fault").</p>
-
-  <pre><span class="type">int</span> *p = <span class="num">NULL</span>;
+<div class="diagram-container">
+<svg aria-label="Diagram: Why Pointers Exist" height="220" role="img" viewbox="0 0 700 220" width="100%">
+<!-- main's stack -->
+<rect fill="rgba(105,240,174,0.04)" height="160" rx="8" stroke="#69f0ae" stroke-width="1.5" width="250" x="40" y="30"></rect>
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="165" y="22">main()</text>
+<rect fill="rgba(105,240,174,0.07)" height="50" rx="6" stroke="#69f0ae" stroke-width="1" width="190" x="70" y="60"></rect>
+<text fill="#69f0ae" font-size="14" x="100" y="90">x = 5</text>
+<text fill="#ffab40" font-size="10" x="225" y="82">0x1008</text>
+<!-- double_it's stack -->
+<rect fill="rgba(0,229,255,0.04)" height="160" rx="8" stroke="#00e5ff" stroke-width="1.5" width="260" x="400" y="30"></rect>
+<text fill="#00e5ff" font-size="13" font-weight="600" text-anchor="middle" x="530" y="22">double_it()</text>
+<rect fill="rgba(0,229,255,0.07)" height="50" rx="6" stroke="#00e5ff" stroke-width="1" width="200" x="430" y="60"></rect>
+<text fill="#00e5ff" font-size="14" x="460" y="90">p = 0x1008</text>
+<!-- Arrow -->
+<path d="M 430 85 C 370 85, 330 85, 260 85" fill="none" marker-end="url(#arrow)" stroke="#00e5ff" stroke-dasharray="6,4" stroke-width="2"></path>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="345" y="75">*p reaches x</text>
+<!-- Result -->
+<text fill="#69f0ae" font-size="13" text-anchor="middle" x="165" y="150">After: x = 10</text>
+<text fill="#00e5ff" font-size="13" text-anchor="middle" x="530" y="150">*p = *p * 2</text>
+</svg>
+<div class="caption">The function double_it receives a pointer to x. By dereferencing *p, it modifies main's variable directly.</div>
+</div>
+<p><strong style="color:var(--accent-cyan)">2. Dynamic memory.</strong> Functions like <code>malloc</code> return pointers to newly allocated memory on the heap. This lets your program request memory at runtime — crucial for data structures whose size isn't known at compile time.</p>
+<p><strong style="color:var(--accent-cyan)">3. Efficient data handling.</strong> Instead of copying a large struct through function calls, you pass a pointer — just 4 or 8 bytes regardless of how large the original data is.</p>
+<h2>NULL — The Pointer to Nowhere</h2>
+<p>A pointer can be set to <code>NULL</code> (which is the value 0), meaning "I don't point to anything right now." This is useful for indicating the absence of data, but dereferencing a NULL pointer is one of the most common causes of crashes in C programs (the infamous "segmentation fault").</p>
+<pre><span class="type">int</span> *p = <span class="num">NULL</span>;
 
 <span class="kw">if</span> (p != <span class="num">NULL</span>) {
     <span class="func">printf</span>(<span class="str">"%d\n"</span>, *p);   <span class="comment">// safe — only dereference if not NULL</span>
 } <span class="kw">else</span> {
     <span class="func">printf</span>(<span class="str">"pointer is null\n"</span>);
 }</pre>
-
-  <div class="warning">
-    <strong>Common Bug</strong><br>
+<div class="warning">
+<strong>Common Bug</strong><br/>
     Dereferencing a NULL pointer (<code>*p</code> when <code>p == NULL</code>) causes a segmentation fault — the operating system kills your program. Always check before dereferencing a pointer whose value you aren't certain about.
   </div>
-
-  <h2>Pointer Size</h2>
-
-  <p>On a 64-bit system, all pointers are 8 bytes (64 bits), regardless of what type they point to. An <code>int*</code>, a <code>char*</code>, and a <code>double*</code> are all 8 bytes — because all of them just hold a memory address, and modern systems use 64-bit addresses.</p>
-
-  <pre><span class="func">printf</span>(<span class="str">"sizeof(int*)    = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">int</span>*));     <span class="comment">// 8</span>
+<h2>Pointer Size</h2>
+<p>On a 64-bit system, all pointers are 8 bytes (64 bits), regardless of what type they point to. An <code>int*</code>, a <code>char*</code>, and a <code>double*</code> are all 8 bytes — because all of them just hold a memory address, and modern systems use 64-bit addresses.</p>
+<pre><span class="func">printf</span>(<span class="str">"sizeof(int*)    = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">int</span>*));     <span class="comment">// 8</span>
 <span class="func">printf</span>(<span class="str">"sizeof(char*)   = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">char</span>*));    <span class="comment">// 8</span>
 <span class="func">printf</span>(<span class="str">"sizeof(double*) = %zu\n"</span>, <span class="kw">sizeof</span>(<span class="type">double</span>*));  <span class="comment">// 8</span></pre>
-
-  <div class="key-concept">
-    <strong>Takeaway</strong><br>
+<div class="key-concept">
+<strong>Takeaway</strong><br/>
     A pointer is just a variable that holds an address. Use <code>&amp;</code> to get an address, use <code>*</code> to follow an address. That's the foundation everything else in C memory management builds on.
   </div>
-
 </main>
 </body>
 </html>

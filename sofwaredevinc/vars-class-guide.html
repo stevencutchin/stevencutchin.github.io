@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Variables, Types, Characters & Strings — Class Guide</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Variables, Types, Characters &amp; Strings — Class Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --text: #1e1c1a;
@@ -82,242 +83,171 @@
   }
   @media (max-width: 500px) { body { padding: 24px 20px; } }
 </style>
-</head>
-<body>
-
-<header>
-  <h1>Variables, Types, Characters &amp; Strings — Class Guide</h1>
-  <div class="meta">CS253 &nbsp;·&nbsp; Four 75-min sessions &nbsp;·&nbsp; vars-01 through vars-04</div>
-</header>
-
-<!-- ══════════════════════════════════════════════════ -->
-<div class="session-label">Session 1 — Variables &amp; Assignment</div>
-
-<h2>What a Variable Is</h2>
-<ol>
-  <li><div>Ask: when you write <code>int score = 42;</code>, what actually happens in the computer? Let them guess. Answer: the compiler reserves 4 bytes of memory, gives that location the name "score", and stores 42 there.</div></li>
-  <li><div>Draw a labeled box on the board with four properties: name, type, value, address. This is the mental model they keep for the whole course.</div></li>
-  <li><div>Explain the address: every variable has a location in memory. <code>&amp;score</code> gives you that address. The program finds variables by address — the name is for humans.</div></li>
-</ol>
-
-<h2>Declaration vs Initialization</h2>
-<ol>
-  <li><div>Show the difference explicitly: declaration reserves the slot, initialization fills it. They can happen together or separately.
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><header>
+<h1>Variables, Types, Characters &amp; Strings — Class Guide</h1>
+<div class="meta">CS253  ·  Four 75-min sessions  ·  vars-01 through vars-04</div>
+</header><!-- ══════════════════════════════════════════════════ --><div class="session-label">Session 1 — Variables &amp; Assignment</div><h2>What a Variable Is</h2><ol>
+<li><div>Ask: when you write <code>int score = 42;</code>, what actually happens in the computer? Let them guess. Answer: the compiler reserves 4 bytes of memory, gives that location the name "score", and stores 42 there.</div></li>
+<li><div>Draw a labeled box on the board with four properties: name, type, value, address. This is the mental model they keep for the whole course.</div></li>
+<li><div>Explain the address: every variable has a location in memory. <code>&amp;score</code> gives you that address. The program finds variables by address — the name is for humans.</div></li>
+</ol><h2>Declaration vs Initialization</h2><ol>
+<li><div>Show the difference explicitly: declaration reserves the slot, initialization fills it. They can happen together or separately.
     <pre>int score;        // declaration only — value is garbage
 int score = 0;    // declaration + initialization — always prefer this</pre>
-  </div></li>
-  <li><div>Ask: what's in an uninitialized variable? Answer: whatever bytes were at that memory location before — a previous function call, leftover data, anything. It is not zero.</div></li>
-  <li><div>State the rule: always initialize at the point of declaration. There is no cost to this and it eliminates an entire class of bugs.</div></li>
-</ol>
-
-<h2>Assignment</h2>
-<ol>
-  <li><div>Write <code>z = x + y</code> on the board. Explain: <code>=</code> is not equality — it is an instruction. Evaluate the right side completely, then store the result in the left side. The right side is never modified.</div></li>
-  <li><div>Show <code>x = x + 1</code> — this is perfectly valid. Right side reads x, adds 1, result stored back into x.</div></li>
-  <li><div>Walk through the compound operators briefly: <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>++</code>, <code>--</code>. These are shorthand — nothing more.</div></li>
-  <li><div>Warn: <code>=</code> in a condition (<code>if (x = 5)</code>) is an assignment that returns the assigned value — always true for non-zero. Legal C. Compiler may not warn. Enable <code>-Wall</code>.</div></li>
-</ol>
-
-<h2>Scope</h2>
-<ol>
-  <li><div>Explain: a variable lives in the block where it's declared — the enclosing <code>{ }</code>. When execution leaves that block, the variable ceases to exist.</div></li>
-  <li><div>Write a nested-block example live. Ask: can the outer block see the inner variable after the inner block closes? Answer: no. Compile and show the error.</div></li>
-  <li><div>Show variable shadowing — inner variable with the same name as an outer one. Legal, but confusing. The inner one wins inside its block. The outer one is unaffected. Advise against it.</div></li>
-</ol>
-
-<h2>Constants</h2>
-<ol>
-  <li><div>Show <code>const int MAX = 100;</code> — the compiler enforces read-only. Show the compile error when you try to assign to it.</div></li>
-  <li><div>Show <code>#define MAX 100</code> — the preprocessor replaces the text before the compiler sees it. No type. No scope. Doesn't appear in the debugger.</div></li>
-  <li><div>State the preference: use <code>const</code>. It has a type, obeys scope, and shows up in the debugger with its name. Reserve <code>#define</code> for compile-time flags.</div></li>
-</ol>
-
-<h2>Pitfalls — Session 1</h2>
-<ol>
-  <li><div>Uninitialized variable: garbage value, changes between runs. Always initialize.</div></li>
-  <li><div><code>=</code> vs <code>==</code>: assignment in a condition is always true for non-zero. Enable <code>-Wall</code>.</div></li>
-  <li><div>Integer division: <code>7 / 2</code> is 3. Cast first: <code>(double)7 / 2</code> is 3.5.</div></li>
-  <li><div>Variable shadowing: inner declaration hides outer — outer unchanged, inner goes away at block end.</div></li>
-</ol>
-
-<!-- ══════════════════════════════════════════════════ -->
-<div class="session-label">Session 2 — Types</div>
-
-<h2>Why Types Exist</h2>
-<ol>
-  <li><div>Show the same 4 bytes of memory interpreted two ways: as an <code>int</code> it's a large number; as a <code>float</code> it's 3.125. Same bits, different meaning. Types are the interpreter.</div></li>
-  <li><div>State the two things a type tells the compiler: how many bytes the variable occupies, and how to interpret those bytes.</div></li>
-</ol>
-
-<h2>Integer Types</h2>
-<ol>
-  <li><div>Walk the table: <code>char</code> (1), <code>short</code> (2), <code>int</code> (4), <code>long</code>/<code>long long</code> (8). Draw the relative widths on the board as bars.</div></li>
-  <li><div>Explain signed vs unsigned: signed uses one bit for the sign, so half the range is negative. Unsigned gets double the positive range but can't go below zero.</div></li>
-  <li><div>Show integer overflow live: add 1 to <code>INT_MAX</code> (2,147,483,647). Print it. Watch it wrap to a large negative number. The compiler will not warn.</div></li>
-  <li><div>Ask: when should you use <code>unsigned</code>? Answer: counts that can never be negative, bit manipulation, matching external data formats.</div></li>
-</ol>
-
-<h2>Floating-Point Types</h2>
-<ol>
-  <li><div>Explain: floats use IEEE 754 — a binary encoding that trades exact representation for enormous range. Most decimal fractions have no exact binary representation.</div></li>
-  <li><div>Show live: <code>printf("%.20f\n", 0.1 + 0.2);</code> — the result is not 0.3. It's 0.30000000000000004...</div></li>
-  <li><div>State the rule: never compare floats with <code>==</code>. Use <code>fabs(a - b) &lt; 1e-9</code>. Show the alternative.</div></li>
-  <li><div>State the default: use <code>double</code>. <code>float</code> has only 7 significant digits — not enough for most work. Only use <code>float</code> when memory or GPU performance genuinely demands it.</div></li>
-</ol>
-
-<h2>Type Conversion</h2>
-<ol>
-  <li><div>Show implicit widening: mixing <code>int</code> and <code>double</code> in an expression promotes the int to double automatically. No data lost.</div></li>
-  <li><div>Show the integer division trap:
+</div></li>
+<li><div>Ask: what's in an uninitialized variable? Answer: whatever bytes were at that memory location before — a previous function call, leftover data, anything. It is not zero.</div></li>
+<li><div>State the rule: always initialize at the point of declaration. There is no cost to this and it eliminates an entire class of bugs.</div></li>
+</ol><h2>Assignment</h2><ol>
+<li><div>Write <code>z = x + y</code> on the board. Explain: <code>=</code> is not equality — it is an instruction. Evaluate the right side completely, then store the result in the left side. The right side is never modified.</div></li>
+<li><div>Show <code>x = x + 1</code> — this is perfectly valid. Right side reads x, adds 1, result stored back into x.</div></li>
+<li><div>Walk through the compound operators briefly: <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>++</code>, <code>--</code>. These are shorthand — nothing more.</div></li>
+<li><div>Warn: <code>=</code> in a condition (<code>if (x = 5)</code>) is an assignment that returns the assigned value — always true for non-zero. Legal C. Compiler may not warn. Enable <code>-Wall</code>.</div></li>
+</ol><h2>Scope</h2><ol>
+<li><div>Explain: a variable lives in the block where it's declared — the enclosing <code>{ }</code>. When execution leaves that block, the variable ceases to exist.</div></li>
+<li><div>Write a nested-block example live. Ask: can the outer block see the inner variable after the inner block closes? Answer: no. Compile and show the error.</div></li>
+<li><div>Show variable shadowing — inner variable with the same name as an outer one. Legal, but confusing. The inner one wins inside its block. The outer one is unaffected. Advise against it.</div></li>
+</ol><h2>Constants</h2><ol>
+<li><div>Show <code>const int MAX = 100;</code> — the compiler enforces read-only. Show the compile error when you try to assign to it.</div></li>
+<li><div>Show <code>#define MAX 100</code> — the preprocessor replaces the text before the compiler sees it. No type. No scope. Doesn't appear in the debugger.</div></li>
+<li><div>State the preference: use <code>const</code>. It has a type, obeys scope, and shows up in the debugger with its name. Reserve <code>#define</code> for compile-time flags.</div></li>
+</ol><h2>Pitfalls — Session 1</h2><ol>
+<li><div>Uninitialized variable: garbage value, changes between runs. Always initialize.</div></li>
+<li><div><code>=</code> vs <code>==</code>: assignment in a condition is always true for non-zero. Enable <code>-Wall</code>.</div></li>
+<li><div>Integer division: <code>7 / 2</code> is 3. Cast first: <code>(double)7 / 2</code> is 3.5.</div></li>
+<li><div>Variable shadowing: inner declaration hides outer — outer unchanged, inner goes away at block end.</div></li>
+</ol><!-- ══════════════════════════════════════════════════ --><div class="session-label">Session 2 — Types</div><h2>Why Types Exist</h2><ol>
+<li><div>Show the same 4 bytes of memory interpreted two ways: as an <code>int</code> it's a large number; as a <code>float</code> it's 3.125. Same bits, different meaning. Types are the interpreter.</div></li>
+<li><div>State the two things a type tells the compiler: how many bytes the variable occupies, and how to interpret those bytes.</div></li>
+</ol><h2>Integer Types</h2><ol>
+<li><div>Walk the table: <code>char</code> (1), <code>short</code> (2), <code>int</code> (4), <code>long</code>/<code>long long</code> (8). Draw the relative widths on the board as bars.</div></li>
+<li><div>Explain signed vs unsigned: signed uses one bit for the sign, so half the range is negative. Unsigned gets double the positive range but can't go below zero.</div></li>
+<li><div>Show integer overflow live: add 1 to <code>INT_MAX</code> (2,147,483,647). Print it. Watch it wrap to a large negative number. The compiler will not warn.</div></li>
+<li><div>Ask: when should you use <code>unsigned</code>? Answer: counts that can never be negative, bit manipulation, matching external data formats.</div></li>
+</ol><h2>Floating-Point Types</h2><ol>
+<li><div>Explain: floats use IEEE 754 — a binary encoding that trades exact representation for enormous range. Most decimal fractions have no exact binary representation.</div></li>
+<li><div>Show live: <code>printf("%.20f\n", 0.1 + 0.2);</code> — the result is not 0.3. It's 0.30000000000000004...</div></li>
+<li><div>State the rule: never compare floats with <code>==</code>. Use <code>fabs(a - b) &lt; 1e-9</code>. Show the alternative.</div></li>
+<li><div>State the default: use <code>double</code>. <code>float</code> has only 7 significant digits — not enough for most work. Only use <code>float</code> when memory or GPU performance genuinely demands it.</div></li>
+</ol><h2>Type Conversion</h2><ol>
+<li><div>Show implicit widening: mixing <code>int</code> and <code>double</code> in an expression promotes the int to double automatically. No data lost.</div></li>
+<li><div>Show the integer division trap:
     <pre>int a = 7, b = 2;
 double bad  = a / b;         // 3.0 — division happened as int first!
 double good = (double)a / b; // 3.5 — cast before dividing</pre>
-  </div></li>
-  <li><div>Show narrowing: <code>(int)3.9</code> gives 3 — truncates toward zero, no rounding, no warning. The compiler assumes you know what you asked for.</div></li>
-  <li><div>Ask: when does truncation differ from rounding? Answer: always for negative numbers. <code>(int)-2.9</code> is -2, not -3.</div></li>
-</ol>
-
-<h2>sizeof and stdint.h</h2>
-<ol>
-  <li><div>Show <code>sizeof</code> live for several types. Emphasize: this is a compile-time operator, not a function. Use it instead of hardcoding sizes.</div></li>
-  <li><div>Explain: the C standard only guarantees minimum sizes for <code>int</code>, <code>long</code>, etc. If exact size matters — network protocols, file formats, hardware — use <code>&lt;stdint.h&gt;</code>: <code>uint32_t</code>, <code>int64_t</code>, etc.</div></li>
-</ol>
-
-<h2>Pitfalls — Session 2</h2>
-<ol>
-  <li><div>Integer overflow: wraps silently. Use a wider type or check bounds before arithmetic.</div></li>
-  <li><div>Float equality: use <code>fabs(a - b) &lt; epsilon</code>. Never <code>==</code>.</div></li>
-  <li><div>Integer division truncation: cast before dividing, not after.</div></li>
-  <li><div>Wrong printf specifier: <code>%d</code> for a <code>long</code> is undefined behavior. Match types exactly: <code>%ld</code>, <code>%lf</code>, <code>%zu</code>.</div></li>
-  <li><div>Signed/unsigned comparison: <code>-1 &gt; 1u</code> is true. Enable <code>-Wall -Wsign-compare</code>.</div></li>
-</ol>
-
-<!-- ══════════════════════════════════════════════════ -->
-<div class="session-label">Session 3 — Characters</div>
-
-<h2>char Is an Integer</h2>
-<ol>
-  <li><div>Write on the board: <code>'A'</code> is 65. <code>'a'</code> is 97. <code>'0'</code> is 48. These are not conventions — they are the actual values stored in memory.</div></li>
-  <li><div>Show the proof live:
+</div></li>
+<li><div>Show narrowing: <code>(int)3.9</code> gives 3 — truncates toward zero, no rounding, no warning. The compiler assumes you know what you asked for.</div></li>
+<li><div>Ask: when does truncation differ from rounding? Answer: always for negative numbers. <code>(int)-2.9</code> is -2, not -3.</div></li>
+</ol><h2>sizeof and stdint.h</h2><ol>
+<li><div>Show <code>sizeof</code> live for several types. Emphasize: this is a compile-time operator, not a function. Use it instead of hardcoding sizes.</div></li>
+<li><div>Explain: the C standard only guarantees minimum sizes for <code>int</code>, <code>long</code>, etc. If exact size matters — network protocols, file formats, hardware — use <code>&lt;stdint.h&gt;</code>: <code>uint32_t</code>, <code>int64_t</code>, etc.</div></li>
+</ol><h2>Pitfalls — Session 2</h2><ol>
+<li><div>Integer overflow: wraps silently. Use a wider type or check bounds before arithmetic.</div></li>
+<li><div>Float equality: use <code>fabs(a - b) &lt; epsilon</code>. Never <code>==</code>.</div></li>
+<li><div>Integer division truncation: cast before dividing, not after.</div></li>
+<li><div>Wrong printf specifier: <code>%d</code> for a <code>long</code> is undefined behavior. Match types exactly: <code>%ld</code>, <code>%lf</code>, <code>%zu</code>.</div></li>
+<li><div>Signed/unsigned comparison: <code>-1 &gt; 1u</code> is true. Enable <code>-Wall -Wsign-compare</code>.</div></li>
+</ol><!-- ══════════════════════════════════════════════════ --><div class="session-label">Session 3 — Characters</div><h2>char Is an Integer</h2><ol>
+<li><div>Write on the board: <code>'A'</code> is 65. <code>'a'</code> is 97. <code>'0'</code> is 48. These are not conventions — they are the actual values stored in memory.</div></li>
+<li><div>Show the proof live:
     <pre>char c = 'A';
 printf("%c\n", c);   // A
 printf("%d\n", c);   // 65</pre>
-  </div></li>
-  <li><div>Because char is an integer, arithmetic works. Show: <code>'A' + 1</code> is <code>'B'</code>. Show converting digit char to int: <code>'7' - '0'</code> is 7.</div></li>
-</ol>
-
-<h2>The ASCII Ranges</h2>
-<ol>
-  <li><div>Draw the three key ranges on the board: digits 48–57, uppercase 65–90, lowercase 97–122. These are the only three they need to remember.</div></li>
-  <li><div>Point out the gaps: uppercase-to-lowercase is always +32. Digit char to int value is always -48 (or <code>- '0'</code>).</div></li>
-  <li><div>Show range-check membership: <code>ch &gt;= '0' &amp;&amp; ch &lt;= '9'</code> tests if ch is a digit. This is what the ctype.h functions do under the hood.</div></li>
-</ol>
-
-<h2>ctype.h</h2>
-<ol>
-  <li><div>Show the classification functions: <code>isalpha</code>, <code>isdigit</code>, <code>isspace</code>, <code>isupper</code>, <code>tolower</code>, <code>toupper</code>. These are cleaner than hand-rolled range checks and handle edge cases correctly.</div></li>
-  <li><div>Warn: pass <code>(unsigned char)c</code> to ctype functions, not a plain <code>char</code>. On platforms where char is signed, a negative value is undefined behavior.</div></li>
-</ol>
-
-<h2>Escape Sequences and '\0'</h2>
-<ol>
-  <li><div>Walk the important escape sequences: <code>'\n'</code> (10), <code>'\t'</code> (9), <code>'\0'</code> (0), <code>'\\'</code> (92).</div></li>
-  <li><div>Stop on <code>'\0'</code>. Write both on the board side by side: <code>'\0'</code> = 0, <code>'0'</code> = 48. They are completely different. Confusing them causes string bugs that are extremely hard to find.</div></li>
-  <li><div>Ask: what does <code>'\0'</code> do in a string? Answer: it marks the end. Every string function walks forward until it hits this zero byte — that's how they know to stop.</div></li>
-</ol>
-
-<h2>Reading Characters</h2>
-<ol>
-  <li><div>Show <code>getchar()</code>. Ask: what type should you use to store the return value? Most say <code>char</code>. The answer is <code>int</code>.</div></li>
-  <li><div>Explain why: <code>getchar()</code> returns EOF (-1) at end of input. If stored in a <code>char</code>, EOF either can't fit (unsigned char) or gets confused with a valid byte value (signed char). The EOF check silently breaks either way.</div></li>
-  <li><div>Show the canonical read loop:
+</div></li>
+<li><div>Because char is an integer, arithmetic works. Show: <code>'A' + 1</code> is <code>'B'</code>. Show converting digit char to int: <code>'7' - '0'</code> is 7.</div></li>
+</ol><h2>The ASCII Ranges</h2><ol>
+<li><div>Draw the three key ranges on the board: digits 48–57, uppercase 65–90, lowercase 97–122. These are the only three they need to remember.</div></li>
+<li><div>Point out the gaps: uppercase-to-lowercase is always +32. Digit char to int value is always -48 (or <code>- '0'</code>).</div></li>
+<li><div>Show range-check membership: <code>ch &gt;= '0' &amp;&amp; ch &lt;= '9'</code> tests if ch is a digit. This is what the ctype.h functions do under the hood.</div></li>
+</ol><h2>ctype.h</h2><ol>
+<li><div>Show the classification functions: <code>isalpha</code>, <code>isdigit</code>, <code>isspace</code>, <code>isupper</code>, <code>tolower</code>, <code>toupper</code>. These are cleaner than hand-rolled range checks and handle edge cases correctly.</div></li>
+<li><div>Warn: pass <code>(unsigned char)c</code> to ctype functions, not a plain <code>char</code>. On platforms where char is signed, a negative value is undefined behavior.</div></li>
+</ol><h2>Escape Sequences and '\0'</h2><ol>
+<li><div>Walk the important escape sequences: <code>'\n'</code> (10), <code>'\t'</code> (9), <code>'\0'</code> (0), <code>'\\'</code> (92).</div></li>
+<li><div>Stop on <code>'\0'</code>. Write both on the board side by side: <code>'\0'</code> = 0, <code>'0'</code> = 48. They are completely different. Confusing them causes string bugs that are extremely hard to find.</div></li>
+<li><div>Ask: what does <code>'\0'</code> do in a string? Answer: it marks the end. Every string function walks forward until it hits this zero byte — that's how they know to stop.</div></li>
+</ol><h2>Reading Characters</h2><ol>
+<li><div>Show <code>getchar()</code>. Ask: what type should you use to store the return value? Most say <code>char</code>. The answer is <code>int</code>.</div></li>
+<li><div>Explain why: <code>getchar()</code> returns EOF (-1) at end of input. If stored in a <code>char</code>, EOF either can't fit (unsigned char) or gets confused with a valid byte value (signed char). The EOF check silently breaks either way.</div></li>
+<li><div>Show the canonical read loop:
     <pre>int c;
 while ((c = getchar()) != EOF)
     putchar(c);</pre>
-  </div></li>
-</ol>
-
-<h2>Pitfalls — Session 3</h2>
-<ol>
-  <li><div><code>'\0'</code> vs <code>'0'</code>: null is 0, digit zero is 48. Confusing them corrupts strings.</div></li>
-  <li><div>Storing <code>getchar()</code> in <code>char</code>: EOF check breaks. Always use <code>int</code>.</div></li>
-  <li><div>Comparing strings with <code>==</code>: compares addresses, not content. Use <code>strcmp()</code>. (Relevant here and next session.)</div></li>
-  <li><div>Signed vs unsigned char: platform-defined. Be explicit when signedness matters.</div></li>
-</ol>
-
-<!-- ══════════════════════════════════════════════════ -->
-<div class="session-label">Session 4 — Strings</div>
-
-<h2>What a String Is</h2>
-<ol>
-  <li><div>State it plainly: C has no string type. A string is a char array with a zero byte at the end. That's the entire definition. Everything else follows from this.</div></li>
-  <li><div>Draw "Hello\0" on the board as six labeled boxes: H(72), e(101), l(108), l(108), o(111), \0(0). Point to the last box — this is not optional. It is the contract every string function relies on.</div></li>
-  <li><div>Ask: if <code>strlen("Hello")</code> returns 5, how big must the array be? Answer: 6. One extra byte, always, for the terminator.</div></li>
-</ol>
-
-<h2>Array Form vs Pointer Form</h2>
-<ol>
-  <li><div>Write both declarations side by side:
+</div></li>
+</ol><h2>Pitfalls — Session 3</h2><ol>
+<li><div><code>'\0'</code> vs <code>'0'</code>: null is 0, digit zero is 48. Confusing them corrupts strings.</div></li>
+<li><div>Storing <code>getchar()</code> in <code>char</code>: EOF check breaks. Always use <code>int</code>.</div></li>
+<li><div>Comparing strings with <code>==</code>: compares addresses, not content. Use <code>strcmp()</code>. (Relevant here and next session.)</div></li>
+<li><div>Signed vs unsigned char: platform-defined. Be explicit when signedness matters.</div></li>
+</ol><!-- ══════════════════════════════════════════════════ --><div class="session-label">Session 4 — Strings</div><h2>What a String Is</h2><ol>
+<li><div>State it plainly: C has no string type. A string is a char array with a zero byte at the end. That's the entire definition. Everything else follows from this.</div></li>
+<li><div>Draw "Hello\0" on the board as six labeled boxes: H(72), e(101), l(108), l(108), o(111), \0(0). Point to the last box — this is not optional. It is the contract every string function relies on.</div></li>
+<li><div>Ask: if <code>strlen("Hello")</code> returns 5, how big must the array be? Answer: 6. One extra byte, always, for the terminator.</div></li>
+</ol><h2>Array Form vs Pointer Form</h2><ol>
+<li><div>Write both declarations side by side:
     <pre>char  greeting[] = "Hello";    // array — modifiable copy on stack
 const char *msg   = "Hello";   // pointer — points to read-only memory</pre>
-  </div></li>
-  <li><div>Show that modifying <code>greeting[0]</code> works fine. Then show that modifying through <code>msg</code> is undefined behavior — may crash, may silently corrupt.</div></li>
-  <li><div>Explain the rule: if you need to modify the string, use the array form. If you're just reading or passing around, a pointer is fine — but mark it <code>const</code>.</div></li>
-</ol>
-
-<h2>Essential String Functions</h2>
-<ol>
-  <li><div>Walk through the unsafe versions first — <code>strcpy</code>, <code>strcat</code>, <code>sprintf</code> — and name the problem: no size limit, writes until null terminator regardless of your buffer size.</div></li>
-  <li><div>Show the safe replacements: <code>strncpy</code>, <code>strncat</code>, <code>snprintf</code>. These take an explicit size argument. Make a habit: always use the <code>n</code> variants.</div></li>
-  <li><div>Warn about <code>strncpy</code>'s trap: if the source is longer than n, no null terminator is added. Always set the last byte manually:
+</div></li>
+<li><div>Show that modifying <code>greeting[0]</code> works fine. Then show that modifying through <code>msg</code> is undefined behavior — may crash, may silently corrupt.</div></li>
+<li><div>Explain the rule: if you need to modify the string, use the array form. If you're just reading or passing around, a pointer is fine — but mark it <code>const</code>.</div></li>
+</ol><h2>Essential String Functions</h2><ol>
+<li><div>Walk through the unsafe versions first — <code>strcpy</code>, <code>strcat</code>, <code>sprintf</code> — and name the problem: no size limit, writes until null terminator regardless of your buffer size.</div></li>
+<li><div>Show the safe replacements: <code>strncpy</code>, <code>strncat</code>, <code>snprintf</code>. These take an explicit size argument. Make a habit: always use the <code>n</code> variants.</div></li>
+<li><div>Warn about <code>strncpy</code>'s trap: if the source is longer than n, no null terminator is added. Always set the last byte manually:
     <pre>strncpy(buf, src, sizeof(buf) - 1);
 buf[sizeof(buf) - 1] = '\0';</pre>
-  </div></li>
-  <li><div>Show <code>strcmp</code>. Ask: what does it return when strings are equal? Most say <code>true</code> or <code>1</code>. Answer: 0. Always check <code>strcmp(...) == 0</code>, not just <code>strcmp(...)</code>.</div></li>
-  <li><div>Show <code>strlen</code> vs <code>sizeof</code>. Write both on the board for the same array. <code>strlen</code> counts visible characters. <code>sizeof</code> counts total array bytes — including the <code>'\0'</code> slot. On a pointer, <code>sizeof</code> gives the pointer size (8), not the string length.</div></li>
-</ol>
-
-<h2>Strings Are Pointers</h2>
-<ol>
-  <li><div>Explain: passing a string to a function passes a <code>char *</code> — the address of the first character. The function knows nothing about the buffer size. This is why every write function needs a separate size argument.</div></li>
-  <li><div>Show the traversal pattern with a pointer:
+</div></li>
+<li><div>Show <code>strcmp</code>. Ask: what does it return when strings are equal? Most say <code>true</code> or <code>1</code>. Answer: 0. Always check <code>strcmp(...) == 0</code>, not just <code>strcmp(...)</code>.</div></li>
+<li><div>Show <code>strlen</code> vs <code>sizeof</code>. Write both on the board for the same array. <code>strlen</code> counts visible characters. <code>sizeof</code> counts total array bytes — including the <code>'\0'</code> slot. On a pointer, <code>sizeof</code> gives the pointer size (8), not the string length.</div></li>
+</ol><h2>Strings Are Pointers</h2><ol>
+<li><div>Explain: passing a string to a function passes a <code>char *</code> — the address of the first character. The function knows nothing about the buffer size. This is why every write function needs a separate size argument.</div></li>
+<li><div>Show the traversal pattern with a pointer:
     <pre>char *p = "Hello";
 while (*p != '\0') {
     putchar(*p);
     p++;
 }</pre>
-  </div></li>
-  <li><div>Ask: why does <code>while (*p)</code> work without the explicit <code>!= '\0'</code> comparison? Answer: <code>'\0'</code> has value 0, which is falsy. The loop terminates naturally when the pointer reaches the null byte.</div></li>
-</ol>
-
-<h2>fgets and Input</h2>
-<ol>
-  <li><div>Show why <code>scanf("%s", buf)</code> is dangerous: no length limit, stops at whitespace, can't read full names. Never use it unguarded.</div></li>
-  <li><div>Show <code>fgets</code> as the replacement: reads a full line, respects buffer size, includes the newline.
+</div></li>
+<li><div>Ask: why does <code>while (*p)</code> work without the explicit <code>!= '\0'</code> comparison? Answer: <code>'\0'</code> has value 0, which is falsy. The loop terminates naturally when the pointer reaches the null byte.</div></li>
+</ol><h2>fgets and Input</h2><ol>
+<li><div>Show why <code>scanf("%s", buf)</code> is dangerous: no length limit, stops at whitespace, can't read full names. Never use it unguarded.</div></li>
+<li><div>Show <code>fgets</code> as the replacement: reads a full line, respects buffer size, includes the newline.
     <pre>fgets(buf, sizeof(buf), stdin);
 buf[strcspn(buf, "\n")] = '\0';   // strip the newline immediately</pre>
-  </div></li>
-  <li><div>Ask: what goes wrong if you forget to strip the newline before calling <code>strcmp</code>? Answer: the comparison always fails because the buffer contains <code>"hello\n"</code>, not <code>"hello"</code>.</div></li>
-</ol>
-
-<h2>Pitfalls — Session 4</h2>
-<ol>
-  <li><div>Buffer too small: <code>char buf[5] = "Hello"</code> — no room for <code>'\0'</code>. Always size + 1.</div></li>
-  <li><div>Comparing strings with <code>==</code>: compares addresses. Use <code>strcmp() == 0</code>.</div></li>
-  <li><div><code>strcpy</code> without size: overflows if source is longer than buffer. Use <code>strncpy</code> + manual termination, or <code>snprintf</code>.</div></li>
-  <li><div><code>strncpy</code> without manual termination: if source ≥ n, no <code>'\0'</code> added. Always set last byte.</div></li>
-  <li><div>Modifying a string literal: undefined behavior. Use array form for mutable strings.</div></li>
-  <li><div>Forgetting to strip <code>fgets</code> newline: all string comparisons silently fail.</div></li>
-  <li><div><code>strlen</code> vs <code>sizeof</code> on a pointer: <code>sizeof(ptr)</code> is 8, not the string length. Only use <code>sizeof</code> on the array itself.</div></li>
-  <li><div>No null terminator when building strings manually: every string function will read past the end. Always append <code>'\0'</code> when constructing strings byte by byte.</div></li>
-</ol>
-
-<h2>Wrap-up</h2>
-<ol>
-  <li><div>Draw the chain on the board: a variable has a type → a type determines byte width and interpretation → char is a 1-byte integer → a string is a char array terminated by the zero byte. Each concept builds directly on the previous one.</div></li>
-  <li><div>The three rules that prevent most string bugs: always size + 1 for the terminator · compare with <code>strcmp</code>, never <code>==</code> · always use <code>fgets</code> or the <code>n</code>-variants of string functions.</div></li>
-  <li><div>Bridge forward: everything from here — file I/O, command-line arguments, parsing — involves reading text into buffers and processing it character by character or line by line. This is the foundation.</div></li>
-</ol>
-
+</div></li>
+<li><div>Ask: what goes wrong if you forget to strip the newline before calling <code>strcmp</code>? Answer: the comparison always fails because the buffer contains <code>"hello\n"</code>, not <code>"hello"</code>.</div></li>
+</ol><h2>Pitfalls — Session 4</h2><ol>
+<li><div>Buffer too small: <code>char buf[5] = "Hello"</code> — no room for <code>'\0'</code>. Always size + 1.</div></li>
+<li><div>Comparing strings with <code>==</code>: compares addresses. Use <code>strcmp() == 0</code>.</div></li>
+<li><div><code>strcpy</code> without size: overflows if source is longer than buffer. Use <code>strncpy</code> + manual termination, or <code>snprintf</code>.</div></li>
+<li><div><code>strncpy</code> without manual termination: if source ≥ n, no <code>'\0'</code> added. Always set last byte.</div></li>
+<li><div>Modifying a string literal: undefined behavior. Use array form for mutable strings.</div></li>
+<li><div>Forgetting to strip <code>fgets</code> newline: all string comparisons silently fail.</div></li>
+<li><div><code>strlen</code> vs <code>sizeof</code> on a pointer: <code>sizeof(ptr)</code> is 8, not the string length. Only use <code>sizeof</code> on the array itself.</div></li>
+<li><div>No null terminator when building strings manually: every string function will read past the end. Always append <code>'\0'</code> when constructing strings byte by byte.</div></li>
+</ol><h2>Wrap-up</h2><ol>
+<li><div>Draw the chain on the board: a variable has a type → a type determines byte width and interpretation → char is a 1-byte integer → a string is a char array terminated by the zero byte. Each concept builds directly on the previous one.</div></li>
+<li><div>The three rules that prevent most string bugs: always size + 1 for the terminator · compare with <code>strcmp</code>, never <code>==</code> · always use <code>fgets</code> or the <code>n</code>-variants of string functions.</div></li>
+<li><div>Bridge forward: everything from here — file I/O, command-line arguments, parsing — involves reading text into buffers and processing it character by character or line by line. This is the foundation.</div></li>
+</ol></main>
 </body>
 </html>

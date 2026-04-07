@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Process Layout — Machine Environment</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f; --surface: #0d1320; --surface2: #141d2f; --border: #1e2d4a;
@@ -67,297 +68,258 @@
     .pitfalls { grid-template-columns: 1fr; }
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">3 / 3</span>
-  <span>Machine Environment</span>
-  <div class="nav-links">
-    <a href="vm-01-virtual-memory.html">Virtual Memory</a>
-    <a href="vm-02-paging.html">Paging</a>
-    <a href="vm-03-process-layout.html" class="active">Process Layout</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">3 / 3</span>
+<span>Machine Environment</span>
+<div class="nav-links">
+<a href="vm-01-virtual-memory.html">Virtual Memory</a>
+<a href="vm-02-paging.html">Paging</a>
+<a class="active" href="vm-03-process-layout.html">Process Layout</a>
+</div>
 </nav>
-
 <header class="hero">
-  <div class="number">Machine Environment · 03</div>
-  <h1><span class="highlight">Process Layout</span></h1>
-  <p class="subtitle">A running C program's address space is divided into distinct segments — each with different permissions, lifetimes, and growth behavior. Every variable you declare lives in one of them.</p>
+<div class="number">Machine Environment · 03</div>
+<h1><span class="highlight">Process Layout</span></h1>
+<p class="subtitle">A running C program's address space is divided into distinct segments — each with different permissions, lifetimes, and growth behavior. Every variable you declare lives in one of them.</p>
 </header>
-
-<main class="content">
-
-  <div class="layer-badge">Machine Environment Layer</div>
-
-  <h2>The Segments</h2>
-
-  <p>When the OS loads your compiled C program, it maps several regions into the process's virtual address space. These are not arbitrary — each segment corresponds to a distinct kind of data with distinct rules about who can access it, whether it can grow, and how long it lives.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 560" width="100%" height="560">
-      <defs>
-        <marker id="seg-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7fa3"/>
-        </marker>
-      </defs>
-
-      <!-- Outer container -->
-      <rect x="200" y="10" width="240" height="540" rx="8"
-            fill="rgba(13,19,32,0.9)" stroke="#1e2d4a" stroke-width="1.5"/>
-
-      <!-- Address labels left side -->
-      <text x="188" y="26"  text-anchor="end" fill="#6b7fa3" font-size="10">high addr</text>
-      <text x="188" y="544" text-anchor="end" fill="#6b7fa3" font-size="10">low addr</text>
-
-      <!-- ── Kernel space (unmapped to user) ── -->
-      <rect x="200" y="10" width="240" height="50" rx="8" fill="rgba(255,82,82,0.07)" stroke="none"/>
-      <rect x="200" y="10" width="240" height="50" rx="0" fill="rgba(255,82,82,0.07)" stroke="none"/>
-      <!-- top-rounded corners only hack: overlay -->
-      <text x="320" y="32"  text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">kernel space</text>
-      <text x="320" y="50"  text-anchor="middle" fill="#6b7fa3" font-size="10">OS lives here — user code cannot touch</text>
-      <line x1="200" y1="60" x2="440" y2="60" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── Stack ── -->
-      <rect x="200" y="61" width="240" height="80" rx="0" fill="rgba(179,136,255,0.09)" stroke="none"/>
-      <text x="320" y="88"  text-anchor="middle" fill="#b388ff" font-size="14" font-weight="700">stack</text>
-      <text x="320" y="106" text-anchor="middle" fill="#6b7fa3" font-size="10">local variables, function args,</text>
-      <text x="320" y="120" text-anchor="middle" fill="#6b7fa3" font-size="10">return addresses · grows ↓</text>
-      <!-- grow arrow -->
-      <path d="M 420 75 L 420 130" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#seg-arr)"/>
-      <text x="432" y="105" fill="#b388ff" font-size="10">grows</text>
-      <text x="432" y="118" fill="#b388ff" font-size="10">down</text>
-      <line x1="200" y1="141" x2="440" y2="141" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── Unmapped gap ── -->
-      <rect x="200" y="142" width="240" height="30" rx="0" fill="rgba(30,45,74,0.5)" stroke="none"/>
-      <text x="320" y="161" text-anchor="middle" fill="#6b7fa3" font-size="10" font-style="italic">guard gap — unmapped</text>
-      <line x1="200" y1="172" x2="440" y2="172" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── mmap / shared libs ── -->
-      <rect x="200" y="173" width="240" height="80" rx="0" fill="rgba(0,229,255,0.07)" stroke="none"/>
-      <text x="320" y="198" text-anchor="middle" fill="#00e5ff" font-size="14" font-weight="700">mmap region</text>
-      <text x="320" y="216" text-anchor="middle" fill="#6b7fa3" font-size="10">shared libraries (.so), file mappings,</text>
-      <text x="320" y="230" text-anchor="middle" fill="#6b7fa3" font-size="10">anonymous mmap allocations</text>
-      <line x1="200" y1="253" x2="440" y2="253" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── Heap ── -->
-      <rect x="200" y="254" width="240" height="80" rx="0" fill="rgba(105,240,174,0.09)" stroke="none"/>
-      <text x="320" y="279" text-anchor="middle" fill="#69f0ae" font-size="14" font-weight="700">heap</text>
-      <text x="320" y="297" text-anchor="middle" fill="#6b7fa3" font-size="10">malloc / free · grows ↑</text>
-      <text x="320" y="311" text-anchor="middle" fill="#6b7fa3" font-size="10">managed by allocator</text>
-      <!-- grow arrow -->
-      <path d="M 420 333 L 420 270" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#seg-arr)"/>
-      <text x="432" y="310" fill="#69f0ae" font-size="10">grows</text>
-      <text x="432" y="323" fill="#69f0ae" font-size="10">up</text>
-      <line x1="200" y1="334" x2="440" y2="334" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── BSS ── -->
-      <rect x="200" y="335" width="240" height="55" rx="0" fill="rgba(68,138,255,0.08)" stroke="none"/>
-      <text x="320" y="358" text-anchor="middle" fill="#448aff" font-size="14" font-weight="700">BSS segment</text>
-      <text x="320" y="376" text-anchor="middle" fill="#6b7fa3" font-size="10">uninitialized globals · zero-filled by OS</text>
-      <line x1="200" y1="390" x2="440" y2="390" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── Data ── -->
-      <rect x="200" y="391" width="240" height="55" rx="0" fill="rgba(255,171,64,0.09)" stroke="none"/>
-      <text x="320" y="414" text-anchor="middle" fill="#ffab40" font-size="14" font-weight="700">data segment</text>
-      <text x="320" y="432" text-anchor="middle" fill="#6b7fa3" font-size="10">initialized globals &amp; static vars</text>
-      <line x1="200" y1="446" x2="440" y2="446" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── ROdata ── -->
-      <rect x="200" y="447" width="240" height="48" rx="0" fill="rgba(255,215,64,0.08)" stroke="none"/>
-      <text x="320" y="468" text-anchor="middle" fill="#ffd740" font-size="14" font-weight="700">rodata</text>
-      <text x="320" y="485" text-anchor="middle" fill="#6b7fa3" font-size="10">string literals, const globals · read-only</text>
-      <line x1="200" y1="495" x2="440" y2="495" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- ── Text ── -->
-      <rect x="200" y="496" width="240" height="54" rx="0" fill="rgba(255,128,171,0.08)" stroke="none"/>
-      <text x="320" y="520" text-anchor="middle" fill="#ff80ab" font-size="14" font-weight="700">text segment</text>
-      <text x="320" y="538" text-anchor="middle" fill="#6b7fa3" font-size="10">compiled machine code · read + execute only</text>
-
-      <!-- Permission annotations left -->
-      <text x="188" y="100" text-anchor="end" fill="#b388ff" font-size="9">R/W</text>
-      <text x="188" y="212" text-anchor="end" fill="#00e5ff" font-size="9">varies</text>
-      <text x="188" y="294" text-anchor="end" fill="#69f0ae" font-size="9">R/W</text>
-      <text x="188" y="363" text-anchor="end" fill="#448aff" font-size="9">R/W</text>
-      <text x="188" y="419" text-anchor="end" fill="#ffab40" font-size="9">R/W</text>
-      <text x="188" y="468" text-anchor="end" fill="#ffd740" font-size="9">R  </text>
-      <text x="188" y="520" text-anchor="end" fill="#ff80ab" font-size="9">R/X</text>
-    </svg>
-    <div class="caption">A Linux process address space. High addresses at top, low at bottom. Stack grows down from high addresses; heap grows up from low ones. The two meet in the middle under heavy use.</div>
-  </div>
-
-  <h2>Each Segment in Detail</h2>
-
-  <h3>Text Segment — your code</h3>
-  <p>The compiled machine instructions live here. It is mapped <strong>read-only and executable</strong> — the program can jump into it and execute instructions, but cannot modify it at runtime. This prevents accidentally (or maliciously) overwriting instructions. All calls to functions like <code>main</code>, <code>printf</code>, and your own functions land in this segment.</p>
-
-  <pre><span class="type">int</span> <span class="func">add</span>(<span class="type">int</span> a, <span class="type">int</span> b) {
+<main class="content" id="main-content">
+<div class="layer-badge">Machine Environment Layer</div>
+<h2>The Segments</h2>
+<p>When the OS loads your compiled C program, it maps several regions into the process's virtual address space. These are not arbitrary — each segment corresponds to a distinct kind of data with distinct rules about who can access it, whether it can grow, and how long it lives.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: The Segments" height="560" role="img" viewbox="0 0 720 560" width="100%">
+<defs>
+<marker id="seg-arr" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7fa3"></path>
+</marker>
+</defs>
+<!-- Outer container -->
+<rect fill="rgba(13,19,32,0.9)" height="540" rx="8" stroke="#1e2d4a" stroke-width="1.5" width="240" x="200" y="10"></rect>
+<!-- Address labels left side -->
+<text fill="#6b7fa3" font-size="10" text-anchor="end" x="188" y="26">high addr</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="end" x="188" y="544">low addr</text>
+<!-- ── Kernel space (unmapped to user) ── -->
+<rect fill="rgba(255,82,82,0.07)" height="50" rx="8" stroke="none" width="240" x="200" y="10"></rect>
+<rect fill="rgba(255,82,82,0.07)" height="50" rx="0" stroke="none" width="240" x="200" y="10"></rect>
+<!-- top-rounded corners only hack: overlay -->
+<text fill="#ff5252" font-size="12" font-weight="600" text-anchor="middle" x="320" y="32">kernel space</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="50">OS lives here — user code cannot touch</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="60" y2="60"></line>
+<!-- ── Stack ── -->
+<rect fill="rgba(179,136,255,0.09)" height="80" rx="0" stroke="none" width="240" x="200" y="61"></rect>
+<text fill="#b388ff" font-size="14" font-weight="700" text-anchor="middle" x="320" y="88">stack</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="106">local variables, function args,</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="120">return addresses · grows ↓</text>
+<!-- grow arrow -->
+<path d="M 420 75 L 420 130" fill="none" marker-end="url(#seg-arr)" stroke="#b388ff" stroke-width="1.5"></path>
+<text fill="#b388ff" font-size="10" x="432" y="105">grows</text>
+<text fill="#b388ff" font-size="10" x="432" y="118">down</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="141" y2="141"></line>
+<!-- ── Unmapped gap ── -->
+<rect fill="rgba(30,45,74,0.5)" height="30" rx="0" stroke="none" width="240" x="200" y="142"></rect>
+<text fill="#6b7fa3" font-size="10" font-style="italic" text-anchor="middle" x="320" y="161">guard gap — unmapped</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="172" y2="172"></line>
+<!-- ── mmap / shared libs ── -->
+<rect fill="rgba(0,229,255,0.07)" height="80" rx="0" stroke="none" width="240" x="200" y="173"></rect>
+<text fill="#00e5ff" font-size="14" font-weight="700" text-anchor="middle" x="320" y="198">mmap region</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="216">shared libraries (.so), file mappings,</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="230">anonymous mmap allocations</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="253" y2="253"></line>
+<!-- ── Heap ── -->
+<rect fill="rgba(105,240,174,0.09)" height="80" rx="0" stroke="none" width="240" x="200" y="254"></rect>
+<text fill="#69f0ae" font-size="14" font-weight="700" text-anchor="middle" x="320" y="279">heap</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="297">malloc / free · grows ↑</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="311">managed by allocator</text>
+<!-- grow arrow -->
+<path d="M 420 333 L 420 270" fill="none" marker-end="url(#seg-arr)" stroke="#69f0ae" stroke-width="1.5"></path>
+<text fill="#69f0ae" font-size="10" x="432" y="310">grows</text>
+<text fill="#69f0ae" font-size="10" x="432" y="323">up</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="334" y2="334"></line>
+<!-- ── BSS ── -->
+<rect fill="rgba(68,138,255,0.08)" height="55" rx="0" stroke="none" width="240" x="200" y="335"></rect>
+<text fill="#448aff" font-size="14" font-weight="700" text-anchor="middle" x="320" y="358">BSS segment</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="376">uninitialized globals · zero-filled by OS</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="390" y2="390"></line>
+<!-- ── Data ── -->
+<rect fill="rgba(255,171,64,0.09)" height="55" rx="0" stroke="none" width="240" x="200" y="391"></rect>
+<text fill="#ffab40" font-size="14" font-weight="700" text-anchor="middle" x="320" y="414">data segment</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="432">initialized globals &amp; static vars</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="446" y2="446"></line>
+<!-- ── ROdata ── -->
+<rect fill="rgba(255,215,64,0.08)" height="48" rx="0" stroke="none" width="240" x="200" y="447"></rect>
+<text fill="#ffd740" font-size="14" font-weight="700" text-anchor="middle" x="320" y="468">rodata</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="485">string literals, const globals · read-only</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="200" x2="440" y1="495" y2="495"></line>
+<!-- ── Text ── -->
+<rect fill="rgba(255,128,171,0.08)" height="54" rx="0" stroke="none" width="240" x="200" y="496"></rect>
+<text fill="#ff80ab" font-size="14" font-weight="700" text-anchor="middle" x="320" y="520">text segment</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="538">compiled machine code · read + execute only</text>
+<!-- Permission annotations left -->
+<text fill="#b388ff" font-size="9" text-anchor="end" x="188" y="100">R/W</text>
+<text fill="#00e5ff" font-size="9" text-anchor="end" x="188" y="212">varies</text>
+<text fill="#69f0ae" font-size="9" text-anchor="end" x="188" y="294">R/W</text>
+<text fill="#448aff" font-size="9" text-anchor="end" x="188" y="363">R/W</text>
+<text fill="#ffab40" font-size="9" text-anchor="end" x="188" y="419">R/W</text>
+<text fill="#ffd740" font-size="9" text-anchor="end" x="188" y="468">R  </text>
+<text fill="#ff80ab" font-size="9" text-anchor="end" x="188" y="520">R/X</text>
+</svg>
+<div class="caption">A Linux process address space. High addresses at top, low at bottom. Stack grows down from high addresses; heap grows up from low ones. The two meet in the middle under heavy use.</div>
+</div>
+<h2>Each Segment in Detail</h2>
+<h3>Text Segment — your code</h3>
+<p>The compiled machine instructions live here. It is mapped <strong>read-only and executable</strong> — the program can jump into it and execute instructions, but cannot modify it at runtime. This prevents accidentally (or maliciously) overwriting instructions. All calls to functions like <code>main</code>, <code>printf</code>, and your own functions land in this segment.</p>
+<pre><span class="type">int</span> <span class="func">add</span>(<span class="type">int</span> a, <span class="type">int</span> b) {
     <span class="kw">return</span> a + b;   <span class="comment">// these instructions live in the text segment</span>
 }                   <span class="comment">// read-only, execute-only — cannot be written at runtime</span></pre>
-
-  <h3>Read-Only Data (rodata) — string literals and const globals</h3>
-  <p>String literals and global <code>const</code> variables are placed here by the compiler. The pages are mapped <strong>read-only</strong> — no write permission. This is why writing to a string literal crashes: the page table entry has the write bit cleared, and the hardware enforces it.</p>
-
-  <pre><span class="kw">const</span> <span class="type">char</span> *msg = <span class="str">"Hello"</span>;  <span class="comment">// "Hello" lives in rodata — read-only pages</span>
+<h3>Read-Only Data (rodata) — string literals and const globals</h3>
+<p>String literals and global <code>const</code> variables are placed here by the compiler. The pages are mapped <strong>read-only</strong> — no write permission. This is why writing to a string literal crashes: the page table entry has the write bit cleared, and the hardware enforces it.</p>
+<pre><span class="kw">const</span> <span class="type">char</span> *msg = <span class="str">"Hello"</span>;  <span class="comment">// "Hello" lives in rodata — read-only pages</span>
 msg[<span class="num">0</span>] = <span class="str">'h'</span>;               <span class="comment">// ← SIGSEGV: write to read-only page</span>
 
 <span class="kw">const</span> <span class="type">int</span> MAX = <span class="num">100</span>;        <span class="comment">// MAX may also be placed in rodata</span></pre>
-
-  <h3>Data Segment — initialized globals and statics</h3>
-  <p>Global variables and <code>static</code> local variables that have an explicit initial value are stored here. The initial values are copied from the binary on disk into these pages when the process loads. They persist for the entire lifetime of the process and are readable and writable.</p>
-
-  <pre><span class="type">int</span> counter = <span class="num">0</span>;            <span class="comment">// data segment — initialized global</span>
+<h3>Data Segment — initialized globals and statics</h3>
+<p>Global variables and <code>static</code> local variables that have an explicit initial value are stored here. The initial values are copied from the binary on disk into these pages when the process loads. They persist for the entire lifetime of the process and are readable and writable.</p>
+<pre><span class="type">int</span> counter = <span class="num">0</span>;            <span class="comment">// data segment — initialized global</span>
 <span class="kw">static</span> <span class="type">double</span> factor = <span class="num">2.5</span>;  <span class="comment">// data segment — initialized static</span>
 
 <span class="type">int</span> <span class="func">main</span>(<span class="type">void</span>) {
     <span class="kw">static</span> <span class="type">int</span> call_count = <span class="num">0</span>; <span class="comment">// data segment — persists across calls</span>
     call_count++;
 }</pre>
-
-  <h3>BSS Segment — uninitialized globals</h3>
-  <p>Global and static variables that are declared without an initializer go into BSS (<em>Block Started by Symbol</em>). These are not stored in the binary — the OS zero-fills these pages when the process starts. A large array of uninitialized globals takes no space on disk but is zeroed automatically in memory at startup.</p>
-
-  <pre><span class="type">int</span>    scores[<span class="num">1000</span>];          <span class="comment">// BSS — not in binary, zeroed by OS at start</span>
+<h3>BSS Segment — uninitialized globals</h3>
+<p>Global and static variables that are declared without an initializer go into BSS (<em>Block Started by Symbol</em>). These are not stored in the binary — the OS zero-fills these pages when the process starts. A large array of uninitialized globals takes no space on disk but is zeroed automatically in memory at startup.</p>
+<pre><span class="type">int</span>    scores[<span class="num">1000</span>];          <span class="comment">// BSS — not in binary, zeroed by OS at start</span>
 <span class="type">double</span> table[<span class="num">10000</span>];          <span class="comment">// BSS — 80 KB of guaranteed zeros, no disk cost</span>
 
 <span class="comment">// Global variables you don't initialize are guaranteed to be 0.</span>
 <span class="comment">// This is NOT true for local (stack) variables.</span></pre>
-
-  <div class="tip">
-    <strong>BSS zeros are guaranteed — stack zeros are not</strong><br>
+<div class="tip">
+<strong>BSS zeros are guaranteed — stack zeros are not</strong><br/>
     Global and static variables start at zero because the OS zero-fills BSS pages. Local variables on the stack contain whatever bytes were left by the previous function that used that stack space. This is the source of the "uninitialized local variable contains garbage" rule — it is a virtual memory implementation detail, not an arbitrary C decision.
   </div>
-
-  <h3>Heap — dynamic allocation</h3>
-  <p>The heap is where <code>malloc</code>, <code>calloc</code>, and <code>realloc</code> allocate memory from. It starts just above the data/BSS segments and grows upward. The C library's allocator (glibc's <code>ptmalloc</code>, for example) manages a pool of pages it has requested from the OS and subdivides them for individual allocations. When the pool is exhausted, the allocator calls <code>brk()</code> or <code>mmap()</code> to request more pages from the OS.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 220" width="100%" height="220">
-      <defs>
-        <marker id="hg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
-        </marker>
-        <marker id="hb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
-        </marker>
-      </defs>
-
-      <!-- Heap bar -->
-      <rect x="40" y="20" width="480" height="80" rx="6" fill="rgba(13,19,32,0.8)" stroke="#1e2d4a" stroke-width="1.5"/>
-
-      <!-- Allocated blocks -->
-      <rect x="42" y="22"  width="90" height="76" rx="3" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="87"  y="58"  text-anchor="middle" fill="#69f0ae" font-size="11">in use</text>
-      <text x="87"  y="74"  text-anchor="middle" fill="#6b7fa3" font-size="9">malloc A</text>
-
-      <rect x="134" y="22" width="60" height="76" rx="3" fill="rgba(255,82,82,0.1)"  stroke="#ff5252" stroke-width="1" stroke-dasharray="4,2"/>
-      <text x="164" y="58"  text-anchor="middle" fill="#ff5252" font-size="10">freed</text>
-      <text x="164" y="74"  text-anchor="middle" fill="#6b7fa3" font-size="9">hole</text>
-
-      <rect x="196" y="22" width="120" height="76" rx="3" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="256" y="58"  text-anchor="middle" fill="#69f0ae" font-size="11">in use</text>
-      <text x="256" y="74"  text-anchor="middle" fill="#6b7fa3" font-size="9">malloc B</text>
-
-      <rect x="318" y="22" width="80" height="76" rx="3" fill="rgba(255,82,82,0.1)"  stroke="#ff5252" stroke-width="1" stroke-dasharray="4,2"/>
-      <text x="358" y="58"  text-anchor="middle" fill="#ff5252" font-size="10">freed</text>
-      <text x="358" y="74"  text-anchor="middle" fill="#6b7fa3" font-size="9">hole</text>
-
-      <rect x="400" y="22" width="70" height="76" rx="3" fill="rgba(105,240,174,0.15)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="435" y="58"  text-anchor="middle" fill="#69f0ae" font-size="11">in use</text>
-      <text x="435" y="74"  text-anchor="middle" fill="#6b7fa3" font-size="9">malloc C</text>
-
-      <!-- Free space at top -->
-      <rect x="472" y="22" width="46" height="76" rx="3" fill="rgba(30,45,74,0.8)" stroke="#1e2d4a" stroke-width="1" stroke-dasharray="3,2"/>
-      <text x="495" y="64"  text-anchor="middle" fill="#6b7fa3" font-size="10">free</text>
-
-      <!-- brk pointer -->
-      <path d="M 518 60 L 555 60" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#hb)"/>
-      <text x="560" y="56" fill="#ffab40" font-size="11" font-weight="600">brk</text>
-      <text x="560" y="72" fill="#6b7fa3" font-size="10">heap top</text>
-
-      <!-- grow arrow -->
-      <path d="M 610 110 L 650 110" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#hg)"/>
-      <text x="660" y="114" fill="#69f0ae" font-size="10">grows</text>
-
-      <!-- Labels -->
-      <text x="280" y="130" text-anchor="middle" fill="#6b7fa3" font-size="12">Heap managed by the C library allocator</text>
-      <text x="280" y="150" text-anchor="middle" fill="#6b7fa3" font-size="11">free() returns blocks to the allocator's free list — not immediately to the OS</text>
-
-      <!-- Fragmentation illustration -->
-      <text x="40" y="186" fill="#ff5252" font-size="11" font-weight="600">Fragmentation:</text>
-      <text x="160" y="186" fill="#6b7fa3" font-size="11">many small freed holes can prevent a large allocation from succeeding</text>
-      <text x="40" y="206" fill="#6b7fa3" font-size="11">even when total free bytes are sufficient — the contiguous space isn't there</text>
-    </svg>
-    <div class="caption">The heap grows upward from the brk pointer. Freed memory returns to the allocator's free list. Fragmentation creates holes that may prevent future large allocations.</div>
-  </div>
-
-  <h3>Stack — local variables and call frames</h3>
-  <p>The stack grows <em>downward</em> from high addresses. Each function call pushes a <strong>stack frame</strong> onto the stack — a block of memory containing the function's local variables, its arguments, and the return address. When the function returns, its frame is popped: the stack pointer moves back up, reclaiming that space.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 300" width="100%" height="300">
-      <defs>
-        <marker id="sd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#b388ff"/>
-        </marker>
-      </defs>
-
-      <!-- Code side -->
-      <text x="150" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">call sequence</text>
-      <rect x="20" y="28" width="260" height="250" rx="6" fill="rgba(13,19,32,0.8)" stroke="#1e2d4a" stroke-width="1.5"/>
-
-      <text x="40" y="55"  fill="#b388ff" font-size="13" font-weight="600">main()</text>
-      <text x="60" y="75"  fill="#ffab40" font-size="12">→ calls foo()</text>
-      <text x="80" y="95"  fill="#69f0ae" font-size="12">→ calls bar()</text>
-      <text x="100" y="115" fill="#00e5ff" font-size="12">→ (executing)</text>
-      <text x="80" y="145" fill="#69f0ae" font-size="11">bar() returns</text>
-      <text x="60" y="165" fill="#ffab40" font-size="11">foo() returns</text>
-      <text x="40" y="185" fill="#b388ff" font-size="11">main() continues</text>
-
-      <!-- Stack side -->
-      <text x="540" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">stack (grows down ↓)</text>
-
-      <rect x="400" y="28" width="280" height="250" rx="6" fill="rgba(13,19,32,0.8)" stroke="#1e2d4a" stroke-width="1.5"/>
-
-      <!-- main frame -->
-      <rect x="410" y="38" width="260" height="55" rx="4" fill="rgba(179,136,255,0.1)" stroke="#b388ff" stroke-width="1.5"/>
-      <text x="540" y="60" text-anchor="middle" fill="#b388ff" font-size="12" font-weight="600">main() frame</text>
-      <text x="540" y="80" text-anchor="middle" fill="#6b7fa3" font-size="10">local vars · saved regs · ret addr</text>
-
-      <!-- foo frame -->
-      <rect x="410" y="98" width="260" height="55" rx="4" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="540" y="120" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">foo() frame</text>
-      <text x="540" y="140" text-anchor="middle" fill="#6b7fa3" font-size="10">local vars · saved regs · ret addr</text>
-
-      <!-- bar frame (current) -->
-      <rect x="410" y="158" width="260" height="55" rx="4" fill="rgba(0,229,255,0.1)" stroke="#00e5ff" stroke-width="2"/>
-      <text x="540" y="180" text-anchor="middle" fill="#00e5ff" font-size="12" font-weight="600">bar() frame  ← current</text>
-      <text x="540" y="200" text-anchor="middle" fill="#6b7fa3" font-size="10">local vars · saved regs · ret addr</text>
-
-      <!-- Stack pointer -->
-      <path d="M 360 213 L 408 213" stroke="#b388ff" stroke-width="2" fill="none" marker-end="url(#sd)"/>
-      <text x="320" y="210" text-anchor="middle" fill="#b388ff" font-size="11" font-weight="600">RSP</text>
-      <text x="320" y="226" text-anchor="middle" fill="#6b7fa3" font-size="10">stack ptr</text>
-
-      <!-- Free stack space below -->
-      <rect x="410" y="218" width="260" height="52" rx="4" fill="rgba(30,45,74,0.5)" stroke="#1e2d4a" stroke-width="1" stroke-dasharray="4,2"/>
-      <text x="540" y="249" text-anchor="middle" fill="#6b7fa3" font-size="10">unused stack space</text>
-
-      <!-- Direction arrow -->
-      <path d="M 690" y1="35" x2="690" y2="200" d="M 690 35 L 690 268" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#sd)"/>
-      <text x="706" y="155" fill="#b388ff" font-size="10">grows</text>
-      <text x="706" y="168" fill="#b388ff" font-size="10">down</text>
-    </svg>
-    <div class="caption">Each function call pushes a frame onto the stack. Frames contain local variables, saved registers, and return addresses. When the function returns, its frame is instantly reclaimed.</div>
-  </div>
-
-  <h2>Where Every Variable Lives</h2>
-
-  <p>Every variable in a C program lives in exactly one of these segments, determined by how it is declared — not by its type.</p>
-
-  <pre><span class="comment">/* ── global scope ─────────────────────────────────── */</span>
+<h3>Heap — dynamic allocation</h3>
+<p>The heap is where <code>malloc</code>, <code>calloc</code>, and <code>realloc</code> allocate memory from. It starts just above the data/BSS segments and grows upward. The C library's allocator (glibc's <code>ptmalloc</code>, for example) manages a pool of pages it has requested from the OS and subdivides them for individual allocations. When the pool is exhausted, the allocator calls <code>brk()</code> or <code>mmap()</code> to request more pages from the OS.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Heap — dynamic allocation" height="220" role="img" viewbox="0 0 720 220" width="100%">
+<defs>
+<marker id="hg" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"></path>
+</marker>
+<marker id="hb" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"></path>
+</marker>
+</defs>
+<!-- Heap bar -->
+<rect fill="rgba(13,19,32,0.8)" height="80" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="480" x="40" y="20"></rect>
+<!-- Allocated blocks -->
+<rect fill="rgba(105,240,174,0.15)" height="76" rx="3" stroke="#69f0ae" stroke-width="1.5" width="90" x="42" y="22"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="87" y="58">in use</text>
+<text fill="#6b7fa3" font-size="9" text-anchor="middle" x="87" y="74">malloc A</text>
+<rect fill="rgba(255,82,82,0.1)" height="76" rx="3" stroke="#ff5252" stroke-dasharray="4,2" stroke-width="1" width="60" x="134" y="22"></rect>
+<text fill="#ff5252" font-size="10" text-anchor="middle" x="164" y="58">freed</text>
+<text fill="#6b7fa3" font-size="9" text-anchor="middle" x="164" y="74">hole</text>
+<rect fill="rgba(105,240,174,0.15)" height="76" rx="3" stroke="#69f0ae" stroke-width="1.5" width="120" x="196" y="22"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="256" y="58">in use</text>
+<text fill="#6b7fa3" font-size="9" text-anchor="middle" x="256" y="74">malloc B</text>
+<rect fill="rgba(255,82,82,0.1)" height="76" rx="3" stroke="#ff5252" stroke-dasharray="4,2" stroke-width="1" width="80" x="318" y="22"></rect>
+<text fill="#ff5252" font-size="10" text-anchor="middle" x="358" y="58">freed</text>
+<text fill="#6b7fa3" font-size="9" text-anchor="middle" x="358" y="74">hole</text>
+<rect fill="rgba(105,240,174,0.15)" height="76" rx="3" stroke="#69f0ae" stroke-width="1.5" width="70" x="400" y="22"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="435" y="58">in use</text>
+<text fill="#6b7fa3" font-size="9" text-anchor="middle" x="435" y="74">malloc C</text>
+<!-- Free space at top -->
+<rect fill="rgba(30,45,74,0.8)" height="76" rx="3" stroke="#1e2d4a" stroke-dasharray="3,2" stroke-width="1" width="46" x="472" y="22"></rect>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="495" y="64">free</text>
+<!-- brk pointer -->
+<path d="M 518 60 L 555 60" fill="none" marker-end="url(#hb)" stroke="#ffab40" stroke-width="2"></path>
+<text fill="#ffab40" font-size="11" font-weight="600" x="560" y="56">brk</text>
+<text fill="#6b7fa3" font-size="10" x="560" y="72">heap top</text>
+<!-- grow arrow -->
+<path d="M 610 110 L 650 110" fill="none" marker-end="url(#hg)" stroke="#69f0ae" stroke-width="2"></path>
+<text fill="#69f0ae" font-size="10" x="660" y="114">grows</text>
+<!-- Labels -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="280" y="130">Heap managed by the C library allocator</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="280" y="150">free() returns blocks to the allocator's free list — not immediately to the OS</text>
+<!-- Fragmentation illustration -->
+<text fill="#ff5252" font-size="11" font-weight="600" x="40" y="186">Fragmentation:</text>
+<text fill="#6b7fa3" font-size="11" x="160" y="186">many small freed holes can prevent a large allocation from succeeding</text>
+<text fill="#6b7fa3" font-size="11" x="40" y="206">even when total free bytes are sufficient — the contiguous space isn't there</text>
+</svg>
+<div class="caption">The heap grows upward from the brk pointer. Freed memory returns to the allocator's free list. Fragmentation creates holes that may prevent future large allocations.</div>
+</div>
+<h3>Stack — local variables and call frames</h3>
+<p>The stack grows <em>downward</em> from high addresses. Each function call pushes a <strong>stack frame</strong> onto the stack — a block of memory containing the function's local variables, its arguments, and the return address. When the function returns, its frame is popped: the stack pointer moves back up, reclaiming that space.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Stack — local variables and call frames" height="300" role="img" viewbox="0 0 720 300" width="100%">
+<defs>
+<marker id="sd" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#b388ff"></path>
+</marker>
+</defs>
+<!-- Code side -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="150" y="18">call sequence</text>
+<rect fill="rgba(13,19,32,0.8)" height="250" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="260" x="20" y="28"></rect>
+<text fill="#b388ff" font-size="13" font-weight="600" x="40" y="55">main()</text>
+<text fill="#ffab40" font-size="12" x="60" y="75">→ calls foo()</text>
+<text fill="#69f0ae" font-size="12" x="80" y="95">→ calls bar()</text>
+<text fill="#00e5ff" font-size="12" x="100" y="115">→ (executing)</text>
+<text fill="#69f0ae" font-size="11" x="80" y="145">bar() returns</text>
+<text fill="#ffab40" font-size="11" x="60" y="165">foo() returns</text>
+<text fill="#b388ff" font-size="11" x="40" y="185">main() continues</text>
+<!-- Stack side -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="540" y="18">stack (grows down ↓)</text>
+<rect fill="rgba(13,19,32,0.8)" height="250" rx="6" stroke="#1e2d4a" stroke-width="1.5" width="280" x="400" y="28"></rect>
+<!-- main frame -->
+<rect fill="rgba(179,136,255,0.1)" height="55" rx="4" stroke="#b388ff" stroke-width="1.5" width="260" x="410" y="38"></rect>
+<text fill="#b388ff" font-size="12" font-weight="600" text-anchor="middle" x="540" y="60">main() frame</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="540" y="80">local vars · saved regs · ret addr</text>
+<!-- foo frame -->
+<rect fill="rgba(255,171,64,0.1)" height="55" rx="4" stroke="#ffab40" stroke-width="1.5" width="260" x="410" y="98"></rect>
+<text fill="#ffab40" font-size="12" font-weight="600" text-anchor="middle" x="540" y="120">foo() frame</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="540" y="140">local vars · saved regs · ret addr</text>
+<!-- bar frame (current) -->
+<rect fill="rgba(0,229,255,0.1)" height="55" rx="4" stroke="#00e5ff" stroke-width="2" width="260" x="410" y="158"></rect>
+<text fill="#00e5ff" font-size="12" font-weight="600" text-anchor="middle" x="540" y="180">bar() frame  ← current</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="540" y="200">local vars · saved regs · ret addr</text>
+<!-- Stack pointer -->
+<path d="M 360 213 L 408 213" fill="none" marker-end="url(#sd)" stroke="#b388ff" stroke-width="2"></path>
+<text fill="#b388ff" font-size="11" font-weight="600" text-anchor="middle" x="320" y="210">RSP</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="320" y="226">stack ptr</text>
+<!-- Free stack space below -->
+<rect fill="rgba(30,45,74,0.5)" height="52" rx="4" stroke="#1e2d4a" stroke-dasharray="4,2" stroke-width="1" width="260" x="410" y="218"></rect>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="540" y="249">unused stack space</text>
+<!-- Direction arrow -->
+<path d="M 690 35 L 690 268" fill="none" marker-end="url(#sd)" stroke="#b388ff" stroke-width="1.5" x2="690" y1="35" y2="200"></path>
+<text fill="#b388ff" font-size="10" x="706" y="155">grows</text>
+<text fill="#b388ff" font-size="10" x="706" y="168">down</text>
+</svg>
+<div class="caption">Each function call pushes a frame onto the stack. Frames contain local variables, saved registers, and return addresses. When the function returns, its frame is instantly reclaimed.</div>
+</div>
+<h2>Where Every Variable Lives</h2>
+<p>Every variable in a C program lives in exactly one of these segments, determined by how it is declared — not by its type.</p>
+<pre><span class="comment">/* ── global scope ─────────────────────────────────── */</span>
 <span class="type">int</span>         g_count = <span class="num">0</span>;      <span class="comment">// data segment    — initialized global</span>
 <span class="type">int</span>         g_scores[<span class="num">100</span>];   <span class="comment">// BSS             — uninitialized global, zeroed</span>
 <span class="kw">const</span> <span class="type">char</span> *greeting = <span class="str">"Hi"</span>; <span class="comment">// ptr in data; "Hi" in rodata</span>
@@ -374,64 +336,54 @@ msg[<span class="num">0</span>] = <span class="str">'h'</span>;               <s
     <span class="type">int</span> *arr = <span class="func">malloc</span>(<span class="num">100</span> * <span class="kw">sizeof</span>(<span class="type">int</span>)); <span class="comment">// heap — lives until free()</span>
     <span class="func">free</span>(arr);
 }</pre>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 200" width="100%" height="200">
-      <!-- Summary table as SVG -->
-      <text x="360" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">Variable → Segment quick reference</text>
-
-      <!-- Headers -->
-      <rect x="20"  y="28" width="200" height="28" rx="3" fill="rgba(30,45,74,0.8)"/>
-      <rect x="222" y="28" width="160" height="28" rx="3" fill="rgba(30,45,74,0.8)"/>
-      <rect x="384" y="28" width="160" height="28" rx="3" fill="rgba(30,45,74,0.8)"/>
-      <rect x="546" y="28" width="154" height="28" rx="3" fill="rgba(30,45,74,0.8)"/>
-      <text x="120" y="47" text-anchor="middle" fill="#6b7fa3" font-size="11" font-weight="600">DECLARATION</text>
-      <text x="302" y="47" text-anchor="middle" fill="#6b7fa3" font-size="11" font-weight="600">SEGMENT</text>
-      <text x="464" y="47" text-anchor="middle" fill="#6b7fa3" font-size="11" font-weight="600">LIFETIME</text>
-      <text x="623" y="47" text-anchor="middle" fill="#6b7fa3" font-size="11" font-weight="600">INIT TO 0?</text>
-
-      <!-- Row 1 -->
-      <text x="120" y="80" text-anchor="middle" fill="#c8d6e5" font-size="11">global int x = 5</text>
-      <text x="302" y="80" text-anchor="middle" fill="#ffab40" font-size="11">data</text>
-      <text x="464" y="80" text-anchor="middle" fill="#c8d6e5" font-size="11">process lifetime</text>
-      <text x="623" y="80" text-anchor="middle" fill="#69f0ae" font-size="11">yes (= 5)</text>
-      <line x1="20" y1="87" x2="700" y2="87" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- Row 2 -->
-      <text x="120" y="108" text-anchor="middle" fill="#c8d6e5" font-size="11">global int x;</text>
-      <text x="302" y="108" text-anchor="middle" fill="#448aff" font-size="11">BSS</text>
-      <text x="464" y="108" text-anchor="middle" fill="#c8d6e5" font-size="11">process lifetime</text>
-      <text x="623" y="108" text-anchor="middle" fill="#69f0ae" font-size="11">yes (= 0)</text>
-      <line x1="20" y1="115" x2="700" y2="115" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- Row 3 -->
-      <text x="120" y="136" text-anchor="middle" fill="#c8d6e5" font-size="11">local int x;</text>
-      <text x="302" y="136" text-anchor="middle" fill="#b388ff" font-size="11">stack</text>
-      <text x="464" y="136" text-anchor="middle" fill="#c8d6e5" font-size="11">enclosing function</text>
-      <text x="623" y="136" text-anchor="middle" fill="#ff5252" font-size="11">NO — garbage</text>
-      <line x1="20" y1="143" x2="700" y2="143" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- Row 4 -->
-      <text x="120" y="164" text-anchor="middle" fill="#c8d6e5" font-size="11">static int x;</text>
-      <text x="302" y="164" text-anchor="middle" fill="#ffab40" font-size="11">data / BSS</text>
-      <text x="464" y="164" text-anchor="middle" fill="#c8d6e5" font-size="11">process lifetime</text>
-      <text x="623" y="164" text-anchor="middle" fill="#69f0ae" font-size="11">yes (= 0)</text>
-      <line x1="20" y1="171" x2="700" y2="171" stroke="#1e2d4a" stroke-width="1"/>
-
-      <!-- Row 5 -->
-      <text x="120" y="192" text-anchor="middle" fill="#c8d6e5" font-size="11">malloc(n)</text>
-      <text x="302" y="192" text-anchor="middle" fill="#69f0ae" font-size="11">heap</text>
-      <text x="464" y="192" text-anchor="middle" fill="#c8d6e5" font-size="11">until free()</text>
-      <text x="623" y="192" text-anchor="middle" fill="#ff5252" font-size="11">NO (use calloc)</text>
-    </svg>
-    <div class="caption">Declaration form determines segment. Only BSS, data, and static variables are zero-initialized. Stack and heap (malloc) are not.</div>
-  </div>
-
-  <h2>The Stack Limit and Stack Overflow</h2>
-
-  <p>The stack is not infinite. The OS sets a limit (typically 8 MB on Linux, adjustable with <code>ulimit -s</code>). If your function calls recurse too deeply or declare very large local arrays, the stack pointer crosses into unmapped memory — a page fault with no recovery. The OS delivers <code>SIGSEGV</code> and the process dies. This is a <strong>stack overflow</strong>.</p>
-
-  <pre><span class="comment">// Deep recursion — each call adds a frame</span>
+<div class="diagram-container">
+<svg aria-label="Diagram: Where Every Variable Lives" height="200" role="img" viewbox="0 0 720 200" width="100%">
+<!-- Summary table as SVG -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="360" y="18">Variable → Segment quick reference</text>
+<!-- Headers -->
+<rect fill="rgba(30,45,74,0.8)" height="28" rx="3" width="200" x="20" y="28"></rect>
+<rect fill="rgba(30,45,74,0.8)" height="28" rx="3" width="160" x="222" y="28"></rect>
+<rect fill="rgba(30,45,74,0.8)" height="28" rx="3" width="160" x="384" y="28"></rect>
+<rect fill="rgba(30,45,74,0.8)" height="28" rx="3" width="154" x="546" y="28"></rect>
+<text fill="#6b7fa3" font-size="11" font-weight="600" text-anchor="middle" x="120" y="47">DECLARATION</text>
+<text fill="#6b7fa3" font-size="11" font-weight="600" text-anchor="middle" x="302" y="47">SEGMENT</text>
+<text fill="#6b7fa3" font-size="11" font-weight="600" text-anchor="middle" x="464" y="47">LIFETIME</text>
+<text fill="#6b7fa3" font-size="11" font-weight="600" text-anchor="middle" x="623" y="47">INIT TO 0?</text>
+<!-- Row 1 -->
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="120" y="80">global int x = 5</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="302" y="80">data</text>
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="464" y="80">process lifetime</text>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="623" y="80">yes (= 5)</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="20" x2="700" y1="87" y2="87"></line>
+<!-- Row 2 -->
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="120" y="108">global int x;</text>
+<text fill="#448aff" font-size="11" text-anchor="middle" x="302" y="108">BSS</text>
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="464" y="108">process lifetime</text>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="623" y="108">yes (= 0)</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="20" x2="700" y1="115" y2="115"></line>
+<!-- Row 3 -->
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="120" y="136">local int x;</text>
+<text fill="#b388ff" font-size="11" text-anchor="middle" x="302" y="136">stack</text>
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="464" y="136">enclosing function</text>
+<text fill="#ff5252" font-size="11" text-anchor="middle" x="623" y="136">NO — garbage</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="20" x2="700" y1="143" y2="143"></line>
+<!-- Row 4 -->
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="120" y="164">static int x;</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="302" y="164">data / BSS</text>
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="464" y="164">process lifetime</text>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="623" y="164">yes (= 0)</text>
+<line stroke="#1e2d4a" stroke-width="1" x1="20" x2="700" y1="171" y2="171"></line>
+<!-- Row 5 -->
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="120" y="192">malloc(n)</text>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="302" y="192">heap</text>
+<text fill="#c8d6e5" font-size="11" text-anchor="middle" x="464" y="192">until free()</text>
+<text fill="#ff5252" font-size="11" text-anchor="middle" x="623" y="192">NO (use calloc)</text>
+</svg>
+<div class="caption">Declaration form determines segment. Only BSS, data, and static variables are zero-initialized. Stack and heap (malloc) are not.</div>
+</div>
+<h2>The Stack Limit and Stack Overflow</h2>
+<p>The stack is not infinite. The OS sets a limit (typically 8 MB on Linux, adjustable with <code>ulimit -s</code>). If your function calls recurse too deeply or declare very large local arrays, the stack pointer crosses into unmapped memory — a page fault with no recovery. The OS delivers <code>SIGSEGV</code> and the process dies. This is a <strong>stack overflow</strong>.</p>
+<pre><span class="comment">// Deep recursion — each call adds a frame</span>
 <span class="type">int</span> <span class="func">factorial</span>(<span class="type">int</span> n) {
     <span class="kw">return</span> n == <span class="num">0</span> ? <span class="num">1</span> : n * <span class="func">factorial</span>(n - <span class="num">1</span>);
 }
@@ -441,74 +393,66 @@ msg[<span class="num">0</span>] = <span class="str">'h'</span>;               <s
 <span class="type">void</span> <span class="func">bad</span>(<span class="type">void</span>) {
     <span class="type">char</span> buf[<span class="num">10000000</span>];  <span class="comment">// 10 MB on the stack — exceeds stack limit, segfault</span>
 }</pre>
-
-  <div class="warning">
-    <strong>Large buffers belong on the heap, not the stack.</strong><br>
+<div class="warning">
+<strong>Large buffers belong on the heap, not the stack.</strong><br/>
     The stack is fast and automatically managed, but it's limited to ~8 MB. Large arrays, matrices, and buffers should be allocated with <code>malloc</code> on the heap, which is limited only by available virtual address space. A common rule of thumb: if a local array is larger than a few KB, put it on the heap.
   </div>
-
-  <h2>ASLR — Address Space Layout Randomization</h2>
-
-  <p>On modern systems, the OS randomizes the base addresses of the stack, heap, and shared libraries each time a process starts. This is <strong>ASLR</strong> — Address Space Layout Randomization. It is a security feature that makes it much harder to exploit memory bugs: an attacker cannot predict where the stack or injected code will land.</p>
-
-  <p>ASLR is why the pointer values you print change between runs of the same program. The code segment address (text) is only randomized if the binary is compiled as position-independent (<code>-fPIE</code>), which is the default on most modern Linux systems.</p>
-
-  <pre><span class="comment">// These addresses change on every run (with ASLR enabled)</span>
+<h2>ASLR — Address Space Layout Randomization</h2>
+<p>On modern systems, the OS randomizes the base addresses of the stack, heap, and shared libraries each time a process starts. This is <strong>ASLR</strong> — Address Space Layout Randomization. It is a security feature that makes it much harder to exploit memory bugs: an attacker cannot predict where the stack or injected code will land.</p>
+<p>ASLR is why the pointer values you print change between runs of the same program. The code segment address (text) is only randomized if the binary is compiled as position-independent (<code>-fPIE</code>), which is the default on most modern Linux systems.</p>
+<pre><span class="comment">// These addresses change on every run (with ASLR enabled)</span>
 <span class="type">int</span>  x;
 <span class="type">int</span> *heap = <span class="func">malloc</span>(<span class="num">4</span>);
 
 <span class="func">printf</span>(<span class="str">"stack: %p\n"</span>, (<span class="type">void</span>*)&amp;x);    <span class="comment">// 0x7ffd3a12... (different each run)</span>
 <span class="func">printf</span>(<span class="str">"heap:  %p\n"</span>, (<span class="type">void</span>*)heap);   <span class="comment">// 0x5590a1c2... (different each run)</span></pre>
-
-  <h2>Common Problems</h2>
-  <div class="pitfalls">
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 01</div>
-      <div class="pitfall-title">Returning a Pointer to a Local Variable</div>
-      <div class="pitfall-desc">A local variable lives on the stack frame of the function that declared it. When the function returns, that frame is popped — the memory is no longer valid. Returning its address gives the caller a dangling pointer into reclaimed stack space. The next function call will overwrite that memory with its own frame.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 02</div>
-      <div class="pitfall-title">Stack Overflow from Large Local Arrays</div>
-      <div class="pitfall-desc">Declaring <code>char buf[10000000]</code> as a local variable puts 10 MB on the stack. The stack limit (typically 8 MB) is exceeded before the function body even runs. The result is immediate SIGSEGV. Large buffers must be heap-allocated with <code>malloc</code>.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 03</div>
-      <div class="pitfall-title">Writing to a String Literal (rodata)</div>
-      <div class="pitfall-desc"><code>char *s = "hello"; s[0] = 'H';</code> attempts to write to a read-only page. The hardware enforces the page permission and delivers SIGSEGV. This is a virtual memory protection at work — not a C language rule. Use <code>char s[] = "hello"</code> to get a writable stack copy.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 04</div>
-      <div class="pitfall-title">Assuming Local Variables are Zero</div>
-      <div class="pitfall-desc">Stack pages may have been used by a previous function call. A local variable that "looks" uninitialized actually contains whatever bytes that earlier function left there. Only global and static variables are guaranteed zero. Always initialize locals at declaration.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 05</div>
-      <div class="pitfall-title">Heap-Stack Pointer Confusion</div>
-      <div class="pitfall-desc">It is legal to store a pointer to stack memory in a heap-allocated struct — but if the function that owns the stack variable returns first, the pointer dangles. The heap struct outlives the stack frame it points to. Lifetime must be carefully managed when mixing heap and stack pointers.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 06</div>
-      <div class="pitfall-title">Assuming Pointer Values are Stable</div>
-      <div class="pitfall-desc">ASLR means stack, heap, and library addresses change on every run. Code that hard-codes addresses, compares pointer values from different runs, or serializes pointers to disk and reads them back will break. Pointers are only valid within a single process execution.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 07</div>
-      <div class="pitfall-title">Heap Fragmentation</div>
-      <div class="pitfall-desc">Many small allocations and frees can fragment the heap — free space exists, but not in one contiguous block large enough to satisfy a big request. <code>malloc</code> returns <code>NULL</code> even though the system has enough total free bytes. Prefer fewer large allocations over many small ones in performance-critical code.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 08</div>
-      <div class="pitfall-title">Buffer Overflow Crosses Segment Boundary</div>
-      <div class="pitfall-desc">Writing past the end of a stack buffer can overwrite the saved return address in the same stack frame. When the function returns, execution jumps to whatever address the overflow wrote there. This is the classic stack smash exploit — and why modern systems use stack canaries, ASLR, and non-executable stacks.</div>
-    </div>
-  </div>
-
-  <div class="key-concept">
-    <strong>Takeaway</strong><br>
+<h2>Common Problems</h2>
+<div class="pitfalls">
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 01</div>
+<div class="pitfall-title">Returning a Pointer to a Local Variable</div>
+<div class="pitfall-desc">A local variable lives on the stack frame of the function that declared it. When the function returns, that frame is popped — the memory is no longer valid. Returning its address gives the caller a dangling pointer into reclaimed stack space. The next function call will overwrite that memory with its own frame.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 02</div>
+<div class="pitfall-title">Stack Overflow from Large Local Arrays</div>
+<div class="pitfall-desc">Declaring <code>char buf[10000000]</code> as a local variable puts 10 MB on the stack. The stack limit (typically 8 MB) is exceeded before the function body even runs. The result is immediate SIGSEGV. Large buffers must be heap-allocated with <code>malloc</code>.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 03</div>
+<div class="pitfall-title">Writing to a String Literal (rodata)</div>
+<div class="pitfall-desc"><code>char *s = "hello"; s[0] = 'H';</code> attempts to write to a read-only page. The hardware enforces the page permission and delivers SIGSEGV. This is a virtual memory protection at work — not a C language rule. Use <code>char s[] = "hello"</code> to get a writable stack copy.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 04</div>
+<div class="pitfall-title">Assuming Local Variables are Zero</div>
+<div class="pitfall-desc">Stack pages may have been used by a previous function call. A local variable that "looks" uninitialized actually contains whatever bytes that earlier function left there. Only global and static variables are guaranteed zero. Always initialize locals at declaration.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 05</div>
+<div class="pitfall-title">Heap-Stack Pointer Confusion</div>
+<div class="pitfall-desc">It is legal to store a pointer to stack memory in a heap-allocated struct — but if the function that owns the stack variable returns first, the pointer dangles. The heap struct outlives the stack frame it points to. Lifetime must be carefully managed when mixing heap and stack pointers.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 06</div>
+<div class="pitfall-title">Assuming Pointer Values are Stable</div>
+<div class="pitfall-desc">ASLR means stack, heap, and library addresses change on every run. Code that hard-codes addresses, compares pointer values from different runs, or serializes pointers to disk and reads them back will break. Pointers are only valid within a single process execution.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 07</div>
+<div class="pitfall-title">Heap Fragmentation</div>
+<div class="pitfall-desc">Many small allocations and frees can fragment the heap — free space exists, but not in one contiguous block large enough to satisfy a big request. <code>malloc</code> returns <code>NULL</code> even though the system has enough total free bytes. Prefer fewer large allocations over many small ones in performance-critical code.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 08</div>
+<div class="pitfall-title">Buffer Overflow Crosses Segment Boundary</div>
+<div class="pitfall-desc">Writing past the end of a stack buffer can overwrite the saved return address in the same stack frame. When the function returns, execution jumps to whatever address the overflow wrote there. This is the classic stack smash exploit — and why modern systems use stack canaries, ASLR, and non-executable stacks.</div>
+</div>
+</div>
+<div class="key-concept">
+<strong>Takeaway</strong><br/>
     A C process has five key segments: text (code, read+execute), rodata (string literals, read-only), data (initialized globals, read/write), BSS (uninitialized globals, zero-filled), heap (malloc, grows up), and stack (locals, grows down). Declaration form — not type — determines the segment. Globals and statics are zero-initialized; locals and malloc are not. The stack has a fixed size limit; large arrays belong on the heap. ASLR randomizes base addresses on every run.
   </div>
-
 </main>
 </body>
 </html>

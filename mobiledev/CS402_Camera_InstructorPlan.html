@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 – Instructor Plan: Camera Integration and Media Handling</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -232,239 +233,204 @@
     pre { break-inside: avoid; }
   }
 </style>
-</head>
-<body>
-
-<!-- ─── HEADER ─────────────────────────────────────────────────────── -->
-<div class="doc-header">
-  <div class="eyebrow">📋 Instructor Lesson Plan</div>
-  <h1>CS 402 — Mobile Application Development</h1>
-  <div class="subtitle">Camera Integration and Media Handling</div>
-  <div class="meta-row">
-    <span>🕐 <strong>Total time:</strong> 75 minutes</span>
-    <span>📅 <strong>Semester:</strong> Spring 2026</span>
-    <span>📦 <strong>SDK:</strong> Expo SDK 52</span>
-    <span>📄 <strong>Student doc:</strong> CS402_Camera_Integration.html</span>
-    <span>🔜 <strong>Next class:</strong> Project 4 Camera App Introduction</span>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><!-- ─── HEADER ─────────────────────────────────────────────────────── --><div class="doc-header">
+<div class="eyebrow">📋 Instructor Lesson Plan</div>
+<h1>CS 402 — Mobile Application Development</h1>
+<div class="subtitle">Camera Integration and Media Handling</div>
+<div class="meta-row">
+<span>🕐 <strong>Total time:</strong> 75 minutes</span>
+<span>📅 <strong>Semester:</strong> Spring 2026</span>
+<span>📦 <strong>SDK:</strong> Expo SDK 52</span>
+<span>📄 <strong>Student doc:</strong> CS402_Camera_Integration.html</span>
+<span>🔜 <strong>Next class:</strong> Project 4 Camera App Introduction</span>
 </div>
-
-
-<!-- ─── OVERVIEW ───────────────────────────────────────────────────── -->
-<h2>Lesson Overview</h2>
-
-<p>
+</div><!-- ─── OVERVIEW ───────────────────────────────────────────────────── --><h2>Lesson Overview</h2><p>
   This lecture introduces students to hardware-adjacent programming for the first time in the course.
   Camera access is a natural motivator — nearly every student has an idea that involves photos —
   so engagement is usually high. The primary challenge is the <strong>three-layer mental model</strong>:
   their JS code → Expo SDK → OS native APIs. Students who miss this tend to cargo-cult permission
   code without understanding why it's structured the way it is.
-</p>
-<p>
+</p><p>
   The second challenge is <strong>the permission system</strong>. This is often students' first
   encounter with a gated resource that has a persistent state machine. Plan for confusion here and
   budget extra time for questions.
-</p>
-
-<h3>Learning Objectives</h3>
-<div class="obj-grid">
-  <div class="obj-item">
-    <div class="bloom">Understand</div>
+</p><h3>Learning Objectives</h3><div class="obj-grid">
+<div class="obj-item">
+<div class="bloom">Understand</div>
     Explain why camera access in a mobile app requires permissions and how the OS permission state machine works.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Distinguish</div>
+<div class="obj-item">
+<div class="bloom">Distinguish</div>
     Choose between <code>expo-camera</code> and <code>expo-image-picker</code> for a given use case.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Apply</div>
+<div class="obj-item">
+<div class="bloom">Apply</div>
     Write a correct permission request pattern using <code>requestCameraPermissionsAsync()</code>.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Apply</div>
+<div class="obj-item">
+<div class="bloom">Apply</div>
     Capture a photo using <code>launchCameraAsync()</code> and display it with <code>&lt;Image&gt;</code>.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Analyse</div>
+<div class="obj-item">
+<div class="bloom">Analyse</div>
     Identify why a captured photo is temporary and choose the correct approach to persist it.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Apply</div>
+<div class="obj-item">
+<div class="bloom">Apply</div>
     Configure <code>app.json</code> with the plugin entries required for a production camera build.
   </div>
-</div>
-
-<h3>Prerequisites Students Should Have</h3>
-<ul>
-  <li><code>useEffect</code> and <code>useState</code> hooks — permission state depends on both</li>
-  <li>Basic <code>async/await</code> — all camera APIs are asynchronous</li>
-  <li>React Native's <code>&lt;Image&gt;</code> component and the <code>source={{ uri }}</code> prop</li>
-  <li>The concept of <code>useRef</code> is helpful but will be introduced during the lesson</li>
-</ul>
-
-<div class="instructor-note">
-  <strong>⚙️ Prep required before class:</strong> Install <code>expo-camera</code> and
+</div><h3>Prerequisites Students Should Have</h3><ul>
+<li><code>useEffect</code> and <code>useState</code> hooks — permission state depends on both</li>
+<li>Basic <code>async/await</code> — all camera APIs are asynchronous</li>
+<li>React Native's <code>&lt;Image&gt;</code> component and the <code>source={{ uri }}</code> prop</li>
+<li>The concept of <code>useRef</code> is helpful but will be introduced during the lesson</li>
+</ul><div class="instructor-note">
+<strong>⚙️ Prep required before class:</strong> Install <code>expo-camera</code> and
   <code>expo-image-picker</code> in a working Expo project on your own device ahead of time.
   You'll live-demo from this project. Test the camera on a <strong>physical device</strong>
   — the Expo Go simulator camera is unreliable and will cause demo failures.
   Have a second backup device or a colleague's phone available in case your device misbehaves.
+</div><!-- ─── TIMING OVERVIEW ────────────────────────────────────────────── --><h2>Session Timing at a Glance</h2><div class="timing-overview">
+<div class="timing-header">75-Minute Session — Proportional Breakdown</div>
+<div class="timing-bar">
+<div class="timing-seg t1" style="width:8%">Hook<br/>6 min</div>
+<div class="timing-seg t2" style="width:16%">Mental Model<br/>12 min</div>
+<div class="timing-seg t3" style="width:17%">Permissions<br/>13 min</div>
+<div class="timing-seg t4" style="width:20%">image-picker<br/>15 min</div>
+<div class="timing-seg t5" style="width:16%">CameraView<br/>12 min</div>
+<div class="timing-seg t6" style="width:12%">MediaLib<br/>9 min</div>
+<div class="timing-seg t7" style="width:11%">Wrap-up<br/>8 min</div>
 </div>
-
-
-<!-- ─── TIMING OVERVIEW ────────────────────────────────────────────── -->
-<h2>Session Timing at a Glance</h2>
-
-<div class="timing-overview">
-  <div class="timing-header">75-Minute Session — Proportional Breakdown</div>
-  <div class="timing-bar">
-    <div class="timing-seg t1" style="width:8%">Hook<br>6 min</div>
-    <div class="timing-seg t2" style="width:16%">Mental Model<br>12 min</div>
-    <div class="timing-seg t3" style="width:17%">Permissions<br>13 min</div>
-    <div class="timing-seg t4" style="width:20%">image-picker<br>15 min</div>
-    <div class="timing-seg t5" style="width:16%">CameraView<br>12 min</div>
-    <div class="timing-seg t6" style="width:12%">MediaLib<br>9 min</div>
-    <div class="timing-seg t7" style="width:11%">Wrap-up<br>8 min</div>
-  </div>
-  <div class="timing-legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Hook &amp; Framing (6 min)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>The Three-Layer Mental Model (12 min)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#3a7ab5"></div>Permissions Deep Dive (13 min)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2e5d7a"></div>expo-image-picker + Demo (15 min)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#1e4a6a"></div>CameraView Embedded (12 min)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>Media Library &amp; URI Lifecycle (9 min)</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#8a5d0a"></div>Pitfalls, Q&amp;A, Bridge to Project 4 (8 min)</div>
-  </div>
+<div class="timing-legend">
+<div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Hook &amp; Framing (6 min)</div>
+<div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>The Three-Layer Mental Model (12 min)</div>
+<div class="legend-item"><div class="legend-dot" style="background:#3a7ab5"></div>Permissions Deep Dive (13 min)</div>
+<div class="legend-item"><div class="legend-dot" style="background:#2e5d7a"></div>expo-image-picker + Demo (15 min)</div>
+<div class="legend-item"><div class="legend-dot" style="background:#1e4a6a"></div>CameraView Embedded (12 min)</div>
+<div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>Media Library &amp; URI Lifecycle (9 min)</div>
+<div class="legend-item"><div class="legend-dot" style="background:#8a5d0a"></div>Pitfalls, Q&amp;A, Bridge to Project 4 (8 min)</div>
 </div>
-
-
-<!-- ─── SEGMENT 1 ──────────────────────────────────────────────────── -->
-<div class="segment">
-  <div class="segment-header">
-    <div class="segment-num">1</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Hook and Framing</div>
-      <div class="segment-subtitle">Why the camera is the most interesting sensor on the phone</div>
-    </div>
-    <div class="segment-time">⏱ 6 min</div>
-  </div>
-  <div class="segment-body">
-
-    <p>Open with a quick show-of-hands or cold call rather than jumping straight into slides. This gets students present and sets up the motivation naturally.</p>
-
-    <div class="discussion">
-      <strong>💬 Opening question (cold call 2–3 students):</strong> "Think about the last app you used that accessed your camera or photos. What did it do with that image — display it, upload it, process it? Did it ask your permission first? Did you grant it?"
-    </div>
-
-    <ul class="talking-points">
-      <li>The camera isn't just a sensor — it's an output device for user creativity. It motivates nearly every app idea students pitch in project proposals.</li>
-      <li>Unlike GPS or accelerometer data, camera output is <em>user-created content</em>. This raises both technical and privacy stakes: the OS is extremely protective of it.</li>
-      <li>Today is the first time in this course they'll write code that touches hardware. That's a milestone worth naming. The permission system they learn today applies to microphone, location, contacts — everything sensitive on the device.</li>
-      <li>The goal for the session: walk out knowing how to get a photo from the camera into their app and make it persistent. Everything else is detail around that.</li>
-    </ul>
-
-    <div class="instructor-note">
-      <strong>📝 Tone note:</strong> Keep this opener energetic. Students who have been building list apps or forms for weeks are usually visibly more excited when camera content comes up. Lean into that energy.
-    </div>
-
-  </div>
+</div><!-- ─── SEGMENT 1 ──────────────────────────────────────────────────── --><div class="segment">
+<div class="segment-header">
+<div class="segment-num">1</div>
+<div class="segment-title-block">
+<div class="segment-title">Hook and Framing</div>
+<div class="segment-subtitle">Why the camera is the most interesting sensor on the phone</div>
 </div>
-
-
-<!-- ─── SEGMENT 2 ──────────────────────────────────────────────────── -->
-<div class="segment">
-  <div class="segment-header">
-    <div class="segment-num">2</div>
-    <div class="segment-title-block">
-      <div class="segment-title">The Three-Layer Mental Model</div>
-      <div class="segment-subtitle">Your JS → Expo SDK → OS native APIs</div>
+<div class="segment-time">⏱ 6 min</div>
+</div>
+<div class="segment-body">
+<p>Open with a quick show-of-hands or cold call rather than jumping straight into slides. This gets students present and sets up the motivation naturally.</p>
+<div class="discussion">
+<strong>💬 Opening question (cold call 2–3 students):</strong> "Think about the last app you used that accessed your camera or photos. What did it do with that image — display it, upload it, process it? Did it ask your permission first? Did you grant it?"
     </div>
-    <div class="segment-time">⏱ 12 min</div>
-  </div>
-  <div class="segment-body">
-
-    <p>Draw the architecture diagram from the student document on the board <em>before</em> showing the SVG version. Hand-drawing it anchors the concept better than projecting a finished diagram.</p>
-
-    <h3>Talking Points</h3>
-    <ul class="talking-points">
-      <li>Sketch three horizontal bands on the board: "Your App," "Expo SDK," "iOS / Android OS." Ask students: where does <code>launchCameraAsync()</code> live? (Expo SDK band.) Where does the actual camera hardware interface live? (OS band.)</li>
-      <li>Emphasize: Expo gives you a <em>JavaScript interface</em> to native code. The same call works on iOS and Android because Expo's native modules translate it into <code>AVFoundation</code> calls on iOS and <code>Camera2</code> calls on Android. This is the entire value proposition of a cross-platform framework for hardware features.</li>
-      <li>Explain why the three packages exist separately (<code>expo-camera</code>, <code>expo-image-picker</code>, <code>expo-media-library</code>): they're different entry points into different OS capabilities, not overlapping tools for the same thing.</li>
-      <li>Draw the comparison: <code>expo-image-picker</code> is like handing a task to the OS and getting back a receipt. <code>expo-camera</code> is like building your own camera app inside a window in your UI.</li>
-    </ul>
-
-    <div class="callout">
-      <strong>Analogize to fetch():</strong> Students understand that <code>fetch()</code> doesn't actually open a TCP connection in their JS — it delegates to the browser's networking layer. Camera APIs work the same way. Their JS delegates to the OS; the OS does the real work.
+<ul class="talking-points">
+<li>The camera isn't just a sensor — it's an output device for user creativity. It motivates nearly every app idea students pitch in project proposals.</li>
+<li>Unlike GPS or accelerometer data, camera output is <em>user-created content</em>. This raises both technical and privacy stakes: the OS is extremely protective of it.</li>
+<li>Today is the first time in this course they'll write code that touches hardware. That's a milestone worth naming. The permission system they learn today applies to microphone, location, contacts — everything sensitive on the device.</li>
+<li>The goal for the session: walk out knowing how to get a photo from the camera into their app and make it persistent. Everything else is detail around that.</li>
+</ul>
+<div class="instructor-note">
+<strong>📝 Tone note:</strong> Keep this opener energetic. Students who have been building list apps or forms for weeks are usually visibly more excited when camera content comes up. Lean into that energy.
     </div>
-
-    <h3>Package Selection — The Decision Rule</h3>
-    <p>Give students this simple heuristic now; they'll use it in Project 4:</p>
-
-    <table>
-      <thead><tr><th>If you need…</th><th>Use</th></tr></thead>
-      <tbody>
-        <tr><td>A photo or video with no custom camera UI — just get me a file</td><td><code>expo-image-picker</code> ✅ easiest</td></tr>
-        <tr><td>The camera preview embedded in your own layout (QR scanner, AR overlay, real-time filter)</td><td><code>expo-camera</code></td></tr>
-        <tr><td>To save a photo to the device's photo gallery</td><td><code>expo-media-library</code></td></tr>
-        <tr><td>To let the user browse their existing photos</td><td><code>expo-image-picker</code> (library mode)</td></tr>
-      </tbody>
-    </table>
-
-    <div class="instructor-note">
-      <strong>📝 Common confusion to pre-empt:</strong> Students often think they need <code>expo-camera</code> for everything. Make the point explicitly: for Project 4, <code>expo-image-picker</code> is probably all they need. <code>expo-camera</code> is for when they need to customize the capture experience.
+</div>
+</div><!-- ─── SEGMENT 2 ──────────────────────────────────────────────────── --><div class="segment">
+<div class="segment-header">
+<div class="segment-num">2</div>
+<div class="segment-title-block">
+<div class="segment-title">The Three-Layer Mental Model</div>
+<div class="segment-subtitle">Your JS → Expo SDK → OS native APIs</div>
+</div>
+<div class="segment-time">⏱ 12 min</div>
+</div>
+<div class="segment-body">
+<p>Draw the architecture diagram from the student document on the board <em>before</em> showing the SVG version. Hand-drawing it anchors the concept better than projecting a finished diagram.</p>
+<h3>Talking Points</h3>
+<ul class="talking-points">
+<li>Sketch three horizontal bands on the board: "Your App," "Expo SDK," "iOS / Android OS." Ask students: where does <code>launchCameraAsync()</code> live? (Expo SDK band.) Where does the actual camera hardware interface live? (OS band.)</li>
+<li>Emphasize: Expo gives you a <em>JavaScript interface</em> to native code. The same call works on iOS and Android because Expo's native modules translate it into <code>AVFoundation</code> calls on iOS and <code>Camera2</code> calls on Android. This is the entire value proposition of a cross-platform framework for hardware features.</li>
+<li>Explain why the three packages exist separately (<code>expo-camera</code>, <code>expo-image-picker</code>, <code>expo-media-library</code>): they're different entry points into different OS capabilities, not overlapping tools for the same thing.</li>
+<li>Draw the comparison: <code>expo-image-picker</code> is like handing a task to the OS and getting back a receipt. <code>expo-camera</code> is like building your own camera app inside a window in your UI.</li>
+</ul>
+<div class="callout">
+<strong>Analogize to fetch():</strong> Students understand that <code>fetch()</code> doesn't actually open a TCP connection in their JS — it delegates to the browser's networking layer. Camera APIs work the same way. Their JS delegates to the OS; the OS does the real work.
     </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Check for Understanding</div>
-      <ol>
-        <li>"You're building a recipe app. Users tap a button, take a photo of their dish, and the photo appears in their recipe entry. Which package?"
+<h3>Package Selection — The Decision Rule</h3>
+<p>Give students this simple heuristic now; they'll use it in Project 4:</p>
+<table>
+<thead><tr><th scope="col">If you need…</th><th scope="col">Use</th></tr></thead>
+<tbody>
+<tr><td>A photo or video with no custom camera UI — just get me a file</td><td><code>expo-image-picker</code> ✅ easiest</td></tr>
+<tr><td>The camera preview embedded in your own layout (QR scanner, AR overlay, real-time filter)</td><td><code>expo-camera</code></td></tr>
+<tr><td>To save a photo to the device's photo gallery</td><td><code>expo-media-library</code></td></tr>
+<tr><td>To let the user browse their existing photos</td><td><code>expo-image-picker</code> (library mode)</td></tr>
+</tbody>
+</table>
+<div class="instructor-note">
+<strong>📝 Common confusion to pre-empt:</strong> Students often think they need <code>expo-camera</code> for everything. Make the point explicitly: for Project 4, <code>expo-image-picker</code> is probably all they need. <code>expo-camera</code> is for when they need to customize the capture experience.
+    </div>
+<div class="cfu">
+<div class="cfu-label">✅ Check for Understanding</div>
+<ol>
+<li>"You're building a recipe app. Users tap a button, take a photo of their dish, and the photo appears in their recipe entry. Which package?"
           <div class="answer">→ expo-image-picker. They don't need custom camera UI.</div>
-        </li>
-        <li>"You're building a QR code scanner that shows a live viewfinder with a red rectangle overlaid on detected codes. Which package?"
+</li>
+<li>"You're building a QR code scanner that shows a live viewfinder with a red rectangle overlaid on detected codes. Which package?"
           <div class="answer">→ expo-camera. They need the live preview embedded in their layout with JSX overlaid.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<!-- ─── SEGMENT 3 ──────────────────────────────────────────────────── -->
-<div class="segment">
-  <div class="segment-header">
-    <div class="segment-num">3</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Permissions — The Gate You Must Open First</div>
-      <div class="segment-subtitle">The state machine, the request pattern, and what "denied" means</div>
-    </div>
-    <div class="segment-time">⏱ 13 min</div>
-  </div>
-  <div class="segment-body">
-
-    <p>This is the segment where students most often get tripped up. Go slowly. The permission state machine is a new concept for most of them, and the consequences of getting it wrong (silent failures, crashes on production builds) are severe.</p>
-
-    <h3>Talking Points</h3>
-    <ul class="talking-points">
-      <li>Every sensitive resource on a mobile device — camera, microphone, location, contacts — is gated by the OS. Your app does not have access by default. This is a security model, not a bug.</li>
-      <li>Walk through the four permission states: <strong>undetermined</strong> (first run — dialog hasn't been shown), <strong>granted</strong>, <strong>denied</strong> (user said no), <strong>restricted</strong> (device policy blocks it, e.g. parental controls or MDM).</li>
-      <li>Critical distinction: once a user denies a permission, you <em>cannot</em> show the system dialog again. Your app must direct them to device Settings. This is an intentional OS design to prevent apps from badgering users. On iOS in particular, there is no programmatic way to re-trigger the dialog.</li>
-      <li>Walk through the permission request pattern step-by-step: (1) check status, (2) request if undetermined, (3) branch on the result. Never assume granted.</li>
-      <li>Three separate permissions exist for camera work: <strong>camera</strong>, <strong>microphone</strong> (video with audio), <strong>media library</strong>. Each must be requested separately.</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥️ Live demo — show the permission dialog on a real device:</strong>
+</div>
+</div><!-- ─── SEGMENT 3 ──────────────────────────────────────────────────── --><div class="segment">
+<div class="segment-header">
+<div class="segment-num">3</div>
+<div class="segment-title-block">
+<div class="segment-title">Permissions — The Gate You Must Open First</div>
+<div class="segment-subtitle">The state machine, the request pattern, and what "denied" means</div>
+</div>
+<div class="segment-time">⏱ 13 min</div>
+</div>
+<div class="segment-body">
+<p>This is the segment where students most often get tripped up. Go slowly. The permission state machine is a new concept for most of them, and the consequences of getting it wrong (silent failures, crashes on production builds) are severe.</p>
+<h3>Talking Points</h3>
+<ul class="talking-points">
+<li>Every sensitive resource on a mobile device — camera, microphone, location, contacts — is gated by the OS. Your app does not have access by default. This is a security model, not a bug.</li>
+<li>Walk through the four permission states: <strong>undetermined</strong> (first run — dialog hasn't been shown), <strong>granted</strong>, <strong>denied</strong> (user said no), <strong>restricted</strong> (device policy blocks it, e.g. parental controls or MDM).</li>
+<li>Critical distinction: once a user denies a permission, you <em>cannot</em> show the system dialog again. Your app must direct them to device Settings. This is an intentional OS design to prevent apps from badgering users. On iOS in particular, there is no programmatic way to re-trigger the dialog.</li>
+<li>Walk through the permission request pattern step-by-step: (1) check status, (2) request if undetermined, (3) branch on the result. Never assume granted.</li>
+<li>Three separate permissions exist for camera work: <strong>camera</strong>, <strong>microphone</strong> (video with audio), <strong>media library</strong>. Each must be requested separately.</li>
+</ul>
+<div class="demo-block">
+<strong>🖥️ Live demo — show the permission dialog on a real device:</strong>
       Call <code>requestCameraPermissionsAsync()</code> and deliberately show both paths:
       first run the app and grant the permission (students see the system dialog),
       then reset the app permission in device Settings and demo what happens when it's denied
       (the API returns <code>status: 'denied'</code> and shows no dialog). This is more memorable
       than any diagram.
     </div>
-
-    <h3>The Permission Pattern — Code Walkthrough</h3>
-    <p>Walk through this code live (not just show it on a slide). Type it out or narrate while students follow in their student docs.</p>
-
-    <pre><span class="kw">const</span> { <span class="prop">status</span> } = <span class="kw">await</span> <span class="prop">ImagePicker</span>.<span class="fn">requestCameraPermissionsAsync</span>();
+<h3>The Permission Pattern — Code Walkthrough</h3>
+<p>Walk through this code live (not just show it on a slide). Type it out or narrate while students follow in their student docs.</p>
+<pre><span class="kw">const</span> { <span class="prop">status</span> } = <span class="kw">await</span> <span class="prop">ImagePicker</span>.<span class="fn">requestCameraPermissionsAsync</span>();
 
 <span class="kw">if</span> (<span class="prop">status</span> === <span class="str">'granted'</span>) {
   <span class="cm">// proceed with camera work</span>
@@ -472,72 +438,59 @@
   <span class="cm">// inform user, direct to Settings</span>
   <span class="prop">Alert</span>.<span class="fn">alert</span>(<span class="str">'Permission Required'</span>, <span class="str">'Go to Settings to enable camera access.'</span>);
 }</pre>
-
-    <div class="instructor-note">
-      <strong>📝 Ask before moving on:</strong> "Why do we check <code>status === 'granted'</code> rather than just calling the camera API and catching an error?" Let students reason through it. The answer is UX: error-catching would work, but the user experience of failing silently or showing a cryptic error is much worse than proactively showing a helpful message.
+<div class="instructor-note">
+<strong>📝 Ask before moving on:</strong> "Why do we check <code>status === 'granted'</code> rather than just calling the camera API and catching an error?" Let students reason through it. The answer is UX: error-catching would work, but the user experience of failing silently or showing a cryptic error is much worse than proactively showing a helpful message.
     </div>
-
-    <h3>Requesting at the Right Moment</h3>
-    <ul class="talking-points">
-      <li>Don't request permissions in <code>useEffect</code> on app startup. Request them <em>at the moment of need</em> — when the user taps "Take Photo."</li>
-      <li>iOS App Store review specifically looks for apps that request permissions without clear justification. Requesting camera on launch with no explanation is a rejection reason.</li>
-      <li>The permission string in <code>app.json</code> is what users read in the system dialog. "Access camera" → rejected by Apple. "Capture photos to attach to your recipe entries" → approved.</li>
-    </ul>
-
-    <div class="danger">
-      <strong>⚠️ Production trap:</strong> Permission dialogs work in Expo Go without any <code>app.json</code> configuration because Expo Go already declares all permissions. The trap is: when students build their standalone app, it will <em>crash</em> on permission requests if the <code>app.json</code> plugin entries are missing. This bites almost every student on their first production build. Emphasize this clearly now and again at the end of class.
+<h3>Requesting at the Right Moment</h3>
+<ul class="talking-points">
+<li>Don't request permissions in <code>useEffect</code> on app startup. Request them <em>at the moment of need</em> — when the user taps "Take Photo."</li>
+<li>iOS App Store review specifically looks for apps that request permissions without clear justification. Requesting camera on launch with no explanation is a rejection reason.</li>
+<li>The permission string in <code>app.json</code> is what users read in the system dialog. "Access camera" → rejected by Apple. "Capture photos to attach to your recipe entries" → approved.</li>
+</ul>
+<div class="danger">
+<strong>⚠️ Production trap:</strong> Permission dialogs work in Expo Go without any <code>app.json</code> configuration because Expo Go already declares all permissions. The trap is: when students build their standalone app, it will <em>crash</em> on permission requests if the <code>app.json</code> plugin entries are missing. This bites almost every student on their first production build. Emphasize this clearly now and again at the end of class.
     </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Check for Understanding</div>
-      <ol>
-        <li>"A user denies camera access. Your app calls <code>requestCameraPermissionsAsync()</code> again. What happens?"
+<div class="cfu">
+<div class="cfu-label">✅ Check for Understanding</div>
+<ol>
+<li>"A user denies camera access. Your app calls <code>requestCameraPermissionsAsync()</code> again. What happens?"
           <div class="answer">→ Returns <code>{ status: 'denied' }</code> immediately, no dialog shown. Cannot re-prompt.</div>
-        </li>
-        <li>"Where in your component lifecycle should you request camera permission?"
+</li>
+<li>"Where in your component lifecycle should you request camera permission?"
           <div class="answer">→ At the moment the user invokes a camera action, not on app startup.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<!-- ─── SEGMENT 4 ──────────────────────────────────────────────────── -->
-<div class="segment">
-  <div class="segment-header">
-    <div class="segment-num">4</div>
-    <div class="segment-title-block">
-      <div class="segment-title">expo-image-picker — The Easy Path</div>
-      <div class="segment-subtitle">launchCameraAsync, launchImageLibraryAsync, and the asset object</div>
+</div>
+</div><!-- ─── SEGMENT 4 ──────────────────────────────────────────────────── --><div class="segment">
+<div class="segment-header">
+<div class="segment-num">4</div>
+<div class="segment-title-block">
+<div class="segment-title">expo-image-picker — The Easy Path</div>
+<div class="segment-subtitle">launchCameraAsync, launchImageLibraryAsync, and the asset object</div>
+</div>
+<div class="segment-time">⏱ 15 min</div>
+</div>
+<div class="segment-body">
+<p>This is the segment most students will use for Project 4. Give it the most code time. The live demo here should produce a visible result — a photo appearing on screen — so students have something concrete to replicate.</p>
+<h3>Talking Points</h3>
+<ul class="talking-points">
+<li><code>expo-image-picker</code> offloads the entire capture experience to the OS. The system camera launches, the user takes a photo, the OS dismisses the camera, and your app receives a result object. Your app never renders a camera preview.</li>
+<li>Two entry points: <code>launchCameraAsync()</code> (opens camera), <code>launchImageLibraryAsync()</code> (opens photo picker). Both return the same shape of result object.</li>
+<li>The result can be <code>canceled: true</code> — always check this before accessing <code>result.assets</code>.</li>
+<li>Point out the SDK 48 change explicitly: old code used <code>result.uri</code>. New code uses <code>result.assets[0].uri</code>. Many tutorials online still use the old pattern. If their code gets a <code>uri</code> of <code>undefined</code>, this is why.</li>
+</ul>
+<div class="demo-block">
+<strong>🖥️ Live demo — full working example:</strong> Build the following in front of the class, narrating as you type. Show it working on a physical device. Students should see the camera launch, the photo get captured, and the image appear in the app.
     </div>
-    <div class="segment-time">⏱ 15 min</div>
-  </div>
-  <div class="segment-body">
-
-    <p>This is the segment most students will use for Project 4. Give it the most code time. The live demo here should produce a visible result — a photo appearing on screen — so students have something concrete to replicate.</p>
-
-    <h3>Talking Points</h3>
-    <ul class="talking-points">
-      <li><code>expo-image-picker</code> offloads the entire capture experience to the OS. The system camera launches, the user takes a photo, the OS dismisses the camera, and your app receives a result object. Your app never renders a camera preview.</li>
-      <li>Two entry points: <code>launchCameraAsync()</code> (opens camera), <code>launchImageLibraryAsync()</code> (opens photo picker). Both return the same shape of result object.</li>
-      <li>The result can be <code>canceled: true</code> — always check this before accessing <code>result.assets</code>.</li>
-      <li>Point out the SDK 48 change explicitly: old code used <code>result.uri</code>. New code uses <code>result.assets[0].uri</code>. Many tutorials online still use the old pattern. If their code gets a <code>uri</code> of <code>undefined</code>, this is why.</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥️ Live demo — full working example:</strong> Build the following in front of the class, narrating as you type. Show it working on a physical device. Students should see the camera launch, the photo get captured, and the image appear in the app.
-    </div>
-
-    <pre><span class="kw">import</span> { <span class="prop">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<pre><span class="kw">import</span> { <span class="prop">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>;
 <span class="kw">import</span> { <span class="prop">View</span>, <span class="prop">Button</span>, <span class="prop">Image</span>, <span class="prop">StyleSheet</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
 <span class="kw">import</span> * <span class="kw">as</span> <span class="prop">ImagePicker</span> <span class="kw">from</span> <span class="str">'expo-image-picker'</span>;
 
 <span class="kw">export default function</span> <span class="fn">App</span>() {
   <span class="kw">const</span> [<span class="prop">imageUri</span>, <span class="prop">setImageUri</span>] = <span class="fn">useState</span>(<span class="kw">null</span>);
 
-  <span class="kw">const</span> <span class="fn">openCamera</span> = <span class="kw">async</span> () => {
+  <span class="kw">const</span> <span class="fn">openCamera</span> = <span class="kw">async</span> () =&gt; {
     <span class="kw">const</span> { <span class="prop">status</span> } = <span class="kw">await</span> <span class="prop">ImagePicker</span>.<span class="fn">requestCameraPermissionsAsync</span>();
     <span class="kw">if</span> (<span class="prop">status</span> !== <span class="str">'granted'</span>) <span class="kw">return</span>;
 
@@ -559,235 +512,184 @@
   <span class="prop">container</span>: { <span class="prop">flex</span>: <span class="num">1</span>, <span class="prop">alignItems</span>: <span class="str">'center'</span>, <span class="prop">justifyContent</span>: <span class="str">'center'</span> },
   <span class="prop">preview</span>:   { <span class="prop">width</span>: <span class="num">300</span>, <span class="prop">height</span>: <span class="num">300</span>, <span class="prop">marginTop</span>: <span class="num">20</span>, <span class="prop">borderRadius</span>: <span class="num">8</span> },
 });</pre>
-
-    <h3>Options Worth Knowing</h3>
-    <table>
-      <thead><tr><th>Option</th><th>Default</th><th>Notes</th></tr></thead>
-      <tbody>
-        <tr><td><code>quality</code></td><td>1.0</td><td>0–1. Use 0.7–0.85 for a good quality/size balance. 1.0 creates very large files.</td></tr>
-        <tr><td><code>allowsEditing</code></td><td>false</td><td>Shows a crop UI after capture. Combine with <code>aspect</code> for fixed ratios.</td></tr>
-        <tr><td><code>mediaTypes</code></td><td>Images</td><td><code>MediaTypeOptions.All</code> allows video too. Use <code>Videos</code> for video only.</td></tr>
-        <tr><td><code>allowsMultipleSelection</code></td><td>false</td><td>Library only. Lets users pick multiple photos at once.</td></tr>
-        <tr><td><code>exif</code></td><td>false</td><td>Includes GPS, camera model, exposure data. Useful for location-tagged photo apps.</td></tr>
-        <tr><td><code>base64</code></td><td>false</td><td>Avoid for large images — will freeze the app. Use URI upload instead.</td></tr>
-      </tbody>
-    </table>
-
-    <div class="instructor-note">
-      <strong>📝 Pause here for questions.</strong> This is the point where students start connecting the material to their own project ideas. Give them 2–3 minutes to ask "can I use this to…" questions. It keeps engagement high and surfaces misconceptions early.
+<h3>Options Worth Knowing</h3>
+<table>
+<thead><tr><th scope="col">Option</th><th scope="col">Default</th><th scope="col">Notes</th></tr></thead>
+<tbody>
+<tr><td><code>quality</code></td><td>1.0</td><td>0–1. Use 0.7–0.85 for a good quality/size balance. 1.0 creates very large files.</td></tr>
+<tr><td><code>allowsEditing</code></td><td>false</td><td>Shows a crop UI after capture. Combine with <code>aspect</code> for fixed ratios.</td></tr>
+<tr><td><code>mediaTypes</code></td><td>Images</td><td><code>MediaTypeOptions.All</code> allows video too. Use <code>Videos</code> for video only.</td></tr>
+<tr><td><code>allowsMultipleSelection</code></td><td>false</td><td>Library only. Lets users pick multiple photos at once.</td></tr>
+<tr><td><code>exif</code></td><td>false</td><td>Includes GPS, camera model, exposure data. Useful for location-tagged photo apps.</td></tr>
+<tr><td><code>base64</code></td><td>false</td><td>Avoid for large images — will freeze the app. Use URI upload instead.</td></tr>
+</tbody>
+</table>
+<div class="instructor-note">
+<strong>📝 Pause here for questions.</strong> This is the point where students start connecting the material to their own project ideas. Give them 2–3 minutes to ask "can I use this to…" questions. It keeps engagement high and surfaces misconceptions early.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 5 ──────────────────────────────────────────────────── -->
-<div class="segment">
-  <div class="segment-header">
-    <div class="segment-num">5</div>
-    <div class="segment-title-block">
-      <div class="segment-title">expo-camera — Embedded Camera Preview</div>
-      <div class="segment-subtitle">CameraView, useRef, takePictureAsync, and when you actually need this</div>
+</div><!-- ─── SEGMENT 5 ──────────────────────────────────────────────────── --><div class="segment">
+<div class="segment-header">
+<div class="segment-num">5</div>
+<div class="segment-title-block">
+<div class="segment-title">expo-camera — Embedded Camera Preview</div>
+<div class="segment-subtitle">CameraView, useRef, takePictureAsync, and when you actually need this</div>
+</div>
+<div class="segment-time">⏱ 12 min</div>
+</div>
+<div class="segment-body">
+<p>Contextualize this package as "the harder path for when you need it." Most students won't use it for Project 4, but they need to understand what it offers and why <code>useRef</code> appears here.</p>
+<h3>Talking Points</h3>
+<ul class="talking-points">
+<li>Draw the phone UI on the board: a <code>&lt;CameraView&gt;</code> that fills the screen, with your own buttons and overlays on top. The live camera feed is a native render layer — you can't put JSX "inside" it, you can only stack your JSX above it with absolute positioning.</li>
+<li>Introduce <code>useRef</code> if students haven't seen it: refs are for when you need to call an imperative command on a component instance — "do this now" — rather than controlling it through state. The camera needs to hear "take a picture now," not "be in picture-taking mode."</li>
+<li>SDK 50 renamed <code>&lt;Camera&gt;</code> to <code>&lt;CameraView&gt;</code>. The old API is deprecated. Any tutorial using the old component should be treated with suspicion.</li>
+<li>Use cases that actually warrant <code>expo-camera</code>: QR/barcode scanning (built-in with <code>onBarcodeScanned</code>), real-time overlays, custom shutter UI with animations, apps that need to hold the camera open between captures (like a photo booth).</li>
+</ul>
+<div class="demo-block">
+<strong>🖥️ Optional demo — show the anatomy if time permits:</strong> If you have time, show <code>&lt;CameraView&gt;</code> running on the device so students can see the live preview embedded in the app. Even 60 seconds of showing it running makes the concept concrete. If pressed for time, the SVG diagram in the student document is sufficient.
     </div>
-    <div class="segment-time">⏱ 12 min</div>
-  </div>
-  <div class="segment-body">
-
-    <p>Contextualize this package as "the harder path for when you need it." Most students won't use it for Project 4, but they need to understand what it offers and why <code>useRef</code> appears here.</p>
-
-    <h3>Talking Points</h3>
-    <ul class="talking-points">
-      <li>Draw the phone UI on the board: a <code>&lt;CameraView&gt;</code> that fills the screen, with your own buttons and overlays on top. The live camera feed is a native render layer — you can't put JSX "inside" it, you can only stack your JSX above it with absolute positioning.</li>
-      <li>Introduce <code>useRef</code> if students haven't seen it: refs are for when you need to call an imperative command on a component instance — "do this now" — rather than controlling it through state. The camera needs to hear "take a picture now," not "be in picture-taking mode."</li>
-      <li>SDK 50 renamed <code>&lt;Camera&gt;</code> to <code>&lt;CameraView&gt;</code>. The old API is deprecated. Any tutorial using the old component should be treated with suspicion.</li>
-      <li>Use cases that actually warrant <code>expo-camera</code>: QR/barcode scanning (built-in with <code>onBarcodeScanned</code>), real-time overlays, custom shutter UI with animations, apps that need to hold the camera open between captures (like a photo booth).</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥️ Optional demo — show the anatomy if time permits:</strong> If you have time, show <code>&lt;CameraView&gt;</code> running on the device so students can see the live preview embedded in the app. Even 60 seconds of showing it running makes the concept concrete. If pressed for time, the SVG diagram in the student document is sufficient.
-    </div>
-
-    <h3>The useCameraPermissions Hook</h3>
-    <p>Note that <code>expo-camera</code> ships its own convenience hook, which is cleaner than the manual <code>requestCameraPermissionsAsync()</code> pattern when you're already using <code>&lt;CameraView&gt;</code>:</p>
-    <pre><span class="kw">const</span> [<span class="prop">permission</span>, <span class="prop">requestPermission</span>] = <span class="fn">useCameraPermissions</span>();
+<h3>The useCameraPermissions Hook</h3>
+<p>Note that <code>expo-camera</code> ships its own convenience hook, which is cleaner than the manual <code>requestCameraPermissionsAsync()</code> pattern when you're already using <code>&lt;CameraView&gt;</code>:</p>
+<pre><span class="kw">const</span> [<span class="prop">permission</span>, <span class="prop">requestPermission</span>] = <span class="fn">useCameraPermissions</span>();
 
 <span class="cm">// permission.granted — boolean</span>
 <span class="cm">// requestPermission() — call this to show the dialog</span></pre>
-
-    <div class="callout">
-      <strong>The key mental model for <code>useRef</code>:</strong> Tell students to think of a ref as a remote control for a component. You don't re-render the camera to take a photo; you press its shutter button directly. React state is for data that drives the UI. Refs are for directly commanding component instances.
+<div class="callout">
+<strong>The key mental model for <code>useRef</code>:</strong> Tell students to think of a ref as a remote control for a component. You don't re-render the camera to take a photo; you press its shutter button directly. React state is for data that drives the UI. Refs are for directly commanding component instances.
     </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Check for Understanding</div>
-      <ol>
-        <li>"You want to build a barcode scanner. The scanner should be a persistent view in your app, not a full-screen modal. Which package?"
+<div class="cfu">
+<div class="cfu-label">✅ Check for Understanding</div>
+<ol>
+<li>"You want to build a barcode scanner. The scanner should be a persistent view in your app, not a full-screen modal. Which package?"
           <div class="answer">→ expo-camera with CameraView and onBarcodeScanned prop.</div>
-        </li>
-        <li>"Why does <code>takePictureAsync()</code> need to be called on a ref rather than triggered by setting state?"
+</li>
+<li>"Why does <code>takePictureAsync()</code> need to be called on a ref rather than triggered by setting state?"
           <div class="answer">→ It's an imperative command, not a state change. There's no "is taking picture" state to toggle — it's a one-time action on the hardware.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<!-- ─── SEGMENT 6 ──────────────────────────────────────────────────── -->
-<div class="segment">
-  <div class="segment-header">
-    <div class="segment-num">6</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Media Library and the URI Lifecycle</div>
-      <div class="segment-subtitle">Temporary vs. permanent storage, saving to the gallery, uploading</div>
+</div>
+</div><!-- ─── SEGMENT 6 ──────────────────────────────────────────────────── --><div class="segment">
+<div class="segment-header">
+<div class="segment-num">6</div>
+<div class="segment-title-block">
+<div class="segment-title">Media Library and the URI Lifecycle</div>
+<div class="segment-subtitle">Temporary vs. permanent storage, saving to the gallery, uploading</div>
+</div>
+<div class="segment-time">⏱ 9 min</div>
+</div>
+<div class="segment-body">
+<p>This is conceptually short but practically very important. Students who miss the "temp cache" nature of captured URIs will lose photos between app restarts and be very confused.</p>
+<h3>Talking Points</h3>
+<ul class="talking-points">
+<li>A <code>file://</code> URI from <code>launchCameraAsync()</code> points to a <em>temporary cache directory</em>. It will survive as long as the app is running in the foreground. After a restart, it may be gone. Never store this URI in a database and assume you can reload it later.</li>
+<li>There are three valid destinations for a captured photo: (1) display it immediately and discard, (2) save it to the device's permanent media library with <code>createAssetAsync()</code>, (3) upload it to a server. All three are legitimate depending on the app's needs.</li>
+<li>Draw the URI lifecycle diagram on the board: temp cache → (choice) MediaLibrary asset / Server URL. The temp URI can fan out to either destination.</li>
+<li><code>expo-media-library</code> has its own permission (<code>MEDIA_LIBRARY</code>) that is separate from the camera permission. Students often forget to request this and wonder why <code>createAssetAsync()</code> fails silently.</li>
+<li>iOS has an "Add Photos Only" permission that lets apps save to the library without reading from it. Consider this for apps that don't need to browse the user's existing photos — it's a narrower ask and users are more likely to grant it.</li>
+</ul>
+<div class="instructor-note">
+<strong>📝 Practical advice for Project 4:</strong> Tell students explicitly that for the assignment, saving to the MediaLibrary is the expected way to demonstrate persistence. If they just display the photo and don't save it, it won't be there when the grader reopens the app. This is worth saying very directly.
     </div>
-    <div class="segment-time">⏱ 9 min</div>
-  </div>
-  <div class="segment-body">
-
-    <p>This is conceptually short but practically very important. Students who miss the "temp cache" nature of captured URIs will lose photos between app restarts and be very confused.</p>
-
-    <h3>Talking Points</h3>
-    <ul class="talking-points">
-      <li>A <code>file://</code> URI from <code>launchCameraAsync()</code> points to a <em>temporary cache directory</em>. It will survive as long as the app is running in the foreground. After a restart, it may be gone. Never store this URI in a database and assume you can reload it later.</li>
-      <li>There are three valid destinations for a captured photo: (1) display it immediately and discard, (2) save it to the device's permanent media library with <code>createAssetAsync()</code>, (3) upload it to a server. All three are legitimate depending on the app's needs.</li>
-      <li>Draw the URI lifecycle diagram on the board: temp cache → (choice) MediaLibrary asset / Server URL. The temp URI can fan out to either destination.</li>
-      <li><code>expo-media-library</code> has its own permission (<code>MEDIA_LIBRARY</code>) that is separate from the camera permission. Students often forget to request this and wonder why <code>createAssetAsync()</code> fails silently.</li>
-      <li>iOS has an "Add Photos Only" permission that lets apps save to the library without reading from it. Consider this for apps that don't need to browse the user's existing photos — it's a narrower ask and users are more likely to grant it.</li>
-    </ul>
-
-    <div class="instructor-note">
-      <strong>📝 Practical advice for Project 4:</strong> Tell students explicitly that for the assignment, saving to the MediaLibrary is the expected way to demonstrate persistence. If they just display the photo and don't save it, it won't be there when the grader reopens the app. This is worth saying very directly.
-    </div>
-
-    <div class="activity">
-      <div class="act-label">📱 Quick class exercise (optional, 3 min)</div>
+<div class="activity">
+<div class="act-label">📱 Quick class exercise (optional, 3 min)</div>
       Have students open their own phone's Settings → Privacy → Camera. Ask: which apps have camera access? Which are denied? Did any of them surprise you? This makes the permission state machine tangible and sparks a brief conversation about permission UX design.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 7 ──────────────────────────────────────────────────── -->
-<div class="segment">
-  <div class="segment-header">
-    <div class="segment-num">7</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Pitfalls, app.json, Q&amp;A, and Bridge to Project 4</div>
-      <div class="segment-subtitle">The production trap, common mistakes, and what comes next</div>
-    </div>
-    <div class="segment-time">⏱ 8 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>The app.json Production Trap — Say It Again</h3>
-    <p>Revisit this explicitly. It's important enough to mention twice.</p>
-
-    <ul class="talking-points">
-      <li>Expo Go pre-declares every possible permission. Their code works fine in development. When they run <code>eas build</code>, only the permissions listed in <code>app.json</code> plugins get included in the native binary. Missing entries cause crashes.</li>
-      <li>Walk through the three plugin entries they'll need for Project 4: <code>expo-image-picker</code>, <code>expo-camera</code> (if used), <code>expo-media-library</code>.</li>
-      <li>Remind them about permission string quality — "Allow access to camera" is lazy and gets flagged. Write strings that explain the <em>why</em>.</li>
-    </ul>
-
-    <h3>Top Pitfalls Rapid-Fire (project the table from the student doc)</h3>
-    <ul class="talking-points">
-      <li><code>result.uri</code> vs. <code>result.assets[0].uri</code> — if images aren't displaying, check this first.</li>
-      <li>Using <code>base64: true</code> on large photos — will freeze the app. Use URI + FormData for uploads.</li>
-      <li>Not handling <code>result.canceled</code> — will crash when user backs out of camera.</li>
-      <li>Displaying a <code>file://</code> URI on a web view or in an email — URIs are device-local only.</li>
-    </ul>
-
-    <h3>Bridge to Next Class — Project 4 Preview</h3>
-    <div class="callout">
-      <strong>🔜 Next class:</strong> The Project 4 Camera App assignment is introduced.
+</div><!-- ─── SEGMENT 7 ──────────────────────────────────────────────────── --><div class="segment">
+<div class="segment-header">
+<div class="segment-num">7</div>
+<div class="segment-title-block">
+<div class="segment-title">Pitfalls, app.json, Q&amp;A, and Bridge to Project 4</div>
+<div class="segment-subtitle">The production trap, common mistakes, and what comes next</div>
+</div>
+<div class="segment-time">⏱ 8 min</div>
+</div>
+<div class="segment-body">
+<h3>The app.json Production Trap — Say It Again</h3>
+<p>Revisit this explicitly. It's important enough to mention twice.</p>
+<ul class="talking-points">
+<li>Expo Go pre-declares every possible permission. Their code works fine in development. When they run <code>eas build</code>, only the permissions listed in <code>app.json</code> plugins get included in the native binary. Missing entries cause crashes.</li>
+<li>Walk through the three plugin entries they'll need for Project 4: <code>expo-image-picker</code>, <code>expo-camera</code> (if used), <code>expo-media-library</code>.</li>
+<li>Remind them about permission string quality — "Allow access to camera" is lazy and gets flagged. Write strings that explain the <em>why</em>.</li>
+</ul>
+<h3>Top Pitfalls Rapid-Fire (project the table from the student doc)</h3>
+<ul class="talking-points">
+<li><code>result.uri</code> vs. <code>result.assets[0].uri</code> — if images aren't displaying, check this first.</li>
+<li>Using <code>base64: true</code> on large photos — will freeze the app. Use URI + FormData for uploads.</li>
+<li>Not handling <code>result.canceled</code> — will crash when user backs out of camera.</li>
+<li>Displaying a <code>file://</code> URI on a web view or in an email — URIs are device-local only.</li>
+</ul>
+<h3>Bridge to Next Class — Project 4 Preview</h3>
+<div class="callout">
+<strong>🔜 Next class:</strong> The Project 4 Camera App assignment is introduced.
       Students will build an app that captures photos, saves them persistently, and displays them
       in a gallery view. Everything from today's lecture is directly applicable.
       Suggest they read the student doc tonight and try running the <code>launchCameraAsync()</code>
       example from Segment 4 in their own Expo project before next class.
     </div>
-
-    <div class="discussion">
-      <strong>💬 Closing question (optional, if time):</strong>
+<div class="discussion">
+<strong>💬 Closing question (optional, if time):</strong>
       "What's one app you could imagine building now that you know how to get a photo into a React Native app? Name the package you'd use and where the photo would end up."
       This is a good exit ticket for gauging comprehension and capturing student enthusiasm before Project 4.
     </div>
-
-    <div class="instructor-note">
-      <strong>📝 Office hours note:</strong> Camera integration is the most hands-on topic so far.
+<div class="instructor-note">
+<strong>📝 Office hours note:</strong> Camera integration is the most hands-on topic so far.
       If possible, hold brief drop-in hours before Project 4 is due. Students with Android devices
       from unfamiliar manufacturers sometimes hit quirky Camera2 behavior that Expo doesn't fully
       abstract. Be prepared for "it works on iOS but not my phone" questions — usually solvable with
       <code>skipProcessing: true</code> in <code>takePictureAsync()</code>.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── DIFFERENTIATION ────────────────────────────────────────────── -->
-<h2>Differentiation and Pacing Notes</h2>
-
-<div class="two-col">
-  <div class="card">
-    <h4>If class is running ahead of schedule</h4>
-    <ul>
-      <li>Add a live demo of <code>recordAsync()</code> for video capture — extend the CameraView segment</li>
-      <li>Show <code>FileSystem.uploadAsync()</code> and how it differs from <code>fetch</code> for large uploads</li>
-      <li>Walk through EXIF data extraction from the asset object — useful for location-tagged photo apps</li>
-      <li>Demo <code>onBarcodeScanned</code> in CameraView — always gets a strong reaction</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h4>If class is running behind schedule</h4>
-    <ul>
-      <li>Cut the CameraView live demo — the student doc SVG is sufficient; defer to office hours</li>
-      <li>Abbreviate the MediaLibrary segment to just the key point: temp cache vs. permanent, and <code>createAssetAsync()</code></li>
-      <li>Skip the class activity in Segment 6</li>
-      <li>Move the <code>app.json</code> walkthrough to the opening of the next class (Project 4 intro) where it's also directly relevant</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h4>Students who are ahead / finish early</h4>
-    <ul>
-      <li>Challenge: get the photo to upload to a public endpoint (e.g. a test API) using <code>FormData</code></li>
-      <li>Challenge: add a <code>FlatList</code> that persists a gallery of captured photos using <code>AsyncStorage</code> for URIs + MediaLibrary for files</li>
-      <li>Explore: <code>expo-camera</code> barcode scanning</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h4>Students who are struggling</h4>
-    <ul>
-      <li>Simplify to just the permission check + <code>launchCameraAsync()</code> + display pattern. Everything else is optional once this works.</li>
-      <li>Pair with a stronger student for the demo — camera code is best learned by watching it run first</li>
-      <li>Recommend the student doc Section 10 (pitfalls table) as a debugging checklist</li>
-    </ul>
-  </div>
+</div><!-- ─── DIFFERENTIATION ────────────────────────────────────────────── --><h2>Differentiation and Pacing Notes</h2><div class="two-col">
+<div class="card">
+<h4>If class is running ahead of schedule</h4>
+<ul>
+<li>Add a live demo of <code>recordAsync()</code> for video capture — extend the CameraView segment</li>
+<li>Show <code>FileSystem.uploadAsync()</code> and how it differs from <code>fetch</code> for large uploads</li>
+<li>Walk through EXIF data extraction from the asset object — useful for location-tagged photo apps</li>
+<li>Demo <code>onBarcodeScanned</code> in CameraView — always gets a strong reaction</li>
+</ul>
 </div>
-
-
-<!-- ─── MATERIALS ──────────────────────────────────────────────────── -->
-<h2>Materials and Resources</h2>
-
-<table>
-  <thead><tr><th>Item</th><th>Format</th><th>Purpose</th></tr></thead>
-  <tbody>
-    <tr><td>CS402_Camera_Integration.html</td><td>Student reference doc</td><td>Primary reading; contains all code examples, SVG diagrams, and quick reference tables</td></tr>
-    <tr><td>Physical device with Expo Go installed</td><td>Hardware</td><td>Live demo — simulator is not sufficient for camera features</td></tr>
-    <tr><td>Backup device (optional)</td><td>Hardware</td><td>Insurance if primary device has camera issues during demo</td></tr>
-    <tr><td>Pre-built Expo project with packages installed</td><td>Code</td><td>Base for live demos; don't install packages live — time waste and potential network failure</td></tr>
-    <tr><td>Project 4 assignment brief</td><td>Next class</td><td>Introduced next session; students should be primed for it by end of today</td></tr>
-  </tbody>
-</table>
-
-
-<!-- ─── FOOTER ─────────────────────────────────────────────────────── -->
-<div class="doc-footer">
-  <span>CS 402 · Spring 2026 · Boise State University</span>
-  <span>Instructor Copy — Not for Student Distribution</span>
-  <span>Paired doc: CS402_Camera_Integration.html</span>
+<div class="card">
+<h4>If class is running behind schedule</h4>
+<ul>
+<li>Cut the CameraView live demo — the student doc SVG is sufficient; defer to office hours</li>
+<li>Abbreviate the MediaLibrary segment to just the key point: temp cache vs. permanent, and <code>createAssetAsync()</code></li>
+<li>Skip the class activity in Segment 6</li>
+<li>Move the <code>app.json</code> walkthrough to the opening of the next class (Project 4 intro) where it's also directly relevant</li>
+</ul>
 </div>
-
+<div class="card">
+<h4>Students who are ahead / finish early</h4>
+<ul>
+<li>Challenge: get the photo to upload to a public endpoint (e.g. a test API) using <code>FormData</code></li>
+<li>Challenge: add a <code>FlatList</code> that persists a gallery of captured photos using <code>AsyncStorage</code> for URIs + MediaLibrary for files</li>
+<li>Explore: <code>expo-camera</code> barcode scanning</li>
+</ul>
+</div>
+<div class="card">
+<h4>Students who are struggling</h4>
+<ul>
+<li>Simplify to just the permission check + <code>launchCameraAsync()</code> + display pattern. Everything else is optional once this works.</li>
+<li>Pair with a stronger student for the demo — camera code is best learned by watching it run first</li>
+<li>Recommend the student doc Section 10 (pitfalls table) as a debugging checklist</li>
+</ul>
+</div>
+</div><!-- ─── MATERIALS ──────────────────────────────────────────────────── --><h2>Materials and Resources</h2><table>
+<thead><tr><th scope="col">Item</th><th scope="col">Format</th><th scope="col">Purpose</th></tr></thead>
+<tbody>
+<tr><td>CS402_Camera_Integration.html</td><td>Student reference doc</td><td>Primary reading; contains all code examples, SVG diagrams, and quick reference tables</td></tr>
+<tr><td>Physical device with Expo Go installed</td><td>Hardware</td><td>Live demo — simulator is not sufficient for camera features</td></tr>
+<tr><td>Backup device (optional)</td><td>Hardware</td><td>Insurance if primary device has camera issues during demo</td></tr>
+<tr><td>Pre-built Expo project with packages installed</td><td>Code</td><td>Base for live demos; don't install packages live — time waste and potential network failure</td></tr>
+<tr><td>Project 4 assignment brief</td><td>Next class</td><td>Introduced next session; students should be primed for it by end of today</td></tr>
+</tbody>
+</table><!-- ─── FOOTER ─────────────────────────────────────────────────────── --><div class="doc-footer">
+<span>CS 402 · Spring 2026 · Boise State University</span>
+<span>Instructor Copy — Not for Student Distribution</span>
+<span>Paired doc: CS402_Camera_Integration.html</span>
+</div></main>
 </body>
 </html>

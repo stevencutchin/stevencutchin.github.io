@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 – The On-Phone Integrated Ecosystem</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -84,814 +85,636 @@
     .diagram-wrap, .guideline-grid, .platform-row { break-inside: avoid; }
   }
 </style>
-</head>
-<body>
-
-<!-- ─── HEADER ───────────────────────────────────────────────────── -->
-<div class="doc-header">
-  <h1>CS 402 — Mobile Application Development</h1>
-  <div class="semester">Spring 2026 · Boise State University</div>
-  <div class="subtitle">The On-Phone Integrated Ecosystem</div>
-  <div class="lesson-meta">
-    <span>🏙 Multi-app environment</span>
-    <span>📦 App sandboxing</span>
-    <span>🔗 Inter-app communication</span>
-    <span>⚖️ Responsible development</span>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><!-- ─── HEADER ───────────────────────────────────────────────────── --><div class="doc-header">
+<h1>CS 402 — Mobile Application Development</h1>
+<div class="semester">Spring 2026 · Boise State University</div>
+<div class="subtitle">The On-Phone Integrated Ecosystem</div>
+<div class="lesson-meta">
+<span>🏙 Multi-app environment</span>
+<span>📦 App sandboxing</span>
+<span>🔗 Inter-app communication</span>
+<span>⚖️ Responsible development</span>
 </div>
-
-<!-- ─── ONE PAGE OR TWO? ─────────────────────────────────────────── -->
-<div class="callout" style="margin-top: 0;">
-  <strong>iOS and Android: One document or two?</strong> One. The ecosystem concepts on this page — sandboxing, process isolation, shared resources, inter-app communication, and the responsibilities that follow — are fundamentally the same on both platforms. Where iOS and Android differ meaningfully (background execution policy, IPC mechanisms, sandbox strictness), those differences are shown side-by-side using the <span style="background:#eef4fb; border:1px solid #4a80b5; padding:1px 6px; border-radius:4px; font-size:12px; font-weight:700; color:#1a4a7a;">iOS</span> and <span style="background:#f0f8f0; border:1px solid #4a9a5a; padding:1px 6px; border-radius:4px; font-size:12px; font-weight:700; color:#1a5a2a;">Android</span> comparison panels throughout. Comparing them in context teaches more than reading two separate documents ever could.
-</div>
-
-<p class="section-intro">
+</div><!-- ─── ONE PAGE OR TWO? ─────────────────────────────────────────── --><div class="callout" style="margin-top: 0;">
+<strong>iOS and Android: One document or two?</strong> One. The ecosystem concepts on this page — sandboxing, process isolation, shared resources, inter-app communication, and the responsibilities that follow — are fundamentally the same on both platforms. Where iOS and Android differ meaningfully (background execution policy, IPC mechanisms, sandbox strictness), those differences are shown side-by-side using the <span style="background:#eef4fb; border:1px solid #4a80b5; padding:1px 6px; border-radius:4px; font-size:12px; font-weight:700; color:#1a4a7a;">iOS</span> and <span style="background:#f0f8f0; border:1px solid #4a9a5a; padding:1px 6px; border-radius:4px; font-size:12px; font-weight:700; color:#1a5a2a;">Android</span> comparison panels throughout. Comparing them in context teaches more than reading two separate documents ever could.
+</div><p class="section-intro">
   Your app doesn't run alone. It lives on a device shared with dozens of other apps, all of which want CPU time, memory, network bandwidth, and battery. The OS orchestrates this competition with a strict set of rules — and your app's reputation with users depends entirely on how well you play by them. This lesson maps the ecosystem your app inhabits and establishes the principles of responsible development within it.
-</p>
-
-
-<!-- ─── 1. THE PHONE AS A SHARED CITY ────────────────────────────── -->
-<h2>1. The Phone as a Shared Environment</h2>
-
-<p>
+</p><!-- ─── 1. THE PHONE AS A SHARED CITY ────────────────────────────── --><h2>1. The Phone as a Shared Environment</h2><p>
   A modern smartphone runs dozens of apps simultaneously — or at least appears to. Understanding what "running simultaneously" actually means at the OS level is the foundation for everything else in this lesson. The phone isn't a dedicated computer for your app. It's a shared resource negotiated by the operating system on behalf of many competing tenants.
-</p>
-
-<!-- SVG: City metaphor -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="400" fill="#f0f4f8" rx="10"/>
-
-  <!-- Sky / ground -->
-  <rect width="800" height="400" fill="#e8f0f8" rx="10"/>
-  <rect y="300" width="800" height="100" fill="#c8d8c0" rx="0"/>
-  <rect y="295" width="800" height="10" fill="#8aaa7a" rx="0"/>
-
-  <!-- Ground label -->
-  <text x="400" y="355" font-size="13" fill="#3a5a2a" font-weight="700" text-anchor="middle">SHARED DEVICE RESOURCES  (CPU · RAM · Network · Battery · Storage · Hardware)</text>
-
-  <!-- City buildings (apps) -->
-  <!-- Building 1 - Your App (highlighted) -->
-  <rect x="60"  y="130" width="90" height="170" fill="#1B3A5C" rx="4"/>
-  <rect x="60"  y="120" width="90" height="16"  fill="#0d2236" rx="4"/>
-  <text x="105" y="132" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">YOUR APP</text>
-  <!-- windows -->
-  <rect x="74"  y="148" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <rect x="100" y="148" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <rect x="126" y="148" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <rect x="74"  y="178" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <rect x="100" y="178" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <rect x="126" y="178" width="18" height="18" fill="#89dceb" rx="2" opacity="0.5"/>
-  <rect x="74"  y="208" width="18" height="18" fill="#89dceb" rx="2" opacity="0.3"/>
-  <rect x="100" y="208" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <rect x="126" y="208" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <rect x="74"  y="238" width="18" height="18" fill="#89dceb" rx="2" opacity="0.7"/>
-  <rect x="100" y="238" width="18" height="18" fill="#89dceb" rx="2" opacity="0.5"/>
-  <rect x="126" y="238" width="18" height="18" fill="#89dceb" rx="2" opacity="0.9"/>
-  <!-- door -->
-  <rect x="92"  y="268" width="26" height="32" fill="#0d2236" rx="3"/>
-  <!-- glow ring -->
-  <rect x="55"  y="115" width="100" height="185" fill="none" stroke="#89b4fa" stroke-width="3" rx="6" opacity="0.8"/>
-  <text x="105" y="112" font-size="10" fill="#89b4fa" text-anchor="middle">← you are here</text>
-
-  <!-- Building 2 - Social App -->
-  <rect x="180" y="175" width="70" height="125" fill="#4a7ab5" rx="4"/>
-  <rect x="180" y="165" width="70" height="14" fill="#2a5a95" rx="3"/>
-  <text x="215" y="175" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">Social App</text>
-  <rect x="190" y="185" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.7"/>
-  <rect x="210" y="185" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.9"/>
-  <rect x="230" y="185" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.5"/>
-  <rect x="190" y="208" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.4"/>
-  <rect x="210" y="208" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.8"/>
-  <rect x="230" y="208" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.9"/>
-  <rect x="190" y="231" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.9"/>
-  <rect x="210" y="231" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.3"/>
-  <rect x="230" y="231" width="14" height="14" fill="#cdd6f4" rx="1" opacity="0.7"/>
-  <rect x="200" y="268" width="22" height="32" fill="#2a5a95" rx="2"/>
-
-  <!-- Building 3 - Maps -->
-  <rect x="280" y="190" width="75" height="110" fill="#2e7a5d" rx="4"/>
-  <rect x="280" y="180" width="75" height="14" fill="#1a5a3a" rx="3"/>
-  <text x="317" y="190" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">Maps App</text>
-  <rect x="292" y="200" width="14" height="14" fill="#a6e3a1" rx="1" opacity="0.8"/>
-  <rect x="313" y="200" width="14" height="14" fill="#a6e3a1" rx="1" opacity="0.6"/>
-  <rect x="334" y="200" width="14" height="14" fill="#a6e3a1" rx="1" opacity="0.9"/>
-  <rect x="292" y="222" width="14" height="14" fill="#a6e3a1" rx="1" opacity="0.4"/>
-  <rect x="313" y="222" width="14" height="14" fill="#a6e3a1" rx="1" opacity="0.9"/>
-  <rect x="334" y="222" width="14" height="14" fill="#a6e3a1" rx="1" opacity="0.7"/>
-  <rect x="304" y="268" width="22" height="32" fill="#1a5a3a" rx="2"/>
-
-  <!-- Building 4 - Music -->
-  <rect x="390" y="160" width="65" height="140" fill="#8a3a7a" rx="4"/>
-  <rect x="390" y="150" width="65" height="14" fill="#6a1a5a" rx="3"/>
-  <text x="422" y="160" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">Music App</text>
-  <rect x="400" y="170" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.7"/>
-  <rect x="420" y="170" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.9"/>
-  <rect x="440" y="170" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.5"/>
-  <rect x="400" y="191" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.9"/>
-  <rect x="420" y="191" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.4"/>
-  <rect x="440" y="191" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.8"/>
-  <rect x="400" y="212" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.6"/>
-  <rect x="420" y="212" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.9"/>
-  <rect x="440" y="212" width="13" height="13" fill="#f5c2e7" rx="1" opacity="0.3"/>
-  <rect x="408" y="268" width="20" height="32" fill="#6a1a5a" rx="2"/>
-
-  <!-- Building 5 - Bank -->
-  <rect x="490" y="145" width="70" height="155" fill="#5a4a2a" rx="4"/>
-  <rect x="490" y="135" width="70" height="14" fill="#3a2a0a" rx="3"/>
-  <text x="525" y="145" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">Banking App</text>
-  <rect x="502" y="155" width="13" height="13" fill="#fab387" rx="1" opacity="0.7"/>
-  <rect x="522" y="155" width="13" height="13" fill="#fab387" rx="1" opacity="0.9"/>
-  <rect x="542" y="155" width="13" height="13" fill="#fab387" rx="1" opacity="0.5"/>
-  <rect x="502" y="177" width="13" height="13" fill="#fab387" rx="1" opacity="0.4"/>
-  <rect x="522" y="177" width="13" height="13" fill="#fab387" rx="1" opacity="0.9"/>
-  <rect x="542" y="177" width="13" height="13" fill="#fab387" rx="1" opacity="0.6"/>
-  <rect x="502" y="199" width="13" height="13" fill="#fab387" rx="1" opacity="0.9"/>
-  <rect x="522" y="199" width="13" height="13" fill="#fab387" rx="1" opacity="0.3"/>
-  <rect x="542" y="199" width="13" height="13" fill="#fab387" rx="1" opacity="0.8"/>
-  <rect x="502" y="221" width="13" height="13" fill="#fab387" rx="1" opacity="0.5"/>
-  <rect x="522" y="221" width="13" height="13" fill="#fab387" rx="1" opacity="0.9"/>
-  <rect x="542" y="221" width="13" height="13" fill="#fab387" rx="1" opacity="0.4"/>
-  <rect x="511" y="268" width="20" height="32" fill="#3a2a0a" rx="2"/>
-
-  <!-- Building 6 - Camera -->
-  <rect x="595" y="200" width="60" height="100" fill="#4a2a7a" rx="4"/>
-  <rect x="595" y="190" width="60" height="14" fill="#2a0a5a" rx="3"/>
-  <text x="625" y="200" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">Camera App</text>
-  <rect x="605" y="210" width="13" height="13" fill="#cba6f7" rx="1" opacity="0.7"/>
-  <rect x="625" y="210" width="13" height="13" fill="#cba6f7" rx="1" opacity="0.9"/>
-  <rect x="645" y="210" width="13" height="13" fill="#cba6f7" rx="1" opacity="0.4"/>
-  <rect x="605" y="232" width="13" height="13" fill="#cba6f7" rx="1" opacity="0.9"/>
-  <rect x="625" y="232" width="13" height="13" fill="#cba6f7" rx="1" opacity="0.5"/>
-  <rect x="645" y="232" width="13" height="13" fill="#cba6f7" rx="1" opacity="0.8"/>
-  <rect x="611" y="268" width="22" height="32" fill="#2a0a5a" rx="2"/>
-
-  <!-- Building 7 - Weather (small) -->
-  <rect x="688" y="220" width="55" height="80" fill="#3a6a8a" rx="4"/>
-  <rect x="688" y="210" width="55" height="14" fill="#1a4a6a" rx="3"/>
-  <text x="715" y="220" font-size="10" fill="#fff" font-weight="700" text-anchor="middle">Weather</text>
-  <rect x="696" y="230" width="11" height="11" fill="#89dceb" rx="1" opacity="0.8"/>
-  <rect x="714" y="230" width="11" height="11" fill="#89dceb" rx="1" opacity="0.6"/>
-  <rect x="732" y="230" width="11" height="11" fill="#89dceb" rx="1" opacity="0.9"/>
-  <rect x="696" y="249" width="11" height="11" fill="#89dceb" rx="1" opacity="0.4"/>
-  <rect x="714" y="249" width="11" height="11" fill="#89dceb" rx="1" opacity="0.9"/>
-  <rect x="732" y="249" width="11" height="11" fill="#89dceb" rx="1" opacity="0.5"/>
-  <rect x="703" y="268" width="18" height="32" fill="#1a4a6a" rx="2"/>
-
-  <!-- OS Infrastructure: Roads + Utilities -->
-  <!-- "Road" between buildings -->
-  <rect x="50" y="293" width="700" height="5" fill="#8aaa7a" rx="0" opacity="0.5"/>
-  <!-- Utility lines (underground) -->
-  <line x1="60"  y1="298" x2="60"  y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-  <line x1="215" y1="298" x2="215" y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-  <line x1="317" y1="298" x2="317" y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-  <line x1="422" y1="298" x2="422" y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-  <line x1="525" y1="298" x2="525" y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-  <line x1="625" y1="298" x2="625" y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-  <line x1="715" y1="298" x2="715" y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-  <line x1="60" y1="310" x2="715" y2="310" stroke="#2E5D8A" stroke-width="2" stroke-dasharray="3,2"/>
-
-  <!-- OS Label band at top -->
-  <rect x="50" y="15" width="700" height="30" fill="#1B3A5C" rx="6" opacity="0.9"/>
-  <text x="400" y="34" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">OPERATING SYSTEM — Scheduler · Memory Manager · Permission Gate · IPC Bus · Power Manager</text>
+</p><!-- SVG: City metaphor --><div class="diagram-wrap">
+<svg aria-label="Diagram: 1. The Phone as a Shared Environment" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f0f4f8" height="400" rx="10" width="800"></rect>
+<!-- Sky / ground -->
+<rect fill="#e8f0f8" height="400" rx="10" width="800"></rect>
+<rect fill="#c8d8c0" height="100" rx="0" width="800" y="300"></rect>
+<rect fill="#8aaa7a" height="10" rx="0" width="800" y="295"></rect>
+<!-- Ground label -->
+<text fill="#3a5a2a" font-size="13" font-weight="700" text-anchor="middle" x="400" y="355">SHARED DEVICE RESOURCES  (CPU · RAM · Network · Battery · Storage · Hardware)</text>
+<!-- City buildings (apps) -->
+<!-- Building 1 - Your App (highlighted) -->
+<rect fill="#1B3A5C" height="170" rx="4" width="90" x="60" y="130"></rect>
+<rect fill="#0d2236" height="16" rx="4" width="90" x="60" y="120"></rect>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="105" y="132">YOUR APP</text>
+<!-- windows -->
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="74" y="148"></rect>
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="100" y="148"></rect>
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="126" y="148"></rect>
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="74" y="178"></rect>
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="100" y="178"></rect>
+<rect fill="#89dceb" height="18" opacity="0.5" rx="2" width="18" x="126" y="178"></rect>
+<rect fill="#89dceb" height="18" opacity="0.3" rx="2" width="18" x="74" y="208"></rect>
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="100" y="208"></rect>
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="126" y="208"></rect>
+<rect fill="#89dceb" height="18" opacity="0.7" rx="2" width="18" x="74" y="238"></rect>
+<rect fill="#89dceb" height="18" opacity="0.5" rx="2" width="18" x="100" y="238"></rect>
+<rect fill="#89dceb" height="18" opacity="0.9" rx="2" width="18" x="126" y="238"></rect>
+<!-- door -->
+<rect fill="#0d2236" height="32" rx="3" width="26" x="92" y="268"></rect>
+<!-- glow ring -->
+<rect fill="none" height="185" opacity="0.8" rx="6" stroke="#89b4fa" stroke-width="3" width="100" x="55" y="115"></rect>
+<text fill="#89b4fa" font-size="10" text-anchor="middle" x="105" y="112">← you are here</text>
+<!-- Building 2 - Social App -->
+<rect fill="#4a7ab5" height="125" rx="4" width="70" x="180" y="175"></rect>
+<rect fill="#2a5a95" height="14" rx="3" width="70" x="180" y="165"></rect>
+<text fill="#fff" font-size="10" font-weight="700" text-anchor="middle" x="215" y="175">Social App</text>
+<rect fill="#cdd6f4" height="14" opacity="0.7" rx="1" width="14" x="190" y="185"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.9" rx="1" width="14" x="210" y="185"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.5" rx="1" width="14" x="230" y="185"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.4" rx="1" width="14" x="190" y="208"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.8" rx="1" width="14" x="210" y="208"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.9" rx="1" width="14" x="230" y="208"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.9" rx="1" width="14" x="190" y="231"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.3" rx="1" width="14" x="210" y="231"></rect>
+<rect fill="#cdd6f4" height="14" opacity="0.7" rx="1" width="14" x="230" y="231"></rect>
+<rect fill="#2a5a95" height="32" rx="2" width="22" x="200" y="268"></rect>
+<!-- Building 3 - Maps -->
+<rect fill="#2e7a5d" height="110" rx="4" width="75" x="280" y="190"></rect>
+<rect fill="#1a5a3a" height="14" rx="3" width="75" x="280" y="180"></rect>
+<text fill="#fff" font-size="10" font-weight="700" text-anchor="middle" x="317" y="190">Maps App</text>
+<rect fill="#a6e3a1" height="14" opacity="0.8" rx="1" width="14" x="292" y="200"></rect>
+<rect fill="#a6e3a1" height="14" opacity="0.6" rx="1" width="14" x="313" y="200"></rect>
+<rect fill="#a6e3a1" height="14" opacity="0.9" rx="1" width="14" x="334" y="200"></rect>
+<rect fill="#a6e3a1" height="14" opacity="0.4" rx="1" width="14" x="292" y="222"></rect>
+<rect fill="#a6e3a1" height="14" opacity="0.9" rx="1" width="14" x="313" y="222"></rect>
+<rect fill="#a6e3a1" height="14" opacity="0.7" rx="1" width="14" x="334" y="222"></rect>
+<rect fill="#1a5a3a" height="32" rx="2" width="22" x="304" y="268"></rect>
+<!-- Building 4 - Music -->
+<rect fill="#8a3a7a" height="140" rx="4" width="65" x="390" y="160"></rect>
+<rect fill="#6a1a5a" height="14" rx="3" width="65" x="390" y="150"></rect>
+<text fill="#fff" font-size="10" font-weight="700" text-anchor="middle" x="422" y="160">Music App</text>
+<rect fill="#f5c2e7" height="13" opacity="0.7" rx="1" width="13" x="400" y="170"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.9" rx="1" width="13" x="420" y="170"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.5" rx="1" width="13" x="440" y="170"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.9" rx="1" width="13" x="400" y="191"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.4" rx="1" width="13" x="420" y="191"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.8" rx="1" width="13" x="440" y="191"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.6" rx="1" width="13" x="400" y="212"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.9" rx="1" width="13" x="420" y="212"></rect>
+<rect fill="#f5c2e7" height="13" opacity="0.3" rx="1" width="13" x="440" y="212"></rect>
+<rect fill="#6a1a5a" height="32" rx="2" width="20" x="408" y="268"></rect>
+<!-- Building 5 - Bank -->
+<rect fill="#5a4a2a" height="155" rx="4" width="70" x="490" y="145"></rect>
+<rect fill="#3a2a0a" height="14" rx="3" width="70" x="490" y="135"></rect>
+<text fill="#fff" font-size="10" font-weight="700" text-anchor="middle" x="525" y="145">Banking App</text>
+<rect fill="#fab387" height="13" opacity="0.7" rx="1" width="13" x="502" y="155"></rect>
+<rect fill="#fab387" height="13" opacity="0.9" rx="1" width="13" x="522" y="155"></rect>
+<rect fill="#fab387" height="13" opacity="0.5" rx="1" width="13" x="542" y="155"></rect>
+<rect fill="#fab387" height="13" opacity="0.4" rx="1" width="13" x="502" y="177"></rect>
+<rect fill="#fab387" height="13" opacity="0.9" rx="1" width="13" x="522" y="177"></rect>
+<rect fill="#fab387" height="13" opacity="0.6" rx="1" width="13" x="542" y="177"></rect>
+<rect fill="#fab387" height="13" opacity="0.9" rx="1" width="13" x="502" y="199"></rect>
+<rect fill="#fab387" height="13" opacity="0.3" rx="1" width="13" x="522" y="199"></rect>
+<rect fill="#fab387" height="13" opacity="0.8" rx="1" width="13" x="542" y="199"></rect>
+<rect fill="#fab387" height="13" opacity="0.5" rx="1" width="13" x="502" y="221"></rect>
+<rect fill="#fab387" height="13" opacity="0.9" rx="1" width="13" x="522" y="221"></rect>
+<rect fill="#fab387" height="13" opacity="0.4" rx="1" width="13" x="542" y="221"></rect>
+<rect fill="#3a2a0a" height="32" rx="2" width="20" x="511" y="268"></rect>
+<!-- Building 6 - Camera -->
+<rect fill="#4a2a7a" height="100" rx="4" width="60" x="595" y="200"></rect>
+<rect fill="#2a0a5a" height="14" rx="3" width="60" x="595" y="190"></rect>
+<text fill="#fff" font-size="10" font-weight="700" text-anchor="middle" x="625" y="200">Camera App</text>
+<rect fill="#cba6f7" height="13" opacity="0.7" rx="1" width="13" x="605" y="210"></rect>
+<rect fill="#cba6f7" height="13" opacity="0.9" rx="1" width="13" x="625" y="210"></rect>
+<rect fill="#cba6f7" height="13" opacity="0.4" rx="1" width="13" x="645" y="210"></rect>
+<rect fill="#cba6f7" height="13" opacity="0.9" rx="1" width="13" x="605" y="232"></rect>
+<rect fill="#cba6f7" height="13" opacity="0.5" rx="1" width="13" x="625" y="232"></rect>
+<rect fill="#cba6f7" height="13" opacity="0.8" rx="1" width="13" x="645" y="232"></rect>
+<rect fill="#2a0a5a" height="32" rx="2" width="22" x="611" y="268"></rect>
+<!-- Building 7 - Weather (small) -->
+<rect fill="#3a6a8a" height="80" rx="4" width="55" x="688" y="220"></rect>
+<rect fill="#1a4a6a" height="14" rx="3" width="55" x="688" y="210"></rect>
+<text fill="#fff" font-size="10" font-weight="700" text-anchor="middle" x="715" y="220">Weather</text>
+<rect fill="#89dceb" height="11" opacity="0.8" rx="1" width="11" x="696" y="230"></rect>
+<rect fill="#89dceb" height="11" opacity="0.6" rx="1" width="11" x="714" y="230"></rect>
+<rect fill="#89dceb" height="11" opacity="0.9" rx="1" width="11" x="732" y="230"></rect>
+<rect fill="#89dceb" height="11" opacity="0.4" rx="1" width="11" x="696" y="249"></rect>
+<rect fill="#89dceb" height="11" opacity="0.9" rx="1" width="11" x="714" y="249"></rect>
+<rect fill="#89dceb" height="11" opacity="0.5" rx="1" width="11" x="732" y="249"></rect>
+<rect fill="#1a4a6a" height="32" rx="2" width="18" x="703" y="268"></rect>
+<!-- OS Infrastructure: Roads + Utilities -->
+<!-- "Road" between buildings -->
+<rect fill="#8aaa7a" height="5" opacity="0.5" rx="0" width="700" x="50" y="293"></rect>
+<!-- Utility lines (underground) -->
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="60" x2="60" y1="298" y2="310"></line>
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="215" x2="215" y1="298" y2="310"></line>
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="317" x2="317" y1="298" y2="310"></line>
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="422" x2="422" y1="298" y2="310"></line>
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="525" x2="525" y1="298" y2="310"></line>
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="625" x2="625" y1="298" y2="310"></line>
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="715" x2="715" y1="298" y2="310"></line>
+<line stroke="#2E5D8A" stroke-dasharray="3,2" stroke-width="2" x1="60" x2="715" y1="310" y2="310"></line>
+<!-- OS Label band at top -->
+<rect fill="#1B3A5C" height="30" opacity="0.9" rx="6" width="700" x="50" y="15"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="400" y="34">OPERATING SYSTEM — Scheduler · Memory Manager · Permission Gate · IPC Bus · Power Manager</text>
 </svg>
 <div class="diagram-caption">Figure 1: The phone as a shared city. Each app is a tenant in its own building (sandbox). The OS is the city government — it owns the roads, utilities, and zoning laws that determine what each tenant can do.</div>
-</div>
-
-<p>
+</div><p>
   At any moment your app may be the active foreground tenant, a suspended background resident, or completely evicted from memory to free up resources for a neighbor. The OS makes these decisions without asking you, and your app must be designed to handle any of these state transitions gracefully.
-</p>
-
-
-<!-- ─── 2. THE APP SANDBOX ────────────────────────────────────────── -->
-<h2>2. The App Sandbox — Your World Has Walls</h2>
-
-<p>
+</p><!-- ─── 2. THE APP SANDBOX ────────────────────────────────────────── --><h2>2. The App Sandbox — Your World Has Walls</h2><p>
   Every app on a modern mobile OS lives inside a <strong>sandbox</strong>: a strictly bounded container that prevents it from accessing the data, files, or memory of any other app. This is a security model, not a limitation to work around. Your users' photos, messages, and banking credentials are protected by the same walls that contain your app.
-</p>
-
-<!-- SVG: Sandbox diagram -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="380" fill="#f8f9fb" rx="10"/>
-
-  <!-- Outer OS layer -->
-  <rect x="20" y="20" width="760" height="340" fill="#e8eef5" rx="12" stroke="#1B3A5C" stroke-width="2"/>
-  <text x="400" y="42" font-size="13" fill="#1B3A5C" font-weight="700" text-anchor="middle">OPERATING SYSTEM KERNEL</text>
-
-  <!-- YOUR APP sandbox box (centre) -->
-  <rect x="240" y="60" width="320" height="260" fill="#fff" rx="10" stroke="#2E5D8A" stroke-width="2.5" stroke-dasharray="0"/>
-  <text x="400" y="85" font-size="14" fill="#1B3A5C" font-weight="700" text-anchor="middle">YOUR APP SANDBOX</text>
-
-  <!-- Inside sandbox items -->
-  <rect x="260" y="96"  width="130" height="34" fill="#e8f0fb" rx="5" stroke="#4a80b5" stroke-width="1"/>
-  <text x="325" y="115" font-size="12" fill="#1B3A5C" text-anchor="middle">JS/Native Threads</text>
-
-  <rect x="410" y="96"  width="130" height="34" fill="#e8f0fb" rx="5" stroke="#4a80b5" stroke-width="1"/>
-  <text x="475" y="115" font-size="12" fill="#1B3A5C" text-anchor="middle">App Memory</text>
-
-  <rect x="260" y="142" width="130" height="34" fill="#e8f0fb" rx="5" stroke="#4a80b5" stroke-width="1"/>
-  <text x="325" y="161" font-size="12" fill="#1B3A5C" text-anchor="middle">Private File Storage</text>
-
-  <rect x="410" y="142" width="130" height="34" fill="#e8f0fb" rx="5" stroke="#4a80b5" stroke-width="1"/>
-  <text x="475" y="161" font-size="12" fill="#1B3A5C" text-anchor="middle">App Preferences</text>
-
-  <rect x="260" y="188" width="130" height="34" fill="#e8f0fb" rx="5" stroke="#4a80b5" stroke-width="1"/>
-  <text x="325" y="207" font-size="12" fill="#1B3A5C" text-anchor="middle">Network (your calls)</text>
-
-  <rect x="410" y="188" width="130" height="34" fill="#e8f0fb" rx="5" stroke="#4a80b5" stroke-width="1"/>
-  <text x="475" y="207" font-size="12" fill="#1B3A5C" text-anchor="middle">SQLite / AsyncStorage</text>
-
-  <rect x="295" y="238" width="210" height="34" fill="#fdf0f0" rx="5" stroke="#c04040" stroke-width="1"/>
-  <text x="400" y="257" font-size="12" fill="#8a1a1a" text-anchor="middle">❌ Cannot access other apps' data</text>
-
-  <!-- LEFT: shared resources (permissioned) -->
-  <rect x="30" y="110" width="180" height="180" fill="#f0f6fb" rx="8" stroke="#2e7a5d" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="120" y="130" font-size="12" fill="#1a5a3a" font-weight="700" text-anchor="middle">SHARED RESOURCES</text>
-  <text x="120" y="145" font-size="10" fill="#1a5a3a" text-anchor="middle">(requires permission)</text>
-  <text x="60"  y="168" font-size="12" fill="#2c2c2c">📷 Camera</text>
-  <text x="60"  y="188" font-size="12" fill="#2c2c2c">📍 GPS / Location</text>
-  <text x="60"  y="208" font-size="12" fill="#2c2c2c">🎤 Microphone</text>
-  <text x="60"  y="228" font-size="12" fill="#2c2c2c">🖼 Photo Library</text>
-  <text x="60"  y="248" font-size="12" fill="#2c2c2c">📬 Contacts</text>
-  <text x="60"  y="268" font-size="12" fill="#2c2c2c">🔔 Notifications</text>
-
-  <!-- RIGHT: other apps (blocked) -->
-  <rect x="590" y="110" width="180" height="180" fill="#fdf0f0" rx="8" stroke="#c04040" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="680" y="130" font-size="12" fill="#8a1a1a" font-weight="700" text-anchor="middle">OTHER APP SANDBOXES</text>
-  <text x="620" y="158" font-size="12" fill="#555">📱 Social App</text>
-  <text x="620" y="178" font-size="12" fill="#555">🏦 Banking App</text>
-  <text x="620" y="198" font-size="12" fill="#555">🗺 Maps App</text>
-  <text x="620" y="218" font-size="12" fill="#555">🎵 Music App</text>
-  <text x="680" y="248" font-size="13" fill="#c04040" font-weight="700" text-anchor="middle">WALL</text>
-  <text x="680" y="268" font-size="11" fill="#c04040" text-anchor="middle">no direct access</text>
-
-  <!-- Arrows: permission gate to sandbox -->
-  <line x1="212" y1="190" x2="238" y2="190" stroke="#2e7a5d" stroke-width="2" marker-end="url(#ga)"/>
-  <text x="224" y="183" font-size="10" fill="#2e7a5d" text-anchor="middle" font-weight="700">✓ granted</text>
-
-  <!-- Blocked arrow: other apps to sandbox -->
-  <line x1="588" y1="190" x2="562" y2="190" stroke="#c04040" stroke-width="2" stroke-dasharray="4,3"/>
-  <text x="574" y="183" font-size="16" fill="#c04040" text-anchor="middle">🚫</text>
-
-  <!-- IPC route (bottom arc) -->
-  <path d="M400,322 Q400,360 680,280" fill="none" stroke="#c8890f" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ga2)"/>
-  <text x="540" y="370" font-size="11" fill="#8a5d0a" text-anchor="middle">IPC only via OS-mediated channels (Share Sheet, Intents, Deep Links)</text>
-
-  <defs>
-    <marker id="ga" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e7a5d"/></marker>
-    <marker id="ga2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#c8890f"/></marker>
-  </defs>
+</p><!-- SVG: Sandbox diagram --><div class="diagram-wrap">
+<svg aria-label="Diagram: 2. The App Sandbox — Your World Has Walls" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 380" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f8f9fb" height="380" rx="10" width="800"></rect>
+<!-- Outer OS layer -->
+<rect fill="#e8eef5" height="340" rx="12" stroke="#1B3A5C" stroke-width="2" width="760" x="20" y="20"></rect>
+<text fill="#1B3A5C" font-size="13" font-weight="700" text-anchor="middle" x="400" y="42">OPERATING SYSTEM KERNEL</text>
+<!-- YOUR APP sandbox box (centre) -->
+<rect fill="#fff" height="260" rx="10" stroke="#2E5D8A" stroke-dasharray="0" stroke-width="2.5" width="320" x="240" y="60"></rect>
+<text fill="#1B3A5C" font-size="14" font-weight="700" text-anchor="middle" x="400" y="85">YOUR APP SANDBOX</text>
+<!-- Inside sandbox items -->
+<rect fill="#e8f0fb" height="34" rx="5" stroke="#4a80b5" stroke-width="1" width="130" x="260" y="96"></rect>
+<text fill="#1B3A5C" font-size="12" text-anchor="middle" x="325" y="115">JS/Native Threads</text>
+<rect fill="#e8f0fb" height="34" rx="5" stroke="#4a80b5" stroke-width="1" width="130" x="410" y="96"></rect>
+<text fill="#1B3A5C" font-size="12" text-anchor="middle" x="475" y="115">App Memory</text>
+<rect fill="#e8f0fb" height="34" rx="5" stroke="#4a80b5" stroke-width="1" width="130" x="260" y="142"></rect>
+<text fill="#1B3A5C" font-size="12" text-anchor="middle" x="325" y="161">Private File Storage</text>
+<rect fill="#e8f0fb" height="34" rx="5" stroke="#4a80b5" stroke-width="1" width="130" x="410" y="142"></rect>
+<text fill="#1B3A5C" font-size="12" text-anchor="middle" x="475" y="161">App Preferences</text>
+<rect fill="#e8f0fb" height="34" rx="5" stroke="#4a80b5" stroke-width="1" width="130" x="260" y="188"></rect>
+<text fill="#1B3A5C" font-size="12" text-anchor="middle" x="325" y="207">Network (your calls)</text>
+<rect fill="#e8f0fb" height="34" rx="5" stroke="#4a80b5" stroke-width="1" width="130" x="410" y="188"></rect>
+<text fill="#1B3A5C" font-size="12" text-anchor="middle" x="475" y="207">SQLite / AsyncStorage</text>
+<rect fill="#fdf0f0" height="34" rx="5" stroke="#c04040" stroke-width="1" width="210" x="295" y="238"></rect>
+<text fill="#8a1a1a" font-size="12" text-anchor="middle" x="400" y="257">❌ Cannot access other apps' data</text>
+<!-- LEFT: shared resources (permissioned) -->
+<rect fill="#f0f6fb" height="180" rx="8" stroke="#2e7a5d" stroke-dasharray="5,3" stroke-width="1.5" width="180" x="30" y="110"></rect>
+<text fill="#1a5a3a" font-size="12" font-weight="700" text-anchor="middle" x="120" y="130">SHARED RESOURCES</text>
+<text fill="#1a5a3a" font-size="10" text-anchor="middle" x="120" y="145">(requires permission)</text>
+<text fill="#2c2c2c" font-size="12" x="60" y="168">📷 Camera</text>
+<text fill="#2c2c2c" font-size="12" x="60" y="188">📍 GPS / Location</text>
+<text fill="#2c2c2c" font-size="12" x="60" y="208">🎤 Microphone</text>
+<text fill="#2c2c2c" font-size="12" x="60" y="228">🖼 Photo Library</text>
+<text fill="#2c2c2c" font-size="12" x="60" y="248">📬 Contacts</text>
+<text fill="#2c2c2c" font-size="12" x="60" y="268">🔔 Notifications</text>
+<!-- RIGHT: other apps (blocked) -->
+<rect fill="#fdf0f0" height="180" rx="8" stroke="#c04040" stroke-dasharray="5,3" stroke-width="1.5" width="180" x="590" y="110"></rect>
+<text fill="#8a1a1a" font-size="12" font-weight="700" text-anchor="middle" x="680" y="130">OTHER APP SANDBOXES</text>
+<text fill="#555" font-size="12" x="620" y="158">📱 Social App</text>
+<text fill="#555" font-size="12" x="620" y="178">🏦 Banking App</text>
+<text fill="#555" font-size="12" x="620" y="198">🗺 Maps App</text>
+<text fill="#555" font-size="12" x="620" y="218">🎵 Music App</text>
+<text fill="#c04040" font-size="13" font-weight="700" text-anchor="middle" x="680" y="248">WALL</text>
+<text fill="#c04040" font-size="11" text-anchor="middle" x="680" y="268">no direct access</text>
+<!-- Arrows: permission gate to sandbox -->
+<line marker-end="url(#ga)" stroke="#2e7a5d" stroke-width="2" x1="212" x2="238" y1="190" y2="190"></line>
+<text fill="#2e7a5d" font-size="10" font-weight="700" text-anchor="middle" x="224" y="183">✓ granted</text>
+<!-- Blocked arrow: other apps to sandbox -->
+<line stroke="#c04040" stroke-dasharray="4,3" stroke-width="2" x1="588" x2="562" y1="190" y2="190"></line>
+<text fill="#c04040" font-size="16" text-anchor="middle" x="574" y="183">🚫</text>
+<!-- IPC route (bottom arc) -->
+<path d="M400,322 Q400,360 680,280" fill="none" marker-end="url(#ga2)" stroke="#c8890f" stroke-dasharray="5,3" stroke-width="1.5"></path>
+<text fill="#8a5d0a" font-size="11" text-anchor="middle" x="540" y="370">IPC only via OS-mediated channels (Share Sheet, Intents, Deep Links)</text>
+<defs>
+<marker id="ga" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#2e7a5d"></path></marker>
+<marker id="ga2" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#c8890f"></path></marker>
+</defs>
 </svg>
 <div class="diagram-caption">Figure 2: The app sandbox. Inside the dotted box is your world — private and protected. Shared hardware resources are available only through OS-controlled permission gates. Other app sandboxes are inaccessible directly.</div>
-</div>
-
-<h3>What Lives Inside Your Sandbox</h3>
-<table>
-  <thead><tr><th>Resource</th><th>Description</th><th>Survives App Restart?</th></tr></thead>
-  <tbody>
-    <tr><td>In-memory state</td><td>JavaScript heap, component state, module-level variables</td><td>❌ No</td></tr>
-    <tr><td>Temp cache directory</td><td>Where camera captures, downloads land by default. OS may purge when storage is low.</td><td>⚠️ Unreliable</td></tr>
-    <tr><td>Documents directory</td><td>Private files your app writes explicitly. Persistent unless app is uninstalled.</td><td>✅ Yes</td></tr>
-    <tr><td>AsyncStorage / SQLite</td><td>Key-value store and structured DB. Persistent, private to your app.</td><td>✅ Yes</td></tr>
-    <tr><td>Secure storage (Keychain/Keystore)</td><td>Encrypted credential store managed by the OS. Survives app updates.</td><td>✅ Yes (encrypted)</td></tr>
-  </tbody>
-</table>
-
-<div class="callout">
-  <strong>The sandbox is a feature, not a bug.</strong> Your users trust that your banking app can't read their health data, and that a sketchy flashlight app can't access their messages. The sandbox is what makes that guarantee possible. When you feel constrained by it, remember: the same walls protect your app's data from every other app on the device.
-</div>
-
-
-<!-- ─── 3. APP LIFECYCLE ──────────────────────────────────────────── -->
-<h2>3. The App Lifecycle — States Your App Passes Through</h2>
-
-<p>
+</div><h3>What Lives Inside Your Sandbox</h3><table>
+<thead><tr><th scope="col">Resource</th><th scope="col">Description</th><th scope="col">Survives App Restart?</th></tr></thead>
+<tbody>
+<tr><td>In-memory state</td><td>JavaScript heap, component state, module-level variables</td><td>❌ No</td></tr>
+<tr><td>Temp cache directory</td><td>Where camera captures, downloads land by default. OS may purge when storage is low.</td><td>⚠️ Unreliable</td></tr>
+<tr><td>Documents directory</td><td>Private files your app writes explicitly. Persistent unless app is uninstalled.</td><td>✅ Yes</td></tr>
+<tr><td>AsyncStorage / SQLite</td><td>Key-value store and structured DB. Persistent, private to your app.</td><td>✅ Yes</td></tr>
+<tr><td>Secure storage (Keychain/Keystore)</td><td>Encrypted credential store managed by the OS. Survives app updates.</td><td>✅ Yes (encrypted)</td></tr>
+</tbody>
+</table><div class="callout">
+<strong>The sandbox is a feature, not a bug.</strong> Your users trust that your banking app can't read their health data, and that a sketchy flashlight app can't access their messages. The sandbox is what makes that guarantee possible. When you feel constrained by it, remember: the same walls protect your app's data from every other app on the device.
+</div><!-- ─── 3. APP LIFECYCLE ──────────────────────────────────────────── --><h2>3. The App Lifecycle — States Your App Passes Through</h2><p>
   Unlike a desktop application that runs until the user closes it, a mobile app moves through a carefully managed lifecycle controlled by the OS. Your app can be pushed into any of these states without warning, and you are responsible for handling each transition correctly.
-</p>
-
-<!-- SVG: App lifecycle state machine -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="280" fill="#f8f9fb" rx="10"/>
-
-  <!-- States as rounded boxes -->
-  <!-- Not Running -->
-  <rect x="30"  y="110" width="110" height="60" fill="#555" rx="8"/>
-  <text x="85"  y="136" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Not Running</text>
-  <text x="85"  y="153" font-size="10" fill="#ccc" text-anchor="middle">no process</text>
-
-  <!-- Active -->
-  <rect x="220" y="70" width="120" height="60" fill="#1B3A5C" rx="8"/>
-  <text x="280" y="96"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Active</text>
-  <text x="280" y="113" font-size="10" fill="#a0c0e0" text-anchor="middle">foreground + events</text>
-
-  <!-- Inactive -->
-  <rect x="220" y="170" width="120" height="60" fill="#2E5D8A" rx="8"/>
-  <text x="280" y="196" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Inactive</text>
-  <text x="280" y="213" font-size="10" fill="#a0c0e0" text-anchor="middle">foreground, no events</text>
-
-  <!-- Background -->
-  <rect x="440" y="110" width="130" height="60" fill="#2e5d3a" rx="8"/>
-  <text x="505" y="136" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Background</text>
-  <text x="505" y="153" font-size="10" fill="#a0e0c0" text-anchor="middle">limited CPU, no UI</text>
-
-  <!-- Suspended -->
-  <rect x="640" y="70" width="120" height="60" fill="#8a5d0a" rx="8"/>
-  <text x="700" y="96"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Suspended</text>
-  <text x="700" y="113" font-size="10" fill="#f0d0a0" text-anchor="middle">frozen, in RAM</text>
-
-  <!-- Terminated -->
-  <rect x="640" y="170" width="120" height="60" fill="#8a1a1a" rx="8"/>
-  <text x="700" y="196" font-size="13" fill="#fff" font-weight="700" text-anchor="middle">Terminated</text>
-  <text x="700" y="213" font-size="10" fill="#f0a0a0" text-anchor="middle">evicted from memory</text>
-
-  <!-- Arrows -->
-  <!-- Launch -->
-  <line x1="140" y1="135" x2="218" y2="105" stroke="#2e8a5d" stroke-width="2" marker-end="url(#la)"/>
-  <text x="172" y="108" font-size="10" fill="#2e8a5d" text-anchor="middle">launch</text>
-
-  <!-- Active ↔ Inactive -->
-  <line x1="280" y1="130" x2="280" y2="168" stroke="#4a7abf" stroke-width="2" marker-end="url(#lb)"/>
-  <line x1="290" y1="168" x2="290" y2="130" stroke="#4a7abf" stroke-width="2" marker-end="url(#lb)"/>
-  <text x="307" y="153" font-size="10" fill="#4a7abf">call / interrupt</text>
-
-  <!-- Inactive → Background -->
-  <line x1="340" y1="205" x2="438" y2="155" stroke="#c8890f" stroke-width="2" marker-end="url(#lc)"/>
-  <text x="395" y="192" font-size="10" fill="#c8890f" text-anchor="middle">home button</text>
-
-  <!-- Active → Background (iOS only shortcut) -->
-  <path d="M335,100 Q400,60 438,125" fill="none" stroke="#c8890f" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#lc)"/>
-
-  <!-- Background → Suspended -->
-  <line x1="570" y1="125" x2="638" y2="102" stroke="#8a5d0a" stroke-width="2" marker-end="url(#ld)"/>
-  <text x="606" y="108" font-size="10" fill="#8a5d0a" text-anchor="middle">task ends</text>
-
-  <!-- Background → Terminated (OS kills) -->
-  <line x1="570" y1="152" x2="638" y2="175" stroke="#c04040" stroke-width="2" marker-end="url(#le)"/>
-  <text x="606" y="178" font-size="10" fill="#c04040" text-anchor="middle">OS reclaims RAM</text>
-
-  <!-- Suspended → Not Running (evict) -->
-  <path d="M700,130 Q740,260 160,160" fill="none" stroke="#c04040" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#le)"/>
-  <text x="740" y="232" font-size="10" fill="#c04040">evicted</text>
-
-  <!-- Background → Active (resume) -->
-  <path d="M438,130 Q380,50 342,95" fill="none" stroke="#2e8a5d" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#la)"/>
-  <text x="383" y="60" font-size="10" fill="#2e8a5d" text-anchor="middle">user returns</text>
-
-  <!-- Platform note -->
-  <text x="400" y="258" font-size="11" fill="#888" text-anchor="middle">iOS uses all five states. Android has additional "Service" and "Bound Service" states not shown. Both share the core foreground → background → kill pattern.</text>
-
-  <defs>
-    <marker id="la" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e8a5d"/></marker>
-    <marker id="lb" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#4a7abf"/></marker>
-    <marker id="lc" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#c8890f"/></marker>
-    <marker id="ld" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#8a5d0a"/></marker>
-    <marker id="le" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#c04040"/></marker>
-  </defs>
+</p><!-- SVG: App lifecycle state machine --><div class="diagram-wrap">
+<svg aria-label="Diagram: 3. The App Lifecycle — States Your App Passes Through" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f8f9fb" height="280" rx="10" width="800"></rect>
+<!-- States as rounded boxes -->
+<!-- Not Running -->
+<rect fill="#555" height="60" rx="8" width="110" x="30" y="110"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="85" y="136">Not Running</text>
+<text fill="#ccc" font-size="10" text-anchor="middle" x="85" y="153">no process</text>
+<!-- Active -->
+<rect fill="#1B3A5C" height="60" rx="8" width="120" x="220" y="70"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="280" y="96">Active</text>
+<text fill="#a0c0e0" font-size="10" text-anchor="middle" x="280" y="113">foreground + events</text>
+<!-- Inactive -->
+<rect fill="#2E5D8A" height="60" rx="8" width="120" x="220" y="170"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="280" y="196">Inactive</text>
+<text fill="#a0c0e0" font-size="10" text-anchor="middle" x="280" y="213">foreground, no events</text>
+<!-- Background -->
+<rect fill="#2e5d3a" height="60" rx="8" width="130" x="440" y="110"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="505" y="136">Background</text>
+<text fill="#a0e0c0" font-size="10" text-anchor="middle" x="505" y="153">limited CPU, no UI</text>
+<!-- Suspended -->
+<rect fill="#8a5d0a" height="60" rx="8" width="120" x="640" y="70"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="700" y="96">Suspended</text>
+<text fill="#f0d0a0" font-size="10" text-anchor="middle" x="700" y="113">frozen, in RAM</text>
+<!-- Terminated -->
+<rect fill="#8a1a1a" height="60" rx="8" width="120" x="640" y="170"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="700" y="196">Terminated</text>
+<text fill="#f0a0a0" font-size="10" text-anchor="middle" x="700" y="213">evicted from memory</text>
+<!-- Arrows -->
+<!-- Launch -->
+<line marker-end="url(#la)" stroke="#2e8a5d" stroke-width="2" x1="140" x2="218" y1="135" y2="105"></line>
+<text fill="#2e8a5d" font-size="10" text-anchor="middle" x="172" y="108">launch</text>
+<!-- Active ↔ Inactive -->
+<line marker-end="url(#lb)" stroke="#4a7abf" stroke-width="2" x1="280" x2="280" y1="130" y2="168"></line>
+<line marker-end="url(#lb)" stroke="#4a7abf" stroke-width="2" x1="290" x2="290" y1="168" y2="130"></line>
+<text fill="#4a7abf" font-size="10" x="307" y="153">call / interrupt</text>
+<!-- Inactive → Background -->
+<line marker-end="url(#lc)" stroke="#c8890f" stroke-width="2" x1="340" x2="438" y1="205" y2="155"></line>
+<text fill="#c8890f" font-size="10" text-anchor="middle" x="395" y="192">home button</text>
+<!-- Active → Background (iOS only shortcut) -->
+<path d="M335,100 Q400,60 438,125" fill="none" marker-end="url(#lc)" stroke="#c8890f" stroke-dasharray="4,3" stroke-width="1.5"></path>
+<!-- Background → Suspended -->
+<line marker-end="url(#ld)" stroke="#8a5d0a" stroke-width="2" x1="570" x2="638" y1="125" y2="102"></line>
+<text fill="#8a5d0a" font-size="10" text-anchor="middle" x="606" y="108">task ends</text>
+<!-- Background → Terminated (OS kills) -->
+<line marker-end="url(#le)" stroke="#c04040" stroke-width="2" x1="570" x2="638" y1="152" y2="175"></line>
+<text fill="#c04040" font-size="10" text-anchor="middle" x="606" y="178">OS reclaims RAM</text>
+<!-- Suspended → Not Running (evict) -->
+<path d="M700,130 Q740,260 160,160" fill="none" marker-end="url(#le)" stroke="#c04040" stroke-dasharray="4,3" stroke-width="1.5"></path>
+<text fill="#c04040" font-size="10" x="740" y="232">evicted</text>
+<!-- Background → Active (resume) -->
+<path d="M438,130 Q380,50 342,95" fill="none" marker-end="url(#la)" stroke="#2e8a5d" stroke-dasharray="4,3" stroke-width="1.5"></path>
+<text fill="#2e8a5d" font-size="10" text-anchor="middle" x="383" y="60">user returns</text>
+<!-- Platform note -->
+<text fill="#888" font-size="11" text-anchor="middle" x="400" y="258">iOS uses all five states. Android has additional "Service" and "Bound Service" states not shown. Both share the core foreground → background → kill pattern.</text>
+<defs>
+<marker id="la" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#2e8a5d"></path></marker>
+<marker id="lb" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#4a7abf"></path></marker>
+<marker id="lc" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#c8890f"></path></marker>
+<marker id="ld" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#8a5d0a"></path></marker>
+<marker id="le" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#c04040"></path></marker>
+</defs>
 </svg>
 <div class="diagram-caption">Figure 3: The app lifecycle state machine. The OS moves your app between these states unilaterally. Your job is to save state before transitions and restore it on resume.</div>
-</div>
-
-<p>
+</div><p>
   In React Native / Expo, you observe lifecycle changes via the <code>AppState</code> API:
-</p>
-
-<div class="platform-row">
-  <div class="p-badge p-both">
-    <div class="p-label">📱 Both Platforms — React Native AppState</div>
-    <code style="font-size:13px; background:#e8e0f8; display:block; padding:10px; border-radius:6px; margin-top:6px;">
-      import { AppState } from 'react-native';<br><br>
-      AppState.addEventListener('change', (nextState) => {<br>
-      &nbsp;&nbsp;// 'active' | 'background' | 'inactive' (iOS only)<br>
+</p><div class="platform-row">
+<div class="p-badge p-both">
+<div class="p-label">📱 Both Platforms — React Native AppState</div>
+<code style="font-size:13px; background:#e8e0f8; display:block; padding:10px; border-radius:6px; margin-top:6px;">
+      import { AppState } from 'react-native';<br/><br/>
+      AppState.addEventListener('change', (nextState) =&gt; {<br/>
+        // 'active' | 'background' | 'inactive' (iOS only)<br/>
       });
     </code>
-  </div>
 </div>
-
-<div class="warning">
-  <strong>Save state before going to background.</strong> When your app transitions to background, the OS may terminate it at any time — no further JavaScript will run. If you have unsaved user work (a half-composed form, an in-progress photo edit), listen for the <code>'background'</code> state and persist it immediately. Don't wait for the user to tap Save.
-</div>
-
-
-<!-- ─── 4. SHARED RESOURCES ──────────────────────────────────────── -->
-<h2>4. Shared Resources — The Competition for Hardware</h2>
-
-<p>
+</div><div class="warning">
+<strong>Save state before going to background.</strong> When your app transitions to background, the OS may terminate it at any time — no further JavaScript will run. If you have unsaved user work (a half-composed form, an in-progress photo edit), listen for the <code>'background'</code> state and persist it immediately. Don't wait for the user to tap Save.
+</div><!-- ─── 4. SHARED RESOURCES ──────────────────────────────────────── --><h2>4. Shared Resources — The Competition for Hardware</h2><p>
   Every app on the device draws from the same finite pool of hardware resources. When you drain the battery, hog the CPU, or fill up storage, you're not just hurting your users — you're degrading the experience of every other app they use.
-</p>
-
-<!-- SVG: Resource contention -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 310" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="310" fill="#f8f9fb" rx="10"/>
-
-  <!-- Resource pools across top -->
-  <!-- CPU -->
-  <rect x="30"  y="20" width="140" height="80" fill="#1B3A5C" rx="8"/>
-  <text x="100" y="44"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">⚙️  CPU</text>
-  <text x="100" y="60"  font-size="11" fill="#a0c0e0" text-anchor="middle">All apps share</text>
-  <text x="100" y="75"  font-size="11" fill="#a0c0e0" text-anchor="middle">scheduler quantum</text>
-  <text x="100" y="90"  font-size="11" fill="#f38ba8" text-anchor="middle">foreground gets priority</text>
-
-  <!-- RAM -->
-  <rect x="190" y="20" width="140" height="80" fill="#2E5D8A" rx="8"/>
-  <text x="260" y="44"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">🧠  RAM</text>
-  <text x="260" y="60"  font-size="11" fill="#a0c0e0" text-anchor="middle">Fixed pool ~3–8 GB</text>
-  <text x="260" y="75"  font-size="11" fill="#a0c0e0" text-anchor="middle">OS kills suspended apps</text>
-  <text x="260" y="90"  font-size="11" fill="#f38ba8" text-anchor="middle">no swap on mobile</text>
-
-  <!-- Battery -->
-  <rect x="350" y="20" width="140" height="80" fill="#8a5d0a" rx="8"/>
-  <text x="420" y="44"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">🔋  Battery</text>
-  <text x="420" y="60"  font-size="11" fill="#f0d0a0" text-anchor="middle">Shared by all apps</text>
-  <text x="420" y="75"  font-size="11" fill="#f0d0a0" text-anchor="middle">and OS processes</text>
-  <text x="420" y="90"  font-size="11" fill="#f38ba8" text-anchor="middle">GPS + Screen = killers</text>
-
-  <!-- Network -->
-  <rect x="510" y="20" width="140" height="80" fill="#2e5d3a" rx="8"/>
-  <text x="580" y="44"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">📡  Network</text>
-  <text x="580" y="60"  font-size="11" fill="#a0e0c0" text-anchor="middle">Shared radio hardware</text>
-  <text x="580" y="75"  font-size="11" fill="#a0e0c0" text-anchor="middle">Radio wake = battery</text>
-  <text x="580" y="90"  font-size="11" fill="#f38ba8" text-anchor="middle">batch requests if possible</text>
-
-  <!-- Storage -->
-  <rect x="660" y="20" width="120" height="80" fill="#5a4a2a" rx="8"/>
-  <text x="720" y="44"  font-size="13" fill="#fff" font-weight="700" text-anchor="middle">💾  Storage</text>
-  <text x="720" y="60"  font-size="11" fill="#f0c8a0" text-anchor="middle">Shared flash</text>
-  <text x="720" y="75"  font-size="11" fill="#f0c8a0" text-anchor="middle">user quota enforced</text>
-  <text x="720" y="90"  font-size="11" fill="#f38ba8" text-anchor="middle">clean up temp files</text>
-
-  <!-- Your app bar (drawn as consumption bars) -->
-  <text x="30" y="125" font-size="12" fill="#333" font-weight="700">Your app's consumption</text>
-  <text x="680" y="125" font-size="11" fill="#888">← share of total</text>
-
-  <!-- CPU bar -->
-  <rect x="30"  y="132" width="140" height="20" fill="#e0e8f0" rx="4"/>
-  <rect x="30"  y="132" width="60"  height="20" fill="#1B3A5C" rx="4"/>
-  <text x="100" y="146" font-size="11" fill="#555" text-anchor="middle">~43%</text>
-
-  <!-- RAM bar -->
-  <rect x="190" y="132" width="140" height="20" fill="#e0e8f0" rx="4"/>
-  <rect x="190" y="132" width="35"  height="20" fill="#2E5D8A" rx="4"/>
-  <text x="260" y="146" font-size="11" fill="#555" text-anchor="middle">~25%</text>
-
-  <!-- Battery bar -->
-  <rect x="350" y="132" width="140" height="20" fill="#e0e8f0" rx="4"/>
-  <rect x="350" y="132" width="90"  height="20" fill="#8a5d0a" rx="4"/>
-  <text x="420" y="146" font-size="11" fill="#555" text-anchor="middle">~64% ⚠️</text>
-
-  <!-- Network bar -->
-  <rect x="510" y="132" width="140" height="20" fill="#e0e8f0" rx="4"/>
-  <rect x="510" y="132" width="50"  height="20" fill="#2e5d3a" rx="4"/>
-  <text x="580" y="146" font-size="11" fill="#555" text-anchor="middle">~36%</text>
-
-  <!-- Storage bar -->
-  <rect x="660" y="132" width="120" height="20" fill="#e0e8f0" rx="4"/>
-  <rect x="660" y="132" width="20"  height="20" fill="#5a4a2a" rx="4"/>
-  <text x="720" y="146" font-size="11" fill="#555" text-anchor="middle">~17%</text>
-
-  <!-- Background execution differences (platform comparison) -->
-  <rect x="30"  y="175" width="360" height="115" fill="#eef4fb" rx="8" stroke="#4a80b5" stroke-width="1.5"/>
-  <text x="55"  y="196" font-size="12" fill="#1a4a7a" font-weight="700">🍎  iOS Background Execution</text>
-  <text x="45"  y="216" font-size="12" fill="#333">• Very strict. Background modes must be declared.</text>
-  <text x="45"  y="234" font-size="12" fill="#333">• Allowed: audio, location, VOIP, push, fetch.</text>
-  <text x="45"  y="252" font-size="12" fill="#333">• Undeclared apps get ~30s to save state, then freeze.</text>
-  <text x="45"  y="270" font-size="12" fill="#333">• No general background code execution.</text>
-
-  <rect x="410" y="175" width="360" height="115" fill="#f0f8f0" rx="8" stroke="#4a9a5a" stroke-width="1.5"/>
-  <text x="435" y="196" font-size="12" fill="#1a5a2a" font-weight="700">🤖  Android Background Execution</text>
-  <text x="425" y="216" font-size="12" fill="#333">• More permissive, but battery optimization penalizes misuse.</text>
-  <text x="425" y="234" font-size="12" fill="#333">• WorkManager for deferred background work.</text>
-  <text x="425" y="252" font-size="12" fill="#333">• Foreground Services can stay alive with a notification.</text>
-  <text x="425" y="270" font-size="12" fill="#333">• Battery saver mode throttles background apps aggressively.</text>
+</p><!-- SVG: Resource contention --><div class="diagram-wrap">
+<svg aria-label="Diagram: 4. Shared Resources — The Competition for Hardware" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 310" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f8f9fb" height="310" rx="10" width="800"></rect>
+<!-- Resource pools across top -->
+<!-- CPU -->
+<rect fill="#1B3A5C" height="80" rx="8" width="140" x="30" y="20"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="100" y="44">⚙️  CPU</text>
+<text fill="#a0c0e0" font-size="11" text-anchor="middle" x="100" y="60">All apps share</text>
+<text fill="#a0c0e0" font-size="11" text-anchor="middle" x="100" y="75">scheduler quantum</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="100" y="90">foreground gets priority</text>
+<!-- RAM -->
+<rect fill="#2E5D8A" height="80" rx="8" width="140" x="190" y="20"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="260" y="44">🧠  RAM</text>
+<text fill="#a0c0e0" font-size="11" text-anchor="middle" x="260" y="60">Fixed pool ~3–8 GB</text>
+<text fill="#a0c0e0" font-size="11" text-anchor="middle" x="260" y="75">OS kills suspended apps</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="260" y="90">no swap on mobile</text>
+<!-- Battery -->
+<rect fill="#8a5d0a" height="80" rx="8" width="140" x="350" y="20"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="420" y="44">🔋  Battery</text>
+<text fill="#f0d0a0" font-size="11" text-anchor="middle" x="420" y="60">Shared by all apps</text>
+<text fill="#f0d0a0" font-size="11" text-anchor="middle" x="420" y="75">and OS processes</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="420" y="90">GPS + Screen = killers</text>
+<!-- Network -->
+<rect fill="#2e5d3a" height="80" rx="8" width="140" x="510" y="20"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="580" y="44">📡  Network</text>
+<text fill="#a0e0c0" font-size="11" text-anchor="middle" x="580" y="60">Shared radio hardware</text>
+<text fill="#a0e0c0" font-size="11" text-anchor="middle" x="580" y="75">Radio wake = battery</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="580" y="90">batch requests if possible</text>
+<!-- Storage -->
+<rect fill="#5a4a2a" height="80" rx="8" width="120" x="660" y="20"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="720" y="44">💾  Storage</text>
+<text fill="#f0c8a0" font-size="11" text-anchor="middle" x="720" y="60">Shared flash</text>
+<text fill="#f0c8a0" font-size="11" text-anchor="middle" x="720" y="75">user quota enforced</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="720" y="90">clean up temp files</text>
+<!-- Your app bar (drawn as consumption bars) -->
+<text fill="#333" font-size="12" font-weight="700" x="30" y="125">Your app's consumption</text>
+<text fill="#888" font-size="11" x="680" y="125">← share of total</text>
+<!-- CPU bar -->
+<rect fill="#e0e8f0" height="20" rx="4" width="140" x="30" y="132"></rect>
+<rect fill="#1B3A5C" height="20" rx="4" width="60" x="30" y="132"></rect>
+<text fill="#555" font-size="11" text-anchor="middle" x="100" y="146">~43%</text>
+<!-- RAM bar -->
+<rect fill="#e0e8f0" height="20" rx="4" width="140" x="190" y="132"></rect>
+<rect fill="#2E5D8A" height="20" rx="4" width="35" x="190" y="132"></rect>
+<text fill="#555" font-size="11" text-anchor="middle" x="260" y="146">~25%</text>
+<!-- Battery bar -->
+<rect fill="#e0e8f0" height="20" rx="4" width="140" x="350" y="132"></rect>
+<rect fill="#8a5d0a" height="20" rx="4" width="90" x="350" y="132"></rect>
+<text fill="#555" font-size="11" text-anchor="middle" x="420" y="146">~64% ⚠️</text>
+<!-- Network bar -->
+<rect fill="#e0e8f0" height="20" rx="4" width="140" x="510" y="132"></rect>
+<rect fill="#2e5d3a" height="20" rx="4" width="50" x="510" y="132"></rect>
+<text fill="#555" font-size="11" text-anchor="middle" x="580" y="146">~36%</text>
+<!-- Storage bar -->
+<rect fill="#e0e8f0" height="20" rx="4" width="120" x="660" y="132"></rect>
+<rect fill="#5a4a2a" height="20" rx="4" width="20" x="660" y="132"></rect>
+<text fill="#555" font-size="11" text-anchor="middle" x="720" y="146">~17%</text>
+<!-- Background execution differences (platform comparison) -->
+<rect fill="#eef4fb" height="115" rx="8" stroke="#4a80b5" stroke-width="1.5" width="360" x="30" y="175"></rect>
+<text fill="#1a4a7a" font-size="12" font-weight="700" x="55" y="196">🍎  iOS Background Execution</text>
+<text fill="#333" font-size="12" x="45" y="216">• Very strict. Background modes must be declared.</text>
+<text fill="#333" font-size="12" x="45" y="234">• Allowed: audio, location, VOIP, push, fetch.</text>
+<text fill="#333" font-size="12" x="45" y="252">• Undeclared apps get ~30s to save state, then freeze.</text>
+<text fill="#333" font-size="12" x="45" y="270">• No general background code execution.</text>
+<rect fill="#f0f8f0" height="115" rx="8" stroke="#4a9a5a" stroke-width="1.5" width="360" x="410" y="175"></rect>
+<text fill="#1a5a2a" font-size="12" font-weight="700" x="435" y="196">🤖  Android Background Execution</text>
+<text fill="#333" font-size="12" x="425" y="216">• More permissive, but battery optimization penalizes misuse.</text>
+<text fill="#333" font-size="12" x="425" y="234">• WorkManager for deferred background work.</text>
+<text fill="#333" font-size="12" x="425" y="252">• Foreground Services can stay alive with a notification.</text>
+<text fill="#333" font-size="12" x="425" y="270">• Battery saver mode throttles background apps aggressively.</text>
 </svg>
 <div class="diagram-caption">Figure 4: Shared resource pools and platform background execution rules. The battery bar highlights a common mistake — background GPS polling and unthrottled network calls consume a disproportionate share.</div>
-</div>
-
-
-<!-- ─── 5. INTER-APP COMMUNICATION ──────────────────────────────── -->
-<h2>5. Inter-App Communication — Talking Across Walls</h2>
-
-<p>
+</div><!-- ─── 5. INTER-APP COMMUNICATION ──────────────────────────────── --><h2>5. Inter-App Communication — Talking Across Walls</h2><p>
   Apps can't read each other's memory, but they can communicate through OS-mediated channels. These channels are deliberate and controlled — both the sender and receiver must participate explicitly.
-</p>
-
-<!-- SVG: IPC channels -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 330" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="330" fill="#f8f9fb" rx="10"/>
-
-  <!-- Your app box -->
-  <rect x="30" y="110" width="160" height="110" fill="#1B3A5C" rx="8"/>
-  <text x="110" y="160" font-size="14" fill="#fff" font-weight="700" text-anchor="middle">Your App</text>
-  <text x="110" y="178" font-size="11" fill="#a0c0e0" text-anchor="middle">(sender / receiver)</text>
-
-  <!-- Central OS bus -->
-  <rect x="280" y="60" width="240" height="210" fill="#e8eef8" rx="10" stroke="#2E5D8A" stroke-width="1.5" stroke-dasharray="5,3"/>
-  <text x="400" y="84" font-size="12" fill="#1B3A5C" font-weight="700" text-anchor="middle">OS-MEDIATED CHANNELS</text>
-
-  <!-- Channel nodes -->
-  <rect x="300" y="96"  width="200" height="28" fill="#2E5D8A" rx="5"/>
-  <text x="400" y="114" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Deep Links / URL Schemes</text>
-
-  <rect x="300" y="134" width="200" height="28" fill="#2E5D8A" rx="5"/>
-  <text x="400" y="152" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Share Sheet (iOS) / Intent (Android)</text>
-
-  <rect x="300" y="172" width="200" height="28" fill="#2E5D8A" rx="5"/>
-  <text x="400" y="190" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Push Notifications</text>
-
-  <rect x="300" y="210" width="200" height="28" fill="#2E5D8A" rx="5"/>
-  <text x="400" y="228" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Clipboard (limited, permissioned)</text>
-
-  <!-- Other app box -->
-  <rect x="610" y="110" width="160" height="110" fill="#4a7ab5" rx="8"/>
-  <text x="690" y="160" font-size="14" fill="#fff" font-weight="700" text-anchor="middle">Other App</text>
-  <text x="690" y="178" font-size="11" fill="#d0e4ff" text-anchor="middle">(or OS service)</text>
-
-  <!-- Arrows -->
-  <line x1="190" y1="165" x2="278" y2="165" stroke="#1B3A5C" stroke-width="2" marker-end="url(#ia)"/>
-  <line x1="522" y1="165" x2="608" y2="165" stroke="#1B3A5C" stroke-width="2" marker-end="url(#ia)"/>
-  <line x1="608" y1="175" x2="522" y2="175" stroke="#4a7ab5" stroke-width="2" marker-end="url(#ib)"/>
-  <line x1="278" y1="175" x2="190" y2="175" stroke="#4a7ab5" stroke-width="2" marker-end="url(#ib)"/>
-
-  <!-- Deep link example -->
-  <rect x="30" y="250" width="360" height="60" fill="#fdf6ec" rx="6" stroke="#c8890f" stroke-width="1"/>
-  <text x="50" y="270" font-size="12" fill="#8a5d0a" font-weight="700">Deep Link example (Expo Linking)</text>
-  <text x="50" y="290" font-size="12" fill="#333" font-family="'JetBrains Mono', monospace">myapp://profile/42  →  opens your app at /profile/42</text>
-  <text x="50" y="305" font-size="11" fill="#888">Configured in app.json as "scheme": "myapp"</text>
-
-  <!-- Intent example -->
-  <rect x="410" y="250" width="360" height="60" fill="#f0f8f0" rx="6" stroke="#4a9a5a" stroke-width="1"/>
-  <text x="430" y="270" font-size="12" fill="#1a5a2a" font-weight="700">Android Intent example</text>
-  <text x="430" y="290" font-size="12" fill="#333">ACTION_VIEW on a geo: URI → opens Maps</text>
-  <text x="430" y="305" font-size="11" fill="#888">Expo Linking handles cross-platform abstraction</text>
-
-  <defs>
-    <marker id="ia" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#1B3A5C"/></marker>
-    <marker id="ib" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#4a7ab5"/></marker>
-  </defs>
+</p><!-- SVG: IPC channels --><div class="diagram-wrap">
+<svg aria-label="Diagram: 5. Inter-App Communication — Talking Across Walls" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 330" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f8f9fb" height="330" rx="10" width="800"></rect>
+<!-- Your app box -->
+<rect fill="#1B3A5C" height="110" rx="8" width="160" x="30" y="110"></rect>
+<text fill="#fff" font-size="14" font-weight="700" text-anchor="middle" x="110" y="160">Your App</text>
+<text fill="#a0c0e0" font-size="11" text-anchor="middle" x="110" y="178">(sender / receiver)</text>
+<!-- Central OS bus -->
+<rect fill="#e8eef8" height="210" rx="10" stroke="#2E5D8A" stroke-dasharray="5,3" stroke-width="1.5" width="240" x="280" y="60"></rect>
+<text fill="#1B3A5C" font-size="12" font-weight="700" text-anchor="middle" x="400" y="84">OS-MEDIATED CHANNELS</text>
+<!-- Channel nodes -->
+<rect fill="#2E5D8A" height="28" rx="5" width="200" x="300" y="96"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="400" y="114">Deep Links / URL Schemes</text>
+<rect fill="#2E5D8A" height="28" rx="5" width="200" x="300" y="134"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="400" y="152">Share Sheet (iOS) / Intent (Android)</text>
+<rect fill="#2E5D8A" height="28" rx="5" width="200" x="300" y="172"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="400" y="190">Push Notifications</text>
+<rect fill="#2E5D8A" height="28" rx="5" width="200" x="300" y="210"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="400" y="228">Clipboard (limited, permissioned)</text>
+<!-- Other app box -->
+<rect fill="#4a7ab5" height="110" rx="8" width="160" x="610" y="110"></rect>
+<text fill="#fff" font-size="14" font-weight="700" text-anchor="middle" x="690" y="160">Other App</text>
+<text fill="#d0e4ff" font-size="11" text-anchor="middle" x="690" y="178">(or OS service)</text>
+<!-- Arrows -->
+<line marker-end="url(#ia)" stroke="#1B3A5C" stroke-width="2" x1="190" x2="278" y1="165" y2="165"></line>
+<line marker-end="url(#ia)" stroke="#1B3A5C" stroke-width="2" x1="522" x2="608" y1="165" y2="165"></line>
+<line marker-end="url(#ib)" stroke="#4a7ab5" stroke-width="2" x1="608" x2="522" y1="175" y2="175"></line>
+<line marker-end="url(#ib)" stroke="#4a7ab5" stroke-width="2" x1="278" x2="190" y1="175" y2="175"></line>
+<!-- Deep link example -->
+<rect fill="#fdf6ec" height="60" rx="6" stroke="#c8890f" stroke-width="1" width="360" x="30" y="250"></rect>
+<text fill="#8a5d0a" font-size="12" font-weight="700" x="50" y="270">Deep Link example (Expo Linking)</text>
+<text fill="#333" font-family="'JetBrains Mono', monospace" font-size="12" x="50" y="290">myapp://profile/42  →  opens your app at /profile/42</text>
+<text fill="#888" font-size="11" x="50" y="305">Configured in app.json as "scheme": "myapp"</text>
+<!-- Intent example -->
+<rect fill="#f0f8f0" height="60" rx="6" stroke="#4a9a5a" stroke-width="1" width="360" x="410" y="250"></rect>
+<text fill="#1a5a2a" font-size="12" font-weight="700" x="430" y="270">Android Intent example</text>
+<text fill="#333" font-size="12" x="430" y="290">ACTION_VIEW on a geo: URI → opens Maps</text>
+<text fill="#888" font-size="11" x="430" y="305">Expo Linking handles cross-platform abstraction</text>
+<defs>
+<marker id="ia" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#1B3A5C"></path></marker>
+<marker id="ib" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#4a7ab5"></path></marker>
+</defs>
 </svg>
 <div class="diagram-caption">Figure 5: Apps communicate only through OS-controlled channels. No app can reach directly into another app's memory — all communication is brokered.</div>
-</div>
-
-<div class="platform-row">
-  <div class="p-badge p-ios">
-    <div class="p-label">🍎 iOS</div>
+</div><div class="platform-row">
+<div class="p-badge p-ios">
+<div class="p-label">🍎 iOS</div>
     Uses <strong>URL schemes</strong> and <strong>Universal Links</strong> for deep linking. The Share Sheet is the primary mechanism for passing data between apps. Extensions (Share Extension, Widget, Keyboard) are sandboxed sub-processes of your app.
   </div>
-  <div class="p-badge p-and">
-    <div class="p-label">🤖 Android</div>
+<div class="p-badge p-and">
+<div class="p-label">🤖 Android</div>
     Uses <strong>Intents</strong> — a messaging system that can start activities, services, or broadcast events. More flexible than iOS, but also more complex. Content Providers expose structured data to other apps with fine-grained permission control.
   </div>
-</div>
-
-
-<!-- ─── 6. THE REACT NATIVE RUNTIME ─────────────────────────────── -->
-<h2>6. The React Native Runtime Environment</h2>
-
-<p>
+</div><!-- ─── 6. THE REACT NATIVE RUNTIME ─────────────────────────────── --><h2>6. The React Native Runtime Environment</h2><p>
   Your Expo/React Native app doesn't just run as one thread. It has a specific internal architecture that shapes how you write code and why certain patterns are required.
-</p>
-
-<!-- SVG: RN Threading Model -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="300" fill="#f8f9fb" rx="10"/>
-
-  <!-- JS Thread -->
-  <rect x="30"  y="30" width="220" height="240" fill="#1B3A5C" rx="8"/>
-  <text x="140" y="56" font-size="14" fill="#fff" font-weight="700" text-anchor="middle">JS Thread</text>
-  <text x="140" y="72" font-size="11" fill="#a0c0e0" text-anchor="middle">(Hermes engine / JSC)</text>
-  <rect x="45"  y="84"  width="190" height="32" fill="#2E5D8A" rx="5"/>
-  <text x="140" y="103" font-size="12" fill="#fff" text-anchor="middle">Your React Component Code</text>
-  <rect x="45"  y="124" width="190" height="32" fill="#2E5D8A" rx="5"/>
-  <text x="140" y="143" font-size="12" fill="#fff" text-anchor="middle">State &amp; Business Logic</text>
-  <rect x="45"  y="164" width="190" height="32" fill="#2E5D8A" rx="5"/>
-  <text x="140" y="183" font-size="12" fill="#fff" text-anchor="middle">Expo SDK JS Modules</text>
-  <rect x="45"  y="204" width="190" height="32" fill="#2E5D8A" rx="5"/>
-  <text x="140" y="223" font-size="12" fill="#fff" text-anchor="middle">fetch() / async/await</text>
-  <text x="140" y="256" font-size="10" fill="#f38ba8" text-anchor="middle">⚠ Block this = freeze UI</text>
-
-  <!-- Bridge / JSI -->
-  <rect x="275" y="100" width="120" height="100" fill="#c8890f" rx="8"/>
-  <text x="335" y="130" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Bridge</text>
-  <text x="335" y="147" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">/ JSI</text>
-  <text x="335" y="168" font-size="10" fill="#ffe0a0" text-anchor="middle">async message</text>
-  <text x="335" y="183" font-size="10" fill="#ffe0a0" text-anchor="middle">passing layer</text>
-  <!-- arrows -->
-  <line x1="252" y1="148" x2="273" y2="148" stroke="#c8890f" stroke-width="2" marker-end="url(#ba)"/>
-  <line x1="273" y1="158" x2="252" y2="158" stroke="#c8890f" stroke-width="2" marker-end="url(#ba)"/>
-  <line x1="397" y1="148" x2="418" y2="148" stroke="#c8890f" stroke-width="2" marker-end="url(#ba)"/>
-  <line x1="418" y1="158" x2="397" y2="158" stroke="#c8890f" stroke-width="2" marker-end="url(#ba)"/>
-
-  <!-- Native Thread -->
-  <rect x="420" y="30" width="220" height="240" fill="#2e5d3a" rx="8"/>
-  <text x="530" y="56" font-size="14" fill="#fff" font-weight="700" text-anchor="middle">Native UI Thread</text>
-  <text x="530" y="72" font-size="11" fill="#a0e0c0" text-anchor="middle">(iOS / Android)</text>
-  <rect x="435" y="84"  width="190" height="32" fill="#3a7a4a" rx="5"/>
-  <text x="530" y="103" font-size="12" fill="#fff" text-anchor="middle">Native Views Rendering</text>
-  <rect x="435" y="124" width="190" height="32" fill="#3a7a4a" rx="5"/>
-  <text x="530" y="143" font-size="12" fill="#fff" text-anchor="middle">Camera / Sensors / Hardware</text>
-  <rect x="435" y="164" width="190" height="32" fill="#3a7a4a" rx="5"/>
-  <text x="530" y="183" font-size="12" fill="#fff" text-anchor="middle">Animation / Gestures</text>
-  <rect x="435" y="204" width="190" height="32" fill="#3a7a4a" rx="5"/>
-  <text x="530" y="223" font-size="12" fill="#fff" text-anchor="middle">Native Module Execution</text>
-  <text x="530" y="256" font-size="10" fill="#a0e0c0" text-anchor="middle">runs even if JS is blocked</text>
-
-  <!-- Background Thread -->
-  <rect x="665" y="80" width="115" height="140" fill="#4a2a7a" rx="8"/>
-  <text x="722" y="103" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Background</text>
-  <text x="722" y="119" font-size="12" fill="#fff" font-weight="700" text-anchor="middle">Threads</text>
-  <rect x="677" y="130" width="91" height="26" fill="#6a4a9a" rx="4"/>
-  <text x="722" y="147" font-size="11" fill="#fff" text-anchor="middle">Network I/O</text>
-  <rect x="677" y="164" width="91" height="26" fill="#6a4a9a" rx="4"/>
-  <text x="722" y="181" font-size="11" fill="#fff" text-anchor="middle">File I/O</text>
-  <rect x="677" y="198" width="91" height="22" fill="#6a4a9a" rx="4"/>
-  <text x="722" y="213" font-size="10" fill="#cba6f7" text-anchor="middle">offloaded work</text>
-  <line x1="641" y1="150" x2="663" y2="150" stroke="#4a2a7a" stroke-width="2" marker-end="url(#bb)"/>
-
-  <defs>
-    <marker id="ba" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#c8890f"/></marker>
-    <marker id="bb" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#4a2a7a"/></marker>
-  </defs>
+</p><!-- SVG: RN Threading Model --><div class="diagram-wrap">
+<svg aria-label="Diagram: 6. The React Native Runtime Environment" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f8f9fb" height="300" rx="10" width="800"></rect>
+<!-- JS Thread -->
+<rect fill="#1B3A5C" height="240" rx="8" width="220" x="30" y="30"></rect>
+<text fill="#fff" font-size="14" font-weight="700" text-anchor="middle" x="140" y="56">JS Thread</text>
+<text fill="#a0c0e0" font-size="11" text-anchor="middle" x="140" y="72">(Hermes engine / JSC)</text>
+<rect fill="#2E5D8A" height="32" rx="5" width="190" x="45" y="84"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="140" y="103">Your React Component Code</text>
+<rect fill="#2E5D8A" height="32" rx="5" width="190" x="45" y="124"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="140" y="143">State &amp; Business Logic</text>
+<rect fill="#2E5D8A" height="32" rx="5" width="190" x="45" y="164"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="140" y="183">Expo SDK JS Modules</text>
+<rect fill="#2E5D8A" height="32" rx="5" width="190" x="45" y="204"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="140" y="223">fetch() / async/await</text>
+<text fill="#f38ba8" font-size="10" text-anchor="middle" x="140" y="256">⚠ Block this = freeze UI</text>
+<!-- Bridge / JSI -->
+<rect fill="#c8890f" height="100" rx="8" width="120" x="275" y="100"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="335" y="130">Bridge</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="335" y="147">/ JSI</text>
+<text fill="#ffe0a0" font-size="10" text-anchor="middle" x="335" y="168">async message</text>
+<text fill="#ffe0a0" font-size="10" text-anchor="middle" x="335" y="183">passing layer</text>
+<!-- arrows -->
+<line marker-end="url(#ba)" stroke="#c8890f" stroke-width="2" x1="252" x2="273" y1="148" y2="148"></line>
+<line marker-end="url(#ba)" stroke="#c8890f" stroke-width="2" x1="273" x2="252" y1="158" y2="158"></line>
+<line marker-end="url(#ba)" stroke="#c8890f" stroke-width="2" x1="397" x2="418" y1="148" y2="148"></line>
+<line marker-end="url(#ba)" stroke="#c8890f" stroke-width="2" x1="418" x2="397" y1="158" y2="158"></line>
+<!-- Native Thread -->
+<rect fill="#2e5d3a" height="240" rx="8" width="220" x="420" y="30"></rect>
+<text fill="#fff" font-size="14" font-weight="700" text-anchor="middle" x="530" y="56">Native UI Thread</text>
+<text fill="#a0e0c0" font-size="11" text-anchor="middle" x="530" y="72">(iOS / Android)</text>
+<rect fill="#3a7a4a" height="32" rx="5" width="190" x="435" y="84"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="530" y="103">Native Views Rendering</text>
+<rect fill="#3a7a4a" height="32" rx="5" width="190" x="435" y="124"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="530" y="143">Camera / Sensors / Hardware</text>
+<rect fill="#3a7a4a" height="32" rx="5" width="190" x="435" y="164"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="530" y="183">Animation / Gestures</text>
+<rect fill="#3a7a4a" height="32" rx="5" width="190" x="435" y="204"></rect>
+<text fill="#fff" font-size="12" text-anchor="middle" x="530" y="223">Native Module Execution</text>
+<text fill="#a0e0c0" font-size="10" text-anchor="middle" x="530" y="256">runs even if JS is blocked</text>
+<!-- Background Thread -->
+<rect fill="#4a2a7a" height="140" rx="8" width="115" x="665" y="80"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="722" y="103">Background</text>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="722" y="119">Threads</text>
+<rect fill="#6a4a9a" height="26" rx="4" width="91" x="677" y="130"></rect>
+<text fill="#fff" font-size="11" text-anchor="middle" x="722" y="147">Network I/O</text>
+<rect fill="#6a4a9a" height="26" rx="4" width="91" x="677" y="164"></rect>
+<text fill="#fff" font-size="11" text-anchor="middle" x="722" y="181">File I/O</text>
+<rect fill="#6a4a9a" height="22" rx="4" width="91" x="677" y="198"></rect>
+<text fill="#cba6f7" font-size="10" text-anchor="middle" x="722" y="213">offloaded work</text>
+<line marker-end="url(#bb)" stroke="#4a2a7a" stroke-width="2" x1="641" x2="663" y1="150" y2="150"></line>
+<defs>
+<marker id="ba" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#c8890f"></path></marker>
+<marker id="bb" markerheight="7" markerwidth="7" orient="auto" refx="5" refy="3"><path d="M0,0 L0,6 L7,3 z" fill="#4a2a7a"></path></marker>
+</defs>
 </svg>
 <div class="diagram-caption">Figure 6: React Native's multi-threaded runtime. Your JavaScript runs on one thread; native UI on another. Heavy synchronous work on the JS thread blocks rendering. Expensive operations (file I/O, network) are dispatched to background threads.</div>
-</div>
-
-<div class="callout">
-  <strong>Why this matters for ecosystem citizenship:</strong> A frozen JS thread doesn't just freeze your UI — it can make the entire app feel unresponsive to the OS watchdog, which may report it as "not responding" and offer to kill it. Keep your JS thread free of blocking synchronous work. Use <code>async/await</code>, offload computation with <code>InteractionManager</code>, and never run heavy loops in the event handler of a user gesture.
-</div>
-
-
-<!-- ─── 7. RESPONSIBLE APP CREATION ──────────────────────────────── -->
-<h2>7. Guidelines for Responsible App Development</h2>
-
-<p>
+</div><div class="callout">
+<strong>Why this matters for ecosystem citizenship:</strong> A frozen JS thread doesn't just freeze your UI — it can make the entire app feel unresponsive to the OS watchdog, which may report it as "not responding" and offer to kill it. Keep your JS thread free of blocking synchronous work. Use <code>async/await</code>, offload computation with <code>InteractionManager</code>, and never run heavy loops in the event handler of a user gesture.
+</div><!-- ─── 7. RESPONSIBLE APP CREATION ──────────────────────────────── --><h2>7. Guidelines for Responsible App Development</h2><p>
   Building an app that technically works is the minimum bar. Building an app that is a <em>good citizen</em> of the shared ecosystem — one that respects users' resources, privacy, and trust — is the real standard. These guidelines are not optional niceties; they are the difference between an app that users keep and one they delete.
-</p>
-
-<!-- SVG: The eight pillars visual -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="200" fill="#f8f9fb" rx="10"/>
-
-  <!-- Roof -->
-  <polygon points="400,15 20,85 780,85" fill="#1B3A5C" opacity="0.9"/>
-  <text x="400" y="58" font-size="15" fill="#fff" font-weight="700" text-anchor="middle">RESPONSIBLE APP CITIZENSHIP</text>
-
-  <!-- Columns (8 pillars) -->
-  <rect x="40"  y="85" width="72" height="95" fill="#1B3A5C" rx="3"/>
-  <rect x="122" y="85" width="72" height="95" fill="#2E5D8A" rx="3"/>
-  <rect x="204" y="85" width="72" height="95" fill="#2e7a5d" rx="3"/>
-  <rect x="286" y="85" width="72" height="95" fill="#8a5d0a" rx="3"/>
-  <rect x="368" y="85" width="72" height="95" fill="#7a2a5a" rx="3"/>
-  <rect x="450" y="85" width="72" height="95" fill="#4a2a7a" rx="3"/>
-  <rect x="532" y="85" width="72" height="95" fill="#5a3a0a" rx="3"/>
-  <rect x="614" y="85" width="72" height="95" fill="#1a5a3a" rx="3"/>
-
-  <!-- Column labels -->
-  <text x="76"  y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">🔋 Battery</text>
-  <text x="76"  y="130" font-size="10" fill="#a0c0e0" text-anchor="middle">Conserve</text>
-  <text x="76"  y="144" font-size="10" fill="#a0c0e0" text-anchor="middle">aggressively</text>
-  <text x="76"  y="165" font-size="18" text-anchor="middle">⚡</text>
-
-  <text x="158" y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">🧠 Memory</text>
-  <text x="158" y="130" font-size="10" fill="#a0c0e0" text-anchor="middle">Release what</text>
-  <text x="158" y="144" font-size="10" fill="#a0c0e0" text-anchor="middle">you don't need</text>
-  <text x="158" y="165" font-size="18" text-anchor="middle">📦</text>
-
-  <text x="240" y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">🔐 Privacy</text>
-  <text x="240" y="130" font-size="10" fill="#a0e0c0" text-anchor="middle">Collect only</text>
-  <text x="240" y="144" font-size="10" fill="#a0e0c0" text-anchor="middle">what's needed</text>
-  <text x="240" y="165" font-size="18" text-anchor="middle">🛡</text>
-
-  <text x="322" y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">📡 Network</text>
-  <text x="322" y="130" font-size="10" fill="#f0d0a0" text-anchor="middle">Batch and</text>
-  <text x="322" y="144" font-size="10" fill="#f0d0a0" text-anchor="middle">cache wisely</text>
-  <text x="322" y="165" font-size="18" text-anchor="middle">📶</text>
-
-  <text x="404" y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">🔔 Notifs</text>
-  <text x="404" y="130" font-size="10" fill="#f5c2e7" text-anchor="middle">Earn every</text>
-  <text x="404" y="144" font-size="10" fill="#f5c2e7" text-anchor="middle">interruption</text>
-  <text x="404" y="165" font-size="18" text-anchor="middle">🎯</text>
-
-  <text x="486" y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">💾 Storage</text>
-  <text x="486" y="130" font-size="10" fill="#cba6f7" text-anchor="middle">Clean up</text>
-  <text x="486" y="144" font-size="10" fill="#cba6f7" text-anchor="middle">temp files</text>
-  <text x="486" y="165" font-size="18" text-anchor="middle">🗂</text>
-
-  <text x="568" y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">🔑 Perms</text>
-  <text x="568" y="130" font-size="10" fill="#f0d0a0" text-anchor="middle">Ask at the</text>
-  <text x="568" y="144" font-size="10" fill="#f0d0a0" text-anchor="middle">right moment</text>
-  <text x="568" y="165" font-size="18" text-anchor="middle">🚪</text>
-
-  <text x="650" y="116" font-size="11" fill="#fff" font-weight="700" text-anchor="middle">♿ Access</text>
-  <text x="650" y="130" font-size="10" fill="#a0e0c0" text-anchor="middle">Design for</text>
-  <text x="650" y="144" font-size="10" fill="#a0e0c0" text-anchor="middle">everyone</text>
-  <text x="650" y="165" font-size="18" text-anchor="middle">🌐</text>
-
-  <!-- Base -->
-  <rect x="30" y="180" width="740" height="12" fill="#1B3A5C" rx="3"/>
+</p><!-- SVG: The eight pillars visual --><div class="diagram-wrap">
+<svg aria-label="Diagram: 7. Guidelines for Responsible App Development" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f8f9fb" height="200" rx="10" width="800"></rect>
+<!-- Roof -->
+<polygon fill="#1B3A5C" opacity="0.9" points="400,15 20,85 780,85"></polygon>
+<text fill="#fff" font-size="15" font-weight="700" text-anchor="middle" x="400" y="58">RESPONSIBLE APP CITIZENSHIP</text>
+<!-- Columns (8 pillars) -->
+<rect fill="#1B3A5C" height="95" rx="3" width="72" x="40" y="85"></rect>
+<rect fill="#2E5D8A" height="95" rx="3" width="72" x="122" y="85"></rect>
+<rect fill="#2e7a5d" height="95" rx="3" width="72" x="204" y="85"></rect>
+<rect fill="#8a5d0a" height="95" rx="3" width="72" x="286" y="85"></rect>
+<rect fill="#7a2a5a" height="95" rx="3" width="72" x="368" y="85"></rect>
+<rect fill="#4a2a7a" height="95" rx="3" width="72" x="450" y="85"></rect>
+<rect fill="#5a3a0a" height="95" rx="3" width="72" x="532" y="85"></rect>
+<rect fill="#1a5a3a" height="95" rx="3" width="72" x="614" y="85"></rect>
+<!-- Column labels -->
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="76" y="116">🔋 Battery</text>
+<text fill="#a0c0e0" font-size="10" text-anchor="middle" x="76" y="130">Conserve</text>
+<text fill="#a0c0e0" font-size="10" text-anchor="middle" x="76" y="144">aggressively</text>
+<text font-size="18" text-anchor="middle" x="76" y="165">⚡</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="158" y="116">🧠 Memory</text>
+<text fill="#a0c0e0" font-size="10" text-anchor="middle" x="158" y="130">Release what</text>
+<text fill="#a0c0e0" font-size="10" text-anchor="middle" x="158" y="144">you don't need</text>
+<text font-size="18" text-anchor="middle" x="158" y="165">📦</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="240" y="116">🔐 Privacy</text>
+<text fill="#a0e0c0" font-size="10" text-anchor="middle" x="240" y="130">Collect only</text>
+<text fill="#a0e0c0" font-size="10" text-anchor="middle" x="240" y="144">what's needed</text>
+<text font-size="18" text-anchor="middle" x="240" y="165">🛡</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="322" y="116">📡 Network</text>
+<text fill="#f0d0a0" font-size="10" text-anchor="middle" x="322" y="130">Batch and</text>
+<text fill="#f0d0a0" font-size="10" text-anchor="middle" x="322" y="144">cache wisely</text>
+<text font-size="18" text-anchor="middle" x="322" y="165">📶</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="404" y="116">🔔 Notifs</text>
+<text fill="#f5c2e7" font-size="10" text-anchor="middle" x="404" y="130">Earn every</text>
+<text fill="#f5c2e7" font-size="10" text-anchor="middle" x="404" y="144">interruption</text>
+<text font-size="18" text-anchor="middle" x="404" y="165">🎯</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="486" y="116">💾 Storage</text>
+<text fill="#cba6f7" font-size="10" text-anchor="middle" x="486" y="130">Clean up</text>
+<text fill="#cba6f7" font-size="10" text-anchor="middle" x="486" y="144">temp files</text>
+<text font-size="18" text-anchor="middle" x="486" y="165">🗂</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="568" y="116">🔑 Perms</text>
+<text fill="#f0d0a0" font-size="10" text-anchor="middle" x="568" y="130">Ask at the</text>
+<text fill="#f0d0a0" font-size="10" text-anchor="middle" x="568" y="144">right moment</text>
+<text font-size="18" text-anchor="middle" x="568" y="165">🚪</text>
+<text fill="#fff" font-size="11" font-weight="700" text-anchor="middle" x="650" y="116">♿ Access</text>
+<text fill="#a0e0c0" font-size="10" text-anchor="middle" x="650" y="130">Design for</text>
+<text fill="#a0e0c0" font-size="10" text-anchor="middle" x="650" y="144">everyone</text>
+<text font-size="18" text-anchor="middle" x="650" y="165">🌐</text>
+<!-- Base -->
+<rect fill="#1B3A5C" height="12" rx="3" width="740" x="30" y="180"></rect>
 </svg>
 <div class="diagram-caption">Figure 7: The eight pillars of responsible app citizenship. A structurally sound app rests on all of them.</div>
+</div><div class="guideline-grid">
+<div class="g-card gc-1">
+<div class="g-icon">🔋</div>
+<h4>Battery: Be a Tenant, Not a Parasite</h4>
+<p>GPS, camera, Bluetooth, and constant network polling are the fastest ways to drain a battery. Use the highest-accuracy location mode only when you need it, then downgrade or stop. Batch network requests rather than making a separate HTTP call for every user action. Users notice apps that drain their battery — and they delete them.</p>
 </div>
-
-<div class="guideline-grid">
-
-  <div class="g-card gc-1">
-    <div class="g-icon">🔋</div>
-    <h4>Battery: Be a Tenant, Not a Parasite</h4>
-    <p>GPS, camera, Bluetooth, and constant network polling are the fastest ways to drain a battery. Use the highest-accuracy location mode only when you need it, then downgrade or stop. Batch network requests rather than making a separate HTTP call for every user action. Users notice apps that drain their battery — and they delete them.</p>
-  </div>
-
-  <div class="g-card gc-2">
-    <div class="g-icon">🧠</div>
-    <h4>Memory: Return What You Borrow</h4>
-    <p>Images, video buffers, and event listeners that aren't released accumulate and will eventually cause your app to be killed by the OS. Cancel subscriptions in <code>useEffect</code> cleanup functions. Remove event listeners when components unmount. Use <code>FlatList</code> over <code>ScrollView</code> for long lists — it recycles cells. The OS has no swap on mobile; a memory hog gets evicted.</p>
-  </div>
-
-  <div class="g-card gc-3">
-    <div class="g-icon">🔐</div>
-    <h4>Privacy: Collect Only What You Need</h4>
-    <p>The principle of minimum necessary data isn't just ethical — it's now legally required in most jurisdictions (GDPR, CCPA, APPI). If your app doesn't need precise GPS coordinates, request "approximate location" instead. If you don't need to store photos on your server, don't. Every piece of user data you collect is a liability as much as it is an asset.</p>
-  </div>
-
-  <div class="g-card gc-4">
-    <div class="g-icon">📡</div>
-    <h4>Network: Respect the Radio</h4>
-    <p>Opening a network connection wakes the cellular radio, which takes several seconds to spin up and burns battery even after your request completes. Batch API calls, cache aggressively, and use conditional requests (<code>If-Modified-Since</code>, ETags) to avoid downloading data the device already has. On slow networks, show meaningful loading states — never freeze silently.</p>
-  </div>
-
-  <div class="g-card gc-5">
-    <div class="g-icon">🔔</div>
-    <h4>Notifications: Earn Every Interruption</h4>
-    <p>Push notifications are one of the most valuable trust signals users grant to an app. Abusing them — sending marketing noise, over-notifying, waking users at 3am — destroys that trust permanently. Notification permission, once denied, cannot be re-requested programmatically. Treat every notification slot as precious. Ask for permission with a clear explanation of value.</p>
-  </div>
-
-  <div class="g-card gc-6">
-    <div class="g-icon">💾</div>
-    <h4>Storage: Clean Up After Yourself</h4>
-    <p>The device's storage is shared across all apps and system data. Temporary files written to the cache directory should be cleaned up when no longer needed — don't assume the OS will do it promptly. Compress images before storing them. If your app allows downloads, give users a way to clear cached content. An app that fills up the user's phone gets deleted.</p>
-  </div>
-
-  <div class="g-card gc-7">
-    <div class="g-icon">🔑</div>
-    <h4>Permissions: Ask at the Moment of Need</h4>
-    <p>Requesting camera access the moment the app opens — before the user has any context — is one of the most common causes of permission denial. Users don't grant permissions to apps they don't yet trust. Wait until the user takes an action that requires the permission, then ask with a clear explanation of why it's needed. Never request permissions "just in case" you might need them later.</p>
-  </div>
-
-  <div class="g-card gc-8">
-    <div class="g-icon">♿</div>
-    <h4>Accessibility: Design for Everyone</h4>
-    <p>Mobile OS accessibility features — VoiceOver on iOS, TalkBack on Android — are used by millions of people, including users with visual impairments, motor limitations, and temporary situational disabilities (bright sunlight, one hand occupied). Use React Native's <code>accessible</code>, <code>accessibilityLabel</code>, and <code>accessibilityRole</code> props. Test with screen readers on real devices. Accessibility is not a feature — it's a baseline.</p>
-  </div>
-
+<div class="g-card gc-2">
+<div class="g-icon">🧠</div>
+<h4>Memory: Return What You Borrow</h4>
+<p>Images, video buffers, and event listeners that aren't released accumulate and will eventually cause your app to be killed by the OS. Cancel subscriptions in <code>useEffect</code> cleanup functions. Remove event listeners when components unmount. Use <code>FlatList</code> over <code>ScrollView</code> for long lists — it recycles cells. The OS has no swap on mobile; a memory hog gets evicted.</p>
 </div>
-
-<div class="tip">
-  <strong>The test of a good citizen:</strong> Ask yourself — if every app on the device behaved the way mine does, would the device be more or less pleasant to use? Would the battery last longer or shorter? Would the user's attention be more or less respected? If your honest answers are negative, those are engineering decisions worth revisiting.
+<div class="g-card gc-3">
+<div class="g-icon">🔐</div>
+<h4>Privacy: Collect Only What You Need</h4>
+<p>The principle of minimum necessary data isn't just ethical — it's now legally required in most jurisdictions (GDPR, CCPA, APPI). If your app doesn't need precise GPS coordinates, request "approximate location" instead. If you don't need to store photos on your server, don't. Every piece of user data you collect is a liability as much as it is an asset.</p>
 </div>
-
-
-<!-- ─── 8. PUTTING IT TOGETHER ──────────────────────────────────── -->
-<h2>8. Putting It Together — Your App's Contract with the Ecosystem</h2>
-
-<p>
+<div class="g-card gc-4">
+<div class="g-icon">📡</div>
+<h4>Network: Respect the Radio</h4>
+<p>Opening a network connection wakes the cellular radio, which takes several seconds to spin up and burns battery even after your request completes. Batch API calls, cache aggressively, and use conditional requests (<code>If-Modified-Since</code>, ETags) to avoid downloading data the device already has. On slow networks, show meaningful loading states — never freeze silently.</p>
+</div>
+<div class="g-card gc-5">
+<div class="g-icon">🔔</div>
+<h4>Notifications: Earn Every Interruption</h4>
+<p>Push notifications are one of the most valuable trust signals users grant to an app. Abusing them — sending marketing noise, over-notifying, waking users at 3am — destroys that trust permanently. Notification permission, once denied, cannot be re-requested programmatically. Treat every notification slot as precious. Ask for permission with a clear explanation of value.</p>
+</div>
+<div class="g-card gc-6">
+<div class="g-icon">💾</div>
+<h4>Storage: Clean Up After Yourself</h4>
+<p>The device's storage is shared across all apps and system data. Temporary files written to the cache directory should be cleaned up when no longer needed — don't assume the OS will do it promptly. Compress images before storing them. If your app allows downloads, give users a way to clear cached content. An app that fills up the user's phone gets deleted.</p>
+</div>
+<div class="g-card gc-7">
+<div class="g-icon">🔑</div>
+<h4>Permissions: Ask at the Moment of Need</h4>
+<p>Requesting camera access the moment the app opens — before the user has any context — is one of the most common causes of permission denial. Users don't grant permissions to apps they don't yet trust. Wait until the user takes an action that requires the permission, then ask with a clear explanation of why it's needed. Never request permissions "just in case" you might need them later.</p>
+</div>
+<div class="g-card gc-8">
+<div class="g-icon">♿</div>
+<h4>Accessibility: Design for Everyone</h4>
+<p>Mobile OS accessibility features — VoiceOver on iOS, TalkBack on Android — are used by millions of people, including users with visual impairments, motor limitations, and temporary situational disabilities (bright sunlight, one hand occupied). Use React Native's <code>accessible</code>, <code>accessibilityLabel</code>, and <code>accessibilityRole</code> props. Test with screen readers on real devices. Accessibility is not a feature — it's a baseline.</p>
+</div>
+</div><div class="tip">
+<strong>The test of a good citizen:</strong> Ask yourself — if every app on the device behaved the way mine does, would the device be more or less pleasant to use? Would the battery last longer or shorter? Would the user's attention be more or less respected? If your honest answers are negative, those are engineering decisions worth revisiting.
+</div><!-- ─── 8. PUTTING IT TOGETHER ──────────────────────────────────── --><h2>8. Putting It Together — Your App's Contract with the Ecosystem</h2><p>
   Every app implicitly signs a contract with the ecosystem it inhabits. The OS enforces the technical terms — sandbox walls, lifecycle transitions, permission gates. But the ethical and experiential terms are yours to uphold.
-</p>
-
-<!-- SVG: Contract summary -->
-<div class="diagram-wrap">
-<svg viewBox="0 0 800 230" xmlns="http://www.w3.org/2000/svg" font-family="'Source Sans 3', Arial, sans-serif">
-  <rect width="800" height="230" fill="#f8f9fb" rx="10"/>
-
-  <!-- Left: what you GET -->
-  <rect x="20"  y="20" width="360" height="190" fill="#e8f4ee" rx="10" stroke="#2e8a5d" stroke-width="1.5"/>
-  <text x="200" y="46" font-size="14" fill="#1a5a3a" font-weight="700" text-anchor="middle">What the Ecosystem Gives You</text>
-  <text x="50"  y="74"  font-size="13" fill="#2c2c2c">✅  A protected private sandbox</text>
-  <text x="50"  y="96"  font-size="13" fill="#2c2c2c">✅  OS-managed memory and process lifecycle</text>
-  <text x="50"  y="118" font-size="13" fill="#2c2c2c">✅  Permissioned access to powerful hardware</text>
-  <text x="50"  y="140" font-size="13" fill="#2c2c2c">✅  OS-brokered inter-app communication</text>
-  <text x="50"  y="162" font-size="13" fill="#2c2c2c">✅  Distribution through vetted app stores</text>
-  <text x="50"  y="184" font-size="13" fill="#2c2c2c">✅  User trust derived from platform trust</text>
-
-  <!-- Right: what you OWE -->
-  <rect x="420" y="20" width="360" height="190" fill="#fdf0f0" rx="10" stroke="#c04040" stroke-width="1.5"/>
-  <text x="600" y="46" font-size="14" fill="#8a1a1a" font-weight="700" text-anchor="middle">What the Ecosystem Expects of You</text>
-  <text x="450" y="74"  font-size="13" fill="#2c2c2c">⚖️  Respect battery and shared resources</text>
-  <text x="450" y="96"  font-size="13" fill="#2c2c2c">⚖️  Release memory; handle lifecycle gracefully</text>
-  <text x="450" y="118" font-size="13" fill="#2c2c2c">⚖️  Ask only for permissions you genuinely need</text>
-  <text x="450" y="140" font-size="13" fill="#2c2c2c">⚖️  Protect user data; collect the minimum</text>
-  <text x="450" y="162" font-size="13" fill="#2c2c2c">⚖️  Notify with purpose, not noise</text>
-  <text x="450" y="184" font-size="13" fill="#2c2c2c">⚖️  Serve all users, including those with access needs</text>
+</p><!-- SVG: Contract summary --><div class="diagram-wrap">
+<svg aria-label="Diagram: 8. Putting It Together — Your App's Contract with the Ecosystem" font-family="'Source Sans 3', Arial, sans-serif" role="img" viewbox="0 0 800 230" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#f8f9fb" height="230" rx="10" width="800"></rect>
+<!-- Left: what you GET -->
+<rect fill="#e8f4ee" height="190" rx="10" stroke="#2e8a5d" stroke-width="1.5" width="360" x="20" y="20"></rect>
+<text fill="#1a5a3a" font-size="14" font-weight="700" text-anchor="middle" x="200" y="46">What the Ecosystem Gives You</text>
+<text fill="#2c2c2c" font-size="13" x="50" y="74">✅  A protected private sandbox</text>
+<text fill="#2c2c2c" font-size="13" x="50" y="96">✅  OS-managed memory and process lifecycle</text>
+<text fill="#2c2c2c" font-size="13" x="50" y="118">✅  Permissioned access to powerful hardware</text>
+<text fill="#2c2c2c" font-size="13" x="50" y="140">✅  OS-brokered inter-app communication</text>
+<text fill="#2c2c2c" font-size="13" x="50" y="162">✅  Distribution through vetted app stores</text>
+<text fill="#2c2c2c" font-size="13" x="50" y="184">✅  User trust derived from platform trust</text>
+<!-- Right: what you OWE -->
+<rect fill="#fdf0f0" height="190" rx="10" stroke="#c04040" stroke-width="1.5" width="360" x="420" y="20"></rect>
+<text fill="#8a1a1a" font-size="14" font-weight="700" text-anchor="middle" x="600" y="46">What the Ecosystem Expects of You</text>
+<text fill="#2c2c2c" font-size="13" x="450" y="74">⚖️  Respect battery and shared resources</text>
+<text fill="#2c2c2c" font-size="13" x="450" y="96">⚖️  Release memory; handle lifecycle gracefully</text>
+<text fill="#2c2c2c" font-size="13" x="450" y="118">⚖️  Ask only for permissions you genuinely need</text>
+<text fill="#2c2c2c" font-size="13" x="450" y="140">⚖️  Protect user data; collect the minimum</text>
+<text fill="#2c2c2c" font-size="13" x="450" y="162">⚖️  Notify with purpose, not noise</text>
+<text fill="#2c2c2c" font-size="13" x="450" y="184">⚖️  Serve all users, including those with access needs</text>
 </svg>
 <div class="diagram-caption">Figure 8: The implicit contract every app signs with its ecosystem. The OS enforces the technical terms; the developer is responsible for the ethical ones.</div>
-</div>
-
-<div class="callout">
-  <strong>Why this matters beyond ethics:</strong> App stores enforce many of these guidelines programmatically. Apps that consume excessive battery are flagged in iOS Screen Time and Android's Digital Wellbeing reports. Apps that request unnecessary permissions are increasingly rejected by App Store and Google Play review teams. In 2024, Apple began automatically revoking permissions for apps that haven't been used in 3 months. The market punishes bad ecosystem citizens just as surely as the OS does.
-</div>
-
+</div><div class="callout">
+<strong>Why this matters beyond ethics:</strong> App stores enforce many of these guidelines programmatically. Apps that consume excessive battery are flagged in iOS Screen Time and Android's Digital Wellbeing reports. Apps that request unnecessary permissions are increasingly rejected by App Store and Google Play review teams. In 2024, Apple began automatically revoking permissions for apps that haven't been used in 3 months. The market punishes bad ecosystem citizens just as surely as the OS does.
+</div></main>
 </body>
 </html>

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 – Instructor Plan: Complete Mobile Testing Protocol</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -112,455 +113,390 @@
 
   @media print { body { padding: 0; } .segment { break-inside: avoid; } }
 </style>
-</head>
-<body>
-
-<div class="doc-header">
-  <div class="eyebrow">📋 Instructor Lesson Plan</div>
-  <h1>CS 402 — Mobile Application Development</h1>
-  <div class="subtitle">Complete Mobile Testing Protocol — Unit to E2E, Callbacks as Seams</div>
-  <div class="meta-row">
-    <span>🕐 <strong>Total time:</strong> 75 minutes</span>
-    <span>📅 <strong>Semester:</strong> Spring 2026</span>
-    <span>🎯 <strong>Themes:</strong> Theme 3 (Quality) · Theme 2 (Building)</span>
-    <span>📚 <strong>Builds on:</strong> Lectures 16 (Jest) and 17 (RNTL)</span>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><div class="doc-header">
+<div class="eyebrow">📋 Instructor Lesson Plan</div>
+<h1>CS 402 — Mobile Application Development</h1>
+<div class="subtitle">Complete Mobile Testing Protocol — Unit to E2E, Callbacks as Seams</div>
+<div class="meta-row">
+<span>🕐 <strong>Total time:</strong> 75 minutes</span>
+<span>📅 <strong>Semester:</strong> Spring 2026</span>
+<span>🎯 <strong>Themes:</strong> Theme 3 (Quality) · Theme 2 (Building)</span>
+<span>📚 <strong>Builds on:</strong> Lectures 16 (Jest) and 17 (RNTL)</span>
 </div>
-
-<div class="callout">
-  <strong>What this lecture adds to 16 and 17:</strong> Students already know how to write
+</div><div class="callout">
+<strong>What this lecture adds to 16 and 17:</strong> Students already know how to write
   unit tests (Jest) and component tests (RNTL). This lecture gives them the full map —
   where those fit in the stack, what's above them, and the architectural principle (callbacks
   as seams) that makes the entire stack coherent. The callback simulation demo is the payoff
   moment — students see that a three-screen user journey runs in milliseconds with no device.
-</div>
-
-
-<h2>Learning Objectives</h2>
-<div class="obj-grid">
-  <div class="obj-item">
-    <div class="bloom">Understand</div>
+</div><h2>Learning Objectives</h2><div class="obj-grid">
+<div class="obj-item">
+<div class="bloom">Understand</div>
     Name all five testing layers and explain what each one tests that the layer below cannot.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Analyze</div>
+<div class="obj-item">
+<div class="bloom">Analyze</div>
     Explain why the testing pyramid shape is correct — why more unit tests than E2E tests produces better outcomes.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Understand</div>
+<div class="obj-item">
+<div class="bloom">Understand</div>
     Describe three distinct approaches to UI automation and the tradeoffs of each.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Understand</div>
+<div class="obj-item">
+<div class="bloom">Understand</div>
     Explain why UI automated testing is uniquely challenging on mobile compared to web.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Apply</div>
+<div class="obj-item">
+<div class="bloom">Apply</div>
     Design a component with callback props that expose seams for testing at multiple layers simultaneously.
   </div>
-  <div class="obj-item">
-    <div class="bloom">Create</div>
+<div class="obj-item">
+<div class="bloom">Create</div>
     Write a multi-step test using <code>fireEvent</code> that simulates a complete user flow across multiple screens.
   </div>
+</div><h2>Session at a Glance</h2><div class="timing-overview">
+<div class="timing-header">75-Minute Session</div>
+<div class="timing-bar">
+<div class="timing-seg t1" style="width:12%">Pyramid<br/>9 min</div>
+<div class="timing-seg t2" style="width:16%">Layers 1–3<br/>12 min</div>
+<div class="timing-seg t3" style="width:16%">Mobile challenges<br/>12 min</div>
+<div class="timing-seg t4" style="width:18.7%">UI automation<br/>14 min</div>
+<div class="timing-seg t5" style="width:21.3%">Callbacks + demo<br/>16 min</div>
+<div class="timing-seg t6" style="width:16%">Full protocol + CFU<br/>12 min</div>
 </div>
-
-
-<h2>Session at a Glance</h2>
-<div class="timing-overview">
-  <div class="timing-header">75-Minute Session</div>
-  <div class="timing-bar">
-    <div class="timing-seg t1" style="width:12%">Pyramid<br>9 min</div>
-    <div class="timing-seg t2" style="width:16%">Layers 1–3<br>12 min</div>
-    <div class="timing-seg t3" style="width:16%">Mobile challenges<br>12 min</div>
-    <div class="timing-seg t4" style="width:18.7%">UI automation<br>14 min</div>
-    <div class="timing-seg t5" style="width:21.3%">Callbacks + demo<br>16 min</div>
-    <div class="timing-seg t6" style="width:16%">Full protocol + CFU<br>12 min</div>
-  </div>
-  <div class="timing-legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Five-layer pyramid + connection diagram</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>Layers 1–3 with live code examples</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>Six mobile-specific challenges</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#c8890f"></div>UI automation: Detox / Maestro / visual regression / device farms</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#4a2a8a"></div>Callback seams — architecture demo + live session test</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#8a2020"></div>CI/CD timing diagram + strategy table + CFU</div>
-  </div>
+<div class="timing-legend">
+<div class="legend-item"><div class="legend-dot" style="background:#1B3A5C"></div>Five-layer pyramid + connection diagram</div>
+<div class="legend-item"><div class="legend-dot" style="background:#2E5D8A"></div>Layers 1–3 with live code examples</div>
+<div class="legend-item"><div class="legend-dot" style="background:#2e7a5d"></div>Six mobile-specific challenges</div>
+<div class="legend-item"><div class="legend-dot" style="background:#c8890f"></div>UI automation: Detox / Maestro / visual regression / device farms</div>
+<div class="legend-item"><div class="legend-dot" style="background:#4a2a8a"></div>Callback seams — architecture demo + live session test</div>
+<div class="legend-item"><div class="legend-dot" style="background:#8a2020"></div>CI/CD timing diagram + strategy table + CFU</div>
 </div>
-
-
-<!-- ─── SEGMENT 1: Pyramid ─── -->
-<div class="segment seg-1">
-  <div class="segment-header">
-    <div class="segment-num">1</div>
-    <div class="segment-title-block">
-      <div class="segment-title">The Five-Layer Pyramid</div>
-      <div class="segment-subtitle">Framing the complete picture · Speed vs. confidence · How layers feed each other</div>
-    </div>
-    <div class="segment-time">0:00 – 0:09 · 9 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>Opening — situate where students are</h3>
-    <ul class="talking-points">
-      <li>"You know Jest. You know RNTL. You know how to write a unit test and a component test. Today we zoom out. Those are layers 1 and 2 of a five-layer stack. Let's look at the full picture."</li>
-      <li>Display the pyramid SVG. Walk it bottom to top: fast/cheap at the base, slow/expensive at the apex. The shape is intentional — you have hundreds of unit tests and three E2E journeys. Not the reverse.</li>
-      <li>"If you invert the pyramid — lots of E2E tests, few unit tests — you get a test suite that takes 45 minutes to run, gives you failure messages like 'the login broke' with no detail, and breaks every time you change a button label. That's not confidence. That's misery."</li>
-    </ul>
-
-    <h3>How layers feed each other</h3>
-    <ul class="talking-points">
-      <li>Display the feed-forward diagram. Walk the arrows: "Each layer catches failures that point down. A failing integration test means a component contract is wrong. A failing component test means a unit-level function is wrong."</li>
-      <li>Point at the "what each layer cannot see" labels at the top. Unit tests can't see layout. Component tests can't see real network. Integration tests can't see real device behavior. Each layer has a blind spot that the next layer covers.</li>
-      <li>The overlap zones are intentional: a login flow tested at both the integration level and the UI level is double-caught. The integration test is faster and more specific; the UI test confirms the navigation wiring is real.</li>
-    </ul>
-
-    <div class="discussion">
-      <strong>🗣 Question:</strong> "What does a unit test failure tell you that a failing
+</div><!-- ─── SEGMENT 1: Pyramid ─── --><div class="segment seg-1">
+<div class="segment-header">
+<div class="segment-num">1</div>
+<div class="segment-title-block">
+<div class="segment-title">The Five-Layer Pyramid</div>
+<div class="segment-subtitle">Framing the complete picture · Speed vs. confidence · How layers feed each other</div>
+</div>
+<div class="segment-time">0:00 – 0:09 · 9 min</div>
+</div>
+<div class="segment-body">
+<h3>Opening — situate where students are</h3>
+<ul class="talking-points">
+<li>"You know Jest. You know RNTL. You know how to write a unit test and a component test. Today we zoom out. Those are layers 1 and 2 of a five-layer stack. Let's look at the full picture."</li>
+<li>Display the pyramid SVG. Walk it bottom to top: fast/cheap at the base, slow/expensive at the apex. The shape is intentional — you have hundreds of unit tests and three E2E journeys. Not the reverse.</li>
+<li>"If you invert the pyramid — lots of E2E tests, few unit tests — you get a test suite that takes 45 minutes to run, gives you failure messages like 'the login broke' with no detail, and breaks every time you change a button label. That's not confidence. That's misery."</li>
+</ul>
+<h3>How layers feed each other</h3>
+<ul class="talking-points">
+<li>Display the feed-forward diagram. Walk the arrows: "Each layer catches failures that point down. A failing integration test means a component contract is wrong. A failing component test means a unit-level function is wrong."</li>
+<li>Point at the "what each layer cannot see" labels at the top. Unit tests can't see layout. Component tests can't see real network. Integration tests can't see real device behavior. Each layer has a blind spot that the next layer covers.</li>
+<li>The overlap zones are intentional: a login flow tested at both the integration level and the UI level is double-caught. The integration test is faster and more specific; the UI test confirms the navigation wiring is real.</li>
+</ul>
+<div class="discussion">
+<strong>🗣 Question:</strong> "What does a unit test failure tell you that a failing
       E2E test doesn't?" → A unit test pinpoints the exact function and exact input that
       broke. An E2E failure tells you "something in the login flow is broken" — which could
       be the form validation, the API call, the navigation, or the success state rendering.
       Lower layers give more specific failures. That's the argument for the pyramid shape.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 2: Layers 1–3 ─── -->
-<div class="segment seg-2">
-  <div class="segment-header">
-    <div class="segment-num">2</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Layers 1–3 in Practice</div>
-      <div class="segment-subtitle">Unit · Component · Integration — what each tests, live code examples</div>
-    </div>
-    <div class="segment-time">0:09 – 0:21 · 12 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>Layer 1 — Unit: pure functions are the best test targets</h3>
-    <ul class="talking-points">
-      <li>Show the <code>formatDistance</code> unit test from the student document. Ask: "How long do you think 50 tests like this take to run?" → Under a second. "That's why you have hundreds of them."</li>
-      <li>The discipline: every pure utility function in your app should have a corresponding unit test. Formatters, validators, calculators, transformers — these are all unit-testable and fast to cover.</li>
-    </ul>
-
-    <h3>Layer 2 — Component: RNTL fires callbacks directly</h3>
-    <ul class="talking-points">
-      <li>Show the <code>TrailCard</code> component test. Point at <code>fireEvent.press</code> — "This is not simulating a tap on a device. This is calling the press callback directly. That's why it runs in milliseconds."</li>
-      <li>The key queries: <code>getByText</code>, <code>getByRole</code>, <code>getByTestId</code>. Query by what the user sees, not by implementation details (component class name, DOM structure). Tests that break when you rename a variable are not useful tests.</li>
-    </ul>
-
-    <h3>Layer 3 — Integration: mock the network, not the logic</h3>
-    <ul class="talking-points">
-      <li>Show the <code>TrailListScreen</code> integration test. The fetch is mocked — but the component's internal logic for calling fetch, handling loading state, and rendering results is real. That's the integration seam.</li>
-      <li>"You mock what you don't control. The network is external — mock it. Your own component logic is internal — don't mock it."</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥 Demo (4 min):</strong> Open a project with all three layers running. Run the
+</div><!-- ─── SEGMENT 2: Layers 1–3 ─── --><div class="segment seg-2">
+<div class="segment-header">
+<div class="segment-num">2</div>
+<div class="segment-title-block">
+<div class="segment-title">Layers 1–3 in Practice</div>
+<div class="segment-subtitle">Unit · Component · Integration — what each tests, live code examples</div>
+</div>
+<div class="segment-time">0:09 – 0:21 · 12 min</div>
+</div>
+<div class="segment-body">
+<h3>Layer 1 — Unit: pure functions are the best test targets</h3>
+<ul class="talking-points">
+<li>Show the <code>formatDistance</code> unit test from the student document. Ask: "How long do you think 50 tests like this take to run?" → Under a second. "That's why you have hundreds of them."</li>
+<li>The discipline: every pure utility function in your app should have a corresponding unit test. Formatters, validators, calculators, transformers — these are all unit-testable and fast to cover.</li>
+</ul>
+<h3>Layer 2 — Component: RNTL fires callbacks directly</h3>
+<ul class="talking-points">
+<li>Show the <code>TrailCard</code> component test. Point at <code>fireEvent.press</code> — "This is not simulating a tap on a device. This is calling the press callback directly. That's why it runs in milliseconds."</li>
+<li>The key queries: <code>getByText</code>, <code>getByRole</code>, <code>getByTestId</code>. Query by what the user sees, not by implementation details (component class name, DOM structure). Tests that break when you rename a variable are not useful tests.</li>
+</ul>
+<h3>Layer 3 — Integration: mock the network, not the logic</h3>
+<ul class="talking-points">
+<li>Show the <code>TrailListScreen</code> integration test. The fetch is mocked — but the component's internal logic for calling fetch, handling loading state, and rendering results is real. That's the integration seam.</li>
+<li>"You mock what you don't control. The network is external — mock it. Your own component logic is internal — don't mock it."</li>
+</ul>
+<div class="demo-block">
+<strong>🖥 Demo (4 min):</strong> Open a project with all three layers running. Run the
       test suite with <code>npm test -- --watchAll</code>. Show the output: unit tests in green
       in under 1 second, component tests passing, integration test showing the async
       <code>findByText</code> wait. Then break one unit test intentionally (change a return value).
       Show the immediate red failure with the exact assertion that failed. This is what
       fast feedback feels like.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 3: Mobile challenges ─── -->
-<div class="segment seg-3">
-  <div class="segment-header">
-    <div class="segment-num">3</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Mobile-Specific Testing Challenges</div>
-      <div class="segment-subtitle">Six reasons mobile testing is harder than web testing</div>
-    </div>
-    <div class="segment-time">0:21 – 0:33 · 12 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>Walk the six challenges</h3>
-    <ul class="talking-points">
-      <li><strong>Fragmentation:</strong> Ask students how many Android device models they think exist. The real answer is thousands of active models with different screen sizes, GPU drivers, OS versions, manufacturer skins. A Pixel layout bug is not the same as a Samsung layout bug.</li>
-      <li><strong>OS interruptions:</strong> An incoming phone call during a UI test produces a false failure. Automated test frameworks have to be written to tolerate OS overlays — permission dialogs, notifications, system alerts — that appear asynchronously during test runs.</li>
-      <li><strong>Network variability:</strong> The single most common mobile app failure mode in production is network-related — but tests almost always run on fast, stable connections. Tools like Network Link Conditioner (iOS) and Android emulator network profiles let you simulate 3G, high latency, or packet loss in tests.</li>
-      <li><strong>Gesture complexity:</strong> Swipe-to-delete, pinch-to-zoom, multi-touch — these are fundamentally different from mouse clicks and require platform-specific gesture simulation. Detox and Maestro both have gesture APIs, but they're harder to write than simple taps.</li>
-      <li><strong>Async timing:</strong> Animations, transitions, splash screens. Flaky tests are almost always timing issues — the test asserted before the animation finished. The solution is explicit waits and frameworks (Detox) that wait for the JS thread to go idle.</li>
-      <li><strong>Hardware APIs:</strong> Camera, GPS, biometrics, sensors. The simulator gives you a synthetic camera feed and injected GPS coordinates. Good enough for most tests. Not good enough for camera-specific bugs like focus failure in low light. Those need real devices.</li>
-    </ul>
-
-    <div class="instructor-note">
-      <strong>📝 The implication:</strong> These challenges explain why the professional
+</div><!-- ─── SEGMENT 3: Mobile challenges ─── --><div class="segment seg-3">
+<div class="segment-header">
+<div class="segment-num">3</div>
+<div class="segment-title-block">
+<div class="segment-title">Mobile-Specific Testing Challenges</div>
+<div class="segment-subtitle">Six reasons mobile testing is harder than web testing</div>
+</div>
+<div class="segment-time">0:21 – 0:33 · 12 min</div>
+</div>
+<div class="segment-body">
+<h3>Walk the six challenges</h3>
+<ul class="talking-points">
+<li><strong>Fragmentation:</strong> Ask students how many Android device models they think exist. The real answer is thousands of active models with different screen sizes, GPU drivers, OS versions, manufacturer skins. A Pixel layout bug is not the same as a Samsung layout bug.</li>
+<li><strong>OS interruptions:</strong> An incoming phone call during a UI test produces a false failure. Automated test frameworks have to be written to tolerate OS overlays — permission dialogs, notifications, system alerts — that appear asynchronously during test runs.</li>
+<li><strong>Network variability:</strong> The single most common mobile app failure mode in production is network-related — but tests almost always run on fast, stable connections. Tools like Network Link Conditioner (iOS) and Android emulator network profiles let you simulate 3G, high latency, or packet loss in tests.</li>
+<li><strong>Gesture complexity:</strong> Swipe-to-delete, pinch-to-zoom, multi-touch — these are fundamentally different from mouse clicks and require platform-specific gesture simulation. Detox and Maestro both have gesture APIs, but they're harder to write than simple taps.</li>
+<li><strong>Async timing:</strong> Animations, transitions, splash screens. Flaky tests are almost always timing issues — the test asserted before the animation finished. The solution is explicit waits and frameworks (Detox) that wait for the JS thread to go idle.</li>
+<li><strong>Hardware APIs:</strong> Camera, GPS, biometrics, sensors. The simulator gives you a synthetic camera feed and injected GPS coordinates. Good enough for most tests. Not good enough for camera-specific bugs like focus failure in low light. Those need real devices.</li>
+</ul>
+<div class="instructor-note">
+<strong>📝 The implication:</strong> These challenges explain why the professional
       recommendation is to keep the E2E layer small (3–5 journeys) and invest heavily in
       layers 1–3. Not because E2E isn't valuable — it absolutely is — but because the cost
       per test is high and the debugging experience when things go wrong is painful.
       Selective E2E coverage of the highest-value paths, comprehensive unit/component/integration
       coverage of everything else.
     </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Quick Check</div>
-      <ol>
-        <li>Your E2E test fails intermittently — sometimes passes, sometimes fails with "element not found." What's the most likely cause?
+<div class="cfu">
+<div class="cfu-label">✅ Quick Check</div>
+<ol>
+<li>Your E2E test fails intermittently — sometimes passes, sometimes fails with "element not found." What's the most likely cause?
           <div class="answer">→ Timing. The test is asserting before an animation or async operation completes. Fix: use explicit wait mechanisms (waitFor in Detox, assertVisible in Maestro) or a framework that waits for JS thread idle.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<!-- ─── SEGMENT 4: UI Automation ─── -->
-<div class="segment seg-4">
-  <div class="segment-header">
-    <div class="segment-num">4</div>
-    <div class="segment-title-block">
-      <div class="segment-title">UI Automation — The Three Approaches</div>
-      <div class="segment-subtitle">Accessibility tree · Visual regression · Device cloud farms</div>
-    </div>
-    <div class="segment-time">0:33 – 0:47 · 14 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>Approach 1 — Accessibility tree (Detox, Maestro)</h3>
-    <ul class="talking-points">
-      <li>These tools interact with the app through the same mechanism screen readers use — the accessibility tree. They find elements by <code>testID</code>, <code>accessibilityLabel</code>, or text content, and fire programmatic interactions.</li>
-      <li>Detox is "gray-box" — it has access to the JavaScript runtime inside the simulator. This is why it can wait for the JS thread to go idle before asserting, which eliminates most timing flakiness. The cost: requires macOS for iOS tests.</li>
-      <li>Maestro is the fast-start option — YAML test files, no code required, built-in async tolerance. Show the 8-line login flow from the student document. A junior developer can write this on day one. The tradeoff: less control over complex scenarios.</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥 Demo (4 min) — Maestro login test:</strong> If you have Maestro installed
+</div>
+</div><!-- ─── SEGMENT 4: UI Automation ─── --><div class="segment seg-4">
+<div class="segment-header">
+<div class="segment-num">4</div>
+<div class="segment-title-block">
+<div class="segment-title">UI Automation — The Three Approaches</div>
+<div class="segment-subtitle">Accessibility tree · Visual regression · Device cloud farms</div>
+</div>
+<div class="segment-time">0:33 – 0:47 · 14 min</div>
+</div>
+<div class="segment-body">
+<h3>Approach 1 — Accessibility tree (Detox, Maestro)</h3>
+<ul class="talking-points">
+<li>These tools interact with the app through the same mechanism screen readers use — the accessibility tree. They find elements by <code>testID</code>, <code>accessibilityLabel</code>, or text content, and fire programmatic interactions.</li>
+<li>Detox is "gray-box" — it has access to the JavaScript runtime inside the simulator. This is why it can wait for the JS thread to go idle before asserting, which eliminates most timing flakiness. The cost: requires macOS for iOS tests.</li>
+<li>Maestro is the fast-start option — YAML test files, no code required, built-in async tolerance. Show the 8-line login flow from the student document. A junior developer can write this on day one. The tradeoff: less control over complex scenarios.</li>
+</ul>
+<div class="demo-block">
+<strong>🖥 Demo (4 min) — Maestro login test:</strong> If you have Maestro installed
       (<code>brew install maestro</code> on Mac, or the Windows installer), run the login
       YAML from the student document against a running simulator. Show the automated taps
       firing on screen in real time. Students who have never seen UI automation before are
       usually visibly impressed by the "ghost hands" tapping the UI.
-      <br><br>
+      <br/><br/>
       If live demo is not feasible: show a 60-second Maestro demo video from mobile.dev —
       the visual is worth the setup cost.
     </div>
-
-    <h3>Approach 2 — Visual regression</h3>
-    <ul class="talking-points">
-      <li>Screenshot the UI at defined checkpoints, pixel-diff against a stored baseline. Catches what accessibility-tree tests miss: a button that moved 4 pixels, a font that stopped loading, a color that drifted.</li>
-      <li>The noise problem: font rendering, anti-aliasing, timestamps, live data. Professional tools solve this with masking (ignore this region), threshold tolerance (allow 0.1% difference), and AI-powered diff classification.</li>
-      <li>Workflow: first run establishes the baseline. Subsequent runs diff against it. You review diffs in a web UI — approve intentional changes, reject regressions. Approved changes become the new baseline.</li>
-      <li>Not a replacement for behavior testing — visual regression catches appearance bugs; accessibility-tree testing catches interaction bugs. They complement each other.</li>
-    </ul>
-
-    <h3>Approach 3 — Cloud device farms</h3>
-    <ul class="talking-points">
-      <li>AWS Device Farm, Firebase Test Lab, BrowserStack — you upload your app binary and your test suite; they run it in parallel on 50+ real physical devices and return per-device results.</li>
-      <li>The only way to systematically test against fragmentation. A Samsung-specific layout bug, an Android 11 permission behavior change, a Pixel rendering quirk — none of these appear in any simulator. They appear in device farm runs.</li>
-      <li>Cost and speed: expensive ($50–$500 per run) and slow (30–60 minutes). Not a CI tool — a release gate. You run it on release candidates, not on every commit.</li>
-    </ul>
-
-    <div class="instructor-note">
-      <strong>📝 Practical positioning for this course:</strong> At the CS 402 level, students
+<h3>Approach 2 — Visual regression</h3>
+<ul class="talking-points">
+<li>Screenshot the UI at defined checkpoints, pixel-diff against a stored baseline. Catches what accessibility-tree tests miss: a button that moved 4 pixels, a font that stopped loading, a color that drifted.</li>
+<li>The noise problem: font rendering, anti-aliasing, timestamps, live data. Professional tools solve this with masking (ignore this region), threshold tolerance (allow 0.1% difference), and AI-powered diff classification.</li>
+<li>Workflow: first run establishes the baseline. Subsequent runs diff against it. You review diffs in a web UI — approve intentional changes, reject regressions. Approved changes become the new baseline.</li>
+<li>Not a replacement for behavior testing — visual regression catches appearance bugs; accessibility-tree testing catches interaction bugs. They complement each other.</li>
+</ul>
+<h3>Approach 3 — Cloud device farms</h3>
+<ul class="talking-points">
+<li>AWS Device Farm, Firebase Test Lab, BrowserStack — you upload your app binary and your test suite; they run it in parallel on 50+ real physical devices and return per-device results.</li>
+<li>The only way to systematically test against fragmentation. A Samsung-specific layout bug, an Android 11 permission behavior change, a Pixel rendering quirk — none of these appear in any simulator. They appear in device farm runs.</li>
+<li>Cost and speed: expensive ($50–$500 per run) and slow (30–60 minutes). Not a CI tool — a release gate. You run it on release candidates, not on every commit.</li>
+</ul>
+<div class="instructor-note">
+<strong>📝 Practical positioning for this course:</strong> At the CS 402 level, students
       won't implement Detox or device farm pipelines — that's professional infrastructure. What
       they should understand is what these tools do, why they exist, and where they fit in the
       protocol. The actionable takeaway is adding <code>testID</code> props as a habit — this
       is free cost now and enables all three UI automation approaches later.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ─── SEGMENT 5: Callbacks ─── -->
-<div class="segment seg-5">
-  <div class="segment-header">
-    <div class="segment-num">5</div>
-    <div class="segment-title-block">
-      <div class="segment-title">Callbacks as Seams — Simulating Entire Sessions</div>
-      <div class="segment-subtitle">The architectural insight · Hard vs. easy to test components · Live multi-screen demo</div>
-    </div>
-    <div class="segment-time">0:47 – 1:03 · 16 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>The central insight — every user interaction is a function call</h3>
-    <ul class="talking-points">
-      <li>"Here is the most important insight in mobile testing: every user interaction in React Native is implemented as a callback function. onPress, onChangeText, onScroll, onSubmitEditing. A user tapping a button calls the onPress callback. A test calling fireEvent.press does exactly the same thing."</li>
-      <li>"Functions don't care who calls them. A user's finger and a test's fireEvent call are identical from the component's perspective. This is why component tests are so powerful — they're not simulating user behavior, they're calling the same code the user's finger calls."</li>
-      <li>"The architectural consequence: a component that accepts its behavior through callback props is testable at every layer. A component that hardwires its own navigation and data fetching requires mocking the entire world around it."</li>
-    </ul>
-
-    <div class="insight-box">
-      <strong>The seam metaphor:</strong> A seam is a place in code where you can change
+</div><!-- ─── SEGMENT 5: Callbacks ─── --><div class="segment seg-5">
+<div class="segment-header">
+<div class="segment-num">5</div>
+<div class="segment-title-block">
+<div class="segment-title">Callbacks as Seams — Simulating Entire Sessions</div>
+<div class="segment-subtitle">The architectural insight · Hard vs. easy to test components · Live multi-screen demo</div>
+</div>
+<div class="segment-time">0:47 – 1:03 · 16 min</div>
+</div>
+<div class="segment-body">
+<h3>The central insight — every user interaction is a function call</h3>
+<ul class="talking-points">
+<li>"Here is the most important insight in mobile testing: every user interaction in React Native is implemented as a callback function. onPress, onChangeText, onScroll, onSubmitEditing. A user tapping a button calls the onPress callback. A test calling fireEvent.press does exactly the same thing."</li>
+<li>"Functions don't care who calls them. A user's finger and a test's fireEvent call are identical from the component's perspective. This is why component tests are so powerful — they're not simulating user behavior, they're calling the same code the user's finger calls."</li>
+<li>"The architectural consequence: a component that accepts its behavior through callback props is testable at every layer. A component that hardwires its own navigation and data fetching requires mocking the entire world around it."</li>
+</ul>
+<div class="insight-box">
+<strong>The seam metaphor:</strong> A seam is a place in code where you can change
       behavior without modifying the code itself. Callback props are seams. In production,
       the real navigation function is passed. In a test, a <code>jest.fn()</code> is passed.
       The component is identical. The behavior is controlled by whoever passes the prop.
       Designing for testability and designing for good architecture are the same decision.
     </div>
-
-    <h3>Hard vs. easy to test — show the comparison</h3>
-    <ul class="talking-points">
-      <li>Display the two component variants from the student document side by side. The "hard to test" version owns its own fetch call, its own navigation call, its own routing. To test it, you must mock <code>fetch</code>, mock <code>useRouter</code>, and wait for the effect to fire.</li>
-      <li>The "easy to test" version accepts <code>trail</code>, <code>onBookPress</code>, and <code>onBackPress</code> as props. To test it: <code>render(&lt;TrailDetailView trail={fixture} onBookPress={jest.fn()} onBackPress={jest.fn()} /&gt;)</code>. One line of setup.</li>
-      <li>"The props-based version is also better architecture. It's composable. You can render it anywhere with any trail data and any navigation behavior. The self-contained version is glued to its context."</li>
-    </ul>
-
-    <div class="demo-block">
-      <strong>🖥 Live Demo — Multi-screen session test (8 min):</strong>
+<h3>Hard vs. easy to test — show the comparison</h3>
+<ul class="talking-points">
+<li>Display the two component variants from the student document side by side. The "hard to test" version owns its own fetch call, its own navigation call, its own routing. To test it, you must mock <code>fetch</code>, mock <code>useRouter</code>, and wait for the effect to fire.</li>
+<li>The "easy to test" version accepts <code>trail</code>, <code>onBookPress</code>, and <code>onBackPress</code> as props. To test it: <code>render(&lt;TrailDetailView trail={fixture} onBookPress={jest.fn()} onBackPress={jest.fn()} /&gt;)</code>. One line of setup.</li>
+<li>"The props-based version is also better architecture. It's composable. You can render it anywhere with any trail data and any navigation behavior. The self-contained version is glued to its context."</li>
+</ul>
+<div class="demo-block">
+<strong>🖥 Live Demo — Multi-screen session test (8 min):</strong>
       This is the payoff demo for the entire lecture. Open a Jest test file and live-code
       the trail booking session from the student document — or walk through it on screen with
       students following the code in the student doc.
-      <br><br>
+      <br/><br/>
       Run it. Show the green output. Then ask: "How long did that take?" The answer is
       &lt;100ms. "We just simulated a three-screen user session — search, detail, book —
       with no device, no simulator, no network, and no UI automation tooling. Just Jest
       and React Native Testing Library. That's what the callback architecture gives you."
-      <br><br>
+      <br/><br/>
       Then break it deliberately — change the trail name the mock returns. Show the failure
       message pointing at the exact assertion. "And this is what fast feedback feels like.
       You know exactly what broke and exactly where."
     </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Check for Understanding</div>
-      <ol>
-        <li>What is a "seam" in the context of testing, and what creates seams in React Native components?
+<div class="cfu">
+<div class="cfu-label">✅ Check for Understanding</div>
+<ol>
+<li>What is a "seam" in the context of testing, and what creates seams in React Native components?
           <div class="answer">→ A seam is a place where behavior can be changed without modifying the code itself. In React Native, callback props are seams — the component accepts onPress, onChangeText, etc. as props, and the test passes jest.fn() mocks instead of real functions. The component code is unchanged; the test controls the behavior through the seam.</div>
-        </li>
-        <li>You have a component with a hardwired <code>fetch()</code> call inside <code>useEffect</code>. To unit test this component, what do you have to mock?
+</li>
+<li>You have a component with a hardwired <code>fetch()</code> call inside <code>useEffect</code>. To unit test this component, what do you have to mock?
           <div class="answer">→ You must mock global.fetch (or the specific fetch function), set up the mock response, and use waitFor or findBy queries to handle the async effect. Compare to a component that accepts data as a prop — no mocking needed at all.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<!-- ─── SEGMENT 6: Full protocol + CFU ─── -->
-<div class="segment seg-6">
-  <div class="segment-header">
-    <div class="segment-num">6</div>
-    <div class="segment-title-block">
-      <div class="segment-title">The Full Protocol — When Each Layer Runs</div>
-      <div class="segment-subtitle">CI/CD timing diagram · Strategy table · Annotation activity · Final CFU</div>
-    </div>
-    <div class="segment-time">1:03 – 1:15 · 12 min</div>
-  </div>
-  <div class="segment-body">
-
-    <h3>CI/CD timing diagram</h3>
-    <ul class="talking-points">
-      <li>Display the timeline SVG from the student document. Walk it: "Unit tests run on every save in watch mode. Component tests run on every git push. Integration tests run when a PR merges. UI automation and E2E run only on release candidates."</li>
-      <li>"This is not about laziness. It's about feedback loops. You don't want to wait 45 minutes to find out a function returns the wrong value. You want to know in 3 seconds. The pyramid shape is the tool for that."</li>
-    </ul>
-
-    <div class="activity">
-      <div class="act-label">🏋 Quick Pairs Activity (5 min) — Layer Identification</div>
-      <p>Show each scenario and ask pairs to identify which layer(s) should test it:</p>
-      <ol>
-        <li>A function that converts a timestamp to "2 hours ago"</li>
-        <li>A form component that shows an error message when submitted with an empty field</li>
-        <li>An API call that returns user profile data, which then populates a screen</li>
-        <li>The complete sign-up flow: enter email, set password, verify email, see dashboard</li>
-        <li>Whether the app's card shadows look correct on a Samsung Galaxy S22</li>
-      </ol>
-      <p style="margin-top:8px; font-size:13px; color:#555"><strong>Answers:</strong> (1) Layer 1 — pure function, unit test. (2) Layer 2 — component test with fireEvent.press. (3) Layer 3 — integration, mock the fetch. (4) Layer 5 — E2E, full journey. (5) Layer 4 — visual regression on a real device (or device farm).</p>
-    </div>
-
-    <div class="cfu">
-      <div class="cfu-label">✅ Final Check for Understanding</div>
-      <ol>
-        <li>Why should you use <code>npx expo install</code> instead of <code>npm install</code> for Expo packages? ← Actually, wrong lecture — ask this instead: Why does a testing pyramid have more tests at the base than at the apex?
+</div>
+</div><!-- ─── SEGMENT 6: Full protocol + CFU ─── --><div class="segment seg-6">
+<div class="segment-header">
+<div class="segment-num">6</div>
+<div class="segment-title-block">
+<div class="segment-title">The Full Protocol — When Each Layer Runs</div>
+<div class="segment-subtitle">CI/CD timing diagram · Strategy table · Annotation activity · Final CFU</div>
+</div>
+<div class="segment-time">1:03 – 1:15 · 12 min</div>
+</div>
+<div class="segment-body">
+<h3>CI/CD timing diagram</h3>
+<ul class="talking-points">
+<li>Display the timeline SVG from the student document. Walk it: "Unit tests run on every save in watch mode. Component tests run on every git push. Integration tests run when a PR merges. UI automation and E2E run only on release candidates."</li>
+<li>"This is not about laziness. It's about feedback loops. You don't want to wait 45 minutes to find out a function returns the wrong value. You want to know in 3 seconds. The pyramid shape is the tool for that."</li>
+</ul>
+<div class="activity">
+<div class="act-label">🏋 Quick Pairs Activity (5 min) — Layer Identification</div>
+<p>Show each scenario and ask pairs to identify which layer(s) should test it:</p>
+<ol>
+<li>A function that converts a timestamp to "2 hours ago"</li>
+<li>A form component that shows an error message when submitted with an empty field</li>
+<li>An API call that returns user profile data, which then populates a screen</li>
+<li>The complete sign-up flow: enter email, set password, verify email, see dashboard</li>
+<li>Whether the app's card shadows look correct on a Samsung Galaxy S22</li>
+</ol>
+<p style="margin-top:8px; font-size:13px; color:#555"><strong>Answers:</strong> (1) Layer 1 — pure function, unit test. (2) Layer 2 — component test with fireEvent.press. (3) Layer 3 — integration, mock the fetch. (4) Layer 5 — E2E, full journey. (5) Layer 4 — visual regression on a real device (or device farm).</p>
+</div>
+<div class="cfu">
+<div class="cfu-label">✅ Final Check for Understanding</div>
+<ol>
+<li>Why should you use <code>npx expo install</code> instead of <code>npm install</code> for Expo packages? ← Actually, wrong lecture — ask this instead: Why does a testing pyramid have more tests at the base than at the apex?
           <div class="answer">→ Lower-layer tests are faster, cheaper to write, and more specific in their failure messages. Higher-layer tests are slower, more expensive, and produce less diagnostic information. You run fast tests continuously and expensive tests at release gates. The pyramid shape optimizes for feedback speed and diagnostic quality simultaneously.</div>
-        </li>
-        <li>You are reviewing a PR. The changed component contains a <code>fetch()</code> call, navigation logic, and business logic all in one function. What testing concern should you raise?
+</li>
+<li>You are reviewing a PR. The changed component contains a <code>fetch()</code> call, navigation logic, and business logic all in one function. What testing concern should you raise?
           <div class="answer">→ The component has no seams — it can't be tested without mocking the entire environment. Suggest extracting the navigation to an onComplete prop and the fetch call to a data hook or parent component. This creates testable seams without changing the component's behavior.</div>
-        </li>
-        <li>A flaky E2E test fails about 30% of the time with "element 'Sign In' not found." The Sign In button definitely exists in the app. What is the most likely cause and fix?
+</li>
+<li>A flaky E2E test fails about 30% of the time with "element 'Sign In' not found." The Sign In button definitely exists in the app. What is the most likely cause and fix?
           <div class="answer">→ Timing. The test is looking for the Sign In button before an animation completes or before the initial data load finishes. Fix: use waitFor/assertVisible with a reasonable timeout, or use Detox's idle-wait behavior which automatically waits for the JS thread to settle before asserting.</div>
-        </li>
-      </ol>
-    </div>
-
-  </div>
+</li>
+</ol>
 </div>
-
-
-<h2>Common Student Mistakes</h2>
-<table>
-  <thead><tr><th>Mistake</th><th>What happens</th><th>Fix</th></tr></thead>
-  <tbody>
-    <tr class="mistake-row">
-      <td>Testing implementation, not behavior</td>
-      <td>Test checks component's internal state variable name. Breaks on every refactor even when behavior is unchanged.</td>
-      <td>Query by what the user sees (text, role, testID). Assert on output, not internals.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Mocking your own code</td>
-      <td>A test mocks the component's own utility function. The test passes but the real function is never exercised. False confidence.</td>
-      <td>Mock external dependencies (fetch, device APIs). Test your own logic for real.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>No testID props anywhere</td>
-      <td>UI automation tests query by text content. Any copy change breaks all tests. Localization support breaks all tests.</td>
-      <td>Add testID to every interactive element as a development habit. It costs nothing and enables every layer of testing.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Async assertion without waitFor/findBy</td>
-      <td>Test asserts on data that arrives via useEffect. Data isn't there yet. Test fails intermittently.</td>
-      <td>Use <code>await screen.findByText('...')</code> or <code>await waitFor(() => expect(...))</code> for any assertion that depends on async behavior.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Writing E2E tests for everything</td>
-      <td>Test suite takes 45 minutes. Every button label change breaks 20 tests. Nobody runs the suite. Nobody trusts it.</td>
-      <td>E2E tests cover 3–5 critical user journeys. Unit and component tests cover everything else.</td>
-    </tr>
-    <tr class="mistake-row">
-      <td>Hardwiring navigation and fetch inside components</td>
-      <td>Component can't be tested without mocking the entire world. Test setup takes more time than writing the component.</td>
-      <td>Accept navigation and data functions as callback props. Create seams intentionally. Testability is an architectural decision, not an afterthought.</td>
-    </tr>
-  </tbody>
-</table>
-
-
-<h2>Grading &amp; Assessment Notes</h2>
-<p>
+</div>
+</div><h2>Common Student Mistakes</h2><table>
+<thead><tr><th scope="col">Mistake</th><th scope="col">What happens</th><th scope="col">Fix</th></tr></thead>
+<tbody>
+<tr class="mistake-row">
+<td>Testing implementation, not behavior</td>
+<td>Test checks component's internal state variable name. Breaks on every refactor even when behavior is unchanged.</td>
+<td>Query by what the user sees (text, role, testID). Assert on output, not internals.</td>
+</tr>
+<tr class="mistake-row">
+<td>Mocking your own code</td>
+<td>A test mocks the component's own utility function. The test passes but the real function is never exercised. False confidence.</td>
+<td>Mock external dependencies (fetch, device APIs). Test your own logic for real.</td>
+</tr>
+<tr class="mistake-row">
+<td>No testID props anywhere</td>
+<td>UI automation tests query by text content. Any copy change breaks all tests. Localization support breaks all tests.</td>
+<td>Add testID to every interactive element as a development habit. It costs nothing and enables every layer of testing.</td>
+</tr>
+<tr class="mistake-row">
+<td>Async assertion without waitFor/findBy</td>
+<td>Test asserts on data that arrives via useEffect. Data isn't there yet. Test fails intermittently.</td>
+<td>Use <code>await screen.findByText('...')</code> or <code>await waitFor(() =&gt; expect(...))</code> for any assertion that depends on async behavior.</td>
+</tr>
+<tr class="mistake-row">
+<td>Writing E2E tests for everything</td>
+<td>Test suite takes 45 minutes. Every button label change breaks 20 tests. Nobody runs the suite. Nobody trusts it.</td>
+<td>E2E tests cover 3–5 critical user journeys. Unit and component tests cover everything else.</td>
+</tr>
+<tr class="mistake-row">
+<td>Hardwiring navigation and fetch inside components</td>
+<td>Component can't be tested without mocking the entire world. Test setup takes more time than writing the component.</td>
+<td>Accept navigation and data functions as callback props. Create seams intentionally. Testability is an architectural decision, not an afterthought.</td>
+</tr>
+</tbody>
+</table><h2>Grading &amp; Assessment Notes</h2><p>
   Testing rarely appears as its own assignment — it shows up as a quality criterion in feature
   assignments. When evaluating student code for testability, apply the same "start from full
   credit" philosophy and focus on the structural pattern, not test coverage percentage.
-</p>
-<ul>
-  <li><strong>Full credit:</strong> Key components accept callback props for navigation and side effects. At least one unit test for pure utility functions. At least one component test with fireEvent. testID present on interactive elements.</li>
-  <li><strong>Partial credit:</strong> Tests exist but test implementation details rather than behavior. Note this in feedback — "your test will break on any variable rename, which makes it less valuable than testing user-visible output."</li>
-  <li><strong>Comment, not deduction:</strong> No visual regression or E2E tests — not expected at this level. Mention them as a professional context note.</li>
-  <li><strong>Significant deduction:</strong> Submitted code causes test suite to fail entirely (syntax error in test file, broken test setup). This indicates the student didn't run the tests at all.</li>
-</ul>
-
-<div class="instructor-note">
-  <strong>📝 The job interview connection:</strong> The callback/seam architecture is one of
+</p><ul>
+<li><strong>Full credit:</strong> Key components accept callback props for navigation and side effects. At least one unit test for pure utility functions. At least one component test with fireEvent. testID present on interactive elements.</li>
+<li><strong>Partial credit:</strong> Tests exist but test implementation details rather than behavior. Note this in feedback — "your test will break on any variable rename, which makes it less valuable than testing user-visible output."</li>
+<li><strong>Comment, not deduction:</strong> No visual regression or E2E tests — not expected at this level. Mention them as a professional context note.</li>
+<li><strong>Significant deduction:</strong> Submitted code causes test suite to fail entirely (syntax error in test file, broken test setup). This indicates the student didn't run the tests at all.</li>
+</ul><div class="instructor-note">
+<strong>📝 The job interview connection:</strong> The callback/seam architecture is one of
   the few testing concepts that comes up directly in mobile developer interviews. "How do you
   test a component that has navigation logic?" is a real interview question. A student who
   answers "I extract the navigation to a callback prop so the test can pass a mock" has
   demonstrated architectural thinking, not just testing knowledge. That's the answer that
   gets a follow-up offer.
-</div>
-
-
-<h2>Before Class — Preparation Checklist</h2>
-<ul>
-  <li>✅ Open <strong>CS402_Mobile_Testing_Protocol.html</strong> — verify both main SVG diagrams (pyramid + feed-forward) render correctly before class.</li>
-  <li>✅ Pre-build the demo project with all three code examples (formatDistance unit test, TrailCard component test, TrailListScreen integration test) in a single Jest file. Run it before class to confirm green.</li>
-  <li>✅ Pre-build the trail booking session test (the multi-screen callback demo). This is the payoff demo — run it cold before class to confirm timing and output.</li>
-  <li>✅ Optional: install Maestro and have the login YAML ready to run against a simulator. The live UI automation demo is high-impact but takes setup time. If not feasible, have the demo video queued.</li>
-  <li>✅ Prepare the "break the test deliberately" move for both demo moments — know exactly what to change to produce a clean, readable failure message. Red output with a clear message is as instructive as green.</li>
-</ul>
-
-
-<div class="doc-footer">
-  <span>CS 402 · Spring 2026 · Boise State University</span>
-  <span>Complete Mobile Testing Protocol — Instructor Plan</span>
-  <span>Internal use only — not for student distribution</span>
-</div>
-
+</div><h2>Before Class — Preparation Checklist</h2><ul>
+<li>✅ Open <strong>CS402_Mobile_Testing_Protocol.html</strong> — verify both main SVG diagrams (pyramid + feed-forward) render correctly before class.</li>
+<li>✅ Pre-build the demo project with all three code examples (formatDistance unit test, TrailCard component test, TrailListScreen integration test) in a single Jest file. Run it before class to confirm green.</li>
+<li>✅ Pre-build the trail booking session test (the multi-screen callback demo). This is the payoff demo — run it cold before class to confirm timing and output.</li>
+<li>✅ Optional: install Maestro and have the login YAML ready to run against a simulator. The live UI automation demo is high-impact but takes setup time. If not feasible, have the demo video queued.</li>
+<li>✅ Prepare the "break the test deliberately" move for both demo moments — know exactly what to change to produce a clean, readable failure message. Red output with a clear message is as instructive as green.</li>
+</ul><div class="doc-footer">
+<span>CS 402 · Spring 2026 · Boise State University</span>
+<span>Complete Mobile Testing Protocol — Instructor Plan</span>
+<span>Internal use only — not for student distribution</span>
+</div></main>
 </body>
 </html>

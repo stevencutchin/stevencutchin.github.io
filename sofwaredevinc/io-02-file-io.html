@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>File I/O — C Input/Output</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f;
@@ -296,57 +297,65 @@
     .diagram-container { padding: 16px; }
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">2 / 3</span>
-  <span>C Input/Output</span>
-  <div class="nav-links">
-    <a href="io-01-terminal-io.html">Terminal I/O</a>
-    <a href="io-02-file-io.html" class="active">File I/O</a>
-    <a href="io-03-parsing-csv.html">Parsing CSV</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">2 / 3</span>
+<span>C Input/Output</span>
+<div class="nav-links">
+<a href="io-01-terminal-io.html">Terminal I/O</a>
+<a class="active" href="io-02-file-io.html">File I/O</a>
+<a href="io-03-parsing-csv.html">Parsing CSV</a>
+</div>
 </nav>
-
 <header class="hero">
-  <div class="number">Chapter 02</div>
-  <h1>File <span class="highlight">Input &amp; Output</span></h1>
-  <p class="subtitle">Files are just streams that point to disk instead of the terminal. The same functions, the same mental model — and the same responsibility to clean up when you're done.</p>
+<div class="number">Chapter 02</div>
+<h1>File <span class="highlight">Input &amp; Output</span></h1>
+<p class="subtitle">Files are just streams that point to disk instead of the terminal. The same functions, the same mental model — and the same responsibility to clean up when you're done.</p>
 </header>
-
-<main class="content">
-
-  <h2>FILE* — The Stream Handle</h2>
-
-  <p>In C, every open file is represented by a <code>FILE*</code> — a pointer to an opaque structure maintained by the standard library. You never look inside it directly. You hand it to I/O functions and they do the right thing.</p>
-
-  <div class="analogy">
-    <strong>Analogy</strong><br>
+<main class="content" id="main-content">
+<h2>FILE* — The Stream Handle</h2>
+<p>In C, every open file is represented by a <code>FILE*</code> — a pointer to an opaque structure maintained by the standard library. You never look inside it directly. You hand it to I/O functions and they do the right thing.</p>
+<div class="analogy">
+<strong>Analogy</strong><br/>
     A <code>FILE*</code> is like a bookmark in a book, combined with a description of how you opened the book (read-only? read/write? start from the beginning?). The library keeps track of where you are and handles the actual disk access. You just pass the bookmark around.
   </div>
-
-  <p>The three standard streams you already know — <code>stdin</code>, <code>stdout</code>, <code>stderr</code> — are all <code>FILE*</code> values that the runtime pre-opens for you. When you open your own files, you get the same type.</p>
-
-  <h2>The Open / Use / Close Pattern</h2>
-
-  <p>Every file operation follows the same three-step lifecycle. Skipping step 3 is one of the most common resource leaks in C programs.</p>
-
-  <div class="step-box">
-    <div class="step-num">1</div>
-    <div class="step-content"><strong>Open</strong> — call <code>fopen()</code> to get a <code>FILE*</code>. Check for <code>NULL</code> before proceeding.</div>
-  </div>
-  <div class="step-box">
-    <div class="step-num">2</div>
-    <div class="step-content"><strong>Use</strong> — read from or write to the file using the <code>FILE*</code> you received.</div>
-  </div>
-  <div class="step-box">
-    <div class="step-num">3</div>
-    <div class="step-content"><strong>Close</strong> — call <code>fclose()</code> to flush any buffered data to disk and release the file handle back to the OS.</div>
-  </div>
-
-  <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<p>The three standard streams you already know — <code>stdin</code>, <code>stdout</code>, <code>stderr</code> — are all <code>FILE*</code> values that the runtime pre-opens for you. When you open your own files, you get the same type.</p>
+<h2>The Open / Use / Close Pattern</h2>
+<p>Every file operation follows the same three-step lifecycle. Skipping step 3 is one of the most common resource leaks in C programs.</p>
+<div class="step-box">
+<div class="step-num">1</div>
+<div class="step-content"><strong>Open</strong> — call <code>fopen()</code> to get a <code>FILE*</code>. Check for <code>NULL</code> before proceeding.</div>
+</div>
+<div class="step-box">
+<div class="step-num">2</div>
+<div class="step-content"><strong>Use</strong> — read from or write to the file using the <code>FILE*</code> you received.</div>
+</div>
+<div class="step-box">
+<div class="step-num">3</div>
+<div class="step-content"><strong>Close</strong> — call <code>fclose()</code> to flush any buffered data to disk and release the file handle back to the OS.</div>
+</div>
+<pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
 
 <span class="type">int</span> <span class="func">main</span>(<span class="type">void</span>) {
     <span class="comment">// 1. Open</span>
@@ -366,38 +375,30 @@
     <span class="func">fclose</span>(fp);
     <span class="kw">return</span> <span class="num">0</span>;
 }</pre>
-
-  <h2>fopen Mode Strings</h2>
-
-  <p>The second argument to <code>fopen</code> is the <strong style="color:var(--accent-main)">mode string</strong> — it specifies what you want to do with the file and what happens if it doesn't exist yet.</p>
-
-  <table>
-    <thead>
-      <tr><th>Mode</th><th>Meaning</th><th>File exists</th><th>File missing</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>"r"</td><td>Read only</td><td>Open at start</td><td>Returns NULL</td></tr>
-      <tr><td>"w"</td><td>Write only</td><td><strong style="color:var(--accent-red)">Truncates to zero</strong></td><td>Creates new file</td></tr>
-      <tr><td>"a"</td><td>Append (write)</td><td>Open at end</td><td>Creates new file</td></tr>
-      <tr><td>"r+"</td><td>Read + write</td><td>Open at start</td><td>Returns NULL</td></tr>
-      <tr><td>"w+"</td><td>Read + write</td><td><strong style="color:var(--accent-red)">Truncates to zero</strong></td><td>Creates new file</td></tr>
-      <tr><td>"rb"</td><td>Binary read</td><td>Open at start</td><td>Returns NULL</td></tr>
-      <tr><td>"wb"</td><td>Binary write</td><td>Truncates to zero</td><td>Creates new file</td></tr>
-    </tbody>
-  </table>
-
-  <div class="warning">
-    <strong>Mode "w" destroys existing content</strong><br>
+<h2>fopen Mode Strings</h2>
+<p>The second argument to <code>fopen</code> is the <strong style="color:var(--accent-main)">mode string</strong> — it specifies what you want to do with the file and what happens if it doesn't exist yet.</p>
+<table>
+<thead>
+<tr><th scope="col">Mode</th><th scope="col">Meaning</th><th scope="col">File exists</th><th scope="col">File missing</th></tr>
+</thead>
+<tbody>
+<tr><td>"r"</td><td>Read only</td><td>Open at start</td><td>Returns NULL</td></tr>
+<tr><td>"w"</td><td>Write only</td><td><strong style="color:var(--accent-red)">Truncates to zero</strong></td><td>Creates new file</td></tr>
+<tr><td>"a"</td><td>Append (write)</td><td>Open at end</td><td>Creates new file</td></tr>
+<tr><td>"r+"</td><td>Read + write</td><td>Open at start</td><td>Returns NULL</td></tr>
+<tr><td>"w+"</td><td>Read + write</td><td><strong style="color:var(--accent-red)">Truncates to zero</strong></td><td>Creates new file</td></tr>
+<tr><td>"rb"</td><td>Binary read</td><td>Open at start</td><td>Returns NULL</td></tr>
+<tr><td>"wb"</td><td>Binary write</td><td>Truncates to zero</td><td>Creates new file</td></tr>
+</tbody>
+</table>
+<div class="warning">
+<strong>Mode "w" destroys existing content</strong><br/>
     Opening a file with <code>"w"</code> immediately truncates it to zero bytes — even before you write anything. If you open the wrong file by accident, the original content is gone. There is no warning. Always double-check the filename before using write mode.
   </div>
-
-  <h2>Reading from Files</h2>
-
-  <h3>fgets — Line by Line</h3>
-
-  <p><code>fgets</code> is the standard way to read a text file line by line. It reads until it encounters a newline, fills the buffer, or reaches EOF — whichever comes first.</p>
-
-  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"names.txt"</span>, <span class="str">"r"</span>);
+<h2>Reading from Files</h2>
+<h3>fgets — Line by Line</h3>
+<p><code>fgets</code> is the standard way to read a text file line by line. It reads until it encounters a newline, fills the buffer, or reaches EOF — whichever comes first.</p>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"names.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
 
 <span class="type">char</span> line[<span class="num">256</span>];
@@ -409,12 +410,9 @@
     <span class="func">printf</span>(<span class="str">"Read: [%s]\n"</span>, line);
 }
 <span class="func">fclose</span>(fp);</pre>
-
-  <h3>fscanf — Formatted File Reading</h3>
-
-  <p><code>fscanf</code> is the file version of <code>scanf</code>. It reads formatted data from a <code>FILE*</code> instead of <code>stdin</code>. Useful for files with a consistent record structure.</p>
-
-  <pre><span class="comment">// Suppose scores.txt contains lines like: "Alice 95"</span>
+<h3>fscanf — Formatted File Reading</h3>
+<p><code>fscanf</code> is the file version of <code>scanf</code>. It reads formatted data from a <code>FILE*</code> instead of <code>stdin</code>. Useful for files with a consistent record structure.</p>
+<pre><span class="comment">// Suppose scores.txt contains lines like: "Alice 95"</span>
 <span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"scores.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
 
@@ -425,12 +423,9 @@
     <span class="func">printf</span>(<span class="str">"%s scored %d\n"</span>, name, score);
 }
 <span class="func">fclose</span>(fp);</pre>
-
-  <h3>fread — Binary / Raw Reads</h3>
-
-  <p>For binary files — images, structs, custom formats — use <code>fread</code>. It reads a specified number of <em>items</em> each of a specified <em>size</em> and returns how many items were actually read.</p>
-
-  <pre><span class="comment">// Read up to 100 integers from a binary file</span>
+<h3>fread — Binary / Raw Reads</h3>
+<p>For binary files — images, structs, custom formats — use <code>fread</code>. It reads a specified number of <em>items</em> each of a specified <em>size</em> and returns how many items were actually read.</p>
+<pre><span class="comment">// Read up to 100 integers from a binary file</span>
 <span class="type">int</span> buffer[<span class="num">100</span>];
 <span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.bin"</span>, <span class="str">"rb"</span>);
 <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
@@ -438,14 +433,10 @@
 <span class="type">size_t</span> n = <span class="func">fread</span>(buffer, <span class="kw">sizeof</span>(<span class="type">int</span>), <span class="num">100</span>, fp);
 <span class="func">printf</span>(<span class="str">"Read %zu integers\n"</span>, n);
 <span class="func">fclose</span>(fp);</pre>
-
-  <h2>Writing to Files</h2>
-
-  <h3>fprintf — Formatted File Writing</h3>
-
-  <p>Just like <code>printf</code> but directs output to a <code>FILE*</code>. This is the most common way to produce structured text output to a file.</p>
-
-  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"report.txt"</span>, <span class="str">"w"</span>);
+<h2>Writing to Files</h2>
+<h3>fprintf — Formatted File Writing</h3>
+<p>Just like <code>printf</code> but directs output to a <code>FILE*</code>. This is the most common way to produce structured text output to a file.</p>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"report.txt"</span>, <span class="str">"w"</span>);
 <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
 
 <span class="func">fprintf</span>(fp, <span class="str">"Student Report\n"</span>);
@@ -453,13 +444,10 @@
 <span class="func">fprintf</span>(fp, <span class="str">"Name: %s, Score: %d\n"</span>, <span class="str">"Bob"</span>, <span class="num">87</span>);
 
 <span class="func">fclose</span>(fp);   <span class="comment">// flush and close — don't skip this!</span></pre>
-
-  <h3>fputs — Write a String</h3>
-  <p><code>fputs(str, fp)</code> writes a string to a file without a trailing newline (unlike <code>puts</code> which adds one to <code>stdout</code>).</p>
-
-  <h3>fwrite — Binary / Raw Writes</h3>
-
-  <pre><span class="comment">// Write an array of structs to a binary file</span>
+<h3>fputs — Write a String</h3>
+<p><code>fputs(str, fp)</code> writes a string to a file without a trailing newline (unlike <code>puts</code> which adds one to <code>stdout</code>).</p>
+<h3>fwrite — Binary / Raw Writes</h3>
+<pre><span class="comment">// Write an array of structs to a binary file</span>
 <span class="kw">typedef struct</span> {
     <span class="type">int</span>   id;
     <span class="type">float</span> score;
@@ -472,12 +460,9 @@ Record records[<span class="num">3</span>] = {{<span class="num">1</span>, <span
 
 <span class="func">fwrite</span>(records, <span class="kw">sizeof</span>(Record), <span class="num">3</span>, fp);
 <span class="func">fclose</span>(fp);</pre>
-
-  <h2>Detecting End-of-File and Errors</h2>
-
-  <p>When a read function returns a sentinel value — <code>NULL</code> for <code>fgets</code>, <code>EOF</code> for <code>fscanf</code> — it could mean one of two things: either you reached the end of the file, or an error occurred. Use <code>feof</code> and <code>ferror</code> to tell them apart.</p>
-
-  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+<h2>Detecting End-of-File and Errors</h2>
+<p>When a read function returns a sentinel value — <code>NULL</code> for <code>fgets</code>, <code>EOF</code> for <code>fscanf</code> — it could mean one of two things: either you reached the end of the file, or an error occurred. Use <code>feof</code> and <code>ferror</code> to tell them apart.</p>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
 
 <span class="type">char</span> line[<span class="num">256</span>];
@@ -493,48 +478,38 @@ Record records[<span class="num">3</span>] = {{<span class="num">1</span>, <span
 }
 
 <span class="func">fclose</span>(fp);</pre>
-
-  <div class="key-concept">
-    <strong>Don't loop on feof</strong><br>
+<div class="key-concept">
+<strong>Don't loop on feof</strong><br/>
     A classic bug is writing <code>while (!feof(fp))</code> as the loop condition. <code>feof</code> only becomes true <em>after</em> a read has failed — so the loop always executes one extra iteration and processes stale data. Loop on the return value of the read function instead.
   </div>
-
-  <h2>perror — Printing System Error Messages</h2>
-
-  <p>When an I/O function fails, the C library sets a global variable called <code>errno</code> to indicate the reason. <code>perror(label)</code> prints that reason as a human-readable message to <code>stderr</code>:</p>
-
-  <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"nonexistent.txt"</span>, <span class="str">"r"</span>);
+<h2>perror — Printing System Error Messages</h2>
+<p>When an I/O function fails, the C library sets a global variable called <code>errno</code> to indicate the reason. <code>perror(label)</code> prints that reason as a human-readable message to <code>stderr</code>:</p>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"nonexistent.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (fp == NULL) {
     <span class="func">perror</span>(<span class="str">"fopen"</span>);
     <span class="comment">// Output: "fopen: No such file or directory"</span>
     <span class="kw">return</span> <span class="num">1</span>;
 }</pre>
-
-  <p>The string you pass to <code>perror</code> becomes a prefix before the system message. Use the function name so you know where the failure happened.</p>
-
-  <h2>The File I/O Function Family</h2>
-
-  <table>
-    <thead>
-      <tr><th>Function</th><th>Direction</th><th>Type</th><th>Analogue</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>fgets(buf, n, fp)</td><td>Read</td><td>Text line</td><td>fgets(buf, n, stdin)</td></tr>
-      <tr><td>fscanf(fp, fmt, ...)</td><td>Read</td><td>Formatted</td><td>scanf(fmt, ...)</td></tr>
-      <tr><td>fread(buf, sz, n, fp)</td><td>Read</td><td>Binary</td><td>—</td></tr>
-      <tr><td>fgetc(fp)</td><td>Read</td><td>One char</td><td>getchar()</td></tr>
-      <tr><td>fprintf(fp, fmt, ...)</td><td>Write</td><td>Formatted</td><td>printf(fmt, ...)</td></tr>
-      <tr><td>fputs(str, fp)</td><td>Write</td><td>String</td><td>puts(str)</td></tr>
-      <tr><td>fwrite(buf, sz, n, fp)</td><td>Write</td><td>Binary</td><td>—</td></tr>
-      <tr><td>fputc(c, fp)</td><td>Write</td><td>One char</td><td>putchar(c)</td></tr>
-    </tbody>
-  </table>
-
-  <h2>A Complete Read/Write Example</h2>
-
-  <p>This program reads student names from one file and writes a formatted report to another — showing the full open/use/close pattern for both input and output:</p>
-
-  <pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<p>The string you pass to <code>perror</code> becomes a prefix before the system message. Use the function name so you know where the failure happened.</p>
+<h2>The File I/O Function Family</h2>
+<table>
+<thead>
+<tr><th scope="col">Function</th><th scope="col">Direction</th><th scope="col">Type</th><th scope="col">Analogue</th></tr>
+</thead>
+<tbody>
+<tr><td>fgets(buf, n, fp)</td><td>Read</td><td>Text line</td><td>fgets(buf, n, stdin)</td></tr>
+<tr><td>fscanf(fp, fmt, ...)</td><td>Read</td><td>Formatted</td><td>scanf(fmt, ...)</td></tr>
+<tr><td>fread(buf, sz, n, fp)</td><td>Read</td><td>Binary</td><td>—</td></tr>
+<tr><td>fgetc(fp)</td><td>Read</td><td>One char</td><td>getchar()</td></tr>
+<tr><td>fprintf(fp, fmt, ...)</td><td>Write</td><td>Formatted</td><td>printf(fmt, ...)</td></tr>
+<tr><td>fputs(str, fp)</td><td>Write</td><td>String</td><td>puts(str)</td></tr>
+<tr><td>fwrite(buf, sz, n, fp)</td><td>Write</td><td>Binary</td><td>—</td></tr>
+<tr><td>fputc(c, fp)</td><td>Write</td><td>One char</td><td>putchar(c)</td></tr>
+</tbody>
+</table>
+<h2>A Complete Read/Write Example</h2>
+<p>This program reads student names from one file and writes a formatted report to another — showing the full open/use/close pattern for both input and output:</p>
+<pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
 <span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
 
 <span class="type">int</span> <span class="func">main</span>(<span class="type">void</span>) {
@@ -565,29 +540,23 @@ Record records[<span class="num">3</span>] = {{<span class="num">1</span>, <span
     <span class="func">printf</span>(<span class="str">"Report written to report.txt\n"</span>);
     <span class="kw">return</span> <span class="num">0</span>;
 }</pre>
-
-  <h2>Pitfalls</h2>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 1 — Not checking fopen for NULL</div>
-    <p>If <code>fopen</code> fails and you ignore the return value, the first read or write call will dereference a NULL pointer and crash. Every <code>fopen</code> must be followed by a NULL check.</p>
-  </div>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 2 — Forgetting fclose</div>
-    <p>Data written to a file is often held in an internal buffer and not flushed to disk until <code>fclose</code> (or until the buffer fills). Skip <code>fclose</code> and your output file may be empty or truncated — even if no error was reported.</p>
-  </div>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 3 — Opening for write when you meant append</div>
-    <p>Mode <code>"w"</code> silently destroys the existing file contents the moment you call <code>fopen</code>. If you want to add to an existing file, use <code>"a"</code>.</p>
-  </div>
-
-  <div class="pitfall-card">
-    <div class="pitfall-title">⚠ Pitfall 4 — Mixing text and binary mode</div>
-    <p>On Windows, text mode (<code>"r"</code>, <code>"w"</code>) translates <code>\r\n</code> to <code>\n</code>. Binary mode (<code>"rb"</code>, <code>"wb"</code>) does no translation. For portability with binary files — images, structs — always use binary mode explicitly.</p>
-  </div>
-
+<h2>Pitfalls</h2>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 1 — Not checking fopen for NULL</div>
+<p>If <code>fopen</code> fails and you ignore the return value, the first read or write call will dereference a NULL pointer and crash. Every <code>fopen</code> must be followed by a NULL check.</p>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 2 — Forgetting fclose</div>
+<p>Data written to a file is often held in an internal buffer and not flushed to disk until <code>fclose</code> (or until the buffer fills). Skip <code>fclose</code> and your output file may be empty or truncated — even if no error was reported.</p>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 3 — Opening for write when you meant append</div>
+<p>Mode <code>"w"</code> silently destroys the existing file contents the moment you call <code>fopen</code>. If you want to add to an existing file, use <code>"a"</code>.</p>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-title">⚠ Pitfall 4 — Mixing text and binary mode</div>
+<p>On Windows, text mode (<code>"r"</code>, <code>"w"</code>) translates <code>\r\n</code> to <code>\n</code>. Binary mode (<code>"rb"</code>, <code>"wb"</code>) does no translation. For portability with binary files — images, structs — always use binary mode explicitly.</p>
+</div>
 </main>
 </body>
 </html>

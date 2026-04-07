@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Strings — C Fundamentals</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f; --surface: #0d1320; --surface2: #141d2f; --border: #1e2d4a;
@@ -60,72 +61,80 @@
   .pitfall-card .pitfall-desc { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
   @media (max-width: 700px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .series-bar .nav-links { display: none; } .diagram-container { padding: 16px; } .pitfalls { grid-template-columns: 1fr; } }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-<nav class="series-bar">
-  <span class="chip">4 / 4</span>
-  <span>C Fundamentals</span>
-  <div class="nav-links">
-    <a href="vars-01-variables.html">Variables</a>
-    <a href="vars-02-types.html">Types</a>
-    <a href="vars-03-characters.html">Characters</a>
-    <a href="vars-04-strings.html" class="active">Strings</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">4 / 4</span>
+<span>C Fundamentals</span>
+<div class="nav-links">
+<a href="vars-01-variables.html">Variables</a>
+<a href="vars-02-types.html">Types</a>
+<a href="vars-03-characters.html">Characters</a>
+<a class="active" href="vars-04-strings.html">Strings</a>
+</div>
 </nav>
 <header class="hero">
-  <div class="number">C Fundamentals · 04</div>
-  <h1><span class="highlight">Strings</span></h1>
-  <p class="subtitle">C has no string type. A string is a char array with a zero byte at the end. That single design decision — the null terminator — is the source of both C's string flexibility and most of its string bugs.</p>
+<div class="number">C Fundamentals · 04</div>
+<h1><span class="highlight">Strings</span></h1>
+<p class="subtitle">C has no string type. A string is a char array with a zero byte at the end. That single design decision — the null terminator — is the source of both C's string flexibility and most of its string bugs.</p>
 </header>
-<main class="content">
-
-  <h2>What a String Is</h2>
-  <p>In C, a string is a sequence of <code>char</code> values stored in contiguous memory, followed by a <code>'\0'</code> (null terminator) — the byte with value zero. The null terminator is not part of the string's content; it's a sentinel that tells every string function where the string ends. The language provides no built-in string type — strings are just arrays of bytes with a convention about how they end.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 180" width="100%" height="180">
-      <!-- String "Hello" in memory -->
-      <text x="360" y="20" text-anchor="middle" fill="#6b7fa3" font-size="13">char str[] = "Hello" — six bytes in memory</text>
-
-      <!-- cells -->
-      <rect x="80"  y="40" width="80" height="60" rx="4" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="2"/>
-      <text x="120" y="67" text-anchor="middle" fill="#ff80ab" font-size="22" font-weight="700">H</text>
-      <text x="120" y="88" text-anchor="middle" fill="#6b7fa3" font-size="10">72  [0]</text>
-
-      <rect x="162" y="40" width="80" height="60" rx="4" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="202" y="67" text-anchor="middle" fill="#ff80ab" font-size="22" font-weight="700">e</text>
-      <text x="202" y="88" text-anchor="middle" fill="#6b7fa3" font-size="10">101 [1]</text>
-
-      <rect x="244" y="40" width="80" height="60" rx="4" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="284" y="67" text-anchor="middle" fill="#ff80ab" font-size="22" font-weight="700">l</text>
-      <text x="284" y="88" text-anchor="middle" fill="#6b7fa3" font-size="10">108 [2]</text>
-
-      <rect x="326" y="40" width="80" height="60" rx="4" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="366" y="67" text-anchor="middle" fill="#ff80ab" font-size="22" font-weight="700">l</text>
-      <text x="366" y="88" text-anchor="middle" fill="#6b7fa3" font-size="10">108 [3]</text>
-
-      <rect x="408" y="40" width="80" height="60" rx="4" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="448" y="67" text-anchor="middle" fill="#ff80ab" font-size="22" font-weight="700">o</text>
-      <text x="448" y="88" text-anchor="middle" fill="#6b7fa3" font-size="10">111 [4]</text>
-
-      <!-- null terminator — highlighted differently -->
-      <rect x="490" y="40" width="80" height="60" rx="4" fill="rgba(255,82,82,0.1)" stroke="#ff5252" stroke-width="2.5"/>
-      <text x="530" y="67" text-anchor="middle" fill="#ff5252" font-size="20" font-weight="700">'\0'</text>
-      <text x="530" y="88" text-anchor="middle" fill="#ff5252" font-size="10">0   [5]</text>
-
-      <!-- labels -->
-      <text x="280" y="125" text-anchor="middle" fill="#ff80ab" font-size="12">content — 5 bytes</text>
-      <text x="530" y="125" text-anchor="middle" fill="#ff5252" font-size="12">terminator</text>
-      <text x="360" y="155" text-anchor="middle" fill="#6b7fa3" font-size="11">strlen("Hello") = 5  ·  sizeof array = 6  ·  always one more byte than length</text>
-    </svg>
-    <div class="caption">"Hello" occupies 6 bytes: 5 for content, 1 for the null terminator. strlen counts content bytes only. The array must hold both.</div>
-  </div>
-
-  <h2>Declaring Strings</h2>
-  <p>There are two main ways to create a string in C — as a stack-allocated character array or as a pointer to a string literal. They look similar but behave very differently.</p>
-
-  <pre><span class="comment">// Array form — modifiable, stored on the stack</span>
+<main class="content" id="main-content">
+<h2>What a String Is</h2>
+<p>In C, a string is a sequence of <code>char</code> values stored in contiguous memory, followed by a <code>'\0'</code> (null terminator) — the byte with value zero. The null terminator is not part of the string's content; it's a sentinel that tells every string function where the string ends. The language provides no built-in string type — strings are just arrays of bytes with a convention about how they end.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: What a String Is" height="180" role="img" viewbox="0 0 720 180" width="100%">
+<!-- String "Hello" in memory -->
+<text fill="#6b7fa3" font-size="13" text-anchor="middle" x="360" y="20">char str[] = "Hello" — six bytes in memory</text>
+<!-- cells -->
+<rect fill="rgba(255,128,171,0.1)" height="60" rx="4" stroke="#ff80ab" stroke-width="2" width="80" x="80" y="40"></rect>
+<text fill="#ff80ab" font-size="22" font-weight="700" text-anchor="middle" x="120" y="67">H</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="120" y="88">72  [0]</text>
+<rect fill="rgba(255,128,171,0.1)" height="60" rx="4" stroke="#ff80ab" stroke-width="1.5" width="80" x="162" y="40"></rect>
+<text fill="#ff80ab" font-size="22" font-weight="700" text-anchor="middle" x="202" y="67">e</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="202" y="88">101 [1]</text>
+<rect fill="rgba(255,128,171,0.1)" height="60" rx="4" stroke="#ff80ab" stroke-width="1.5" width="80" x="244" y="40"></rect>
+<text fill="#ff80ab" font-size="22" font-weight="700" text-anchor="middle" x="284" y="67">l</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="284" y="88">108 [2]</text>
+<rect fill="rgba(255,128,171,0.1)" height="60" rx="4" stroke="#ff80ab" stroke-width="1.5" width="80" x="326" y="40"></rect>
+<text fill="#ff80ab" font-size="22" font-weight="700" text-anchor="middle" x="366" y="67">l</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="366" y="88">108 [3]</text>
+<rect fill="rgba(255,128,171,0.1)" height="60" rx="4" stroke="#ff80ab" stroke-width="1.5" width="80" x="408" y="40"></rect>
+<text fill="#ff80ab" font-size="22" font-weight="700" text-anchor="middle" x="448" y="67">o</text>
+<text fill="#6b7fa3" font-size="10" text-anchor="middle" x="448" y="88">111 [4]</text>
+<!-- null terminator — highlighted differently -->
+<rect fill="rgba(255,82,82,0.1)" height="60" rx="4" stroke="#ff5252" stroke-width="2.5" width="80" x="490" y="40"></rect>
+<text fill="#ff5252" font-size="20" font-weight="700" text-anchor="middle" x="530" y="67">'\0'</text>
+<text fill="#ff5252" font-size="10" text-anchor="middle" x="530" y="88">0   [5]</text>
+<!-- labels -->
+<text fill="#ff80ab" font-size="12" text-anchor="middle" x="280" y="125">content — 5 bytes</text>
+<text fill="#ff5252" font-size="12" text-anchor="middle" x="530" y="125">terminator</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="360" y="155">strlen("Hello") = 5  ·  sizeof array = 6  ·  always one more byte than length</text>
+</svg>
+<div class="caption">"Hello" occupies 6 bytes: 5 for content, 1 for the null terminator. strlen counts content bytes only. The array must hold both.</div>
+</div>
+<h2>Declaring Strings</h2>
+<p>There are two main ways to create a string in C — as a stack-allocated character array or as a pointer to a string literal. They look similar but behave very differently.</p>
+<pre><span class="comment">// Array form — modifiable, stored on the stack</span>
 <span class="type">char</span> name[<span class="num">64</span>];                  <span class="comment">// uninitialized buffer, room for 63 chars + '\0'</span>
 <span class="type">char</span> greeting[] = <span class="str">"Hello"</span>;      <span class="comment">// compiler sizes it: 6 bytes (5 + '\0')</span>
 <span class="type">char</span> buf[<span class="num">64</span>]   = <span class="str">"Hello"</span>;      <span class="comment">// 64-byte buffer, first 6 bytes set</span>
@@ -136,76 +145,66 @@ greeting[<span class="num">0</span>] = <span class="str">'h'</span>;            
 <span class="kw">const</span> <span class="type">char</span> *msg = <span class="str">"Hello"</span>;      <span class="comment">// msg points to static read-only memory</span>
 
 msg[<span class="num">0</span>] = <span class="str">'h'</span>;                   <span class="comment">// UNDEFINED BEHAVIOR — may crash</span></pre>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 220" width="100%" height="220">
-      <defs>
-        <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff80ab"/>
-        </marker>
-      </defs>
-
-      <!-- Stack array -->
-      <text x="180" y="20" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">char greeting[] = "Hello"</text>
-      <rect x="40" y="35" width="280" height="80" rx="6" fill="rgba(105,240,174,0.04)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="60" y="58" fill="#6b7fa3" font-size="11">stack</text>
-      <rect x="70" y="65" width="34" height="34" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="87" y="87" text-anchor="middle" fill="#69f0ae" font-size="13">H</text>
-      <rect x="104" y="65" width="34" height="34" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="121" y="87" text-anchor="middle" fill="#69f0ae" font-size="13">e</text>
-      <rect x="138" y="65" width="34" height="34" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="155" y="87" text-anchor="middle" fill="#69f0ae" font-size="13">l</text>
-      <rect x="172" y="65" width="34" height="34" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="189" y="87" text-anchor="middle" fill="#69f0ae" font-size="13">l</text>
-      <rect x="206" y="65" width="34" height="34" rx="3" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="1"/>
-      <text x="223" y="87" text-anchor="middle" fill="#69f0ae" font-size="13">o</text>
-      <rect x="240" y="65" width="34" height="34" rx="3" fill="rgba(255,82,82,0.15)" stroke="#ff5252" stroke-width="1.5"/>
-      <text x="257" y="87" text-anchor="middle" fill="#ff5252" font-size="11">\0</text>
-      <text x="180" y="138" text-anchor="middle" fill="#69f0ae" font-size="12">✓ modifiable in place</text>
-
-      <!-- Pointer to literal -->
-      <text x="540" y="20" text-anchor="middle" fill="#ff80ab" font-size="13" font-weight="600">const char *msg = "Hello"</text>
-
-      <!-- pointer variable on stack -->
-      <rect x="400" y="45" width="120" height="50" rx="6" fill="rgba(255,128,171,0.07)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="460" y="65" text-anchor="middle" fill="#6b7fa3" font-size="11">stack: msg</text>
-      <text x="460" y="85" text-anchor="middle" fill="#ff80ab" font-size="12">0x40200</text>
-
-      <!-- arrow -->
-      <path d="M 520 70 L 558 70" stroke="#ff80ab" stroke-width="2" fill="none" marker-end="url(#pa)"/>
-
-      <!-- read-only literal in rodata -->
-      <rect x="560" y="35" width="130" height="70" rx="6" fill="rgba(255,82,52,0.05)" stroke="#ff5252" stroke-width="1.5" stroke-dasharray="5,3"/>
-      <text x="625" y="58" text-anchor="middle" fill="#ff5252" font-size="11">read-only (.rodata)</text>
-      <text x="625" y="78" text-anchor="middle" fill="#ff80ab" font-size="13">Hello\0</text>
-      <text x="540" y="138" text-anchor="middle" fill="#ff5252" font-size="12">✗ writing = crash or UB</text>
-
-      <text x="360" y="185" text-anchor="middle" fill="#6b7fa3" font-size="12">Array form copies bytes to stack — modifiable. Pointer form points to static memory — read-only.</text>
-    </svg>
-    <div class="caption">Array form owns its own copy of the bytes. Pointer form points into read-only program memory. Never write through a pointer to a string literal.</div>
-  </div>
-
-  <h2>Essential String Functions</h2>
-  <p>C provides string operations through <code>&lt;string.h&gt;</code>. These functions all rely on the null terminator to find the end of the string — which means they all break silently if the null terminator is missing or the buffer is too small.</p>
-
-  <table class="data-table">
-    <thead><tr><th>Function</th><th>What It Does</th><th>Watch Out For</th></tr></thead>
-    <tbody>
-      <tr><td class="hl">strlen(s)</td><td>Returns length of s, not counting '\0'</td><td>Walks until '\0' — undefined behavior if not null-terminated</td></tr>
-      <tr><td class="hl">strcpy(dst, src)</td><td>Copies src into dst including '\0'</td><td>No bounds check — dst must be large enough</td></tr>
-      <tr><td class="hl">strncpy(dst, src, n)</td><td>Copies at most n bytes</td><td>May not null-terminate if src ≥ n chars — always add '\0' manually</td></tr>
-      <tr><td class="hl">strcat(dst, src)</td><td>Appends src to end of dst</td><td>No bounds check — overflows if dst too small</td></tr>
-      <tr><td class="hl">strncat(dst, src, n)</td><td>Appends at most n bytes of src</td><td>Always null-terminates — safer than strcat</td></tr>
-      <tr><td class="hl">strcmp(a, b)</td><td>Compares a and b lexicographically</td><td>Returns 0 if equal, not true/false — check <code>== 0</code></td></tr>
-      <tr><td class="hl">strncmp(a, b, n)</td><td>Compares at most n characters</td><td>Use for comparing prefixes or length-limited strings</td></tr>
-      <tr><td class="hl">strchr(s, c)</td><td>Returns pointer to first occurrence of c in s</td><td>Returns NULL if not found — check before dereferencing</td></tr>
-      <tr><td class="hl">strstr(hay, needle)</td><td>Returns pointer to first occurrence of needle in hay</td><td>Returns NULL if not found</td></tr>
-      <tr><td class="hl">sprintf(buf, fmt, ...)</td><td>Formats string into buf like printf</td><td>No bounds check — use snprintf instead</td></tr>
-      <tr><td class="hl">snprintf(buf, n, fmt, ...)</td><td>Formats at most n-1 chars + '\0'</td><td>Always null-terminates — preferred over sprintf</td></tr>
-    </tbody>
-  </table>
-
-  <pre><span class="pp">#include &lt;string.h&gt;</span>
+<div class="diagram-container">
+<svg aria-label="Diagram: Declaring Strings" height="220" role="img" viewbox="0 0 720 220" width="100%">
+<defs>
+<marker id="pa" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ff80ab"></path>
+</marker>
+</defs>
+<!-- Stack array -->
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="180" y="20">char greeting[] = "Hello"</text>
+<rect fill="rgba(105,240,174,0.04)" height="80" rx="6" stroke="#69f0ae" stroke-width="1.5" width="280" x="40" y="35"></rect>
+<text fill="#6b7fa3" font-size="11" x="60" y="58">stack</text>
+<rect fill="rgba(105,240,174,0.1)" height="34" rx="3" stroke="#69f0ae" stroke-width="1" width="34" x="70" y="65"></rect>
+<text fill="#69f0ae" font-size="13" text-anchor="middle" x="87" y="87">H</text>
+<rect fill="rgba(105,240,174,0.1)" height="34" rx="3" stroke="#69f0ae" stroke-width="1" width="34" x="104" y="65"></rect>
+<text fill="#69f0ae" font-size="13" text-anchor="middle" x="121" y="87">e</text>
+<rect fill="rgba(105,240,174,0.1)" height="34" rx="3" stroke="#69f0ae" stroke-width="1" width="34" x="138" y="65"></rect>
+<text fill="#69f0ae" font-size="13" text-anchor="middle" x="155" y="87">l</text>
+<rect fill="rgba(105,240,174,0.1)" height="34" rx="3" stroke="#69f0ae" stroke-width="1" width="34" x="172" y="65"></rect>
+<text fill="#69f0ae" font-size="13" text-anchor="middle" x="189" y="87">l</text>
+<rect fill="rgba(105,240,174,0.1)" height="34" rx="3" stroke="#69f0ae" stroke-width="1" width="34" x="206" y="65"></rect>
+<text fill="#69f0ae" font-size="13" text-anchor="middle" x="223" y="87">o</text>
+<rect fill="rgba(255,82,82,0.15)" height="34" rx="3" stroke="#ff5252" stroke-width="1.5" width="34" x="240" y="65"></rect>
+<text fill="#ff5252" font-size="11" text-anchor="middle" x="257" y="87">\0</text>
+<text fill="#69f0ae" font-size="12" text-anchor="middle" x="180" y="138">✓ modifiable in place</text>
+<!-- Pointer to literal -->
+<text fill="#ff80ab" font-size="13" font-weight="600" text-anchor="middle" x="540" y="20">const char *msg = "Hello"</text>
+<!-- pointer variable on stack -->
+<rect fill="rgba(255,128,171,0.07)" height="50" rx="6" stroke="#ff80ab" stroke-width="1.5" width="120" x="400" y="45"></rect>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="460" y="65">stack: msg</text>
+<text fill="#ff80ab" font-size="12" text-anchor="middle" x="460" y="85">0x40200</text>
+<!-- arrow -->
+<path d="M 520 70 L 558 70" fill="none" marker-end="url(#pa)" stroke="#ff80ab" stroke-width="2"></path>
+<!-- read-only literal in rodata -->
+<rect fill="rgba(255,82,52,0.05)" height="70" rx="6" stroke="#ff5252" stroke-dasharray="5,3" stroke-width="1.5" width="130" x="560" y="35"></rect>
+<text fill="#ff5252" font-size="11" text-anchor="middle" x="625" y="58">read-only (.rodata)</text>
+<text fill="#ff80ab" font-size="13" text-anchor="middle" x="625" y="78">Hello\0</text>
+<text fill="#ff5252" font-size="12" text-anchor="middle" x="540" y="138">✗ writing = crash or UB</text>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="360" y="185">Array form copies bytes to stack — modifiable. Pointer form points to static memory — read-only.</text>
+</svg>
+<div class="caption">Array form owns its own copy of the bytes. Pointer form points into read-only program memory. Never write through a pointer to a string literal.</div>
+</div>
+<h2>Essential String Functions</h2>
+<p>C provides string operations through <code>&lt;string.h&gt;</code>. These functions all rely on the null terminator to find the end of the string — which means they all break silently if the null terminator is missing or the buffer is too small.</p>
+<table class="data-table">
+<thead><tr><th scope="col">Function</th><th scope="col">What It Does</th><th scope="col">Watch Out For</th></tr></thead>
+<tbody>
+<tr><td class="hl">strlen(s)</td><td>Returns length of s, not counting '\0'</td><td>Walks until '\0' — undefined behavior if not null-terminated</td></tr>
+<tr><td class="hl">strcpy(dst, src)</td><td>Copies src into dst including '\0'</td><td>No bounds check — dst must be large enough</td></tr>
+<tr><td class="hl">strncpy(dst, src, n)</td><td>Copies at most n bytes</td><td>May not null-terminate if src ≥ n chars — always add '\0' manually</td></tr>
+<tr><td class="hl">strcat(dst, src)</td><td>Appends src to end of dst</td><td>No bounds check — overflows if dst too small</td></tr>
+<tr><td class="hl">strncat(dst, src, n)</td><td>Appends at most n bytes of src</td><td>Always null-terminates — safer than strcat</td></tr>
+<tr><td class="hl">strcmp(a, b)</td><td>Compares a and b lexicographically</td><td>Returns 0 if equal, not true/false — check <code>== 0</code></td></tr>
+<tr><td class="hl">strncmp(a, b, n)</td><td>Compares at most n characters</td><td>Use for comparing prefixes or length-limited strings</td></tr>
+<tr><td class="hl">strchr(s, c)</td><td>Returns pointer to first occurrence of c in s</td><td>Returns NULL if not found — check before dereferencing</td></tr>
+<tr><td class="hl">strstr(hay, needle)</td><td>Returns pointer to first occurrence of needle in hay</td><td>Returns NULL if not found</td></tr>
+<tr><td class="hl">sprintf(buf, fmt, ...)</td><td>Formats string into buf like printf</td><td>No bounds check — use snprintf instead</td></tr>
+<tr><td class="hl">snprintf(buf, n, fmt, ...)</td><td>Formats at most n-1 chars + '\0'</td><td>Always null-terminates — preferred over sprintf</td></tr>
+</tbody>
+</table>
+<pre><span class="pp">#include &lt;string.h&gt;</span>
 
 <span class="type">char</span> buf[<span class="num">64</span>];
 <span class="type">char</span> *src = <span class="str">"Hello, world"</span>;
@@ -223,11 +222,9 @@ buf[<span class="kw">sizeof</span>(buf) - <span class="num">1</span>] = <span cl
 
 <span class="comment">// safe format</span>
 <span class="func">snprintf</span>(buf, <span class="kw">sizeof</span>(buf), <span class="str">"Score: %d"</span>, <span class="num">42</span>);</pre>
-
-  <h2>Strings Are Pointers</h2>
-  <p>When you pass a string to a function, you're passing a <code>char *</code> — a pointer to the first character. The function receives the address of the first byte and reads forward until it hits <code>'\0'</code>. There is no size information in the pointer itself. This is why every function that writes to a string needs a separate size argument.</p>
-
-  <pre><span class="comment">// These two declarations are equivalent for function parameters</span>
+<h2>Strings Are Pointers</h2>
+<p>When you pass a string to a function, you're passing a <code>char *</code> — a pointer to the first character. The function receives the address of the first byte and reads forward until it hits <code>'\0'</code>. There is no size information in the pointer itself. This is why every function that writes to a string needs a separate size argument.</p>
+<pre><span class="comment">// These two declarations are equivalent for function parameters</span>
 <span class="kw">void</span> <span class="func">print_str</span>(<span class="type">char</span> *s)    { <span class="kw">while</span> (*s) <span class="func">putchar</span>(*s++); }
 <span class="kw">void</span> <span class="func">print_str</span>(<span class="type">char</span>  s[]) { <span class="kw">while</span> (*s) <span class="func">putchar</span>(*s++); }
 
@@ -237,55 +234,43 @@ buf[<span class="kw">sizeof</span>(buf) - <span class="num">1</span>] = <span cl
     <span class="func">printf</span>(<span class="str">"%c\n"</span>, *p);
     p++;
 }</pre>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 200" width="100%" height="200">
-      <defs>
-        <marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff80ab"/>
-        </marker>
-      </defs>
-
-      <!-- string in memory -->
-      <text x="360" y="18" text-anchor="middle" fill="#6b7fa3" font-size="12">Traversal: while (*p != '\0') { ... p++; }</text>
-
-      <rect x="100" y="30" width="54" height="50" rx="3" fill="rgba(255,128,171,0.12)" stroke="#ff80ab" stroke-width="2"/>
-      <text x="127" y="56" text-anchor="middle" fill="#ff80ab" font-size="20">H</text>
-      <text x="127" y="72" text-anchor="middle" fill="#ffab40" font-size="9">p starts here</text>
-
-      <rect x="154" y="30" width="54" height="50" rx="3" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="181" y="56" text-anchor="middle" fill="#ff80ab" font-size="20">e</text>
-
-      <rect x="208" y="30" width="54" height="50" rx="3" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="235" y="56" text-anchor="middle" fill="#ff80ab" font-size="20">l</text>
-
-      <rect x="262" y="30" width="54" height="50" rx="3" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="289" y="56" text-anchor="middle" fill="#ff80ab" font-size="20">l</text>
-
-      <rect x="316" y="30" width="54" height="50" rx="3" fill="rgba(255,128,171,0.1)" stroke="#ff80ab" stroke-width="1.5"/>
-      <text x="343" y="56" text-anchor="middle" fill="#ff80ab" font-size="20">o</text>
-
-      <rect x="370" y="30" width="54" height="50" rx="3" fill="rgba(255,82,82,0.12)" stroke="#ff5252" stroke-width="2"/>
-      <text x="397" y="56" text-anchor="middle" fill="#ff5252" font-size="15">\0</text>
-      <text x="397" y="72" text-anchor="middle" fill="#ff5252" font-size="9">loop stops</text>
-
-      <!-- p arrow progression -->
-      <path d="M 127 82 L 181 82" stroke="#ffab40" stroke-width="1.5" fill="none" marker-end="url(#sa)" stroke-dasharray="4,2"/>
-      <path d="M 181 88 L 235 88" stroke="#ffab40" stroke-width="1.5" fill="none" marker-end="url(#sa)" stroke-dasharray="4,2"/>
-      <path d="M 235 94 L 289 94" stroke="#ffab40" stroke-width="1.5" fill="none" marker-end="url(#sa)" stroke-dasharray="4,2"/>
-      <path d="M 289 100 L 343 100" stroke="#ffab40" stroke-width="1.5" fill="none" marker-end="url(#sa)" stroke-dasharray="4,2"/>
-      <path d="M 343 106 L 397 106" stroke="#ff5252" stroke-width="1.5" fill="none" marker-end="url(#sa)" stroke-dasharray="4,2"/>
-
-      <text x="360" y="145" text-anchor="middle" fill="#6b7fa3" font-size="12">*p dereferences the pointer to read the current character.</text>
-      <text x="360" y="165" text-anchor="middle" fill="#6b7fa3" font-size="12">p++ advances to the next byte. Loop ends when *p is '\0' (falsy — value 0).</text>
-    </svg>
-    <div class="caption">String traversal with a pointer. *p reads the current character, p++ moves to the next. '\0' (value 0) is falsy, ending the loop.</div>
-  </div>
-
-  <h2>Buffer Size: The Critical Rule</h2>
-  <p>The single most important rule in C string handling: <strong>every buffer that holds a string must have at least one extra byte for the null terminator.</strong> A string of length N requires an array of size N+1. Getting this wrong is the root cause of buffer overflows — one of the most exploited vulnerability classes in C programs.</p>
-
-  <pre><span class="comment">// String "Hello" has length 5 — needs 6 bytes minimum</span>
+<div class="diagram-container">
+<svg aria-label="Diagram: Strings Are Pointers" height="200" role="img" viewbox="0 0 720 200" width="100%">
+<defs>
+<marker id="sa" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ff80ab"></path>
+</marker>
+</defs>
+<!-- string in memory -->
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="360" y="18">Traversal: while (*p != '\0') { ... p++; }</text>
+<rect fill="rgba(255,128,171,0.12)" height="50" rx="3" stroke="#ff80ab" stroke-width="2" width="54" x="100" y="30"></rect>
+<text fill="#ff80ab" font-size="20" text-anchor="middle" x="127" y="56">H</text>
+<text fill="#ffab40" font-size="9" text-anchor="middle" x="127" y="72">p starts here</text>
+<rect fill="rgba(255,128,171,0.1)" height="50" rx="3" stroke="#ff80ab" stroke-width="1.5" width="54" x="154" y="30"></rect>
+<text fill="#ff80ab" font-size="20" text-anchor="middle" x="181" y="56">e</text>
+<rect fill="rgba(255,128,171,0.1)" height="50" rx="3" stroke="#ff80ab" stroke-width="1.5" width="54" x="208" y="30"></rect>
+<text fill="#ff80ab" font-size="20" text-anchor="middle" x="235" y="56">l</text>
+<rect fill="rgba(255,128,171,0.1)" height="50" rx="3" stroke="#ff80ab" stroke-width="1.5" width="54" x="262" y="30"></rect>
+<text fill="#ff80ab" font-size="20" text-anchor="middle" x="289" y="56">l</text>
+<rect fill="rgba(255,128,171,0.1)" height="50" rx="3" stroke="#ff80ab" stroke-width="1.5" width="54" x="316" y="30"></rect>
+<text fill="#ff80ab" font-size="20" text-anchor="middle" x="343" y="56">o</text>
+<rect fill="rgba(255,82,82,0.12)" height="50" rx="3" stroke="#ff5252" stroke-width="2" width="54" x="370" y="30"></rect>
+<text fill="#ff5252" font-size="15" text-anchor="middle" x="397" y="56">\0</text>
+<text fill="#ff5252" font-size="9" text-anchor="middle" x="397" y="72">loop stops</text>
+<!-- p arrow progression -->
+<path d="M 127 82 L 181 82" fill="none" marker-end="url(#sa)" stroke="#ffab40" stroke-dasharray="4,2" stroke-width="1.5"></path>
+<path d="M 181 88 L 235 88" fill="none" marker-end="url(#sa)" stroke="#ffab40" stroke-dasharray="4,2" stroke-width="1.5"></path>
+<path d="M 235 94 L 289 94" fill="none" marker-end="url(#sa)" stroke="#ffab40" stroke-dasharray="4,2" stroke-width="1.5"></path>
+<path d="M 289 100 L 343 100" fill="none" marker-end="url(#sa)" stroke="#ffab40" stroke-dasharray="4,2" stroke-width="1.5"></path>
+<path d="M 343 106 L 397 106" fill="none" marker-end="url(#sa)" stroke="#ff5252" stroke-dasharray="4,2" stroke-width="1.5"></path>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="360" y="145">*p dereferences the pointer to read the current character.</text>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="360" y="165">p++ advances to the next byte. Loop ends when *p is '\0' (falsy — value 0).</text>
+</svg>
+<div class="caption">String traversal with a pointer. *p reads the current character, p++ moves to the next. '\0' (value 0) is falsy, ending the loop.</div>
+</div>
+<h2>Buffer Size: The Critical Rule</h2>
+<p>The single most important rule in C string handling: <strong>every buffer that holds a string must have at least one extra byte for the null terminator.</strong> A string of length N requires an array of size N+1. Getting this wrong is the root cause of buffer overflows — one of the most exploited vulnerability classes in C programs.</p>
+<pre><span class="comment">// String "Hello" has length 5 — needs 6 bytes minimum</span>
 <span class="type">char</span> buf[<span class="num">5</span>] = <span class="str">"Hello"</span>;    <span class="comment">// WRONG — no room for '\0', overflow</span>
 <span class="type">char</span> buf[<span class="num">6</span>] = <span class="str">"Hello"</span>;    <span class="comment">// correct</span>
 
@@ -296,56 +281,53 @@ buf[<span class="kw">sizeof</span>(buf) - <span class="num">1</span>] = <span cl
 <span class="comment">// snprintf respects your buffer limit — always use over sprintf</span>
 <span class="type">char</span> out[<span class="num">32</span>];
 <span class="func">snprintf</span>(out, <span class="kw">sizeof</span>(out), <span class="str">"Hi %s"</span>, name); <span class="comment">// safe: truncates if necessary</span></pre>
-
-  <h2>Common Problems</h2>
-  <div class="pitfalls">
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 01</div>
-      <div class="pitfall-title">Buffer Too Small for Null Terminator</div>
-      <div class="pitfall-desc">Declaring <code>char buf[5] = "Hello"</code> has no room for <code>'\0'</code>. The string overwrites adjacent memory. Every string buffer must be at least length + 1. When in doubt, make the buffer larger than you think you need.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 02</div>
-      <div class="pitfall-title">Comparing Strings with ==</div>
-      <div class="pitfall-desc"><code>str1 == str2</code> compares pointer addresses, not string contents. Two different arrays containing "hello" will compare as unequal because they live at different addresses. Always use <code>strcmp(str1, str2) == 0</code> to compare string content.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 03</div>
-      <div class="pitfall-title">Using strcpy/strcat Without Size</div>
-      <div class="pitfall-desc"><code>strcpy(dst, src)</code> copies until it finds <code>'\0'</code> in src, with no check that dst is large enough. If src is longer than dst's buffer, the copy overflows into adjacent memory. Always use <code>strncpy</code> or better yet <code>snprintf</code> with an explicit size limit.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 04</div>
-      <div class="pitfall-title">strncpy Doesn't Always Null-Terminate</div>
-      <div class="pitfall-desc">If the source string is longer than n, <code>strncpy</code> copies n bytes but adds no <code>'\0'</code>. The result is an unterminated array. Any subsequent string operation on it will read past the end. Always explicitly set <code>buf[n-1] = '\0'</code> after <code>strncpy</code>.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 05</div>
-      <div class="pitfall-title">Modifying a String Literal</div>
-      <div class="pitfall-desc"><code>char *s = "hello"; s[0] = 'H';</code> is undefined behavior. String literals are stored in read-only memory. The program may crash with a segmentation fault, or silently corrupt other strings that share the same literal. Use the array form to get a modifiable copy.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 06</div>
-      <div class="pitfall-title">Forgetting to Strip fgets Newline</div>
-      <div class="pitfall-desc"><code>fgets</code> includes the <code>'\n'</code> in the buffer. <code>strcmp(buf, "quit")</code> will always fail because buf contains <code>"quit\n"</code>. Strip it immediately: <code>buf[strcspn(buf, "\n")] = '\0';</code>.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 07</div>
-      <div class="pitfall-title">Missing Null Terminator After Manual Construction</div>
-      <div class="pitfall-desc">When building a string character by character, it's easy to forget to add <code>'\0'</code> at the end. Without it, every string function that reads the buffer will run past the end of your data into garbage memory — or crash. Always manually append <code>'\0'</code> when constructing strings byte by byte.</div>
-    </div>
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 08</div>
-      <div class="pitfall-title">Confusing strlen and sizeof</div>
-      <div class="pitfall-desc"><code>strlen(s)</code> counts characters up to but not including <code>'\0'</code> — the string's visible length. <code>sizeof(s)</code> returns the total array size in bytes, including the <code>'\0'</code> slot. On a pointer (not an array), <code>sizeof</code> returns the pointer size (typically 8), not the string length.</div>
-    </div>
-  </div>
-
-  <div class="key-concept">
-    <strong>Takeaway</strong><br>
+<h2>Common Problems</h2>
+<div class="pitfalls">
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 01</div>
+<div class="pitfall-title">Buffer Too Small for Null Terminator</div>
+<div class="pitfall-desc">Declaring <code>char buf[5] = "Hello"</code> has no room for <code>'\0'</code>. The string overwrites adjacent memory. Every string buffer must be at least length + 1. When in doubt, make the buffer larger than you think you need.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 02</div>
+<div class="pitfall-title">Comparing Strings with ==</div>
+<div class="pitfall-desc"><code>str1 == str2</code> compares pointer addresses, not string contents. Two different arrays containing "hello" will compare as unequal because they live at different addresses. Always use <code>strcmp(str1, str2) == 0</code> to compare string content.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 03</div>
+<div class="pitfall-title">Using strcpy/strcat Without Size</div>
+<div class="pitfall-desc"><code>strcpy(dst, src)</code> copies until it finds <code>'\0'</code> in src, with no check that dst is large enough. If src is longer than dst's buffer, the copy overflows into adjacent memory. Always use <code>strncpy</code> or better yet <code>snprintf</code> with an explicit size limit.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 04</div>
+<div class="pitfall-title">strncpy Doesn't Always Null-Terminate</div>
+<div class="pitfall-desc">If the source string is longer than n, <code>strncpy</code> copies n bytes but adds no <code>'\0'</code>. The result is an unterminated array. Any subsequent string operation on it will read past the end. Always explicitly set <code>buf[n-1] = '\0'</code> after <code>strncpy</code>.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 05</div>
+<div class="pitfall-title">Modifying a String Literal</div>
+<div class="pitfall-desc"><code>char *s = "hello"; s[0] = 'H';</code> is undefined behavior. String literals are stored in read-only memory. The program may crash with a segmentation fault, or silently corrupt other strings that share the same literal. Use the array form to get a modifiable copy.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 06</div>
+<div class="pitfall-title">Forgetting to Strip fgets Newline</div>
+<div class="pitfall-desc"><code>fgets</code> includes the <code>'\n'</code> in the buffer. <code>strcmp(buf, "quit")</code> will always fail because buf contains <code>"quit\n"</code>. Strip it immediately: <code>buf[strcspn(buf, "\n")] = '\0';</code>.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 07</div>
+<div class="pitfall-title">Missing Null Terminator After Manual Construction</div>
+<div class="pitfall-desc">When building a string character by character, it's easy to forget to add <code>'\0'</code> at the end. Without it, every string function that reads the buffer will run past the end of your data into garbage memory — or crash. Always manually append <code>'\0'</code> when constructing strings byte by byte.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 08</div>
+<div class="pitfall-title">Confusing strlen and sizeof</div>
+<div class="pitfall-desc"><code>strlen(s)</code> counts characters up to but not including <code>'\0'</code> — the string's visible length. <code>sizeof(s)</code> returns the total array size in bytes, including the <code>'\0'</code> slot. On a pointer (not an array), <code>sizeof</code> returns the pointer size (typically 8), not the string length.</div>
+</div>
+</div>
+<div class="key-concept">
+<strong>Takeaway</strong><br/>
     A C string is a null-terminated array of chars. Every string buffer must have one extra byte for <code>'\0'</code>. Compare strings with <code>strcmp</code>, never <code>==</code>. Use <code>snprintf</code> over <code>sprintf</code>, <code>strncpy</code> over <code>strcpy</code> — and always verify null-termination after strncpy. Strip fgets's newline before comparing. Never write through a pointer to a string literal.
   </div>
-
 </main>
 </body>
 </html>

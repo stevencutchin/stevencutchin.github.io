@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>if / else / switch — C Control Flow</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f;
@@ -102,118 +103,116 @@
     .pitfalls { grid-template-columns: 1fr; }
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">1 / 2</span>
-  <span>C Control Flow</span>
-  <div class="nav-links">
-    <a href="branches-01-if-else-switch.html" class="active">if / else / switch</a>
-    <a href="branches-02-user-input-exit.html">User Input &amp; Exit Status</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">1 / 2</span>
+<span>C Control Flow</span>
+<div class="nav-links">
+<a class="active" href="branches-01-if-else-switch.html">if / else / switch</a>
+<a href="branches-02-user-input-exit.html">User Input &amp; Exit Status</a>
+</div>
 </nav>
-
 <header class="hero">
-  <div class="number">Control Flow · 01</div>
-  <h1><span class="highlight">if / else / switch</span></h1>
-  <p class="subtitle">Programs rarely execute every line in order. Branching lets the program choose which code to run based on conditions evaluated at runtime. This is how C makes decisions.</p>
+<div class="number">Control Flow · 01</div>
+<h1><span class="highlight">if / else / switch</span></h1>
+<p class="subtitle">Programs rarely execute every line in order. Branching lets the program choose which code to run based on conditions evaluated at runtime. This is how C makes decisions.</p>
 </header>
-
-<main class="content">
-
-  <!-- ═══════════════════════════════════════════ -->
-  <h2>The Big Picture</h2>
-
-  <p>Without branching, a program is just a recipe — it executes the same steps in the same order every time regardless of what the input is. Branching gives a program the ability to respond to its situation: different input, different data, different results — different path through the code.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 280" width="100%" height="280">
-      <defs>
-        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
-        </marker>
-        <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
-        </marker>
-        <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
-        </marker>
-      </defs>
-
-      <!-- Start -->
-      <rect x="290" y="10" width="140" height="40" rx="20" fill="rgba(255,171,64,0.1)" stroke="#ffab40" stroke-width="2"/>
-      <text x="360" y="35" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">program starts</text>
-      <path d="M 360 50 L 360 78" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#arr)"/>
-
-      <!-- Decision diamond -->
-      <polygon points="360,80 460,130 360,180 260,130" fill="rgba(255,171,64,0.07)" stroke="#ffab40" stroke-width="2"/>
-      <text x="360" y="124" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">condition</text>
-      <text x="360" y="142" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">true?</text>
-
-      <!-- TRUE branch -->
-      <path d="M 460 130 L 560 130" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#arr-g)"/>
-      <text x="505" y="120" text-anchor="middle" fill="#69f0ae" font-size="12">true</text>
-      <rect x="560" y="108" width="120" height="44" rx="6" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="620" y="135" text-anchor="middle" fill="#69f0ae" font-size="12">if body</text>
-
-      <!-- FALSE branch -->
-      <path d="M 260 130 L 160 130" stroke="#ff5252" stroke-width="2" fill="none" marker-end="url(#arr-r)"/>
-      <text x="205" y="120" text-anchor="middle" fill="#ff5252" font-size="12">false</text>
-      <rect x="40" y="108" width="120" height="44" rx="6" fill="rgba(255,82,82,0.07)" stroke="#ff5252" stroke-width="1.5"/>
-      <text x="100" y="135" text-anchor="middle" fill="#ff5252" font-size="12">else body</text>
-
-      <!-- Merge back -->
-      <path d="M 620 152 Q 620 220 360 220" stroke="#6b7fa3" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#arr)"/>
-      <path d="M 100 152 Q 100 220 358 220" stroke="#6b7fa3" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
-
-      <!-- Continue -->
-      <path d="M 360 220 L 360 248" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#arr)"/>
-      <rect x="290" y="250" width="140" height="30" rx="15" fill="rgba(255,171,64,0.07)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="360" y="270" text-anchor="middle" fill="#6b7fa3" font-size="12">continues...</text>
-    </svg>
-    <div class="caption">The condition is evaluated at runtime. Exactly one branch executes. Both paths rejoin after the if/else.</div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <h2>Boolean Values in C</h2>
-
-  <p>C has no dedicated boolean type in its original form. Every condition is just an integer expression. The rule is simple: <strong>zero is false, everything else is true.</strong> This is the foundation of every <code>if</code> statement in C.</p>
-
-  <pre><span class="kw">if</span> (<span class="num">0</span>)   { ... }  <span class="comment">// never executes — 0 is false</span>
+<main class="content" id="main-content">
+<!-- ═══════════════════════════════════════════ -->
+<h2>The Big Picture</h2>
+<p>Without branching, a program is just a recipe — it executes the same steps in the same order every time regardless of what the input is. Branching gives a program the ability to respond to its situation: different input, different data, different results — different path through the code.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: The Big Picture" height="280" role="img" viewbox="0 0 720 280" width="100%">
+<defs>
+<marker id="arr" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"></path>
+</marker>
+<marker id="arr-g" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"></path>
+</marker>
+<marker id="arr-r" markerheight="7" markerwidth="7" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"></path>
+</marker>
+</defs>
+<!-- Start -->
+<rect fill="rgba(255,171,64,0.1)" height="40" rx="20" stroke="#ffab40" stroke-width="2" width="140" x="290" y="10"></rect>
+<text fill="#ffab40" font-size="13" font-weight="600" text-anchor="middle" x="360" y="35">program starts</text>
+<path d="M 360 50 L 360 78" fill="none" marker-end="url(#arr)" stroke="#ffab40" stroke-width="2"></path>
+<!-- Decision diamond -->
+<polygon fill="rgba(255,171,64,0.07)" points="360,80 460,130 360,180 260,130" stroke="#ffab40" stroke-width="2"></polygon>
+<text fill="#ffab40" font-size="13" font-weight="600" text-anchor="middle" x="360" y="124">condition</text>
+<text fill="#ffab40" font-size="13" font-weight="600" text-anchor="middle" x="360" y="142">true?</text>
+<!-- TRUE branch -->
+<path d="M 460 130 L 560 130" fill="none" marker-end="url(#arr-g)" stroke="#69f0ae" stroke-width="2"></path>
+<text fill="#69f0ae" font-size="12" text-anchor="middle" x="505" y="120">true</text>
+<rect fill="rgba(105,240,174,0.07)" height="44" rx="6" stroke="#69f0ae" stroke-width="1.5" width="120" x="560" y="108"></rect>
+<text fill="#69f0ae" font-size="12" text-anchor="middle" x="620" y="135">if body</text>
+<!-- FALSE branch -->
+<path d="M 260 130 L 160 130" fill="none" marker-end="url(#arr-r)" stroke="#ff5252" stroke-width="2"></path>
+<text fill="#ff5252" font-size="12" text-anchor="middle" x="205" y="120">false</text>
+<rect fill="rgba(255,82,82,0.07)" height="44" rx="6" stroke="#ff5252" stroke-width="1.5" width="120" x="40" y="108"></rect>
+<text fill="#ff5252" font-size="12" text-anchor="middle" x="100" y="135">else body</text>
+<!-- Merge back -->
+<path d="M 620 152 Q 620 220 360 220" fill="none" marker-end="url(#arr)" stroke="#6b7fa3" stroke-dasharray="5,3" stroke-width="1.5"></path>
+<path d="M 100 152 Q 100 220 358 220" fill="none" stroke="#6b7fa3" stroke-dasharray="5,3" stroke-width="1.5"></path>
+<!-- Continue -->
+<path d="M 360 220 L 360 248" fill="none" marker-end="url(#arr)" stroke="#ffab40" stroke-width="2"></path>
+<rect fill="rgba(255,171,64,0.07)" height="30" rx="15" stroke="#ffab40" stroke-width="1.5" width="140" x="290" y="250"></rect>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="360" y="270">continues...</text>
+</svg>
+<div class="caption">The condition is evaluated at runtime. Exactly one branch executes. Both paths rejoin after the if/else.</div>
+</div>
+<!-- ═══════════════════════════════════════════ -->
+<h2>Boolean Values in C</h2>
+<p>C has no dedicated boolean type in its original form. Every condition is just an integer expression. The rule is simple: <strong>zero is false, everything else is true.</strong> This is the foundation of every <code>if</code> statement in C.</p>
+<pre><span class="kw">if</span> (<span class="num">0</span>)   { ... }  <span class="comment">// never executes — 0 is false</span>
 <span class="kw">if</span> (<span class="num">1</span>)   { ... }  <span class="comment">// always executes — 1 is true</span>
 <span class="kw">if</span> (<span class="num">-42</span>) { ... }  <span class="comment">// always executes — any non-zero is true</span>
 <span class="kw">if</span> (ptr) { ... }  <span class="comment">// executes if ptr is not NULL (NULL == 0)</span></pre>
-
-  <p>C99 added <code>&lt;stdbool.h&gt;</code> which defines <code>bool</code>, <code>true</code> (1), and <code>false</code> (0). These are aliases — the underlying integer rules never change. You'll see both styles in real code.</p>
-
-  <h3>Comparison and Logical Operators</h3>
-
-  <table class="truth-table">
-    <thead>
-      <tr><th>Operator</th><th>Meaning</th><th>Example</th><th>Result</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>==</td><td>equal to</td><td><code>x == 5</code></td><td class="t">true if x is 5</td></tr>
-      <tr><td>!=</td><td>not equal</td><td><code>x != 5</code></td><td class="t">true if x is anything but 5</td></tr>
-      <tr><td>&lt;</td><td>less than</td><td><code>x &lt; 10</code></td><td class="t">true if x &lt; 10</td></tr>
-      <tr><td>&lt;=</td><td>less than or equal</td><td><code>x &lt;= 10</code></td><td class="t">true if x ≤ 10</td></tr>
-      <tr><td>&amp;&amp;</td><td>logical AND</td><td><code>x &gt; 0 &amp;&amp; x &lt; 10</code></td><td class="t">true only if both sides are true</td></tr>
-      <tr><td>||</td><td>logical OR</td><td><code>x &lt; 0 || x &gt; 100</code></td><td class="t">true if either side is true</td></tr>
-      <tr><td>!</td><td>logical NOT</td><td><code>!found</code></td><td class="t">true if found is 0 (false)</td></tr>
-    </tbody>
-  </table>
-
-  <div class="key-concept">
-    <strong>Short-circuit evaluation</strong><br>
-    <code>&amp;&amp;</code> stops evaluating as soon as it finds a false term. <code>||</code> stops as soon as it finds a true term. This is not just an optimization — it's a guarantee you can rely on. The pattern <code>if (ptr != NULL &amp;&amp; ptr-&gt;value &gt; 0)</code> is safe because the second condition only runs when <code>ptr</code> is non-NULL.
+<p>C99 added <code>&lt;stdbool.h&gt;</code> which defines <code>bool</code>, <code>true</code> (1), and <code>false</code> (0). These are aliases — the underlying integer rules never change. You'll see both styles in real code.</p>
+<h3>Comparison and Logical Operators</h3>
+<table class="truth-table">
+<thead>
+<tr><th scope="col">Operator</th><th scope="col">Meaning</th><th scope="col">Example</th><th scope="col">Result</th></tr>
+</thead>
+<tbody>
+<tr><td>==</td><td>equal to</td><td><code>x == 5</code></td><td class="t">true if x is 5</td></tr>
+<tr><td>!=</td><td>not equal</td><td><code>x != 5</code></td><td class="t">true if x is anything but 5</td></tr>
+<tr><td>&lt;</td><td>less than</td><td><code>x &lt; 10</code></td><td class="t">true if x &lt; 10</td></tr>
+<tr><td>&lt;=</td><td>less than or equal</td><td><code>x &lt;= 10</code></td><td class="t">true if x ≤ 10</td></tr>
+<tr><td>&amp;&amp;</td><td>logical AND</td><td><code>x &gt; 0 &amp;&amp; x &lt; 10</code></td><td class="t">true only if both sides are true</td></tr>
+<tr><td>||</td><td>logical OR</td><td><code>x &lt; 0 || x &gt; 100</code></td><td class="t">true if either side is true</td></tr>
+<tr><td>!</td><td>logical NOT</td><td><code>!found</code></td><td class="t">true if found is 0 (false)</td></tr>
+</tbody>
+</table>
+<div class="key-concept">
+<strong>Short-circuit evaluation</strong><br/>
+<code>&amp;&amp;</code> stops evaluating as soon as it finds a false term. <code>||</code> stops as soon as it finds a true term. This is not just an optimization — it's a guarantee you can rely on. The pattern <code>if (ptr != NULL &amp;&amp; ptr-&gt;value &gt; 0)</code> is safe because the second condition only runs when <code>ptr</code> is non-NULL.
   </div>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <h2>if / else if / else</h2>
-
-  <pre><span class="kw">if</span> (score &gt;= <span class="num">90</span>) {
+<!-- ═══════════════════════════════════════════ -->
+<h2>if / else if / else</h2>
+<pre><span class="kw">if</span> (score &gt;= <span class="num">90</span>) {
     <span class="func">printf</span>(<span class="str">"A\n"</span>);
 } <span class="kw">else if</span> (score &gt;= <span class="num">80</span>) {
     <span class="func">printf</span>(<span class="str">"B\n"</span>);
@@ -222,85 +221,71 @@
 } <span class="kw">else</span> {
     <span class="func">printf</span>(<span class="str">"F\n"</span>);
 }</pre>
-
-  <p>The conditions are tested in order. The <strong>first</strong> branch whose condition is true executes, then the entire chain is skipped. The <code>else</code> at the end is a catch-all — it runs only if nothing above matched. You can have an <code>if</code> with no <code>else</code>, in which case the program simply does nothing if the condition is false.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 300" width="100%" height="300">
-      <defs>
-        <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"/>
-        </marker>
-        <marker id="cg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"/>
-        </marker>
-        <marker id="cr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"/>
-        </marker>
-      </defs>
-
-      <!-- Chain of diamonds -->
-      <!-- Diamond 1 -->
-      <polygon points="120,20 200,60 120,100 40,60" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="120" y="55" text-anchor="middle" fill="#ffab40" font-size="11">score</text>
-      <text x="120" y="70" text-anchor="middle" fill="#ffab40" font-size="11">≥ 90?</text>
-
-      <!-- true → A -->
-      <path d="M 200 60 L 280 60" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#cg)"/>
-      <text x="238" y="52" text-anchor="middle" fill="#69f0ae" font-size="10">true</text>
-      <rect x="280" y="44" width="80" height="32" rx="5" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="320" y="65" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">print "A"</text>
-
-      <!-- false → diamond 2 -->
-      <path d="M 120 100 L 120 128" stroke="#ff5252" stroke-width="1.5" fill="none" marker-end="url(#cr)"/>
-      <text x="130" y="120" fill="#ff5252" font-size="10">false</text>
-
-      <!-- Diamond 2 -->
-      <polygon points="120,130 200,170 120,210 40,170" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="120" y="165" text-anchor="middle" fill="#ffab40" font-size="11">score</text>
-      <text x="120" y="180" text-anchor="middle" fill="#ffab40" font-size="11">≥ 80?</text>
-
-      <!-- true → B -->
-      <path d="M 200 170 L 280 170" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#cg)"/>
-      <text x="238" y="162" text-anchor="middle" fill="#69f0ae" font-size="10">true</text>
-      <rect x="280" y="154" width="80" height="32" rx="5" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="320" y="175" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">print "B"</text>
-
-      <!-- false → diamond 3 -->
-      <path d="M 120 210 L 120 238" stroke="#ff5252" stroke-width="1.5" fill="none" marker-end="url(#cr)"/>
-      <text x="130" y="230" fill="#ff5252" font-size="10">false</text>
-
-      <!-- Diamond 3 -->
-      <polygon points="120,240 200,270 120,300 40,270" fill="rgba(255,171,64,0.08)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="120" y="265" text-anchor="middle" fill="#ffab40" font-size="11">score</text>
-      <text x="120" y="280" text-anchor="middle" fill="#ffab40" font-size="11">≥ 70?</text>
-
-      <!-- true → C -->
-      <path d="M 200 270 L 280 270" stroke="#69f0ae" stroke-width="1.5" fill="none" marker-end="url(#cg)"/>
-      <text x="238" y="262" text-anchor="middle" fill="#69f0ae" font-size="10">true</text>
-      <rect x="280" y="254" width="80" height="32" rx="5" fill="rgba(105,240,174,0.08)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="320" y="275" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">print "C"</text>
-
-      <!-- else → F -->
-      <path d="M 40 270 L 0 270 L 0 290" stroke="#ff5252" stroke-width="1.5" fill="none"/>
-      <rect x="-40" y="275" width="80" height="30" rx="5" fill="rgba(255,82,82,0.08)" stroke="#ff5252" stroke-width="1.5"/>
-      <text x="0" y="295" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">print "F"</text>
-      <text x="-55" y="275" fill="#ff5252" font-size="10">else</text>
-
-      <!-- All results merge right -->
-      <text x="430" y="170" text-anchor="middle" fill="#6b7fa3" font-size="11">Only one branch</text>
-      <text x="430" y="188" text-anchor="middle" fill="#6b7fa3" font-size="11">ever executes.</text>
-      <text x="430" y="206" text-anchor="middle" fill="#6b7fa3" font-size="11">Conditions tested</text>
-      <text x="430" y="224" text-anchor="middle" fill="#6b7fa3" font-size="11">top to bottom,</text>
-      <text x="430" y="242" text-anchor="middle" fill="#6b7fa3" font-size="11">first match wins.</text>
-    </svg>
-    <div class="caption">An else-if chain tests conditions in order and executes exactly one branch. Once a condition matches, the rest are skipped entirely.</div>
-  </div>
-
-  <h3>The Ternary Operator</h3>
-  <p>For simple two-outcome decisions, the ternary operator collapses an if/else into a single expression. Use it when each branch produces a value — not for complex logic.</p>
-
-  <pre><span class="comment">// if/else form:</span>
+<p>The conditions are tested in order. The <strong>first</strong> branch whose condition is true executes, then the entire chain is skipped. The <code>else</code> at the end is a catch-all — it runs only if nothing above matched. You can have an <code>if</code> with no <code>else</code>, in which case the program simply does nothing if the condition is false.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: if / else if / else" height="300" role="img" viewbox="0 0 720 300" width="100%">
+<defs>
+<marker id="ca" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ffab40"></path>
+</marker>
+<marker id="cg" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#69f0ae"></path>
+</marker>
+<marker id="cr" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="9" refy="5" viewbox="0 0 10 10">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#ff5252"></path>
+</marker>
+</defs>
+<!-- Chain of diamonds -->
+<!-- Diamond 1 -->
+<polygon fill="rgba(255,171,64,0.08)" points="120,20 200,60 120,100 40,60" stroke="#ffab40" stroke-width="1.5"></polygon>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="120" y="55">score</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="120" y="70">≥ 90?</text>
+<!-- true → A -->
+<path d="M 200 60 L 280 60" fill="none" marker-end="url(#cg)" stroke="#69f0ae" stroke-width="1.5"></path>
+<text fill="#69f0ae" font-size="10" text-anchor="middle" x="238" y="52">true</text>
+<rect fill="rgba(105,240,174,0.08)" height="32" rx="5" stroke="#69f0ae" stroke-width="1.5" width="80" x="280" y="44"></rect>
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="320" y="65">print "A"</text>
+<!-- false → diamond 2 -->
+<path d="M 120 100 L 120 128" fill="none" marker-end="url(#cr)" stroke="#ff5252" stroke-width="1.5"></path>
+<text fill="#ff5252" font-size="10" x="130" y="120">false</text>
+<!-- Diamond 2 -->
+<polygon fill="rgba(255,171,64,0.08)" points="120,130 200,170 120,210 40,170" stroke="#ffab40" stroke-width="1.5"></polygon>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="120" y="165">score</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="120" y="180">≥ 80?</text>
+<!-- true → B -->
+<path d="M 200 170 L 280 170" fill="none" marker-end="url(#cg)" stroke="#69f0ae" stroke-width="1.5"></path>
+<text fill="#69f0ae" font-size="10" text-anchor="middle" x="238" y="162">true</text>
+<rect fill="rgba(105,240,174,0.08)" height="32" rx="5" stroke="#69f0ae" stroke-width="1.5" width="80" x="280" y="154"></rect>
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="320" y="175">print "B"</text>
+<!-- false → diamond 3 -->
+<path d="M 120 210 L 120 238" fill="none" marker-end="url(#cr)" stroke="#ff5252" stroke-width="1.5"></path>
+<text fill="#ff5252" font-size="10" x="130" y="230">false</text>
+<!-- Diamond 3 -->
+<polygon fill="rgba(255,171,64,0.08)" points="120,240 200,270 120,300 40,270" stroke="#ffab40" stroke-width="1.5"></polygon>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="120" y="265">score</text>
+<text fill="#ffab40" font-size="11" text-anchor="middle" x="120" y="280">≥ 70?</text>
+<!-- true → C -->
+<path d="M 200 270 L 280 270" fill="none" marker-end="url(#cg)" stroke="#69f0ae" stroke-width="1.5"></path>
+<text fill="#69f0ae" font-size="10" text-anchor="middle" x="238" y="262">true</text>
+<rect fill="rgba(105,240,174,0.08)" height="32" rx="5" stroke="#69f0ae" stroke-width="1.5" width="80" x="280" y="254"></rect>
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="320" y="275">print "C"</text>
+<!-- else → F -->
+<path d="M 40 270 L 0 270 L 0 290" fill="none" stroke="#ff5252" stroke-width="1.5"></path>
+<rect fill="rgba(255,82,82,0.08)" height="30" rx="5" stroke="#ff5252" stroke-width="1.5" width="80" x="-40" y="275"></rect>
+<text fill="#ff5252" font-size="13" font-weight="600" text-anchor="middle" x="0" y="295">print "F"</text>
+<text fill="#ff5252" font-size="10" x="-55" y="275">else</text>
+<!-- All results merge right -->
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="430" y="170">Only one branch</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="430" y="188">ever executes.</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="430" y="206">Conditions tested</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="430" y="224">top to bottom,</text>
+<text fill="#6b7fa3" font-size="11" text-anchor="middle" x="430" y="242">first match wins.</text>
+</svg>
+<div class="caption">An else-if chain tests conditions in order and executes exactly one branch. Once a condition matches, the rest are skipped entirely.</div>
+</div>
+<h3>The Ternary Operator</h3>
+<p>For simple two-outcome decisions, the ternary operator collapses an if/else into a single expression. Use it when each branch produces a value — not for complex logic.</p>
+<pre><span class="comment">// if/else form:</span>
 <span class="type">int</span> max;
 <span class="kw">if</span> (a &gt; b) max = a;
 <span class="kw">else</span>       max = b;
@@ -310,13 +295,10 @@
 
 <span class="comment">// useful inline:</span>
 <span class="func">printf</span>(<span class="str">"Score: %d (%s)\n"</span>, score, score &gt;= <span class="num">60</span> ? <span class="str">"pass"</span> : <span class="str">"fail"</span>);</pre>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <h2>switch</h2>
-
-  <p>A switch statement compares one integer expression against a series of constant values. It's cleaner than a long else-if chain when you're dispatching on a single variable that can take several known values.</p>
-
-  <pre><span class="kw">switch</span> (command) {
+<!-- ═══════════════════════════════════════════ -->
+<h2>switch</h2>
+<p>A switch statement compares one integer expression against a series of constant values. It's cleaner than a long else-if chain when you're dispatching on a single variable that can take several known values.</p>
+<pre><span class="kw">switch</span> (command) {
     <span class="kw">case</span> <span class="str">'q'</span>:
         <span class="func">printf</span>(<span class="str">"Quitting\n"</span>);
         <span class="kw">break</span>;
@@ -331,127 +313,101 @@
         <span class="func">printf</span>(<span class="str">"Unknown command\n"</span>);
         <span class="kw">break</span>;
 }</pre>
-
-  <h3>Fall-Through: Intentional vs. Accidental</h3>
-  <p>Unlike if/else, switch does not automatically stop at the end of a matching case. Without a <code>break</code>, execution <em>falls through</em> into the next case. This is sometimes useful (stacking cases for the same body) but is one of the most common sources of bugs in C.</p>
-
-  <div class="diagram-container">
-    <svg viewBox="0 0 720 260" width="100%" height="260">
-      <!-- LEFT: with break -->
-      <text x="175" y="20" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">With break — correct</text>
-
-      <rect x="30" y="35" width="290" height="210" rx="8" fill="rgba(105,240,174,0.03)" stroke="#69f0ae" stroke-width="1"/>
-
-      <rect x="50" y="55" width="250" height="40" rx="5" fill="rgba(255,171,64,0.07)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="175" y="80" text-anchor="middle" fill="#ffab40" font-size="12">switch (x) — x is 1</text>
-
-      <rect x="50" y="105" width="250" height="38" rx="5" fill="rgba(105,240,174,0.1)" stroke="#69f0ae" stroke-width="2"/>
-      <text x="175" y="129" text-anchor="middle" fill="#69f0ae" font-size="12" font-weight="600">case 1: → executes ✓</text>
-
-      <rect x="50" y="143" width="110" height="30" rx="5" fill="rgba(105,240,174,0.07)" stroke="#69f0ae" stroke-width="1.5"/>
-      <text x="105" y="163" text-anchor="middle" fill="#69f0ae" font-size="11">break → exits</text>
-
-      <rect x="50" y="183" width="250" height="38" rx="5" fill="rgba(30,45,74,0.5)" stroke="#1e2d4a" stroke-width="1"/>
-      <text x="175" y="207" text-anchor="middle" fill="#6b7fa3" font-size="12">case 2: skipped</text>
-
-      <!-- RIGHT: without break -->
-      <text x="545" y="20" text-anchor="middle" fill="#ff5252" font-size="13" font-weight="600">Without break — falls through!</text>
-
-      <rect x="400" y="35" width="290" height="210" rx="8" fill="rgba(255,82,82,0.03)" stroke="#ff5252" stroke-width="1"/>
-
-      <rect x="420" y="55" width="250" height="40" rx="5" fill="rgba(255,171,64,0.07)" stroke="#ffab40" stroke-width="1.5"/>
-      <text x="545" y="80" text-anchor="middle" fill="#ffab40" font-size="12">switch (x) — x is 1</text>
-
-      <rect x="420" y="105" width="250" height="38" rx="5" fill="rgba(255,82,82,0.1)" stroke="#ff5252" stroke-width="2"/>
-      <text x="545" y="129" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">case 1: → executes</text>
-
-      <!-- fall through arrow -->
-      <path d="M 545 143 L 545 183" stroke="#ff5252" stroke-width="2" fill="none" marker-end="url(#cr)"/>
-      <text x="600" y="167" fill="#ff5252" font-size="11">falls</text>
-      <text x="600" y="181" fill="#ff5252" font-size="11">through!</text>
-
-      <rect x="420" y="183" width="250" height="38" rx="5" fill="rgba(255,82,82,0.1)" stroke="#ff5252" stroke-width="2"/>
-      <text x="545" y="207" text-anchor="middle" fill="#ff5252" font-size="12" font-weight="600">case 2: ALSO executes ✗</text>
-    </svg>
-    <div class="caption">break exits the switch immediately. Without it, execution continues into the next case regardless of whether its label matches.</div>
+<h3>Fall-Through: Intentional vs. Accidental</h3>
+<p>Unlike if/else, switch does not automatically stop at the end of a matching case. Without a <code>break</code>, execution <em>falls through</em> into the next case. This is sometimes useful (stacking cases for the same body) but is one of the most common sources of bugs in C.</p>
+<div class="diagram-container">
+<svg aria-label="Diagram: Fall-Through: Intentional vs. Accidental" height="260" role="img" viewbox="0 0 720 260" width="100%">
+<!-- LEFT: with break -->
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="175" y="20">With break — correct</text>
+<rect fill="rgba(105,240,174,0.03)" height="210" rx="8" stroke="#69f0ae" stroke-width="1" width="290" x="30" y="35"></rect>
+<rect fill="rgba(255,171,64,0.07)" height="40" rx="5" stroke="#ffab40" stroke-width="1.5" width="250" x="50" y="55"></rect>
+<text fill="#ffab40" font-size="12" text-anchor="middle" x="175" y="80">switch (x) — x is 1</text>
+<rect fill="rgba(105,240,174,0.1)" height="38" rx="5" stroke="#69f0ae" stroke-width="2" width="250" x="50" y="105"></rect>
+<text fill="#69f0ae" font-size="12" font-weight="600" text-anchor="middle" x="175" y="129">case 1: → executes ✓</text>
+<rect fill="rgba(105,240,174,0.07)" height="30" rx="5" stroke="#69f0ae" stroke-width="1.5" width="110" x="50" y="143"></rect>
+<text fill="#69f0ae" font-size="11" text-anchor="middle" x="105" y="163">break → exits</text>
+<rect fill="rgba(30,45,74,0.5)" height="38" rx="5" stroke="#1e2d4a" stroke-width="1" width="250" x="50" y="183"></rect>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="175" y="207">case 2: skipped</text>
+<!-- RIGHT: without break -->
+<text fill="#ff5252" font-size="13" font-weight="600" text-anchor="middle" x="545" y="20">Without break — falls through!</text>
+<rect fill="rgba(255,82,82,0.03)" height="210" rx="8" stroke="#ff5252" stroke-width="1" width="290" x="400" y="35"></rect>
+<rect fill="rgba(255,171,64,0.07)" height="40" rx="5" stroke="#ffab40" stroke-width="1.5" width="250" x="420" y="55"></rect>
+<text fill="#ffab40" font-size="12" text-anchor="middle" x="545" y="80">switch (x) — x is 1</text>
+<rect fill="rgba(255,82,82,0.1)" height="38" rx="5" stroke="#ff5252" stroke-width="2" width="250" x="420" y="105"></rect>
+<text fill="#ff5252" font-size="12" font-weight="600" text-anchor="middle" x="545" y="129">case 1: → executes</text>
+<!-- fall through arrow -->
+<path d="M 545 143 L 545 183" fill="none" marker-end="url(#cr)" stroke="#ff5252" stroke-width="2"></path>
+<text fill="#ff5252" font-size="11" x="600" y="167">falls</text>
+<text fill="#ff5252" font-size="11" x="600" y="181">through!</text>
+<rect fill="rgba(255,82,82,0.1)" height="38" rx="5" stroke="#ff5252" stroke-width="2" width="250" x="420" y="183"></rect>
+<text fill="#ff5252" font-size="12" font-weight="600" text-anchor="middle" x="545" y="207">case 2: ALSO executes ✗</text>
+</svg>
+<div class="caption">break exits the switch immediately. Without it, execution continues into the next case regardless of whether its label matches.</div>
+</div>
+<div class="warning">
+<strong>Always put break at the end of every case</strong> unless fall-through is intentional and clearly commented. Accidental fall-through is a silent bug — the compiler will not warn you, and the code will appear to work until it doesn't.
   </div>
-
-  <div class="warning">
-    <strong>Always put break at the end of every case</strong> unless fall-through is intentional and clearly commented. Accidental fall-through is a silent bug — the compiler will not warn you, and the code will appear to work until it doesn't.
-  </div>
-
-  <h3>switch vs. if/else: When to Use Which</h3>
-  <table class="truth-table">
-    <thead><tr><th>Use switch when</th><th>Use if/else when</th></tr></thead>
-    <tbody>
-      <tr><td>Testing one variable against many constant values</td><td>Testing ranges or complex expressions</td></tr>
-      <tr><td>Values are integers or characters</td><td>Comparing floats, strings, or pointer values</td></tr>
-      <tr><td>Many cases with shared bodies (fall-through)</td><td>Conditions involve multiple variables</td></tr>
-    </tbody>
-  </table>
-
-  <div class="tip">
-    <strong>switch cannot test strings</strong><br>
+<h3>switch vs. if/else: When to Use Which</h3>
+<table class="truth-table">
+<thead><tr><th scope="col">Use switch when</th><th scope="col">Use if/else when</th></tr></thead>
+<tbody>
+<tr><td>Testing one variable against many constant values</td><td>Testing ranges or complex expressions</td></tr>
+<tr><td>Values are integers or characters</td><td>Comparing floats, strings, or pointer values</td></tr>
+<tr><td>Many cases with shared bodies (fall-through)</td><td>Conditions involve multiple variables</td></tr>
+</tbody>
+</table>
+<div class="tip">
+<strong>switch cannot test strings</strong><br/>
     A common beginner mistake is writing <code>switch (str)</code> to compare strings. This compares the pointer address, not the string content. For string dispatch, use <code>strcmp()</code> in an if/else chain instead.
   </div>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <h2>Common Problems</h2>
-
-  <div class="pitfalls">
-
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 01</div>
-      <div class="pitfall-title">= Instead of ==</div>
-      <div class="pitfall-desc">Writing <code>if (x = 5)</code> instead of <code>if (x == 5)</code>. The assignment sets x to 5 and returns 5, which is always true. This is valid C — the compiler often won't warn. The condition never behaves as intended. Enable <code>-Wall</code> and always use <code>==</code> for comparisons.</div>
-    </div>
-
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 02</div>
-      <div class="pitfall-title">Missing break in switch</div>
-      <div class="pitfall-desc">The most common switch bug. Execution falls silently into the next case. The fix is simple — add <code>break</code>. If fall-through is intentional, add a comment: <code>/* fall through */</code>. Some compilers warn about unlabelled fall-through with <code>-Wimplicit-fallthrough</code>.</div>
-    </div>
-
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 03</div>
-      <div class="pitfall-title">Dangling else</div>
-      <div class="pitfall-desc">An <code>else</code> always binds to the nearest preceding <code>if</code>, not the one you might visually intend. Misleading indentation can hide this. Always use braces <code>{}</code> even for single-statement bodies to make the structure unambiguous.</div>
-    </div>
-
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 04</div>
-      <div class="pitfall-title">Comparing Floats with ==</div>
-      <div class="pitfall-desc">Floating-point arithmetic introduces tiny rounding errors. <code>0.1 + 0.2 == 0.3</code> is false in C. Instead compare with a tolerance: <code>fabs(a - b) &lt; 1e-9</code>. Never use <code>==</code> or <code>!=</code> with <code>float</code> or <code>double</code>.</div>
-    </div>
-
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 05</div>
-      <div class="pitfall-title">Omitting Braces on Single-Line Bodies</div>
-      <div class="pitfall-desc"><code>if (x) foo(); bar();</code> — <code>bar()</code> always executes regardless of the condition. Only <code>foo()</code> is inside the if. A second line added below a brace-less if is never part of it. Use braces, always.</div>
-    </div>
-
-    <div class="pitfall-card">
-      <div class="pitfall-num">Pitfall 06</div>
-      <div class="pitfall-title">Checking Order in else-if Chains</div>
-      <div class="pitfall-desc">If a broader condition appears before a narrower one, the narrower case can never be reached. Example: putting <code>score &gt;= 60</code> before <code>score &gt;= 90</code> — every A student gets labelled as a C. Order your conditions from most specific to least.</div>
-    </div>
-
-  </div>
-
-  <h3>The Dangling Else, Illustrated</h3>
-  <pre><span class="comment">// What you wrote:</span>
+<!-- ═══════════════════════════════════════════ -->
+<h2>Common Problems</h2>
+<div class="pitfalls">
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 01</div>
+<div class="pitfall-title">= Instead of ==</div>
+<div class="pitfall-desc">Writing <code>if (x = 5)</code> instead of <code>if (x == 5)</code>. The assignment sets x to 5 and returns 5, which is always true. This is valid C — the compiler often won't warn. The condition never behaves as intended. Enable <code>-Wall</code> and always use <code>==</code> for comparisons.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 02</div>
+<div class="pitfall-title">Missing break in switch</div>
+<div class="pitfall-desc">The most common switch bug. Execution falls silently into the next case. The fix is simple — add <code>break</code>. If fall-through is intentional, add a comment: <code>/* fall through */</code>. Some compilers warn about unlabelled fall-through with <code>-Wimplicit-fallthrough</code>.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 03</div>
+<div class="pitfall-title">Dangling else</div>
+<div class="pitfall-desc">An <code>else</code> always binds to the nearest preceding <code>if</code>, not the one you might visually intend. Misleading indentation can hide this. Always use braces <code>{}</code> even for single-statement bodies to make the structure unambiguous.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 04</div>
+<div class="pitfall-title">Comparing Floats with ==</div>
+<div class="pitfall-desc">Floating-point arithmetic introduces tiny rounding errors. <code>0.1 + 0.2 == 0.3</code> is false in C. Instead compare with a tolerance: <code>fabs(a - b) &lt; 1e-9</code>. Never use <code>==</code> or <code>!=</code> with <code>float</code> or <code>double</code>.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 05</div>
+<div class="pitfall-title">Omitting Braces on Single-Line Bodies</div>
+<div class="pitfall-desc"><code>if (x) foo(); bar();</code> — <code>bar()</code> always executes regardless of the condition. Only <code>foo()</code> is inside the if. A second line added below a brace-less if is never part of it. Use braces, always.</div>
+</div>
+<div class="pitfall-card">
+<div class="pitfall-num">Pitfall 06</div>
+<div class="pitfall-title">Checking Order in else-if Chains</div>
+<div class="pitfall-desc">If a broader condition appears before a narrower one, the narrower case can never be reached. Example: putting <code>score &gt;= 60</code> before <code>score &gt;= 90</code> — every A student gets labelled as a C. Order your conditions from most specific to least.</div>
+</div>
+</div>
+<h3>The Dangling Else, Illustrated</h3>
+<pre><span class="comment">// What you wrote:</span>
 <span class="kw">if</span> (x &gt; <span class="num">0</span>)
     <span class="kw">if</span> (x &gt; <span class="num">100</span>)
         <span class="func">printf</span>(<span class="str">"big\n"</span>);
 <span class="kw">else</span>
-    <span class="func">printf</span>(<span class="str">"negative\n"</span>);  <span class="comment">// ← you think this is the else for x > 0...</span>
+    <span class="func">printf</span>(<span class="str">"negative\n"</span>);  <span class="comment">// ← you think this is the else for x &gt; 0...</span>
 
 <span class="comment">// What C sees (else binds to nearest if):</span>
 <span class="kw">if</span> (x &gt; <span class="num">0</span>) {
     <span class="kw">if</span> (x &gt; <span class="num">100</span>)
         <span class="func">printf</span>(<span class="str">"big\n"</span>);
     <span class="kw">else</span>
-        <span class="func">printf</span>(<span class="str">"negative\n"</span>);  <span class="comment">// ...but it's actually the else for x > 100</span>
+        <span class="func">printf</span>(<span class="str">"negative\n"</span>);  <span class="comment">// ...but it's actually the else for x &gt; 100</span>
 }
 
 <span class="comment">// Fix: use braces to make intent explicit</span>
@@ -459,14 +415,12 @@
     <span class="kw">if</span> (x &gt; <span class="num">100</span>)
         <span class="func">printf</span>(<span class="str">"big\n"</span>);
 } <span class="kw">else</span> {
-    <span class="func">printf</span>(<span class="str">"negative\n"</span>);   <span class="comment">// now clearly the else for x > 0</span>
+    <span class="func">printf</span>(<span class="str">"negative\n"</span>);   <span class="comment">// now clearly the else for x &gt; 0</span>
 }</pre>
-
-  <div class="key-concept">
-    <strong>Takeaway</strong><br>
+<div class="key-concept">
+<strong>Takeaway</strong><br/>
     Branching is how programs make decisions. In C, any non-zero value is true. Use <code>==</code> not <code>=</code> in conditions. Always put <code>break</code> in switch cases unless fall-through is intentional and documented. Always use braces, even for one-line bodies. Test else-if chains from most specific to least specific. Never compare floats with <code>==</code>.
   </div>
-
 </main>
 </body>
 </html>

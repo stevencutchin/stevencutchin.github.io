@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 – The App Lifecycle in Detail</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -137,224 +138,192 @@
     .phase-header { break-after: avoid; }
   }
 </style>
-</head>
-<body>
-
-<!-- ════════════════ HEADER ══ -->
-<header class="doc-header">
-  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
-  <h1>The App Lifecycle in Detail</h1>
-  <div class="subtitle">Create · Render · Undisplay · Delete</div>
-  <div class="lesson-meta">
-    <span>🌱 Component mount &amp; init</span>
-    <span>🔄 Re-render cycle</span>
-    <span>📴 Background &amp; suspend</span>
-    <span>🗑 Unmount &amp; cleanup</span>
-    <span>📱 AppState API</span>
-  </div>
-</header>
-
-<!-- ════════════════ INTRO ══ -->
-<p class="section-intro">
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><!-- ════════════════ HEADER ══ --><header class="doc-header">
+<div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+<h1>The App Lifecycle in Detail</h1>
+<div class="subtitle">Create · Render · Undisplay · Delete</div>
+<div class="lesson-meta">
+<span>🌱 Component mount &amp; init</span>
+<span>🔄 Re-render cycle</span>
+<span>📴 Background &amp; suspend</span>
+<span>🗑 Unmount &amp; cleanup</span>
+<span>📱 AppState API</span>
+</div>
+</header><!-- ════════════════ INTRO ══ --><p class="section-intro">
   Every component in your app is born, lives an active life, goes dormant, and eventually
   dies. So does the app itself. Understanding this lifecycle — at both the React component
   level and the OS level — is the difference between apps that behave predictably and apps
   that leak memory, lose user data, and drain batteries. This lecture maps the complete
   lifecycle using a four-phase model you already have intuition for.
-</p>
-
-<div class="callout">
-  <strong>The organizing model:</strong> Database systems have CRUD — Create, Read, Update,
+</p><div class="callout">
+<strong>The organizing model:</strong> Database systems have CRUD — Create, Read, Update,
   Delete. The app lifecycle has its own version: <strong>Create, Render, Undisplay, Delete</strong>.
   Every component and every app passes through these four phases in order. The hooks you
   already know — <code>useState</code>, <code>useEffect</code>, <code>useRef</code> — map
   directly onto these phases. By the end of this lecture, you'll see them as lifecycle tools,
   not just API calls.
+</div><!-- ════════════════ 1. THE FOUR PHASES ══ --><h2>1. The Four Phases at a Glance</h2><div class="crud-strip">
+<div class="crud-card cc-c">
+<div class="crud-letter">C</div>
+<div class="crud-word">Create</div>
+<div class="crud-react">Component mounts</div>
+<div class="crud-os">App launches · Process starts</div>
 </div>
-
-
-<!-- ════════════════ 1. THE FOUR PHASES ══ -->
-<h2>1. The Four Phases at a Glance</h2>
-
-<div class="crud-strip">
-  <div class="crud-card cc-c">
-    <div class="crud-letter">C</div>
-    <div class="crud-word">Create</div>
-    <div class="crud-react">Component mounts</div>
-    <div class="crud-os">App launches · Process starts</div>
-  </div>
-  <div class="crud-card cc-r">
-    <div class="crud-letter">R</div>
-    <div class="crud-word">Render</div>
-    <div class="crud-react">State/props change</div>
-    <div class="crud-os">Active · Foreground · Visible</div>
-  </div>
-  <div class="crud-card cc-u">
-    <div class="crud-letter">U</div>
-    <div class="crud-word">Undisplay</div>
-    <div class="crud-react">Screen hidden / blurred</div>
-    <div class="crud-os">Background · Suspended</div>
-  </div>
-  <div class="crud-card cc-d">
-    <div class="crud-letter">D</div>
-    <div class="crud-word">Delete</div>
-    <div class="crud-react">Component unmounts</div>
-    <div class="crud-os">App killed · Process ends</div>
-  </div>
+<div class="crud-card cc-r">
+<div class="crud-letter">R</div>
+<div class="crud-word">Render</div>
+<div class="crud-react">State/props change</div>
+<div class="crud-os">Active · Foreground · Visible</div>
 </div>
-
-<p>
+<div class="crud-card cc-u">
+<div class="crud-letter">U</div>
+<div class="crud-word">Undisplay</div>
+<div class="crud-react">Screen hidden / blurred</div>
+<div class="crud-os">Background · Suspended</div>
+</div>
+<div class="crud-card cc-d">
+<div class="crud-letter">D</div>
+<div class="crud-word">Delete</div>
+<div class="crud-react">Component unmounts</div>
+<div class="crud-os">App killed · Process ends</div>
+</div>
+</div><p>
   This model operates at <strong>two levels simultaneously</strong>. At the React level,
   individual components move through these phases as they mount, re-render, hide, and
   unmount. At the OS level, the entire app moves through equivalent states as it launches,
   runs, goes to the background, and is terminated. Understanding both levels — and how they
   interact — is the full picture.
-</p>
-
-<!-- ════════════════ DIAGRAM: Full state machine ══ -->
-<div class="diagram-wrap">
-  <svg viewBox="0 0 760 420" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
-    <rect width="760" height="420" fill="#fafbfc" rx="10"/>
-
-    <!-- ── Two-layer labels ── -->
-    <text x="30" y="52" font-size="11" font-weight="700" fill="#2E5D8A" letter-spacing="0.08em">REACT COMPONENT LAYER</text>
-    <text x="30" y="272" font-size="11" font-weight="700" fill="#7a5abf" letter-spacing="0.08em">OS APP LAYER</text>
-
-    <!-- ══ REACT LAYER ══ -->
-    <!-- C: Mount -->
-    <rect x="40"  y="62" width="130" height="72" rx="8" fill="#1B3A5C"/>
-    <text x="105" y="90"  text-anchor="middle" font-size="13" font-weight="700" fill="#fff">C — Create</text>
-    <text x="105" y="107" text-anchor="middle" font-size="11" fill="#89b4fa">Component mounts</text>
-    <text x="105" y="122" text-anchor="middle" font-size="11" fill="#89b4fa">State initializes</text>
-    <text x="105" y="137" text-anchor="middle" font-size="10" fill="#6c7086">useEffect(fn,[])</text>
-
-    <!-- Arrow C→R -->
-    <path d="M172 98 L212 98" stroke="#1B3A5C" stroke-width="2" marker-end="url(#bl)"/>
-
-    <!-- R: Render -->
-    <rect x="214" y="62" width="130" height="72" rx="8" fill="#2e7a5d"/>
-    <text x="279" y="90"  text-anchor="middle" font-size="13" font-weight="700" fill="#fff">R — Render</text>
-    <text x="279" y="107" text-anchor="middle" font-size="11" fill="#a6e3a1">Active / visible</text>
-    <text x="279" y="122" text-anchor="middle" font-size="11" fill="#a6e3a1">Re-renders on change</text>
-    <text x="279" y="137" text-anchor="middle" font-size="10" fill="#6c7086">useState · useEffect(fn,[dep])</text>
-
-    <!-- Arrow R→U -->
-    <path d="M346 98 L386 98" stroke="#2e7a5d" stroke-width="2" marker-end="url(#gr)"/>
-
-    <!-- U: Undisplay -->
-    <rect x="388" y="62" width="130" height="72" rx="8" fill="#c8890f"/>
-    <text x="453" y="90"  text-anchor="middle" font-size="13" font-weight="700" fill="#fff">U — Undisplay</text>
-    <text x="453" y="107" text-anchor="middle" font-size="11" fill="#f9e2af">Screen hidden</text>
-    <text x="453" y="122" text-anchor="middle" font-size="11" fill="#f9e2af">Still mounted</text>
-    <text x="453" y="137" text-anchor="middle" font-size="10" fill="#f9e2af" opacity="0.7">blur event · AppState bg</text>
-
-    <!-- Arrow U→D -->
-    <path d="M520 98 L560 98" stroke="#c8890f" stroke-width="2" marker-end="url(#or)"/>
-
-    <!-- D: Delete -->
-    <rect x="562" y="62" width="148" height="72" rx="8" fill="#8a2020"/>
-    <text x="636" y="90"  text-anchor="middle" font-size="13" font-weight="700" fill="#fff">D — Delete</text>
-    <text x="636" y="107" text-anchor="middle" font-size="11" fill="#f38ba8">Component unmounts</text>
-    <text x="636" y="122" text-anchor="middle" font-size="11" fill="#f38ba8">Cleanup runs</text>
-    <text x="636" y="137" text-anchor="middle" font-size="10" fill="#f38ba8" opacity="0.7">return () =&gt; { }</text>
-
-    <!-- Re-render loop on R -->
-    <path d="M244 62 Q244 30 279 30 Q314 30 314 62" stroke="#2e7a5d" stroke-width="1.8" fill="none" stroke-dasharray="5,3" marker-end="url(#gr)"/>
-    <text x="279" y="24" text-anchor="middle" font-size="10" fill="#2e7a5d" font-style="italic">re-renders</text>
-
-    <!-- U back to R (re-focus) -->
-    <path d="M453 62 Q453 20 366 20 Q279 20 279 62" stroke="#c8890f" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#or)"/>
-    <text x="380" y="14" text-anchor="middle" font-size="10" fill="#c8890f" font-style="italic">re-focus / foreground</text>
-
-    <!-- Separator line -->
-    <line x1="30" y1="175" x2="730" y2="175" stroke="#d0dce6" stroke-width="1.5" stroke-dasharray="6,4"/>
-    <text x="380" y="192" text-anchor="middle" font-size="11" fill="#aaa" font-style="italic">— — — both layers move in parallel — — —</text>
-
-    <!-- ══ OS LAYER ══ -->
-    <!-- Launch -->
-    <rect x="40"  y="282" width="130" height="72" rx="8" fill="#1B3A5C"/>
-    <text x="105" y="308" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Launch</text>
-    <text x="105" y="325" text-anchor="middle" font-size="11" fill="#89b4fa">JS bundle loads</text>
-    <text x="105" y="340" text-anchor="middle" font-size="11" fill="#89b4fa">Root component mounts</text>
-    <text x="105" y="355" text-anchor="middle" font-size="10" fill="#6c7086">AppState: 'active'</text>
-
-    <!-- Arrow -->
-    <path d="M172 318 L212 318" stroke="#1B3A5C" stroke-width="2" marker-end="url(#bl)"/>
-
-    <!-- Active -->
-    <rect x="214" y="282" width="130" height="72" rx="8" fill="#2e7a5d"/>
-    <text x="279" y="308" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Active</text>
-    <text x="279" y="325" text-anchor="middle" font-size="11" fill="#a6e3a1">Screen on · Foreground</text>
-    <text x="279" y="340" text-anchor="middle" font-size="11" fill="#a6e3a1">User interacting</text>
-    <text x="279" y="355" text-anchor="middle" font-size="10" fill="#6c7086">AppState: 'active'</text>
-
-    <!-- Arrow -->
-    <path d="M346 318 L386 318" stroke="#2e7a5d" stroke-width="2" marker-end="url(#gr)"/>
-
-    <!-- Background -->
-    <rect x="388" y="282" width="130" height="72" rx="8" fill="#c8890f"/>
-    <text x="453" y="308" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Background</text>
-    <text x="453" y="325" text-anchor="middle" font-size="11" fill="#f9e2af">Home pressed / switch</text>
-    <text x="453" y="340" text-anchor="middle" font-size="11" fill="#f9e2af">Limited execution</text>
-    <text x="453" y="355" text-anchor="middle" font-size="10" fill="#f9e2af" opacity="0.8">AppState: 'background'</text>
-
-    <!-- Arrow -->
-    <path d="M520 318 L560 318" stroke="#c8890f" stroke-width="2" marker-end="url(#or)"/>
-
-    <!-- Killed -->
-    <rect x="562" y="282" width="148" height="72" rx="8" fill="#8a2020"/>
-    <text x="636" y="308" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Killed / Suspended</text>
-    <text x="636" y="325" text-anchor="middle" font-size="11" fill="#f38ba8">OS reclaims memory</text>
-    <text x="636" y="340" text-anchor="middle" font-size="11" fill="#f38ba8">Process ends</text>
-    <text x="636" y="355" text-anchor="middle" font-size="10" fill="#f38ba8" opacity="0.8">No AppState event</text>
-
-    <!-- bg back to active loop -->
-    <path d="M453 282 Q453 248 366 248 Q279 248 279 282" stroke="#c8890f" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#or)"/>
-    <text x="366" y="242" text-anchor="middle" font-size="10" fill="#c8890f" font-style="italic">user returns</text>
-
-    <!-- Vertical connectors between layers -->
-    <line x1="105" y1="134" x2="105" y2="282" stroke="#1B3A5C" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
-    <line x1="279" y1="134" x2="279" y2="282" stroke="#2e7a5d" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
-    <line x1="453" y1="134" x2="453" y2="282" stroke="#c8890f" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
-    <line x1="636" y1="134" x2="636" y2="282" stroke="#8a2020" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/>
-
-    <!-- Arrow defs -->
-    <defs>
-      <marker id="bl" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#1B3A5C"/></marker>
-      <marker id="gr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#2e7a5d"/></marker>
-      <marker id="or" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#c8890f"/></marker>
-    </defs>
-  </svg>
-  <div class="diagram-caption">The CRUD lifecycle at two levels. React components (top) and the OS app state (bottom) move through equivalent phases in parallel. Dashed vertical lines show the correspondence. Curved arrows show reversible transitions — a component can go from Undisplay back to Render when re-focused, just as the app moves from Background back to Active when the user returns.</div>
+</p><!-- ════════════════ DIAGRAM: Full state machine ══ --><div class="diagram-wrap">
+<svg aria-label="Diagram: 1. The Four Phases at a Glance" font-family="Source Sans 3, Arial, sans-serif" role="img" viewbox="0 0 760 420" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#fafbfc" height="420" rx="10" width="760"></rect>
+<!-- ── Two-layer labels ── -->
+<text fill="#2E5D8A" font-size="11" font-weight="700" letter-spacing="0.08em" x="30" y="52">REACT COMPONENT LAYER</text>
+<text fill="#7a5abf" font-size="11" font-weight="700" letter-spacing="0.08em" x="30" y="272">OS APP LAYER</text>
+<!-- ══ REACT LAYER ══ -->
+<!-- C: Mount -->
+<rect fill="#1B3A5C" height="72" rx="8" width="130" x="40" y="62"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="105" y="90">C — Create</text>
+<text fill="#89b4fa" font-size="11" text-anchor="middle" x="105" y="107">Component mounts</text>
+<text fill="#89b4fa" font-size="11" text-anchor="middle" x="105" y="122">State initializes</text>
+<text fill="#6c7086" font-size="10" text-anchor="middle" x="105" y="137">useEffect(fn,[])</text>
+<!-- Arrow C→R -->
+<path d="M172 98 L212 98" marker-end="url(#bl)" stroke="#1B3A5C" stroke-width="2"></path>
+<!-- R: Render -->
+<rect fill="#2e7a5d" height="72" rx="8" width="130" x="214" y="62"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="279" y="90">R — Render</text>
+<text fill="#a6e3a1" font-size="11" text-anchor="middle" x="279" y="107">Active / visible</text>
+<text fill="#a6e3a1" font-size="11" text-anchor="middle" x="279" y="122">Re-renders on change</text>
+<text fill="#6c7086" font-size="10" text-anchor="middle" x="279" y="137">useState · useEffect(fn,[dep])</text>
+<!-- Arrow R→U -->
+<path d="M346 98 L386 98" marker-end="url(#gr)" stroke="#2e7a5d" stroke-width="2"></path>
+<!-- U: Undisplay -->
+<rect fill="#c8890f" height="72" rx="8" width="130" x="388" y="62"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="453" y="90">U — Undisplay</text>
+<text fill="#f9e2af" font-size="11" text-anchor="middle" x="453" y="107">Screen hidden</text>
+<text fill="#f9e2af" font-size="11" text-anchor="middle" x="453" y="122">Still mounted</text>
+<text fill="#f9e2af" font-size="10" opacity="0.7" text-anchor="middle" x="453" y="137">blur event · AppState bg</text>
+<!-- Arrow U→D -->
+<path d="M520 98 L560 98" marker-end="url(#or)" stroke="#c8890f" stroke-width="2"></path>
+<!-- D: Delete -->
+<rect fill="#8a2020" height="72" rx="8" width="148" x="562" y="62"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="636" y="90">D — Delete</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="636" y="107">Component unmounts</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="636" y="122">Cleanup runs</text>
+<text fill="#f38ba8" font-size="10" opacity="0.7" text-anchor="middle" x="636" y="137">return () =&gt; { }</text>
+<!-- Re-render loop on R -->
+<path d="M244 62 Q244 30 279 30 Q314 30 314 62" fill="none" marker-end="url(#gr)" stroke="#2e7a5d" stroke-dasharray="5,3" stroke-width="1.8"></path>
+<text fill="#2e7a5d" font-size="10" font-style="italic" text-anchor="middle" x="279" y="24">re-renders</text>
+<!-- U back to R (re-focus) -->
+<path d="M453 62 Q453 20 366 20 Q279 20 279 62" fill="none" marker-end="url(#or)" stroke="#c8890f" stroke-dasharray="5,3" stroke-width="1.5"></path>
+<text fill="#c8890f" font-size="10" font-style="italic" text-anchor="middle" x="380" y="14">re-focus / foreground</text>
+<!-- Separator line -->
+<line stroke="#d0dce6" stroke-dasharray="6,4" stroke-width="1.5" x1="30" x2="730" y1="175" y2="175"></line>
+<text fill="#aaa" font-size="11" font-style="italic" text-anchor="middle" x="380" y="192">— — — both layers move in parallel — — —</text>
+<!-- ══ OS LAYER ══ -->
+<!-- Launch -->
+<rect fill="#1B3A5C" height="72" rx="8" width="130" x="40" y="282"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="105" y="308">Launch</text>
+<text fill="#89b4fa" font-size="11" text-anchor="middle" x="105" y="325">JS bundle loads</text>
+<text fill="#89b4fa" font-size="11" text-anchor="middle" x="105" y="340">Root component mounts</text>
+<text fill="#6c7086" font-size="10" text-anchor="middle" x="105" y="355">AppState: 'active'</text>
+<!-- Arrow -->
+<path d="M172 318 L212 318" marker-end="url(#bl)" stroke="#1B3A5C" stroke-width="2"></path>
+<!-- Active -->
+<rect fill="#2e7a5d" height="72" rx="8" width="130" x="214" y="282"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="279" y="308">Active</text>
+<text fill="#a6e3a1" font-size="11" text-anchor="middle" x="279" y="325">Screen on · Foreground</text>
+<text fill="#a6e3a1" font-size="11" text-anchor="middle" x="279" y="340">User interacting</text>
+<text fill="#6c7086" font-size="10" text-anchor="middle" x="279" y="355">AppState: 'active'</text>
+<!-- Arrow -->
+<path d="M346 318 L386 318" marker-end="url(#gr)" stroke="#2e7a5d" stroke-width="2"></path>
+<!-- Background -->
+<rect fill="#c8890f" height="72" rx="8" width="130" x="388" y="282"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="453" y="308">Background</text>
+<text fill="#f9e2af" font-size="11" text-anchor="middle" x="453" y="325">Home pressed / switch</text>
+<text fill="#f9e2af" font-size="11" text-anchor="middle" x="453" y="340">Limited execution</text>
+<text fill="#f9e2af" font-size="10" opacity="0.8" text-anchor="middle" x="453" y="355">AppState: 'background'</text>
+<!-- Arrow -->
+<path d="M520 318 L560 318" marker-end="url(#or)" stroke="#c8890f" stroke-width="2"></path>
+<!-- Killed -->
+<rect fill="#8a2020" height="72" rx="8" width="148" x="562" y="282"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="636" y="308">Killed / Suspended</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="636" y="325">OS reclaims memory</text>
+<text fill="#f38ba8" font-size="11" text-anchor="middle" x="636" y="340">Process ends</text>
+<text fill="#f38ba8" font-size="10" opacity="0.8" text-anchor="middle" x="636" y="355">No AppState event</text>
+<!-- bg back to active loop -->
+<path d="M453 282 Q453 248 366 248 Q279 248 279 282" fill="none" marker-end="url(#or)" stroke="#c8890f" stroke-dasharray="5,3" stroke-width="1.5"></path>
+<text fill="#c8890f" font-size="10" font-style="italic" text-anchor="middle" x="366" y="242">user returns</text>
+<!-- Vertical connectors between layers -->
+<line opacity="0.5" stroke="#1B3A5C" stroke-dasharray="3,3" stroke-width="1" x1="105" x2="105" y1="134" y2="282"></line>
+<line opacity="0.5" stroke="#2e7a5d" stroke-dasharray="3,3" stroke-width="1" x1="279" x2="279" y1="134" y2="282"></line>
+<line opacity="0.5" stroke="#c8890f" stroke-dasharray="3,3" stroke-width="1" x1="453" x2="453" y1="134" y2="282"></line>
+<line opacity="0.5" stroke="#8a2020" stroke-dasharray="3,3" stroke-width="1" x1="636" x2="636" y1="134" y2="282"></line>
+<!-- Arrow defs -->
+<defs>
+<marker id="bl" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#1B3A5C"></path></marker>
+<marker id="gr" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#2e7a5d"></path></marker>
+<marker id="or" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#c8890f"></path></marker>
+</defs>
+</svg>
+<div class="diagram-caption">The CRUD lifecycle at two levels. React components (top) and the OS app state (bottom) move through equivalent phases in parallel. Dashed vertical lines show the correspondence. Curved arrows show reversible transitions — a component can go from Undisplay back to Render when re-focused, just as the app moves from Background back to Active when the user returns.</div>
+</div><!-- ════════════════ PHASE C ══ --><div class="phase-header ph-c">
+<div class="phase-letter">C</div>
+<div class="phase-title-block">
+<div class="phase-word">Phase One</div>
+<div class="phase-title">Create — Birth of a Component</div>
+<div class="phase-sub">Mount · Initialize · First render · Effects fire</div>
 </div>
-
-
-<!-- ════════════════ PHASE C ══ -->
-<div class="phase-header ph-c">
-  <div class="phase-letter">C</div>
-  <div class="phase-title-block">
-    <div class="phase-word">Phase One</div>
-    <div class="phase-title">Create — Birth of a Component</div>
-    <div class="phase-sub">Mount · Initialize · First render · Effects fire</div>
-  </div>
-</div>
-
-<p>
+</div><p>
   When React adds a component to the screen for the first time, three things happen in
   strict order: the component function runs, state slots are initialized with their starting
   values, and the first render output is committed to the UI. Then — <em>after</em> the UI
   is painted — any <code>useEffect</code> calls with an empty dependency array fire.
   This is the Create phase.
-</p>
-
-<h3>What happens during Create</h3>
-<ol>
-  <li><strong>Component function runs.</strong> React calls your function for the first time. Every <code>useState(initialValue)</code> reserves a slot and returns the initial value. Every <code>useRef(initial)</code> creates its mutable container.</li>
-  <li><strong>JSX is evaluated.</strong> React builds the element tree from your return value and commits it to the native view hierarchy. The user sees the first render.</li>
-  <li><strong>Mount effects fire.</strong> <code>useEffect(fn, [])</code> callbacks run after the first paint. This is where data fetching, subscriptions, and one-time setup belong.</li>
-</ol>
-
-<pre><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+</p><h3>What happens during Create</h3><ol>
+<li><strong>Component function runs.</strong> React calls your function for the first time. Every <code>useState(initialValue)</code> reserves a slot and returns the initial value. Every <code>useRef(initial)</code> creates its mutable container.</li>
+<li><strong>JSX is evaluated.</strong> React builds the element tree from your return value and commits it to the native view hierarchy. The user sees the first render.</li>
+<li><strong>Mount effects fire.</strong> <code>useEffect(fn, [])</code> callbacks run after the first paint. This is where data fetching, subscriptions, and one-time setup belong.</li>
+</ol><pre><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span> } <span class="kw">from</span> <span class="str">'react'</span>;
 
 <span class="kw">export function</span> <span class="fn">TrailMap</span>() {
   <span class="cm">// Step 1: State slots created with initial values</span>
@@ -372,113 +341,78 @@
   <span class="cm">// Step 2: First render committed — shows spinner</span>
   <span class="kw">if</span> (loading) <span class="kw">return</span> <span class="tag">&lt;Spinner /&gt;</span>;
   <span class="kw">return</span> <span class="tag">&lt;TrailList</span> <span class="prop">data</span>={trails} /<span class="tag">&gt;</span>;
-}</pre>
-
-<div class="callout">
-  <strong>Why effects fire after paint, not before:</strong> React commits the UI first so
+}</pre><div class="callout">
+<strong>Why effects fire after paint, not before:</strong> React commits the UI first so
   the screen is never blank while your effect is running. The user sees the loading state
   immediately; the data fetch happens in the background. This is intentional — it keeps
   the Create phase fast and the UI responsive from the very first frame.
-</div>
-
-<h3>At the OS level</h3>
-<p>
+</div><h3>At the OS level</h3><p>
   When the app first launches, the OS creates a new process, loads the JavaScript bundle,
   and mounts the root component. <code>AppState</code> is already <code>'active'</code> by
   the time your root component function runs. The Create phase at the OS level is a
   one-time event per app launch.
-</p>
-
-
-<!-- ════════════════ PHASE R ══ -->
-<div class="phase-header ph-r">
-  <div class="phase-letter">R</div>
-  <div class="phase-title-block">
-    <div class="phase-word">Phase Two</div>
-    <div class="phase-title">Render — The Active Life</div>
-    <div class="phase-sub">State changes · Re-renders · Effects with dependencies · User interaction</div>
-  </div>
+</p><!-- ════════════════ PHASE R ══ --><div class="phase-header ph-r">
+<div class="phase-letter">R</div>
+<div class="phase-title-block">
+<div class="phase-word">Phase Two</div>
+<div class="phase-title">Render — The Active Life</div>
+<div class="phase-sub">State changes · Re-renders · Effects with dependencies · User interaction</div>
 </div>
-
-<p>
+</div><p>
   After Create, the component enters the Render phase — the phase it spends most of its life in.
   Every state update, every prop change, every context change triggers a re-render. React
   re-runs the component function, fills hook slots with current values, diffs the new output
   against the previous, and patches only what changed. This cycle can happen dozens of times
   per second during animations.
-</p>
-
-<h3>Effects during Render</h3>
-<p>
-  <code>useEffect</code> calls with a non-empty dependency array belong to the Render phase.
+</p><h3>Effects during Render</h3><p>
+<code>useEffect</code> calls with a non-empty dependency array belong to the Render phase.
   They run after the first render (like all effects) and then again whenever a listed
   dependency changes. This is how you react to specific state transitions rather than all
   re-renders.
-</p>
-
-<pre><span class="fn">useEffect</span>(() =&gt; {
+</p><pre><span class="fn">useEffect</span>(() =&gt; {
   <span class="cm">// Runs on Create AND whenever searchQuery changes</span>
   <span class="fn">searchTrails</span>(searchQuery).<span class="fn">then</span>(setResults);
-}, [searchQuery]); <span class="cm">// ← dependency = re-run on this value</span></pre>
-
-<h3>AppState: 'active'</h3>
-<p>
+}, [searchQuery]); <span class="cm">// ← dependency = re-run on this value</span></pre><h3>AppState: 'active'</h3><p>
   At the OS level, the Render phase corresponds to <code>AppState === 'active'</code>: the
   screen is on, your app is in the foreground, and the user is interacting. This is the
   normal operating mode.
-</p>
-
-<div class="warning">
-  <strong>⚠ Render phase ≠ visible:</strong> A component can be in the Render phase —
+</p><div class="warning">
+<strong>⚠ Render phase ≠ visible:</strong> A component can be in the Render phase —
   mounted and capable of re-rendering — even when it is not the currently displayed screen.
   Navigation stacks keep previous screens mounted. A tab you're not looking at is still in
   the Render phase. This matters for effects: they keep running unless you handle the
   navigation lifecycle explicitly.
+</div><!-- ════════════════ PHASE U ══ --><div class="phase-header ph-u">
+<div class="phase-letter">U</div>
+<div class="phase-title-block">
+<div class="phase-word">Phase Three</div>
+<div class="phase-title">Undisplay — Gone From View, Not From Memory</div>
+<div class="phase-sub">Background · Suspended · Navigation blur · State preserved</div>
 </div>
-
-
-<!-- ════════════════ PHASE U ══ -->
-<div class="phase-header ph-u">
-  <div class="phase-letter">U</div>
-  <div class="phase-title-block">
-    <div class="phase-word">Phase Three</div>
-    <div class="phase-title">Undisplay — Gone From View, Not From Memory</div>
-    <div class="phase-sub">Background · Suspended · Navigation blur · State preserved</div>
-  </div>
-</div>
-
-<p>
+</div><p>
   Undisplay is the most misunderstood phase. When the user presses the home button, switches
   apps, or navigates away from a screen, the component is <em>not destroyed</em>. It is still
   mounted, its state is still intact, and its effects are still registered. What changes is
   the OS context: the app moves to the background, CPU allocation drops, and the screen goes
   dark. This is the Undisplay phase.
-</p>
-
-<h3>AppState — listening to the OS transition</h3>
-
-<p>
+</p><h3>AppState — listening to the OS transition</h3><p>
   The <code>AppState</code> API from <code>react-native</code> tells you which phase the
   app is in at the OS level. Subscribe to it in a <code>useEffect</code> to respond to
   the transition.
-</p>
-
-<div class="appstate-row">
-  <div class="as-badge as-active">
-    <div class="as-name">'active'</div>
-    <p>Screen on, app in foreground. The user is interacting. Full CPU allocation.</p>
-  </div>
-  <div class="as-badge as-bg">
-    <div class="as-name">'background'</div>
-    <p>App moved to background. Screen may be off. Limited execution time. Save state now.</p>
-  </div>
-  <div class="as-badge as-inact">
-    <div class="as-name">'inactive'</div>
-    <p>Transitional state on iOS only — briefly between active and background (e.g. during a phone call overlay, or swipe-to-switch animation).</p>
-  </div>
+</p><div class="appstate-row">
+<div class="as-badge as-active">
+<div class="as-name">'active'</div>
+<p>Screen on, app in foreground. The user is interacting. Full CPU allocation.</p>
 </div>
-
-<pre><span class="kw">import</span> { <span class="fn">useEffect</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+<div class="as-badge as-bg">
+<div class="as-name">'background'</div>
+<p>App moved to background. Screen may be off. Limited execution time. Save state now.</p>
+</div>
+<div class="as-badge as-inact">
+<div class="as-name">'inactive'</div>
+<p>Transitional state on iOS only — briefly between active and background (e.g. during a phone call overlay, or swipe-to-switch animation).</p>
+</div>
+</div><pre><span class="kw">import</span> { <span class="fn">useEffect</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
 <span class="kw">import</span> { <span class="cls">AppState</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
 
 <span class="kw">function</span> <span class="fn">useAppStateChange</span>(onBackground, onForeground) {
@@ -501,80 +435,65 @@
 
     <span class="kw">return</span> () =&gt; subscription.<span class="fn">remove</span>(); <span class="cm">// cleanup on unmount</span>
   }, []); <span class="cm">// register once on Create</span>
-}</pre>
-
-<p>
+}</pre><p>
   The reference <code>appState.current</code> uses <code>useRef</code> — not <code>useState</code>
   — because we want to track the previous state without triggering a re-render on every change.
   This is the exact use case <code>useRef</code> was designed for.
-</p>
-
-<h3>What to do in the Undisplay phase</h3>
-
-<div class="two-col">
-  <div class="card">
-    <h4>✅ Do when entering background</h4>
-    <ul>
-      <li>Save unsaved user data to AsyncStorage or SQLite</li>
-      <li>Pause timers, animations, and polling intervals</li>
-      <li>Release camera / microphone / GPS if not needed</li>
-      <li>Log analytics: session duration, last screen</li>
-      <li>Checkpoint any in-progress work</li>
-    </ul>
-  </div>
-  <div class="card">
-    <h4>✅ Do when returning to foreground</h4>
-    <ul>
-      <li>Re-sync stale data (time-sensitive: prices, availability)</li>
-      <li>Resume paused timers and animations</li>
-      <li>Re-check permissions (user may have changed them in Settings)</li>
-      <li>Refresh auth tokens that may have expired</li>
-      <li>Restore scroll position or focused field</li>
-    </ul>
-  </div>
+</p><h3>What to do in the Undisplay phase</h3><div class="two-col">
+<div class="card">
+<h4>✅ Do when entering background</h4>
+<ul>
+<li>Save unsaved user data to AsyncStorage or SQLite</li>
+<li>Pause timers, animations, and polling intervals</li>
+<li>Release camera / microphone / GPS if not needed</li>
+<li>Log analytics: session duration, last screen</li>
+<li>Checkpoint any in-progress work</li>
+</ul>
 </div>
-
-<h3>Navigation blur vs. AppState background</h3>
-<p>
+<div class="card">
+<h4>✅ Do when returning to foreground</h4>
+<ul>
+<li>Re-sync stale data (time-sensitive: prices, availability)</li>
+<li>Resume paused timers and animations</li>
+<li>Re-check permissions (user may have changed them in Settings)</li>
+<li>Refresh auth tokens that may have expired</li>
+<li>Restore scroll position or focused field</li>
+</ul>
+</div>
+</div><h3>Navigation blur vs. AppState background</h3><p>
   There are two distinct ways a screen can be "not visible." Understanding the difference
   prevents subtle bugs:
-</p>
-
-<table>
-  <thead>
-    <tr><th>Event</th><th>What happened</th><th>Component state</th><th>AppState</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Navigation blur</td>
-      <td>User navigated to another screen inside your app</td>
-      <td>Still mounted — state preserved, effects running</td>
-      <td>Still <code>'active'</code></td>
-    </tr>
-    <tr>
-      <td>AppState background</td>
-      <td>User pressed home or switched apps</td>
-      <td>Still mounted — state preserved, effects still registered</td>
-      <td><code>'background'</code></td>
-    </tr>
-    <tr>
-      <td>Component unmount</td>
-      <td>Screen was removed from the navigation stack</td>
-      <td>Unmounted — state gone, cleanup fired</td>
-      <td>Either — independent of AppState</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="tip">
-  <strong>💡 Expo Router and focus events:</strong> Expo Router exposes
+</p><table>
+<thead>
+<tr><th scope="col">Event</th><th scope="col">What happened</th><th scope="col">Component state</th><th scope="col">AppState</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>Navigation blur</td>
+<td>User navigated to another screen inside your app</td>
+<td>Still mounted — state preserved, effects running</td>
+<td>Still <code>'active'</code></td>
+</tr>
+<tr>
+<td>AppState background</td>
+<td>User pressed home or switched apps</td>
+<td>Still mounted — state preserved, effects still registered</td>
+<td><code>'background'</code></td>
+</tr>
+<tr>
+<td>Component unmount</td>
+<td>Screen was removed from the navigation stack</td>
+<td>Unmounted — state gone, cleanup fired</td>
+<td>Either — independent of AppState</td>
+</tr>
+</tbody>
+</table><div class="tip">
+<strong>💡 Expo Router and focus events:</strong> Expo Router exposes
   <code>useFocusEffect</code> from <code>@react-navigation/core</code> — a hook that runs a
   callback when the screen comes into focus and cleans up when it blurs. Use this for effects
   that should run <em>only</em> when the screen is actively visible, not for the entire time
   the component is mounted.
-</div>
-
-<pre><span class="kw">import</span> { <span class="fn">useFocusEffect</span> } <span class="kw">from</span> <span class="str">'@react-navigation/core'</span>;
+</div><pre><span class="kw">import</span> { <span class="fn">useFocusEffect</span> } <span class="kw">from</span> <span class="str">'@react-navigation/core'</span>;
 <span class="kw">import</span> { <span class="fn">useCallback</span> } <span class="kw">from</span> <span class="str">'react'</span>;
 
 <span class="fn">useFocusEffect</span>(
@@ -587,36 +506,24 @@
       <span class="fn">clearInterval</span>(interval);
     };
   }, [])
-);</pre>
-
-
-<!-- ════════════════ PHASE D ══ -->
-<div class="phase-header ph-d">
-  <div class="phase-letter">D</div>
-  <div class="phase-title-block">
-    <div class="phase-word">Phase Four</div>
-    <div class="phase-title">Delete — Cleanup and Termination</div>
-    <div class="phase-sub">Unmount · Cleanup functions · Process kill · No warning</div>
-  </div>
+);</pre><!-- ════════════════ PHASE D ══ --><div class="phase-header ph-d">
+<div class="phase-letter">D</div>
+<div class="phase-title-block">
+<div class="phase-word">Phase Four</div>
+<div class="phase-title">Delete — Cleanup and Termination</div>
+<div class="phase-sub">Unmount · Cleanup functions · Process kill · No warning</div>
 </div>
-
-<p>
+</div><p>
   The Delete phase is the end of a component's life. React unmounts the component, tears down
   its hook slots, and — critically — runs every cleanup function returned from
   <code>useEffect</code>. After this, the component's state is gone. There is no way to recover
   it unless you persisted it explicitly during the Undisplay phase.
-</p>
-
-<h3>The cleanup function is the Delete hook</h3>
-
-<p>
+</p><h3>The cleanup function is the Delete hook</h3><p>
   The function returned from <code>useEffect</code> is React's Delete-phase hook. It runs
   in two situations: when a dependency changes (before the next effect run) and when the
   component unmounts (the final Delete). Write it as if unmounting is imminent — because it
   often is.
-</p>
-
-<pre><span class="fn">useEffect</span>(() =&gt; {
+</p><pre><span class="fn">useEffect</span>(() =&gt; {
   <span class="kw">const</span> sub = <span class="cls">Accelerometer</span>.<span class="fn">addListener</span>(handleData);
   <span class="kw">const</span> timer = <span class="fn">setInterval</span>(<span class="fn">poll</span>, <span class="num">1000</span>);
 
@@ -625,44 +532,27 @@
     sub.<span class="fn">remove</span>();           <span class="cm">// stop sensor subscription</span>
     <span class="fn">clearInterval</span>(timer);  <span class="cm">// stop polling timer</span>
   };
-}, []); <span class="cm">// ← registered once; cleaned up on Delete</span></pre>
-
-<h3>OS-level Delete — the process kill</h3>
-
-<p>
+}, []); <span class="cm">// ← registered once; cleaned up on Delete</span></pre><h3>OS-level Delete — the process kill</h3><p>
   At the OS level, Delete happens when the OS reclaims memory from a backgrounded app.
   <strong>There is no AppState event for this.</strong> The process simply ends. Any data
   not persisted during the Undisplay phase is lost — there is no "last chance to save"
   callback. This is why the Undisplay phase's save-on-background pattern is essential:
   you cannot rely on getting a signal before deletion.
-</p>
-
-<div class="warning">
-  <strong>⚠ You will not be notified before your app is killed.</strong> iOS and Android both
+</p><div class="warning">
+<strong>⚠ You will not be notified before your app is killed.</strong> iOS and Android both
   reserve the right to terminate backgrounded apps without warning. If a user has 20 apps open
   and opens a large game, your app may be killed in seconds. Never assume you'll get a chance
   to save data at the last moment — save it the moment the Undisplay phase begins.
-</div>
-
-<h3>What causes Delete at the component level</h3>
-<ul>
-  <li>The user navigates back past a screen, and the router removes it from the stack</li>
-  <li>A conditional renders <code>null</code> instead of the component — <code>{isLoggedIn && &lt;Dashboard /&gt;}</code></li>
-  <li>A list item is removed and its component is no longer in <code>renderItem</code></li>
-  <li>The root component unmounts because the app process terminates</li>
-</ul>
-
-
-<!-- ════════════════ 6. PUTTING IT ALL TOGETHER ══ -->
-<h2>6. All Four Phases in One Component</h2>
-
-<p>
+</div><h3>What causes Delete at the component level</h3><ul>
+<li>The user navigates back past a screen, and the router removes it from the stack</li>
+<li>A conditional renders <code>null</code> instead of the component — <code>{isLoggedIn &amp;&amp; &lt;Dashboard /&gt;}</code></li>
+<li>A list item is removed and its component is no longer in <code>renderItem</code></li>
+<li>The root component unmounts because the app process terminates</li>
+</ul><!-- ════════════════ 6. PUTTING IT ALL TOGETHER ══ --><h2>6. All Four Phases in One Component</h2><p>
   Real components handle all four lifecycle phases. Here is a location tracker that
   illustrates every phase in a single component — annotated to show exactly which phase
   each piece of code belongs to.
-</p>
-
-<pre><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
+</p><pre><span class="kw">import</span> { <span class="fn">useState</span>, <span class="fn">useEffect</span>, <span class="fn">useRef</span> } <span class="kw">from</span> <span class="str">'react'</span>;
 <span class="kw">import</span> { <span class="cls">AppState</span>, <span class="cls">Text</span>, <span class="cls">View</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
 <span class="kw">import</span> * <span class="kw">as</span> <span class="cls">Location</span> <span class="kw">from</span> <span class="str">'expo-location'</span>;
 
@@ -717,55 +607,46 @@
       )}
     <span class="tag">&lt;/View&gt;</span>
   );
-}</pre>
-
-
-<!-- ════════════════ 7. QUICK REFERENCE ══ -->
-<h2>7. Lifecycle Quick Reference</h2>
-
-<table>
-  <thead>
-    <tr><th>Phase</th><th>React trigger</th><th>OS state</th><th>Your hook</th><th>Action to take</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>C — Create</strong></td>
-      <td>Component mounts</td>
-      <td>App launches → <code>'active'</code></td>
-      <td><code>useEffect(fn, [])</code></td>
-      <td>Fetch initial data, subscribe, request permissions</td>
-    </tr>
-    <tr>
-      <td><strong>R — Render</strong></td>
-      <td>State/props change</td>
-      <td><code>AppState === 'active'</code></td>
-      <td><code>useEffect(fn, [deps])</code></td>
-      <td>React to specific state changes, sync derived data</td>
-    </tr>
-    <tr>
-      <td><strong>U — Undisplay</strong></td>
-      <td>Screen blurs / nav away</td>
-      <td><code>'background'</code> / <code>'inactive'</code></td>
-      <td>AppState listener · <code>useFocusEffect</code></td>
-      <td>Save state, pause timers, release sensors</td>
-    </tr>
-    <tr>
-      <td><strong>D — Delete</strong></td>
-      <td>Component unmounts</td>
-      <td>Process killed (no event)</td>
-      <td><code>return () =&gt; {}</code> from effect</td>
-      <td>Cancel subscriptions, clear timers, prevent leaks</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="tip">
-  <strong>💡 The memory of the lifecycle:</strong> A component's state exists only while the
+}</pre><!-- ════════════════ 7. QUICK REFERENCE ══ --><h2>7. Lifecycle Quick Reference</h2><table>
+<thead>
+<tr><th scope="col">Phase</th><th scope="col">React trigger</th><th scope="col">OS state</th><th scope="col">Your hook</th><th scope="col">Action to take</th></tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>C — Create</strong></td>
+<td>Component mounts</td>
+<td>App launches → <code>'active'</code></td>
+<td><code>useEffect(fn, [])</code></td>
+<td>Fetch initial data, subscribe, request permissions</td>
+</tr>
+<tr>
+<td><strong>R — Render</strong></td>
+<td>State/props change</td>
+<td><code>AppState === 'active'</code></td>
+<td><code>useEffect(fn, [deps])</code></td>
+<td>React to specific state changes, sync derived data</td>
+</tr>
+<tr>
+<td><strong>U — Undisplay</strong></td>
+<td>Screen blurs / nav away</td>
+<td><code>'background'</code> / <code>'inactive'</code></td>
+<td>AppState listener · <code>useFocusEffect</code></td>
+<td>Save state, pause timers, release sensors</td>
+</tr>
+<tr>
+<td><strong>D — Delete</strong></td>
+<td>Component unmounts</td>
+<td>Process killed (no event)</td>
+<td><code>return () =&gt; {}</code> from effect</td>
+<td>Cancel subscriptions, clear timers, prevent leaks</td>
+</tr>
+</tbody>
+</table><div class="tip">
+<strong>💡 The memory of the lifecycle:</strong> A component's state exists only while the
   component is mounted — from Create to Delete. If you need data to survive the Delete phase
   (across navigation or app kill), it must leave the component: write it to
   <code>AsyncStorage</code>, <code>SQLite</code>, or a remote API during the Undisplay phase.
   State is memory; persistence is storage. They are not the same thing.
-</div>
-
+</div></main>
 </body>
 </html>

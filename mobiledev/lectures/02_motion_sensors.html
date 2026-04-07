@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>CS 402 - Motion Sensors: Accelerometer &amp; Gyroscope</title><style>*{box-sizing:border-box;margin:0;padding:0}
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><title>CS 402 - Motion Sensors: Accelerometer &amp; Gyroscope</title><style>*{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Georgia,serif;max-width:860px;margin:0 auto;padding:40px 28px 60px;color:#1a1a2e;background:#fdfdfd;line-height:1.7}
 .doc-header{text-align:center;margin-bottom:36px;border-bottom:3px solid #2d3a8c;padding-bottom:24px}
 .doc-header h1{font-size:22px;color:#1a1a2e;margin-bottom:4px}
@@ -28,136 +30,97 @@ tr:nth-child(even){background:#f8f9ff}
 .tp .trek h4{color:#f0a500}
 .tp .phone h4{color:#7ec8e3}
 .tp p{font-size:13.5px;line-height:1.6;margin:0 0 8px}
-</style></head><body><div class="doc-header"><h1>CS 402 &#8212; Mobile Application Development</h1><div class="semester">Spring 2026</div><div class="subtitle">Motion Sensors: Accelerometer &amp; Gyroscope</div></div>
-<div class="tp">
-<div class="trek"><h4>&#9733; TRICORDER</h4><p>Detects seismic activity, vibrations, and movement patterns. Scans for structural stability.</p></div>
-<div class="phone"><h4>&#9733; YOUR PHONE</h4><p>Accelerometer measures linear acceleration on 3 axes. Gyroscope measures angular velocity (rotation). Together they track every tilt, shake, step, and gesture.</p></div>
-</div>
-
-<h2>1. The Accelerometer</h2>
-
-<h3>1.1 What It Measures</h3>
-<p>An accelerometer measures <strong>linear acceleration</strong> along three axes: X (left-right), Y (up-down), and Z (toward/away from the screen). When the phone is stationary, the accelerometer still reports data &#8212; it detects the constant pull of gravity at approximately 9.81 m/s&#178;. This is how the phone knows which way is &#8220;down&#8221; and can rotate the screen accordingly.</p>
-
-<h3>1.2 How It Works: MEMS</h3>
-<p>Modern phone accelerometers use <strong>MEMS</strong> (Micro-Electro-Mechanical Systems) technology. Inside the chip is a microscopic mechanical structure &#8212; essentially a tiny mass suspended on silicon springs. When the phone accelerates, the mass deflects relative to the chip body. Capacitive plates on either side of the mass detect this deflection as a change in capacitance, which is converted to an electrical signal.</p>
-
-<div class="diagram-container">
-<svg width="500" height="220" viewBox="0 0 500 220" xmlns="http://www.w3.org/2000/svg">
+</style><style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head><body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><div class="doc-header"><h1>CS 402 — Mobile Application Development</h1><div class="semester">Spring 2026</div><div class="subtitle">Motion Sensors: Accelerometer &amp; Gyroscope</div></div><div class="tp">
+<div class="trek"><h4>★ TRICORDER</h4><p>Detects seismic activity, vibrations, and movement patterns. Scans for structural stability.</p></div>
+<div class="phone"><h4>★ YOUR PHONE</h4><p>Accelerometer measures linear acceleration on 3 axes. Gyroscope measures angular velocity (rotation). Together they track every tilt, shake, step, and gesture.</p></div>
+</div><h2>1. The Accelerometer</h2><h3>1.1 What It Measures</h3><p>An accelerometer measures <strong>linear acceleration</strong> along three axes: X (left-right), Y (up-down), and Z (toward/away from the screen). When the phone is stationary, the accelerometer still reports data — it detects the constant pull of gravity at approximately 9.81 m/s². This is how the phone knows which way is “down” and can rotate the screen accordingly.</p><h3>1.2 How It Works: MEMS</h3><p>Modern phone accelerometers use <strong>MEMS</strong> (Micro-Electro-Mechanical Systems) technology. Inside the chip is a microscopic mechanical structure — essentially a tiny mass suspended on silicon springs. When the phone accelerates, the mass deflects relative to the chip body. Capacitive plates on either side of the mass detect this deflection as a change in capacitance, which is converted to an electrical signal.</p><div class="diagram-container">
+<svg aria-label="Diagram: 1.2 How It Works: MEMS" height="220" role="img" viewbox="0 0 500 220" width="500" xmlns="http://www.w3.org/2000/svg">
 <!-- Housing -->
-<rect x="50" y="30" width="400" height="160" rx="8" fill="none" stroke="#2d3a8c" stroke-width="2"/>
-<text x="250" y="20" text-anchor="middle" fill="#666" font-size="12" font-family="Consolas,monospace">MEMS Accelerometer (one axis shown)</text>
-
+<rect fill="none" height="160" rx="8" stroke="#2d3a8c" stroke-width="2" width="400" x="50" y="30"></rect>
+<text fill="#666" font-family="Consolas,monospace" font-size="12" text-anchor="middle" x="250" y="20">MEMS Accelerometer (one axis shown)</text>
 <!-- Fixed plates -->
-<rect x="100" y="60" width="12" height="100" rx="2" fill="#2d3a8c" opacity="0.7"/>
-<text x="106" y="180" text-anchor="middle" fill="#2d3a8c" font-size="10" font-family="Consolas,monospace">Fixed</text>
-<rect x="388" y="60" width="12" height="100" rx="2" fill="#2d3a8c" opacity="0.7"/>
-<text x="394" y="180" text-anchor="middle" fill="#2d3a8c" font-size="10" font-family="Consolas,monospace">Fixed</text>
-
+<rect fill="#2d3a8c" height="100" opacity="0.7" rx="2" width="12" x="100" y="60"></rect>
+<text fill="#2d3a8c" font-family="Consolas,monospace" font-size="10" text-anchor="middle" x="106" y="180">Fixed</text>
+<rect fill="#2d3a8c" height="100" opacity="0.7" rx="2" width="12" x="388" y="60"></rect>
+<text fill="#2d3a8c" font-family="Consolas,monospace" font-size="10" text-anchor="middle" x="394" y="180">Fixed</text>
 <!-- Springs -->
-<path d="M140,110 L155,100 L165,120 L175,100 L185,120 L195,100 L205,110" fill="none" stroke="#e08c4a" stroke-width="2"/>
-<path d="M295,110 L310,100 L320,120 L330,100 L340,120 L350,100 L360,110" fill="none" stroke="#e08c4a" stroke-width="2"/>
-
+<path d="M140,110 L155,100 L165,120 L175,100 L185,120 L195,100 L205,110" fill="none" stroke="#e08c4a" stroke-width="2"></path>
+<path d="M295,110 L310,100 L320,120 L330,100 L340,120 L350,100 L360,110" fill="none" stroke="#e08c4a" stroke-width="2"></path>
 <!-- Proof mass -->
-<rect x="205" y="70" width="90" height="80" rx="4" fill="#4a90b8" opacity="0.8"/>
-<text x="250" y="115" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold" font-family="Consolas,monospace">Proof</text>
-<text x="250" y="130" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold" font-family="Consolas,monospace">Mass</text>
-
+<rect fill="#4a90b8" height="80" opacity="0.8" rx="4" width="90" x="205" y="70"></rect>
+<text fill="#fff" font-family="Consolas,monospace" font-size="12" font-weight="bold" text-anchor="middle" x="250" y="115">Proof</text>
+<text fill="#fff" font-family="Consolas,monospace" font-size="12" font-weight="bold" text-anchor="middle" x="250" y="130">Mass</text>
 <!-- Capacitance gaps -->
-<line x1="112" y1="110" x2="140" y2="110" stroke="#4ae08c" stroke-width="1" stroke-dasharray="3,2"/>
-<text x="126" y="55" text-anchor="middle" fill="#4ae08c" font-size="9" font-family="Consolas,monospace">gap (C1)</text>
-<line x1="360" y1="110" x2="388" y2="110" stroke="#4ae08c" stroke-width="1" stroke-dasharray="3,2"/>
-<text x="374" y="55" text-anchor="middle" fill="#4ae08c" font-size="9" font-family="Consolas,monospace">gap (C2)</text>
-
+<line stroke="#4ae08c" stroke-dasharray="3,2" stroke-width="1" x1="112" x2="140" y1="110" y2="110"></line>
+<text fill="#4ae08c" font-family="Consolas,monospace" font-size="9" text-anchor="middle" x="126" y="55">gap (C1)</text>
+<line stroke="#4ae08c" stroke-dasharray="3,2" stroke-width="1" x1="360" x2="388" y1="110" y2="110"></line>
+<text fill="#4ae08c" font-family="Consolas,monospace" font-size="9" text-anchor="middle" x="374" y="55">gap (C2)</text>
 <!-- Acceleration arrow -->
-<line x1="30" y1="110" x2="10" y2="110" stroke="#e04a6b" stroke-width="3"/>
-<polygon points="8,110 18,105 18,115" fill="#e04a6b"/>
-<text x="20" y="100" text-anchor="middle" fill="#e04a6b" font-size="10" font-family="Consolas,monospace">accel</text>
-
+<line stroke="#e04a6b" stroke-width="3" x1="30" x2="10" y1="110" y2="110"></line>
+<polygon fill="#e04a6b" points="8,110 18,105 18,115"></polygon>
+<text fill="#e04a6b" font-family="Consolas,monospace" font-size="10" text-anchor="middle" x="20" y="100">accel</text>
 <!-- Annotation -->
-<text x="250" y="208" text-anchor="middle" fill="#555" font-size="11" font-family="Georgia,serif">When the phone accelerates left, the proof mass shifts right &#8594; C1 shrinks, C2 grows</text>
+<text fill="#555" font-family="Georgia,serif" font-size="11" text-anchor="middle" x="250" y="208">When the phone accelerates left, the proof mass shifts right → C1 shrinks, C2 grows</text>
 </svg>
-<div class="diagram-caption">Figure 2.1 &#8212; Simplified MEMS accelerometer. A proof mass on springs deflects proportionally to acceleration. Capacitive plates measure the displacement.</div>
-</div>
-
-<p>The entire structure is microscopic &#8212; the proof mass is typically a few hundred micrometers across. Three of these structures, oriented perpendicular to each other, give the phone its 3-axis measurement capability.</p>
-
-<h3>1.3 Common Uses</h3>
-<p>Screen rotation (portrait/landscape), step counting (pedometer), shake detection, tilt-based games, fall detection (Apple Watch / newer iPhones), and vehicle motion detection in navigation apps.</p>
-
-<h2>2. The Gyroscope</h2>
-
-<h3>2.1 What It Measures</h3>
-<p>A gyroscope measures <strong>angular velocity</strong> &#8212; how fast the phone is rotating around each of its three axes. While the accelerometer tells you which way is down, the gyroscope tells you how the phone is spinning. This is critical for smooth augmented reality, panoramic photography, and navigation systems that need to track heading changes.</p>
-
-<h3>2.2 How It Works: The Coriolis Effect</h3>
-<p>MEMS gyroscopes exploit the <strong>Coriolis effect</strong>. A tiny vibrating mass inside the chip moves back and forth along one axis. When the chip rotates, the Coriolis force pushes that vibrating mass in a perpendicular direction. The magnitude of this perpendicular deflection is proportional to the rotation rate.</p>
-
-<div class="diagram-container">
-<svg width="400" height="240" viewBox="0 0 400 240" xmlns="http://www.w3.org/2000/svg">
+<div class="diagram-caption">Figure 2.1 — Simplified MEMS accelerometer. A proof mass on springs deflects proportionally to acceleration. Capacitive plates measure the displacement.</div>
+</div><p>The entire structure is microscopic — the proof mass is typically a few hundred micrometers across. Three of these structures, oriented perpendicular to each other, give the phone its 3-axis measurement capability.</p><h3>1.3 Common Uses</h3><p>Screen rotation (portrait/landscape), step counting (pedometer), shake detection, tilt-based games, fall detection (Apple Watch / newer iPhones), and vehicle motion detection in navigation apps.</p><h2>2. The Gyroscope</h2><h3>2.1 What It Measures</h3><p>A gyroscope measures <strong>angular velocity</strong> — how fast the phone is rotating around each of its three axes. While the accelerometer tells you which way is down, the gyroscope tells you how the phone is spinning. This is critical for smooth augmented reality, panoramic photography, and navigation systems that need to track heading changes.</p><h3>2.2 How It Works: The Coriolis Effect</h3><p>MEMS gyroscopes exploit the <strong>Coriolis effect</strong>. A tiny vibrating mass inside the chip moves back and forth along one axis. When the chip rotates, the Coriolis force pushes that vibrating mass in a perpendicular direction. The magnitude of this perpendicular deflection is proportional to the rotation rate.</p><div class="diagram-container">
+<svg aria-label="Diagram: 2.2 How It Works: The Coriolis Effect" height="240" role="img" viewbox="0 0 400 240" width="400" xmlns="http://www.w3.org/2000/svg">
 <!-- Chip outline -->
-<rect x="50" y="20" width="300" height="200" rx="8" fill="none" stroke="#2d3a8c" stroke-width="2"/>
-<text x="200" y="14" text-anchor="middle" fill="#666" font-size="12" font-family="Consolas,monospace">MEMS Gyroscope (one axis)</text>
-
+<rect fill="none" height="200" rx="8" stroke="#2d3a8c" stroke-width="2" width="300" x="50" y="20"></rect>
+<text fill="#666" font-family="Consolas,monospace" font-size="12" text-anchor="middle" x="200" y="14">MEMS Gyroscope (one axis)</text>
 <!-- Vibrating mass -->
-<rect x="155" y="70" width="90" height="50" rx="4" fill="#4a90b8" opacity="0.8"/>
-<text x="200" y="100" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold" font-family="Consolas,monospace">Vibrating</text>
-
+<rect fill="#4a90b8" height="50" opacity="0.8" rx="4" width="90" x="155" y="70"></rect>
+<text fill="#fff" font-family="Consolas,monospace" font-size="11" font-weight="bold" text-anchor="middle" x="200" y="100">Vibrating</text>
 <!-- Drive vibration arrow -->
-<line x1="140" y1="95" x2="155" y2="95" stroke="#f0a500" stroke-width="2"/>
-<line x1="260" y1="95" x2="245" y2="95" stroke="#f0a500" stroke-width="2"/>
-<polygon points="140,95 148,90 148,100" fill="#f0a500"/>
-<polygon points="260,95 252,90 252,100" fill="#f0a500"/>
-<text x="200" y="62" text-anchor="middle" fill="#f0a500" font-size="10" font-family="Consolas,monospace">Drive vibration (X)</text>
-
+<line stroke="#f0a500" stroke-width="2" x1="140" x2="155" y1="95" y2="95"></line>
+<line stroke="#f0a500" stroke-width="2" x1="260" x2="245" y1="95" y2="95"></line>
+<polygon fill="#f0a500" points="140,95 148,90 148,100"></polygon>
+<polygon fill="#f0a500" points="260,95 252,90 252,100"></polygon>
+<text fill="#f0a500" font-family="Consolas,monospace" font-size="10" text-anchor="middle" x="200" y="62">Drive vibration (X)</text>
 <!-- Coriolis deflection -->
-<line x1="200" y1="120" x2="200" y2="150" stroke="#e04a6b" stroke-width="2.5"/>
-<polygon points="200,152 195,142 205,142" fill="#e04a6b"/>
-<text x="200" y="170" text-anchor="middle" fill="#e04a6b" font-size="10" font-family="Consolas,monospace">Coriolis deflection (Y)</text>
-
+<line stroke="#e04a6b" stroke-width="2.5" x1="200" x2="200" y1="120" y2="150"></line>
+<polygon fill="#e04a6b" points="200,152 195,142 205,142"></polygon>
+<text fill="#e04a6b" font-family="Consolas,monospace" font-size="10" text-anchor="middle" x="200" y="170">Coriolis deflection (Y)</text>
 <!-- Rotation arrow -->
-<path d="M320,60 A30,30 0 0,1 340,90" fill="none" stroke="#4ae08c" stroke-width="2"/>
-<polygon points="340,90 333,83 340,80" fill="#4ae08c"/>
-<text x="340" y="55" text-anchor="middle" fill="#4ae08c" font-size="10" font-family="Consolas,monospace">Rotation (Z)</text>
-
-<text x="200" y="210" text-anchor="middle" fill="#555" font-size="11" font-family="Georgia,serif">Rotation around Z causes Y-axis deflection of the X-vibrating mass</text>
+<path d="M320,60 A30,30 0 0,1 340,90" fill="none" stroke="#4ae08c" stroke-width="2"></path>
+<polygon fill="#4ae08c" points="340,90 333,83 340,80"></polygon>
+<text fill="#4ae08c" font-family="Consolas,monospace" font-size="10" text-anchor="middle" x="340" y="55">Rotation (Z)</text>
+<text fill="#555" font-family="Georgia,serif" font-size="11" text-anchor="middle" x="200" y="210">Rotation around Z causes Y-axis deflection of the X-vibrating mass</text>
 </svg>
-<div class="diagram-caption">Figure 2.2 &#8212; MEMS gyroscope principle. A mass vibrating along X experiences Coriolis force along Y when the chip rotates around Z.</div>
-</div>
-
-<div class="callout">
-<strong>Sensor Fusion:</strong> In practice, the accelerometer and gyroscope are always used together. The accelerometer drifts over time but gives an absolute &#8220;down&#8221; reference. The gyroscope is precise for short durations but drifts over time. Combining them (via a Kalman filter or complementary filter) gives you the best of both worlds &#8212; accurate, drift-free orientation tracking. This combination is often called an <strong>Inertial Measurement Unit (IMU)</strong>.
-</div>
-
-<h2>3. The Pedometer / Step Counter</h2>
-<p>Most modern phones include a dedicated low-power step-counting co-processor (Apple&#8217;s M-series motion coprocessor, or similar on Android). This chip continuously monitors accelerometer data to detect the rhythmic vertical bounce of walking &#8212; without keeping the main CPU awake. The result is always-on step counting that uses negligible battery.</p>
-
-<h2>4. As a Developer: Expo Sensors API</h2>
-
-<p>In React Native with Expo, you access motion sensors through the <code>expo-sensors</code> package:</p>
-
-<pre>
+<div class="diagram-caption">Figure 2.2 — MEMS gyroscope principle. A mass vibrating along X experiences Coriolis force along Y when the chip rotates around Z.</div>
+</div><div class="callout">
+<strong>Sensor Fusion:</strong> In practice, the accelerometer and gyroscope are always used together. The accelerometer drifts over time but gives an absolute “down” reference. The gyroscope is precise for short durations but drifts over time. Combining them (via a Kalman filter or complementary filter) gives you the best of both worlds — accurate, drift-free orientation tracking. This combination is often called an <strong>Inertial Measurement Unit (IMU)</strong>.
+</div><h2>3. The Pedometer / Step Counter</h2><p>Most modern phones include a dedicated low-power step-counting co-processor (Apple’s M-series motion coprocessor, or similar on Android). This chip continuously monitors accelerometer data to detect the rhythmic vertical bounce of walking — without keeping the main CPU awake. The result is always-on step counting that uses negligible battery.</p><h2>4. As a Developer: Expo Sensors API</h2><p>In React Native with Expo, you access motion sensors through the <code>expo-sensors</code> package:</p><pre>
 import { Accelerometer, Gyroscope } from 'expo-sensors';
 
 // Subscribe to accelerometer updates
 Accelerometer.setUpdateInterval(100); // ms
-const sub = Accelerometer.addListener(({ x, y, z }) => {
+const sub = Accelerometer.addListener(({ x, y, z }) =&gt; {
   console.log(`Accel: x=${x.toFixed(2)} y=${y.toFixed(2)} z=${z.toFixed(2)}`);
 });
 
 // Later: sub.remove() to unsubscribe
-</pre>
-
-<div class="callout-warn">
+</pre><div class="callout-warn">
 <strong>Battery Warning:</strong> Subscribing to sensor updates at high frequency (e.g., 16ms for 60fps) keeps the CPU active and drains battery rapidly. Always use the lowest update interval that your use case requires, and <strong>always unsubscribe</strong> when the component unmounts or the app goes to background.
-</div>
-
-<h2>5. Power and Permission Implications</h2>
-<table>
-<tr><th>Aspect</th><th>Accelerometer</th><th>Gyroscope</th></tr>
-<tr><td><strong>Permission required?</strong></td><td>No (iOS/Android)</td><td>No (iOS/Android)</td></tr>
-<tr><td><strong>Battery impact</strong></td><td>Low at normal rates; high at 60Hz+</td><td>Moderate &#8212; higher than accelerometer</td></tr>
-<tr><td><strong>Privacy concern</strong></td><td>Can infer typing patterns, gait</td><td>Can infer heading changes</td></tr>
-<tr><td><strong>Always available?</strong></td><td>Yes (all phones since ~2008)</td><td>Yes (all phones since ~2012)</td></tr>
-</table>
-<div class="nav"><a href="01_tricorder_intro.html">&#8592; Tricorder Intro</a><a href="00_tricorder_index.html">&#8962; Index</a><a href="03_location_sensors.html">Location Sensors &#8594;</a></div><div class="foot">CS 402 &#8212; Mobile Application Development &#8212; Spring 2026 &#8212; Boise State University</div></body></html>
+</div><h2>5. Power and Permission Implications</h2><table>
+<thead><tr><th scope="col">Aspect</th><th scope="col">Accelerometer</th><th scope="col">Gyroscope</th></tr></thead><tbody><tr><td><strong>Permission required?</strong></td><td>No (iOS/Android)</td><td>No (iOS/Android)</td></tr><tr><td><strong>Battery impact</strong></td><td>Low at normal rates; high at 60Hz+</td><td>Moderate — higher than accelerometer</td></tr><tr><td><strong>Privacy concern</strong></td><td>Can infer typing patterns, gait</td><td>Can infer heading changes</td></tr><tr><td><strong>Always available?</strong></td><td>Yes (all phones since ~2008)</td><td>Yes (all phones since ~2012)</td></tr></tbody></table><div class="nav"><a href="01_tricorder_intro.html">← Tricorder Intro</a><a href="00_tricorder_index.html">⌂ Index</a><a href="03_location_sensors.html">Location Sensors →</a></div><div class="foot">CS 402 — Mobile Application Development — Spring 2026 — Boise State University</div></main>
+</body></html>

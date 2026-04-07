@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>I/O Cookbook — C Input/Output</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f;
@@ -307,53 +308,66 @@
     .series-bar { padding: 10px 16px; font-size: 11px; }
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">Cookbook</span>
-  <span>C Input/Output</span>
-  <div class="nav-links">
-    <a href="io-01-terminal-io.html">Terminal I/O</a>
-    <a href="io-02-file-io.html">File I/O</a>
-    <a href="io-03-parsing-csv.html">Parsing CSV</a>
-    <a href="io-cookbook.html" class="active">Cookbook</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">Cookbook</span>
+<span>C Input/Output</span>
+<div class="nav-links">
+<a href="io-01-terminal-io.html">Terminal I/O</a>
+<a href="io-02-file-io.html">File I/O</a>
+<a href="io-03-parsing-csv.html">Parsing CSV</a>
+<a class="active" href="io-cookbook.html">Cookbook</a>
+</div>
 </nav>
-
 <header class="hero">
-  <div class="number">Reference</div>
-  <h1>I/O <span class="highlight">Cookbook</span></h1>
-  <p class="subtitle">Common patterns you'll reach for repeatedly — shown alongside the mistakes that look almost right but aren't.</p>
+<div class="number">Reference</div>
+<h1>I/O <span class="highlight">Cookbook</span></h1>
+<p class="subtitle">Common patterns you'll reach for repeatedly — shown alongside the mistakes that look almost right but aren't.</p>
 </header>
-
-<main class="content">
-
-
+<main class="content" id="main-content">
 <!-- ================================================================ -->
 <h2>Terminal Output</h2>
 <p class="section-intro">Writing to the screen. The right function depends on how much structure you need.</p>
-
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">printf — formatted output to stdout</span>
-    <span class="recipe-when">use when: printing values of any type with surrounding text</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">int</span>    age  = <span class="num">21</span>;
+<div class="recipe-header">
+<span class="recipe-title">printf — formatted output to stdout</span>
+<span class="recipe-when">use when: printing values of any type with surrounding text</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">int</span>    age  = <span class="num">21</span>;
 <span class="type">double</span> gpa  = <span class="num">3.85</span>;
 <span class="type">char</span>   name[] = <span class="str">"Alice"</span>;
 
 <span class="func">printf</span>(<span class="str">"%s is %d, GPA %.2f\n"</span>,
        name, age, gpa);</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="type">double</span> gpa = <span class="num">3.85</span>;
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="type">double</span> gpa = <span class="num">3.85</span>;
 
 <span class="comment">/* %d is for int — %f for double */</span>
 <span class="func">printf</span>(<span class="str">"GPA: <span class="bad">%d</span>\n"</span>, gpa);
@@ -364,58 +378,54 @@
 <span class="comment">/* %s needs char* — not an int */</span>
 <span class="type">int</span> x = <span class="num">5</span>;
 <span class="func">printf</span>(<span class="str">"x = <span class="bad">%s</span>"</span>, x); <span class="comment">// undefined behavior</span></pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>Rule</strong> — Format specifier must match argument type exactly. Mismatches are undefined behavior, not just wrong output.</div>
-  </div>
 </div>
-
+</div>
+<div class="recipe-note"><strong>Rule</strong> — Format specifier must match argument type exactly. Mismatches are undefined behavior, not just wrong output.</div>
+</div>
+</div>
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">fprintf(stderr, …) — error messages</span>
-    <span class="recipe-when">use when: reporting errors and warnings that should not mix with normal output</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="kw">if</span> (n &lt; <span class="num">0</span>) {
+<div class="recipe-header">
+<span class="recipe-title">fprintf(stderr, …) — error messages</span>
+<span class="recipe-when">use when: reporting errors and warnings that should not mix with normal output</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="kw">if</span> (n &lt; <span class="num">0</span>) {
     <span class="func">fprintf</span>(stderr,
         <span class="str">"Error: n must be &gt;= 0, got %d\n"</span>,
         n);
     <span class="kw">return</span> <span class="num">1</span>;
 }</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="kw">if</span> (n &lt; <span class="num">0</span>) {
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="kw">if</span> (n &lt; <span class="num">0</span>) {
     <span class="comment">/* Goes to stdout — gets lost when
        output is redirected to a file */</span>
     <span class="func"><span class="bad">printf</span></span>(<span class="str">"Error: n is %d\n"</span>, n);
     <span class="kw">return</span> <span class="num">1</span>;
 }</pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>Why it matters</strong> — stdout and stderr are separate streams. When a user runs <code>./prog &gt; out.txt</code>, stdout goes to the file but stderr still appears in the terminal. Errors written to stdout get silently buried in the output file.</div>
-  </div>
 </div>
-
-
+</div>
+<div class="recipe-note"><strong>Why it matters</strong> — stdout and stderr are separate streams. When a user runs <code>./prog &gt; out.txt</code>, stdout goes to the file but stderr still appears in the terminal. Errors written to stdout get silently buried in the output file.</div>
+</div>
+</div>
 <!-- ================================================================ -->
 <div class="divider"></div>
 <h2>Terminal Input</h2>
 <p class="section-intro">Reading from the keyboard. Match the function to whether you need a number, a word, or a whole line.</p>
-
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">scanf — reading a single value</span>
-    <span class="recipe-when">use when: reading one number or one whitespace-delimited word</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">int</span> n;
+<div class="recipe-header">
+<span class="recipe-title">scanf — reading a single value</span>
+<span class="recipe-when">use when: reading one number or one whitespace-delimited word</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">int</span> n;
 <span class="type">int</span> ok = <span class="func">scanf</span>(<span class="str">"%d"</span>, &amp;n);
 
 <span class="kw">if</span> (ok != <span class="num">1</span>) {
@@ -423,33 +433,32 @@
     <span class="kw">return</span> <span class="num">1</span>;
 }
 <span class="func">printf</span>(<span class="str">"got %d\n"</span>, n);</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="type">int</span> n;
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="type">int</span> n;
 
-<span class="comment">/* Missing & — passes value not address */</span>
+<span class="comment">/* Missing &amp; — passes value not address */</span>
 <span class="func">scanf</span>(<span class="str">"%d"</span>, <span class="bad">n</span>);     <span class="comment">// writes to garbage!</span>
 
 <span class="comment">/* Ignoring return value */</span>
 <span class="func">scanf</span>(<span class="str">"%d"</span>, &amp;n);   <span class="comment">// n may be unset</span>
 <span class="func">printf</span>(<span class="str">"%d\n"</span>, n); <span class="comment">// if user typed "abc"</span></pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>Always check the return value.</strong> <code>scanf</code> returns the number of items matched. If the user types non-numeric input and you expected a number, the return is 0 and the variable is uninitialised.</div>
-  </div>
 </div>
-
+</div>
+<div class="recipe-note"><strong>Always check the return value.</strong> <code>scanf</code> returns the number of items matched. If the user types non-numeric input and you expected a number, the return is 0 and the variable is uninitialised.</div>
+</div>
+</div>
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">fgets — reading a full line</span>
-    <span class="recipe-when">use when: reading a sentence, a filename, or any input that may contain spaces</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">char</span> buf[<span class="num">128</span>];
+<div class="recipe-header">
+<span class="recipe-title">fgets — reading a full line</span>
+<span class="recipe-when">use when: reading a sentence, a filename, or any input that may contain spaces</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">char</span> buf[<span class="num">128</span>];
 <span class="kw">if</span> (<span class="func">fgets</span>(buf, <span class="kw">sizeof</span>(buf), stdin)
        == NULL) {
     <span class="func">fprintf</span>(stderr, <span class="str">"EOF or error\n"</span>);
@@ -459,10 +468,10 @@
 <span class="type">size_t</span> len = <span class="func">strlen</span>(buf);
 <span class="kw">if</span> (len &gt; <span class="num">0</span> &amp;&amp; buf[len-<span class="num">1</span>] == <span class="str">'\n'</span>)
     buf[len-<span class="num">1</span>] = <span class="str">'\0'</span>;</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="type">char</span> buf[<span class="num">128</span>];
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="type">char</span> buf[<span class="num">128</span>];
 <span class="func">fgets</span>(buf, <span class="kw">sizeof</span>(buf), stdin);
 
 <span class="comment">/* '\n' still in buf — strcmp will fail */</span>
@@ -471,57 +480,51 @@
 
 <span class="comment">/* Or — no size limit (buffer overflow) */</span>
 <span class="func"><span class="bad">scanf</span></span>(<span class="str">"%s"</span>, buf);  <span class="comment">// no length cap</span></pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>fgets always stores the '\n'.</strong> Strip it before comparing or storing strings. <code>scanf("%s")</code> without a length limit is a buffer overflow waiting to happen — never use it for user input.</div>
-  </div>
 </div>
-
+</div>
+<div class="recipe-note"><strong>fgets always stores the '\n'.</strong> Strip it before comparing or storing strings. <code>scanf("%s")</code> without a length limit is a buffer overflow waiting to happen — never use it for user input.</div>
+</div>
+</div>
 <!-- The scanf newline problem — diagram-focused recipe -->
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">Mixing scanf and fgets — flush the buffer first</span>
-    <span class="recipe-when">use when: reading a number with scanf, then reading a line with fgets</span>
-  </div>
-  <div class="recipe-body">
-    <div class="diagram-container" style="margin:0 0 12px;">
-      <svg viewBox="0 0 680 160" width="100%">
-        <!-- Buffer label -->
-        <text x="20" y="22" fill="#6b7fa3" font-size="11">stdin buffer after user types  42 ↵ then Alice ↵</text>
-
-        <!-- Step 1: after scanf reads 42 -->
-        <text x="20" y="50" fill="var(--accent-teal)" font-size="11">After scanf("%d", &amp;n):</text>
-        <rect x="20"  y="58" width="42" height="36" rx="4" fill="rgba(105,240,174,0.08)" stroke="var(--border)"/>
-        <text x="41"  y="81" text-anchor="middle" fill="#6b7fa3" font-size="14">'4'</text>
-        <rect x="62"  y="58" width="42" height="36" rx="4" fill="rgba(105,240,174,0.08)" stroke="var(--border)"/>
-        <text x="83"  y="81" text-anchor="middle" fill="#6b7fa3" font-size="14">'2'</text>
-        <!-- newline stays -->
-        <rect x="104" y="58" width="42" height="36" rx="4" fill="rgba(255,82,82,0.15)" stroke="var(--accent-red)" stroke-width="1.5"/>
-        <text x="125" y="81" text-anchor="middle" fill="var(--accent-red)" font-size="14">'\n'</text>
-        <rect x="146" y="58" width="42" height="36" rx="4" fill="var(--surface2)" stroke="var(--border)"/>
-        <text x="167" y="81" text-anchor="middle" fill="#6b7fa3" font-size="12">...</text>
-
-        <text x="125" y="110" text-anchor="middle" fill="var(--accent-red)" font-size="10">left behind!</text>
-
-        <!-- Arrow to next section -->
-        <text x="240" y="75" fill="var(--text-dim)" font-size="20">→</text>
-
-        <!-- Step 2: fgets without flush -->
-        <text x="280" y="50" fill="var(--accent-red)" font-size="11">fgets without flush — sees '\n' immediately:</text>
-        <rect x="280" y="58" width="42" height="36" rx="4" fill="rgba(255,82,82,0.15)" stroke="var(--accent-red)" stroke-width="1.5"/>
-        <text x="301" y="81" text-anchor="middle" fill="var(--accent-red)" font-size="14">'\n'</text>
-        <text x="340" y="75" fill="var(--text-dim)" font-size="20">→</text>
-        <text x="380" y="75" fill="var(--accent-red)" font-size="13">buf = ""  ← empty string!</text>
-
-        <!-- Step 3: correct -->
-        <text x="20" y="135" fill="var(--accent-main)" font-size="11">Fix: consume the leftover newline before calling fgets</text>
-      </svg>
-      <p class="caption">scanf reads digits, leaves '\n' — fgets grabs it immediately and returns empty</p>
-    </div>
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct — flush first</div>
-        <pre><span class="type">int</span> n;
+<div class="recipe-header">
+<span class="recipe-title">Mixing scanf and fgets — flush the buffer first</span>
+<span class="recipe-when">use when: reading a number with scanf, then reading a line with fgets</span>
+</div>
+<div class="recipe-body">
+<div class="diagram-container" style="margin:0 0 12px;">
+<svg aria-label="Diagram: Terminal Input" role="img" viewbox="0 0 680 160" width="100%">
+<!-- Buffer label -->
+<text fill="#6b7fa3" font-size="11" x="20" y="22">stdin buffer after user types  42 ↵ then Alice ↵</text>
+<!-- Step 1: after scanf reads 42 -->
+<text fill="var(--accent-teal)" font-size="11" x="20" y="50">After scanf("%d", &amp;n):</text>
+<rect fill="rgba(105,240,174,0.08)" height="36" rx="4" stroke="var(--border)" width="42" x="20" y="58"></rect>
+<text fill="#6b7fa3" font-size="14" text-anchor="middle" x="41" y="81">'4'</text>
+<rect fill="rgba(105,240,174,0.08)" height="36" rx="4" stroke="var(--border)" width="42" x="62" y="58"></rect>
+<text fill="#6b7fa3" font-size="14" text-anchor="middle" x="83" y="81">'2'</text>
+<!-- newline stays -->
+<rect fill="rgba(255,82,82,0.15)" height="36" rx="4" stroke="var(--accent-red)" stroke-width="1.5" width="42" x="104" y="58"></rect>
+<text fill="var(--accent-red)" font-size="14" text-anchor="middle" x="125" y="81">'\n'</text>
+<rect fill="var(--surface2)" height="36" rx="4" stroke="var(--border)" width="42" x="146" y="58"></rect>
+<text fill="#6b7fa3" font-size="12" text-anchor="middle" x="167" y="81">...</text>
+<text fill="var(--accent-red)" font-size="10" text-anchor="middle" x="125" y="110">left behind!</text>
+<!-- Arrow to next section -->
+<text fill="var(--text-dim)" font-size="20" x="240" y="75">→</text>
+<!-- Step 2: fgets without flush -->
+<text fill="var(--accent-red)" font-size="11" x="280" y="50">fgets without flush — sees '\n' immediately:</text>
+<rect fill="rgba(255,82,82,0.15)" height="36" rx="4" stroke="var(--accent-red)" stroke-width="1.5" width="42" x="280" y="58"></rect>
+<text fill="var(--accent-red)" font-size="14" text-anchor="middle" x="301" y="81">'\n'</text>
+<text fill="var(--text-dim)" font-size="20" x="340" y="75">→</text>
+<text fill="var(--accent-red)" font-size="13" x="380" y="75">buf = ""  ← empty string!</text>
+<!-- Step 3: correct -->
+<text fill="var(--accent-main)" font-size="11" x="20" y="135">Fix: consume the leftover newline before calling fgets</text>
+</svg>
+<p class="caption">scanf reads digits, leaves '\n' — fgets grabs it immediately and returns empty</p>
+</div>
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct — flush first</div>
+<pre><span class="type">int</span> n;
 <span class="func">scanf</span>(<span class="str">"%d"</span>, &amp;n);
 
 <span class="comment">/* Consume leftover '\n' (and anything else) */</span>
@@ -532,10 +535,10 @@
 <span class="type">char</span> name[<span class="num">64</span>];
 <span class="func">fgets</span>(name, <span class="kw">sizeof</span>(name), stdin);
 <span class="comment">/* name now holds the next real line */</span></pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake — no flush</div>
-        <pre><span class="type">int</span> n;
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake — no flush</div>
+<pre><span class="type">int</span> n;
 <span class="func">scanf</span>(<span class="str">"%d"</span>, &amp;n);
 <span class="comment">/* '\n' still in buffer */</span>
 
@@ -543,27 +546,24 @@
 <span class="func"><span class="bad">fgets</span></span>(name, <span class="kw">sizeof</span>(name), stdin);
 <span class="comment">/* name == "" — grabbed the '\n' */</span>
 <span class="func">printf</span>(<span class="str">"[%s]\n"</span>, name); <span class="comment">// prints "[]"</span></pre>
-      </div>
-    </div>
-  </div>
 </div>
-
-
+</div>
+</div>
+</div>
 <!-- ================================================================ -->
 <div class="divider"></div>
 <h2>File Input</h2>
 <p class="section-intro">Opening a file and reading from it. The open/use/close pattern is non-negotiable.</p>
-
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">Read a text file line by line</span>
-    <span class="recipe-when">use when: processing a file row by row — logs, data files, CSV</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+<div class="recipe-header">
+<span class="recipe-title">Read a text file line by line</span>
+<span class="recipe-when">use when: processing a file row by row — logs, data files, CSV</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (!fp) {
     <span class="func">perror</span>(<span class="str">"fopen"</span>);
     <span class="kw">return</span> <span class="num">1</span>;
@@ -576,10 +576,10 @@
 }
 
 <span class="func">fclose</span>(fp);</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
 <span class="comment">/* No NULL check — crash if file missing */</span>
 
 <span class="comment">/* Loop on feof — reads last line twice */</span>
@@ -589,22 +589,21 @@
 }
 
 <span class="comment">/* Forgot fclose — data may be lost */</span></pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>Never loop on feof.</strong> <code>feof</code> only becomes true <em>after</em> a read fails — so the loop runs one extra time and processes stale data. Loop on the return value of <code>fgets</code> instead.</div>
-  </div>
 </div>
-
+</div>
+<div class="recipe-note"><strong>Never loop on feof.</strong> <code>feof</code> only becomes true <em>after</em> a read fails — so the loop runs one extra time and processes stale data. Loop on the return value of <code>fgets</code> instead.</div>
+</div>
+</div>
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">Read formatted records with fscanf</span>
-    <span class="recipe-when">use when: file has a consistent record structure — e.g., "name score" per line</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"scores.txt"</span>, <span class="str">"r"</span>);
+<div class="recipe-header">
+<span class="recipe-title">Read formatted records with fscanf</span>
+<span class="recipe-when">use when: file has a consistent record structure — e.g., "name score" per line</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"scores.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
 
 <span class="type">char</span> name[<span class="num">64</span>];
@@ -615,10 +614,10 @@
     <span class="func">printf</span>(<span class="str">"%s: %d\n"</span>, name, score);
 }
 <span class="func">fclose</span>(fp);</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="type">char</span> name[<span class="num">64</span>];
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="type">char</span> name[<span class="num">64</span>];
 <span class="type">int</span>  score;
 
 <span class="comment">/* Not checking exact count — may use
@@ -627,28 +626,25 @@
               name, &amp;score) <span class="bad">!= EOF</span>) {
     <span class="func">printf</span>(<span class="str">"%s: %d\n"</span>, name, score);
 }</pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>Check for exactly the number you expect.</strong> <code>!= EOF</code> passes when <code>fscanf</code> partially matched (returned 1 of 2) — comparing to the expected count catches that.</div>
-  </div>
 </div>
-
-
+</div>
+<div class="recipe-note"><strong>Check for exactly the number you expect.</strong> <code>!= EOF</code> passes when <code>fscanf</code> partially matched (returned 1 of 2) — comparing to the expected count catches that.</div>
+</div>
+</div>
 <!-- ================================================================ -->
 <div class="divider"></div>
 <h2>File Output</h2>
 <p class="section-intro">Writing to a file. The most important thing: always close.</p>
-
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">Write a formatted text file</span>
-    <span class="recipe-when">use when: producing a report, log, or structured output file</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"report.txt"</span>, <span class="str">"w"</span>);
+<div class="recipe-header">
+<span class="recipe-title">Write a formatted text file</span>
+<span class="recipe-when">use when: producing a report, log, or structured output file</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"report.txt"</span>, <span class="str">"w"</span>);
 <span class="kw">if</span> (!fp) {
     <span class="func">perror</span>(<span class="str">"fopen"</span>);
     <span class="kw">return</span> <span class="num">1</span>;
@@ -658,32 +654,31 @@
 <span class="func">fprintf</span>(fp, <span class="str">"Score: %d\n"</span>, score);
 
 <span class="func">fclose</span>(fp);  <span class="comment">/* flushes buffer to disk */</span></pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="comment">/* Mode "w" silently destroys existing file */</span>
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="comment">/* Mode "w" silently destroys existing file */</span>
 <span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"report.txt"</span>, <span class="str"><span class="bad">"w"</span></span>);
 <span class="comment">/* ↑ wanted "a" to append, not "w" (truncate) */</span>
 
 <span class="func">fprintf</span>(fp, <span class="str">"Score: %d\n"</span>, score);
 
 <span class="comment">/* Missing fclose — data may never reach disk */</span></pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>Mode "w" truncates immediately.</strong> The old file is gone the moment <code>fopen</code> succeeds — not when you write. If you need to add to an existing file, use <code>"a"</code>. If you need to preserve the original on failure, write to a temp file and rename.</div>
-  </div>
 </div>
-
+</div>
+<div class="recipe-note"><strong>Mode "w" truncates immediately.</strong> The old file is gone the moment <code>fopen</code> succeeds — not when you write. If you need to add to an existing file, use <code>"a"</code>. If you need to preserve the original on failure, write to a temp file and rename.</div>
+</div>
+</div>
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">Open two files safely — close both on error</span>
-    <span class="recipe-when">use when: your program needs both an input and output file open at once</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct — close in / close out</div>
-        <pre><span class="type">FILE</span> *in  = <span class="func">fopen</span>(<span class="str">"input.txt"</span>,  <span class="str">"r"</span>);
+<div class="recipe-header">
+<span class="recipe-title">Open two files safely — close both on error</span>
+<span class="recipe-when">use when: your program needs both an input and output file open at once</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct — close in / close out</div>
+<pre><span class="type">FILE</span> *in  = <span class="func">fopen</span>(<span class="str">"input.txt"</span>,  <span class="str">"r"</span>);
 <span class="kw">if</span> (!in)  { <span class="func">perror</span>(<span class="str">"in"</span>);  <span class="kw">return</span> <span class="num">1</span>; }
 
 <span class="type">FILE</span> *out = <span class="func">fopen</span>(<span class="str">"output.txt"</span>, <span class="str">"w"</span>);
@@ -697,10 +692,10 @@
 
 <span class="func">fclose</span>(in);
 <span class="func">fclose</span>(out);</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake — leaking in</div>
-        <pre><span class="type">FILE</span> *in  = <span class="func">fopen</span>(<span class="str">"input.txt"</span>,  <span class="str">"r"</span>);
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake — leaking in</div>
+<pre><span class="type">FILE</span> *in  = <span class="func">fopen</span>(<span class="str">"input.txt"</span>,  <span class="str">"r"</span>);
 <span class="kw">if</span> (!in)  { <span class="kw">return</span> <span class="num">1</span>; }
 
 <span class="type">FILE</span> *out = <span class="func">fopen</span>(<span class="str">"output.txt"</span>, <span class="str">"w"</span>);
@@ -708,66 +703,53 @@
     <span class="comment">/* forgot fclose(in) — file handle leaked */</span>
     <span class="kw"><span class="bad">return</span></span> <span class="num">1</span>;
 }</pre>
-      </div>
-    </div>
-  </div>
 </div>
-
-
+</div>
+</div>
+</div>
 <!-- ================================================================ -->
 <div class="divider"></div>
 <h2>CSV Parsing</h2>
 <p class="section-intro">Reading structured data from a comma-separated file. Combines file I/O, string splitting, and type conversion.</p>
-
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">The canonical CSV loop</span>
-    <span class="recipe-when">use when: processing a CSV file where you own the format (no quoted fields)</span>
-  </div>
-  <div class="recipe-body">
-    <div class="diagram-container" style="margin:0 0 12px;">
-      <svg viewBox="0 0 680 120" width="100%">
-        <!-- Outer loop -->
-        <rect x="10"  y="10" width="660" height="100" rx="7" fill="rgba(29,233,182,0.04)" stroke="var(--accent-teal)" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="22" y="27" fill="var(--accent-teal)" font-size="11">fgets outer loop — one line at a time</text>
-
-        <!-- Inner strtok -->
-        <rect x="30"  y="35" width="610" height="64" rx="6" fill="rgba(0,229,255,0.04)" stroke="var(--accent-cyan)" stroke-width="1" stroke-dasharray="3,2"/>
-        <text x="44" y="52" fill="var(--accent-cyan)" font-size="11">strtok inner loop — one field at a time</text>
-
-        <!-- Boxes for each field -->
-        <rect x="50"  y="60" width="80" height="30" rx="4" fill="rgba(29,233,182,0.12)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-        <text x="90"  y="79" text-anchor="middle" fill="var(--accent-teal)" font-size="12">Alice</text>
-
-        <text x="140" y="79" text-anchor="middle" fill="var(--accent-orange)" font-size="16">,</text>
-
-        <rect x="154" y="60" width="60" height="30" rx="4" fill="rgba(29,233,182,0.12)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-        <text x="184" y="79" text-anchor="middle" fill="var(--accent-teal)" font-size="12">CS</text>
-
-        <text x="224" y="79" text-anchor="middle" fill="var(--accent-orange)" font-size="16">,</text>
-
-        <rect x="238" y="60" width="72" height="30" rx="4" fill="rgba(29,233,182,0.12)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-        <text x="274" y="79" text-anchor="middle" fill="var(--accent-teal)" font-size="12">3.85</text>
-
-        <text x="320" y="79" text-anchor="middle" fill="var(--accent-orange)" font-size="16">,</text>
-
-        <rect x="334" y="60" width="50" height="30" rx="4" fill="rgba(29,233,182,0.12)" stroke="var(--accent-teal)" stroke-width="1.5"/>
-        <text x="359" y="79" text-anchor="middle" fill="var(--accent-teal)" font-size="12">3</text>
-
-        <text x="396" y="79" text-anchor="middle" fill="var(--accent-red)" font-size="12">'\n'</text>
-        <text x="396" y="92" text-anchor="middle" fill="var(--accent-red)" font-size="10">strip!</text>
-
-        <!-- annotations -->
-        <text x="460" y="65" fill="var(--text-dim)" font-size="11">→  strncpy for strings</text>
-        <text x="460" y="80" fill="var(--text-dim)" font-size="11">→  atof / atoi for numbers</text>
-        <text x="460" y="95" fill="var(--text-dim)" font-size="11">→  check field != NULL</text>
-      </svg>
-      <p class="caption">outer loop = fgets per line · inner loop = strtok per field</p>
-    </div>
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"students.csv"</span>, <span class="str">"r"</span>);
+<div class="recipe-header">
+<span class="recipe-title">The canonical CSV loop</span>
+<span class="recipe-when">use when: processing a CSV file where you own the format (no quoted fields)</span>
+</div>
+<div class="recipe-body">
+<div class="diagram-container" style="margin:0 0 12px;">
+<svg aria-label="Diagram: CSV Parsing" role="img" viewbox="0 0 680 120" width="100%">
+<!-- Outer loop -->
+<rect fill="rgba(29,233,182,0.04)" height="100" rx="7" stroke="var(--accent-teal)" stroke-dasharray="4,3" stroke-width="1" width="660" x="10" y="10"></rect>
+<text fill="var(--accent-teal)" font-size="11" x="22" y="27">fgets outer loop — one line at a time</text>
+<!-- Inner strtok -->
+<rect fill="rgba(0,229,255,0.04)" height="64" rx="6" stroke="var(--accent-cyan)" stroke-dasharray="3,2" stroke-width="1" width="610" x="30" y="35"></rect>
+<text fill="var(--accent-cyan)" font-size="11" x="44" y="52">strtok inner loop — one field at a time</text>
+<!-- Boxes for each field -->
+<rect fill="rgba(29,233,182,0.12)" height="30" rx="4" stroke="var(--accent-teal)" stroke-width="1.5" width="80" x="50" y="60"></rect>
+<text fill="var(--accent-teal)" font-size="12" text-anchor="middle" x="90" y="79">Alice</text>
+<text fill="var(--accent-orange)" font-size="16" text-anchor="middle" x="140" y="79">,</text>
+<rect fill="rgba(29,233,182,0.12)" height="30" rx="4" stroke="var(--accent-teal)" stroke-width="1.5" width="60" x="154" y="60"></rect>
+<text fill="var(--accent-teal)" font-size="12" text-anchor="middle" x="184" y="79">CS</text>
+<text fill="var(--accent-orange)" font-size="16" text-anchor="middle" x="224" y="79">,</text>
+<rect fill="rgba(29,233,182,0.12)" height="30" rx="4" stroke="var(--accent-teal)" stroke-width="1.5" width="72" x="238" y="60"></rect>
+<text fill="var(--accent-teal)" font-size="12" text-anchor="middle" x="274" y="79">3.85</text>
+<text fill="var(--accent-orange)" font-size="16" text-anchor="middle" x="320" y="79">,</text>
+<rect fill="rgba(29,233,182,0.12)" height="30" rx="4" stroke="var(--accent-teal)" stroke-width="1.5" width="50" x="334" y="60"></rect>
+<text fill="var(--accent-teal)" font-size="12" text-anchor="middle" x="359" y="79">3</text>
+<text fill="var(--accent-red)" font-size="12" text-anchor="middle" x="396" y="79">'\n'</text>
+<text fill="var(--accent-red)" font-size="10" text-anchor="middle" x="396" y="92">strip!</text>
+<!-- annotations -->
+<text fill="var(--text-dim)" font-size="11" x="460" y="65">→  strncpy for strings</text>
+<text fill="var(--text-dim)" font-size="11" x="460" y="80">→  atof / atoi for numbers</text>
+<text fill="var(--text-dim)" font-size="11" x="460" y="95">→  check field != NULL</text>
+</svg>
+<p class="caption">outer loop = fgets per line · inner loop = strtok per field</p>
+</div>
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"students.csv"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (!fp) { <span class="func">perror</span>(<span class="str">"fopen"</span>); <span class="kw">return</span> <span class="num">1</span>; }
 
 <span class="type">char</span> line[<span class="num">256</span>];
@@ -792,10 +774,10 @@
            name, major, gpa);
 }
 <span class="func">fclose</span>(fp);</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistakes</div>
-        <pre><span class="comment">/* strtok on a string literal — crash */</span>
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistakes</div>
+<pre><span class="comment">/* strtok on a string literal — crash */</span>
 <span class="type">char</span> *line = <span class="str"><span class="bad">"Alice,CS,3.85"</span></span>;
 <span class="type">char</span> *tok = <span class="func">strtok</span>(line, <span class="str">","</span>); <span class="comment">// UB</span>
 
@@ -807,58 +789,54 @@
 <span class="comment">/* Not checking tok for NULL */</span>
 <span class="type">double</span> gpa = <span class="func"><span class="bad">atof</span></span>(<span class="func">strtok</span>(NULL, <span class="str">","</span>));
 <span class="comment">/* crashes if field is missing */</span></pre>
-      </div>
-    </div>
-  </div>
 </div>
-
-
+</div>
+</div>
+</div>
 <!-- ================================================================ -->
 <div class="divider"></div>
 <h2>Error Handling</h2>
 <p class="section-intro">Detecting failures early and reporting them clearly.</p>
-
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">perror — system error messages</span>
-    <span class="recipe-when">use when: an I/O function fails and you want the OS reason</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+<div class="recipe-header">
+<span class="recipe-title">perror — system error messages</span>
+<span class="recipe-when">use when: an I/O function fails and you want the OS reason</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (fp == NULL) {
     <span class="comment">/* Prints: "fopen: No such file or directory" */</span>
     <span class="func">perror</span>(<span class="str">"fopen"</span>);
     <span class="kw">return</span> <span class="num">1</span>;
 }</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="type">FILE</span> *fp = <span class="func">fopen</span>(<span class="str">"data.txt"</span>, <span class="str">"r"</span>);
 <span class="kw">if</span> (fp == NULL) {
     <span class="comment">/* Vague — no system error message */</span>
     <span class="func"><span class="bad">printf</span></span>(<span class="str">"could not open file\n"</span>);
     <span class="kw">return</span> <span class="num">1</span>;
     <span class="comment">/* Also: wrote to stdout, not stderr */</span>
 }</pre>
-      </div>
-    </div>
-    <div class="recipe-note"><strong>perror prefix convention:</strong> pass the function name as the string — e.g. <code>perror("fopen")</code>. Output: <code>fopen: No such file or directory</code>. The OS message after the colon comes from the global <code>errno</code> variable set by the failing function.</div>
-  </div>
 </div>
-
+</div>
+<div class="recipe-note"><strong>perror prefix convention:</strong> pass the function name as the string — e.g. <code>perror("fopen")</code>. Output: <code>fopen: No such file or directory</code>. The OS message after the colon comes from the global <code>errno</code> variable set by the failing function.</div>
+</div>
+</div>
 <div class="recipe">
-  <div class="recipe-header">
-    <span class="recipe-title">feof / ferror — distinguishing EOF from error</span>
-    <span class="recipe-when">use when: you need to know why a read stopped after the loop exits</span>
-  </div>
-  <div class="recipe-body">
-    <div class="panels">
-      <div class="panel panel-good">
-        <div class="panel-label">✓ correct</div>
-        <pre><span class="type">char</span> line[<span class="num">256</span>];
+<div class="recipe-header">
+<span class="recipe-title">feof / ferror — distinguishing EOF from error</span>
+<span class="recipe-when">use when: you need to know why a read stopped after the loop exits</span>
+</div>
+<div class="recipe-body">
+<div class="panels">
+<div class="panel panel-good">
+<div class="panel-label">✓ correct</div>
+<pre><span class="type">char</span> line[<span class="num">256</span>];
 <span class="kw">while</span> (<span class="func">fgets</span>(line, <span class="kw">sizeof</span>(line), fp)) {
     process(line);
 }
@@ -867,91 +845,74 @@
     <span class="func">fprintf</span>(stderr, <span class="str">"read error\n"</span>);
 <span class="kw">else if</span> (<span class="func">feof</span>(fp))
     <span class="func">printf</span>(<span class="str">"finished normally\n"</span>);</pre>
-      </div>
-      <div class="panel panel-bad">
-        <div class="panel-label">✗ common mistake</div>
-        <pre><span class="comment">/* Looping on feof — processes last
+</div>
+<div class="panel panel-bad">
+<div class="panel-label">✗ common mistake</div>
+<pre><span class="comment">/* Looping on feof — processes last
    line twice because feof only becomes
    true AFTER a read returns NULL */</span>
 <span class="kw">while</span> (!<span class="func"><span class="bad">feof</span></span>(fp)) {
     <span class="func">fgets</span>(line, <span class="kw">sizeof</span>(line), fp);
     process(line); <span class="comment">// double-processes last line</span>
 }</pre>
-      </div>
-    </div>
-  </div>
 </div>
-
-
+</div>
+</div>
+</div>
 <!-- ================================================================ -->
 <div class="divider"></div>
 <h2>Common Mistakes — Quick Reference</h2>
 <p class="section-intro">The errors that appear in nearly every first pass at I/O code.</p>
-
 <div class="mistake-grid">
-
-  <div class="mistake-card">
-    <div class="mistake-tag">scanf &amp; needs</div>
-    <p>Every <code>scanf</code> argument must be a pointer. Writing <code>scanf("%d", x)</code> instead of <code>scanf("%d", &amp;x)</code> causes a write to garbage memory. The compiler usually warns — read the warnings.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">fgets keeps \n</div>
-    <p><code>fgets</code> stores the newline character at the end of the string. String comparisons like <code>strcmp(buf, "quit")</code> silently fail because you're comparing <code>"quit\n"</code> with <code>"quit"</code>. Always strip it.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">fopen NULL check</div>
-    <p>If <code>fopen</code> fails it returns <code>NULL</code>. Passing <code>NULL</code> to <code>fgets</code> or <code>fprintf</code> causes a segfault. Check the return value of every <code>fopen</code> before using the handle.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">missing fclose</div>
-    <p>Data written to a file is buffered in memory. <code>fclose</code> flushes it to disk. Skip it and the output file may be empty or truncated — even if no error was reported during writing.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">feof loop</div>
-    <p><code>while (!feof(fp))</code> runs the loop body one extra time after the real last line, because <code>feof</code> only becomes true after a read fails. Loop on the return value of <code>fgets</code> or <code>fscanf</code> instead.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">strtok on literal</div>
-    <p><code>strtok</code> writes <code>'\0'</code> bytes into its argument to produce tokens. String literals are read-only. Always use a writable array: <code>char buf[] = "..."</code>, never <code>char *p = "..."</code>.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">mode "w" destroys</div>
-    <p>Opening a file with <code>"w"</code> truncates it to zero bytes immediately — before you write a single character. If you meant to append, use <code>"a"</code>. There is no undo.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">getchar returns int</div>
-    <p>Storing <code>getchar()</code>'s return in a <code>char</code> means <code>EOF</code> (−1) gets truncated, so the loop never terminates or terminates on the wrong character. Always use <code>int c = getchar()</code>.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">errors to stdout</div>
-    <p>Writing error messages with <code>printf</code> sends them to <code>stdout</code>. When stdout is redirected to a file, error messages disappear into it silently. Use <code>fprintf(stderr, ...)</code> for all error output.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">scanf / fgets mix</div>
-    <p><code>scanf</code> leaves its trailing newline in the buffer. The next <code>fgets</code> call picks it up immediately and returns an empty string. Flush the line after any <code>scanf</code> before calling <code>fgets</code>.</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">%s without length</div>
-    <p><code>scanf("%s", buf)</code> with no width limit will overflow the buffer if the user types more than it holds. Use <code>scanf("%63s", buf)</code> for a 64-byte buffer (63 chars + null terminator).</p>
-  </div>
-
-  <div class="mistake-card">
-    <div class="mistake-tag">unchecked strtok NULL</div>
-    <p>If a CSV line has fewer fields than expected, <code>strtok</code> returns <code>NULL</code> for the missing ones. Passing <code>NULL</code> to <code>atof</code> or <code>strncpy</code> crashes. Always check the token before using it.</p>
-  </div>
-
+<div class="mistake-card">
+<div class="mistake-tag">scanf &amp; needs</div>
+<p>Every <code>scanf</code> argument must be a pointer. Writing <code>scanf("%d", x)</code> instead of <code>scanf("%d", &amp;x)</code> causes a write to garbage memory. The compiler usually warns — read the warnings.</p>
 </div>
-
+<div class="mistake-card">
+<div class="mistake-tag">fgets keeps \n</div>
+<p><code>fgets</code> stores the newline character at the end of the string. String comparisons like <code>strcmp(buf, "quit")</code> silently fail because you're comparing <code>"quit\n"</code> with <code>"quit"</code>. Always strip it.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">fopen NULL check</div>
+<p>If <code>fopen</code> fails it returns <code>NULL</code>. Passing <code>NULL</code> to <code>fgets</code> or <code>fprintf</code> causes a segfault. Check the return value of every <code>fopen</code> before using the handle.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">missing fclose</div>
+<p>Data written to a file is buffered in memory. <code>fclose</code> flushes it to disk. Skip it and the output file may be empty or truncated — even if no error was reported during writing.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">feof loop</div>
+<p><code>while (!feof(fp))</code> runs the loop body one extra time after the real last line, because <code>feof</code> only becomes true after a read fails. Loop on the return value of <code>fgets</code> or <code>fscanf</code> instead.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">strtok on literal</div>
+<p><code>strtok</code> writes <code>'\0'</code> bytes into its argument to produce tokens. String literals are read-only. Always use a writable array: <code>char buf[] = "..."</code>, never <code>char *p = "..."</code>.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">mode "w" destroys</div>
+<p>Opening a file with <code>"w"</code> truncates it to zero bytes immediately — before you write a single character. If you meant to append, use <code>"a"</code>. There is no undo.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">getchar returns int</div>
+<p>Storing <code>getchar()</code>'s return in a <code>char</code> means <code>EOF</code> (−1) gets truncated, so the loop never terminates or terminates on the wrong character. Always use <code>int c = getchar()</code>.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">errors to stdout</div>
+<p>Writing error messages with <code>printf</code> sends them to <code>stdout</code>. When stdout is redirected to a file, error messages disappear into it silently. Use <code>fprintf(stderr, ...)</code> for all error output.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">scanf / fgets mix</div>
+<p><code>scanf</code> leaves its trailing newline in the buffer. The next <code>fgets</code> call picks it up immediately and returns an empty string. Flush the line after any <code>scanf</code> before calling <code>fgets</code>.</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">%s without length</div>
+<p><code>scanf("%s", buf)</code> with no width limit will overflow the buffer if the user types more than it holds. Use <code>scanf("%63s", buf)</code> for a 64-byte buffer (63 chars + null terminator).</p>
+</div>
+<div class="mistake-card">
+<div class="mistake-tag">unchecked strtok NULL</div>
+<p>If a CSV line has fewer fields than expected, <code>strtok</code> returns <code>NULL</code> for the missing ones. Passing <code>NULL</code> to <code>atof</code> or <code>strncpy</code> crashes. Always check the token before using it.</p>
+</div>
+</div>
 </main>
 </body>
 </html>

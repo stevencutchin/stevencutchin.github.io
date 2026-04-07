@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>CS 402 – Building a Full Expo Project on Your Workstation</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -145,547 +146,461 @@
     .callout, .warning, .tip, .windows-note { break-inside: avoid; }
   }
 </style>
-</head>
-<body>
-
-<!-- ══════════ HEADER ══ -->
-<header class="doc-header">
-  <div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
-  <h1>Building a Full Expo Project on Your Workstation</h1>
-  <div class="subtitle">Leaving Snack Behind — The Real Development Environment</div>
-  <div class="lesson-meta">
-    <span>💻 Node.js + npm</span>
-    <span>📁 Project structure</span>
-    <span>⚡ Metro bundler</span>
-    <span>📱 Expo Go on device</span>
-    <span>🔄 Fast Refresh</span>
-    <span>🪟 Windows-specific gotchas</span>
-  </div>
-</header>
-
-<!-- ══════════ INTRO ══ -->
-<p class="section-intro">
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><!-- ══════════ HEADER ══ --><header class="doc-header">
+<div class="semester">CS 402 · Mobile Application Development · Spring 2026</div>
+<h1>Building a Full Expo Project on Your Workstation</h1>
+<div class="subtitle">Leaving Snack Behind — The Real Development Environment</div>
+<div class="lesson-meta">
+<span>💻 Node.js + npm</span>
+<span>📁 Project structure</span>
+<span>⚡ Metro bundler</span>
+<span>📱 Expo Go on device</span>
+<span>🔄 Fast Refresh</span>
+<span>🪟 Windows-specific gotchas</span>
+</div>
+</header><!-- ══════════ INTRO ══ --><p class="section-intro">
   Expo Snack was the appetizer. Fast, convenient, nothing to install — great for learning
   the basics. But real apps live on real machines. From this point forward, your development
   environment is your own computer: a local project, a local bundler, and your phone running
   Expo Go connected over WiFi. This is how professional React Native development actually works.
-</p>
-
-<div class="callout">
-  <strong>What changes, what doesn't:</strong> Your phone still runs Expo Go. The JavaScript
+</p><div class="callout">
+<strong>What changes, what doesn't:</strong> Your phone still runs Expo Go. The JavaScript
   you write is identical. What changes is where the code lives (your hard drive), where it
   runs (your machine's Metro bundler), and — critically — what you can do with it. Local
   projects can use any npm package, commit to Git, connect to local servers, and eventually
   build for the App Store and Play Store. Snack can do none of that.
+</div><!-- ══════════ DIAGRAM: Snack vs Local ══ --><h2>1. The Architecture Shift</h2><div class="diagram-wrap">
+<svg aria-label="Diagram: 1. The Architecture Shift" font-family="Source Sans 3, Arial, sans-serif" role="img" viewbox="0 0 740 260" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#fafbfc" height="260" rx="10" width="740"></rect>
+<!-- SNACK SIDE -->
+<text fill="#8b949e" font-size="11" font-weight="700" letter-spacing="0.08em" text-anchor="middle" x="180" y="28">BEFORE — EXPO SNACK</text>
+<rect fill="#4a2a8a" height="60" rx="8" width="300" x="30" y="40"></rect>
+<text fill="#fff" font-size="13" font-weight="700" text-anchor="middle" x="180" y="65">Expo Snack (Cloud)</text>
+<text fill="#cba6f7" font-size="11" text-anchor="middle" x="180" y="83">Code · Bundler · Assets — all in the cloud</text>
+<path d="M180 102 L180 138" marker-end="url(#ds)" stroke="#4a2a8a" stroke-dasharray="5,3" stroke-width="2"></path>
+<text fill="#4a2a8a" font-size="10" x="200" y="125">WiFi / QR</text>
+<rect fill="#2E5D8A" height="50" rx="8" width="160" x="100" y="140"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="180" y="161">📱 Expo Go</text>
+<text fill="#a0c8e8" font-size="11" text-anchor="middle" x="180" y="178">Your phone</text>
+<!-- Divider -->
+<line stroke="#d0dce6" stroke-dasharray="6,4" stroke-width="1.5" x1="370" x2="370" y1="20" y2="240"></line>
+<text fill="#aaa" font-size="10" text-anchor="middle" x="370" y="12">→ NOW →</text>
+<!-- LOCAL SIDE -->
+<text fill="#1B3A5C" font-size="11" font-weight="700" letter-spacing="0.08em" text-anchor="middle" x="558" y="28">AFTER — LOCAL PROJECT</text>
+<rect fill="#1B3A5C" height="60" rx="8" width="160" x="388" y="40"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="468" y="62">Your Workstation</text>
+<text fill="#89b4fa" font-size="11" text-anchor="middle" x="468" y="78">Code lives here</text>
+<text fill="#6c7086" font-size="10" text-anchor="middle" x="468" y="93">VS Code + terminal</text>
+<rect fill="#4a2a8a" height="60" rx="8" width="142" x="568" y="40"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="639" y="62">Metro Bundler</text>
+<text fill="#cba6f7" font-size="11" text-anchor="middle" x="639" y="78">Runs locally</text>
+<text fill="#6c7086" font-size="10" text-anchor="middle" x="639" y="93">port 8081</text>
+<path d="M548 70 L566 70" marker-end="url(#db)" stroke="#2E5D8A" stroke-width="2"></path>
+<path d="M639 102 L639 138" marker-end="url(#ds2)" stroke="#4a2a8a" stroke-width="2"></path>
+<text fill="#4a2a8a" font-size="10" x="658" y="125">WiFi / QR</text>
+<rect fill="#2E5D8A" height="50" rx="8" width="160" x="560" y="140"></rect>
+<text fill="#fff" font-size="12" font-weight="700" text-anchor="middle" x="640" y="161">📱 Expo Go</text>
+<text fill="#a0c8e8" font-size="11" text-anchor="middle" x="640" y="178">Same app. Same phone.</text>
+<!-- Benefits box -->
+<rect fill="#f0fbf4" height="42" rx="6" stroke="#2e8a5d" stroke-width="1.5" width="322" x="388" y="205"></rect>
+<text fill="#1a5c3a" font-size="11" font-weight="700" text-anchor="middle" x="549" y="222">✓ Any npm package  ✓ Git version control</text>
+<text fill="#1a5c3a" font-size="11" font-weight="700" text-anchor="middle" x="549" y="238">✓ Local APIs  ✓ Real debugging  ✓ Path to App Store</text>
+<defs>
+<marker id="ds" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#4a2a8a"></path></marker>
+<marker id="ds2" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#4a2a8a"></path></marker>
+<marker id="db" markerheight="8" markerwidth="8" orient="auto" refx="6" refy="3"><path d="M0,0 L0,6 L8,3 z" fill="#2E5D8A"></path></marker>
+</defs>
+</svg>
+<div class="diagram-caption">The only thing that changes is where Metro runs — cloud vs. your laptop. Your phone, Expo Go, and the JavaScript you write are identical. The QR code scan still connects them.</div>
+</div><!-- ══════════ STEP 1: Node.js ══ --><div class="step">
+<div class="step-header">
+<div class="step-num">1</div>
+<div>
+<div class="step-title">Install Node.js (LTS)</div>
+<div class="step-sub">The JavaScript runtime that powers everything — Metro, npm, the Expo CLI</div>
 </div>
-
-
-<!-- ══════════ DIAGRAM: Snack vs Local ══ -->
-<h2>1. The Architecture Shift</h2>
-
-<div class="diagram-wrap">
-  <svg viewBox="0 0 740 260" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, Arial, sans-serif">
-    <rect width="740" height="260" fill="#fafbfc" rx="10"/>
-
-    <!-- SNACK SIDE -->
-    <text x="180" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="#8b949e" letter-spacing="0.08em">BEFORE — EXPO SNACK</text>
-
-    <rect x="30" y="40" width="300" height="60" rx="8" fill="#4a2a8a"/>
-    <text x="180" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Expo Snack (Cloud)</text>
-    <text x="180" y="83" text-anchor="middle" font-size="11" fill="#cba6f7">Code · Bundler · Assets — all in the cloud</text>
-
-    <path d="M180 102 L180 138" stroke="#4a2a8a" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#ds)"/>
-    <text x="200" y="125" font-size="10" fill="#4a2a8a">WiFi / QR</text>
-
-    <rect x="100" y="140" width="160" height="50" rx="8" fill="#2E5D8A"/>
-    <text x="180" y="161" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">📱 Expo Go</text>
-    <text x="180" y="178" text-anchor="middle" font-size="11" fill="#a0c8e8">Your phone</text>
-
-    <!-- Divider -->
-    <line x1="370" y1="20" x2="370" y2="240" stroke="#d0dce6" stroke-width="1.5" stroke-dasharray="6,4"/>
-    <text x="370" y="12" text-anchor="middle" font-size="10" fill="#aaa">→ NOW →</text>
-
-    <!-- LOCAL SIDE -->
-    <text x="558" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C" letter-spacing="0.08em">AFTER — LOCAL PROJECT</text>
-
-    <rect x="388" y="40" width="160" height="60" rx="8" fill="#1B3A5C"/>
-    <text x="468" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Your Workstation</text>
-    <text x="468" y="78" text-anchor="middle" font-size="11" fill="#89b4fa">Code lives here</text>
-    <text x="468" y="93" text-anchor="middle" font-size="10" fill="#6c7086">VS Code + terminal</text>
-
-    <rect x="568" y="40" width="142" height="60" rx="8" fill="#4a2a8a"/>
-    <text x="639" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Metro Bundler</text>
-    <text x="639" y="78" text-anchor="middle" font-size="11" fill="#cba6f7">Runs locally</text>
-    <text x="639" y="93" text-anchor="middle" font-size="10" fill="#6c7086">port 8081</text>
-
-    <path d="M548 70 L566 70" stroke="#2E5D8A" stroke-width="2" marker-end="url(#db)"/>
-
-    <path d="M639 102 L639 138" stroke="#4a2a8a" stroke-width="2" marker-end="url(#ds2)"/>
-    <text x="658" y="125" font-size="10" fill="#4a2a8a">WiFi / QR</text>
-
-    <rect x="560" y="140" width="160" height="50" rx="8" fill="#2E5D8A"/>
-    <text x="640" y="161" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">📱 Expo Go</text>
-    <text x="640" y="178" text-anchor="middle" font-size="11" fill="#a0c8e8">Same app. Same phone.</text>
-
-    <!-- Benefits box -->
-    <rect x="388" y="205" width="322" height="42" rx="6" fill="#f0fbf4" stroke="#2e8a5d" stroke-width="1.5"/>
-    <text x="549" y="222" text-anchor="middle" font-size="11" fill="#1a5c3a" font-weight="700">✓ Any npm package  ✓ Git version control</text>
-    <text x="549" y="238" text-anchor="middle" font-size="11" fill="#1a5c3a" font-weight="700">✓ Local APIs  ✓ Real debugging  ✓ Path to App Store</text>
-
-    <defs>
-      <marker id="ds"  markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a2a8a"/></marker>
-      <marker id="ds2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a2a8a"/></marker>
-      <marker id="db"  markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#2E5D8A"/></marker>
-    </defs>
-  </svg>
-  <div class="diagram-caption">The only thing that changes is where Metro runs — cloud vs. your laptop. Your phone, Expo Go, and the JavaScript you write are identical. The QR code scan still connects them.</div>
 </div>
-
-
-<!-- ══════════ STEP 1: Node.js ══ -->
-<div class="step">
-  <div class="step-header">
-    <div class="step-num">1</div>
-    <div>
-      <div class="step-title">Install Node.js (LTS)</div>
-      <div class="step-sub">The JavaScript runtime that powers everything — Metro, npm, the Expo CLI</div>
-    </div>
-  </div>
-  <div class="step-body">
-    <p>
+<div class="step-body">
+<p>
       Everything in the React Native toolchain runs on Node.js. Metro (the bundler), npm
       (the package manager), and the Expo CLI are all Node programs. You need the
       <strong>LTS (Long-Term Support)</strong> version — not the latest. LTS is stable and
       tested. The latest bleeds.
     </p>
-
-    <div class="download-row">
-      <div class="dl-btn dl-node">
-        <div class="dl-label">Download</div>
-        <div class="dl-name">Node.js LTS</div>
-        <div class="dl-sub">nodejs.org → click the LTS button</div>
-      </div>
-    </div>
-
-    <p>Run the installer with all defaults. When it finishes, verify the install:</p>
-
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dot td-red"></div>
-        <div class="terminal-dot td-yellow"></div>
-        <div class="terminal-dot td-green"></div>
-        <span class="terminal-title">PowerShell or Command Prompt</span>
-      </div>
-      <div class="terminal-body">
-        <div><span class="t-prompt">C:\Users\you&gt;</span> <span class="t-cmd">node --version</span></div>
-        <div><span class="t-out">v22.11.0</span> <span class="t-comment">  ← any recent LTS is fine</span></div>
-        <div style="margin-top:8px"><span class="t-prompt">C:\Users\you&gt;</span> <span class="t-cmd">npm --version</span></div>
-        <div><span class="t-out">10.9.0</span> <span class="t-comment">  ← npm comes bundled with Node</span></div>
-      </div>
-    </div>
-
-    <div class="windows-note">
-      <strong>🪟 Windows gotcha — PATH not updating:</strong> If <code>node --version</code>
+<div class="download-row">
+<div class="dl-btn dl-node">
+<div class="dl-label">Download</div>
+<div class="dl-name">Node.js LTS</div>
+<div class="dl-sub">nodejs.org → click the LTS button</div>
+</div>
+</div>
+<p>Run the installer with all defaults. When it finishes, verify the install:</p>
+<div class="terminal">
+<div class="terminal-bar">
+<div class="terminal-dot td-red"></div>
+<div class="terminal-dot td-yellow"></div>
+<div class="terminal-dot td-green"></div>
+<span class="terminal-title">PowerShell or Command Prompt</span>
+</div>
+<div class="terminal-body">
+<div><span class="t-prompt">C:\Users\you&gt;</span> <span class="t-cmd">node --version</span></div>
+<div><span class="t-out">v22.11.0</span> <span class="t-comment">  ← any recent LTS is fine</span></div>
+<div style="margin-top:8px"><span class="t-prompt">C:\Users\you&gt;</span> <span class="t-cmd">npm --version</span></div>
+<div><span class="t-out">10.9.0</span> <span class="t-comment">  ← npm comes bundled with Node</span></div>
+</div>
+</div>
+<div class="windows-note">
+<strong>🪟 Windows gotcha — PATH not updating:</strong> If <code>node --version</code>
       says "command not found" after the install, close your terminal and open a new one.
       The installer updates the PATH environment variable, but existing terminal sessions
       don't see the change. If a fresh terminal still fails, search Windows Settings for
       "Environment Variables" and verify that the Node.js folder is in your PATH.
     </div>
-
-    <div class="windows-note">
-      <strong>🪟 Windows gotcha — PowerShell execution policy:</strong> If npm commands fail
+<div class="windows-note">
+<strong>🪟 Windows gotcha — PowerShell execution policy:</strong> If npm commands fail
       with a security error about scripts being disabled, run this once in PowerShell as
       Administrator:
       <div class="terminal" style="margin-top:10px">
-        <div class="terminal-body">
-          <div><span class="t-prompt">PS&gt;</span> <span class="t-cmd">Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</span></div>
-        </div>
-      </div>
+<div class="terminal-body">
+<div><span class="t-prompt">PS&gt;</span> <span class="t-cmd">Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</span></div>
+</div>
+</div>
       This allows locally-created scripts to run. You only need to do this once.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ══════════ STEP 2: Git ══ -->
-<div class="step">
-  <div class="step-header">
-    <div class="step-num">2</div>
-    <div>
-      <div class="step-title">Install Git</div>
-      <div class="step-sub">Version control — also required by some npm packages</div>
-    </div>
-  </div>
-  <div class="step-body">
-    <p>
+</div><!-- ══════════ STEP 2: Git ══ --><div class="step">
+<div class="step-header">
+<div class="step-num">2</div>
+<div>
+<div class="step-title">Install Git</div>
+<div class="step-sub">Version control — also required by some npm packages</div>
+</div>
+</div>
+<div class="step-body">
+<p>
       Git manages your project's version history and is required by some npm packages that
       install from GitHub. You'll also use it to submit assignments and collaborate on the
       final project.
     </p>
-
-    <div class="download-row">
-      <div class="dl-btn dl-git">
-        <div class="dl-label">Download</div>
-        <div class="dl-name">Git for Windows</div>
-        <div class="dl-sub">git-scm.com — run installer with defaults</div>
-      </div>
-    </div>
-
-    <p>During the Git installer, two settings matter:</p>
-    <ul>
-      <li><strong>"Adjusting your PATH environment"</strong> → select <em>"Git from the command line and also from 3rd-party software"</em></li>
-      <li><strong>"Configuring line ending conversions"</strong> → select <em>"Checkout Windows-style, commit Unix-style"</em> — this prevents CRLF line ending problems in your code</li>
-    </ul>
-
-    <p>After install, tell Git who you are (use the same email as your GitHub account):</p>
-
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
-        <span class="terminal-title">PowerShell</span>
-      </div>
-      <div class="terminal-body">
-        <div><span class="t-prompt">C:\&gt;</span> <span class="t-cmd">git config --global user.name "Your Name"</span></div>
-        <div><span class="t-prompt">C:\&gt;</span> <span class="t-cmd">git config --global user.email "you@boisestate.edu"</span></div>
-        <div><span class="t-prompt">C:\&gt;</span> <span class="t-cmd">git --version</span></div>
-        <div><span class="t-out">git version 2.47.0.windows.1</span></div>
-      </div>
-    </div>
-  </div>
+<div class="download-row">
+<div class="dl-btn dl-git">
+<div class="dl-label">Download</div>
+<div class="dl-name">Git for Windows</div>
+<div class="dl-sub">git-scm.com — run installer with defaults</div>
 </div>
-
-
-<!-- ══════════ STEP 3: VS Code ══ -->
-<div class="step">
-  <div class="step-header">
-    <div class="step-num">3</div>
-    <div>
-      <div class="step-title">Install VS Code and Extensions</div>
-      <div class="step-sub">Your editor, your debugger, your terminal — all in one</div>
-    </div>
-  </div>
-  <div class="step-body">
-    <p>
+</div>
+<p>During the Git installer, two settings matter:</p>
+<ul>
+<li><strong>"Adjusting your PATH environment"</strong> → select <em>"Git from the command line and also from 3rd-party software"</em></li>
+<li><strong>"Configuring line ending conversions"</strong> → select <em>"Checkout Windows-style, commit Unix-style"</em> — this prevents CRLF line ending problems in your code</li>
+</ul>
+<p>After install, tell Git who you are (use the same email as your GitHub account):</p>
+<div class="terminal">
+<div class="terminal-bar">
+<div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
+<span class="terminal-title">PowerShell</span>
+</div>
+<div class="terminal-body">
+<div><span class="t-prompt">C:\&gt;</span> <span class="t-cmd">git config --global user.name "Your Name"</span></div>
+<div><span class="t-prompt">C:\&gt;</span> <span class="t-cmd">git config --global user.email "you@boisestate.edu"</span></div>
+<div><span class="t-prompt">C:\&gt;</span> <span class="t-cmd">git --version</span></div>
+<div><span class="t-out">git version 2.47.0.windows.1</span></div>
+</div>
+</div>
+</div>
+</div><!-- ══════════ STEP 3: VS Code ══ --><div class="step">
+<div class="step-header">
+<div class="step-num">3</div>
+<div>
+<div class="step-title">Install VS Code and Extensions</div>
+<div class="step-sub">Your editor, your debugger, your terminal — all in one</div>
+</div>
+</div>
+<div class="step-body">
+<p>
       Visual Studio Code is the standard editor for React Native development. It's free,
       runs everywhere, and has excellent JavaScript/TypeScript support built in.
     </p>
-
-    <div class="download-row">
-      <div class="dl-btn dl-vsc">
-        <div class="dl-label">Download</div>
-        <div class="dl-name">VS Code</div>
-        <div class="dl-sub">code.visualstudio.com — System Installer recommended</div>
-      </div>
-    </div>
-
-    <p>
+<div class="download-row">
+<div class="dl-btn dl-vsc">
+<div class="dl-label">Download</div>
+<div class="dl-name">VS Code</div>
+<div class="dl-sub">code.visualstudio.com — System Installer recommended</div>
+</div>
+</div>
+<p>
       During install, check <strong>"Add to PATH"</strong> and <strong>"Open with Code"</strong>
       context menu options. These save time daily.
     </p>
-
-    <h3>Recommended Extensions</h3>
-    <p>
+<h3>Recommended Extensions</h3>
+<p>
       Open VS Code, press <code>Ctrl+Shift+X</code> to open Extensions, and install these:
     </p>
-
-    <table>
-      <thead><tr><th>Extension</th><th>What it does</th></tr></thead>
-      <tbody>
-        <tr><td><strong>ES7+ React/Redux/RN snippets</strong></td><td>Type <code>rnf</code> + Tab → generates a complete functional component. Huge time saver.</td></tr>
-        <tr><td><strong>Prettier – Code formatter</strong></td><td>Auto-formats your code on save. Eliminates style debates and keeps diffs clean.</td></tr>
-        <tr><td><strong>ESLint</strong></td><td>Catches errors and bad patterns before they run. Red squiggles are your friends.</td></tr>
-        <tr><td><strong>React Native Tools</strong> (Microsoft)</td><td>Debugger integration and IntelliSense for React Native APIs.</td></tr>
-        <tr><td><strong>GitLens</strong></td><td>Shows who changed what and when, inline in the editor. Makes Git history readable.</td></tr>
-      </tbody>
-    </table>
-
-    <div class="tip">
-      <strong>💡 Set Prettier as your default formatter:</strong> Press <code>Ctrl+Shift+P</code>,
+<table>
+<thead><tr><th scope="col">Extension</th><th scope="col">What it does</th></tr></thead>
+<tbody>
+<tr><td><strong>ES7+ React/Redux/RN snippets</strong></td><td>Type <code>rnf</code> + Tab → generates a complete functional component. Huge time saver.</td></tr>
+<tr><td><strong>Prettier – Code formatter</strong></td><td>Auto-formats your code on save. Eliminates style debates and keeps diffs clean.</td></tr>
+<tr><td><strong>ESLint</strong></td><td>Catches errors and bad patterns before they run. Red squiggles are your friends.</td></tr>
+<tr><td><strong>React Native Tools</strong> (Microsoft)</td><td>Debugger integration and IntelliSense for React Native APIs.</td></tr>
+<tr><td><strong>GitLens</strong></td><td>Shows who changed what and when, inline in the editor. Makes Git history readable.</td></tr>
+</tbody>
+</table>
+<div class="tip">
+<strong>💡 Set Prettier as your default formatter:</strong> Press <code>Ctrl+Shift+P</code>,
       type "Format Document With," select Prettier, then check "Always use." Then enable
       "Format on Save" in VS Code settings (<code>Ctrl+,</code>, search "format on save").
       Your code will be formatted every time you hit save — no manual formatting ever again.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ══════════ STEP 4: Create Project ══ -->
-<div class="step">
-  <div class="step-header">
-    <div class="step-num">4</div>
-    <div>
-      <div class="step-title">Create Your First Local Expo Project</div>
-      <div class="step-sub">create-expo-app scaffolds everything — no global installs needed</div>
-    </div>
-  </div>
-  <div class="step-body">
-    <p>
+</div><!-- ══════════ STEP 4: Create Project ══ --><div class="step">
+<div class="step-header">
+<div class="step-num">4</div>
+<div>
+<div class="step-title">Create Your First Local Expo Project</div>
+<div class="step-sub">create-expo-app scaffolds everything — no global installs needed</div>
+</div>
+</div>
+<div class="step-body">
+<p>
       Navigate to where you want your projects to live — something like
       <code>C:\Users\you\Projects</code> — and run one command. You don't need to install
       Expo CLI globally first. <code>npx</code> downloads and runs it for you.
     </p>
-
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
-        <span class="terminal-title">PowerShell — in your Projects folder</span>
-      </div>
-      <div class="terminal-body">
-        <div><span class="t-prompt">C:\Projects&gt;</span> <span class="t-cmd">npx create-expo-app@latest MyFirstApp</span></div>
-        <div style="margin-top:6px"><span class="t-out">✔ Downloaded and extracted project files.</span></div>
-        <div><span class="t-out">✔ Installed npm packages.</span></div>
-        <div style="margin-top:6px"><span class="t-out">✅ Your project is ready!</span></div>
-        <div style="margin-top:6px"><span class="t-out">  To run your project, navigate to the directory and run one of the following npm commands.</span></div>
-        <div style="margin-top:6px"><span class="t-prompt">C:\Projects&gt;</span> <span class="t-cmd">cd MyFirstApp</span></div>
-        <div><span class="t-prompt">C:\Projects\MyFirstApp&gt;</span> <span class="t-cmd">code .</span> <span class="t-comment"> ← opens VS Code in this folder</span></div>
-      </div>
-    </div>
-
-    <div class="windows-note">
-      <strong>🪟 Windows gotcha — long file paths:</strong> Node modules nest deeply.
+<div class="terminal">
+<div class="terminal-bar">
+<div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
+<span class="terminal-title">PowerShell — in your Projects folder</span>
+</div>
+<div class="terminal-body">
+<div><span class="t-prompt">C:\Projects&gt;</span> <span class="t-cmd">npx create-expo-app@latest MyFirstApp</span></div>
+<div style="margin-top:6px"><span class="t-out">✔ Downloaded and extracted project files.</span></div>
+<div><span class="t-out">✔ Installed npm packages.</span></div>
+<div style="margin-top:6px"><span class="t-out">✅ Your project is ready!</span></div>
+<div style="margin-top:6px"><span class="t-out">  To run your project, navigate to the directory and run one of the following npm commands.</span></div>
+<div style="margin-top:6px"><span class="t-prompt">C:\Projects&gt;</span> <span class="t-cmd">cd MyFirstApp</span></div>
+<div><span class="t-prompt">C:\Projects\MyFirstApp&gt;</span> <span class="t-cmd">code .</span> <span class="t-comment"> ← opens VS Code in this folder</span></div>
+</div>
+</div>
+<div class="windows-note">
+<strong>🪟 Windows gotcha — long file paths:</strong> Node modules nest deeply.
       Windows has a 260-character path limit by default, and <code>node_modules</code> can
       exceed it. Enable long paths once and forget about it:
       <ol style="margin-top:10px">
-        <li>Search Windows for "Group Policy Editor" (or run <code>gpedit.msc</code>)</li>
-        <li>Navigate to: Computer Configuration → Administrative Templates → System → Filesystem</li>
-        <li>Enable <strong>"Enable Win32 long paths"</strong></li>
-        <li>Reboot</li>
-      </ol>
-      <em>Alternative:</em> Run this in PowerShell as Administrator:
+<li>Search Windows for "Group Policy Editor" (or run <code>gpedit.msc</code>)</li>
+<li>Navigate to: Computer Configuration → Administrative Templates → System → Filesystem</li>
+<li>Enable <strong>"Enable Win32 long paths"</strong></li>
+<li>Reboot</li>
+</ol>
+<em>Alternative:</em> Run this in PowerShell as Administrator:
       <div class="terminal" style="margin-top:8px">
-        <div class="terminal-body">
-          <div><span class="t-prompt">PS Admin&gt;</span> <span class="t-cmd">reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="windows-note">
-      <strong>🪟 Windows gotcha — antivirus slowdown:</strong> Windows Defender scans
+<div class="terminal-body">
+<div><span class="t-prompt">PS Admin&gt;</span> <span class="t-cmd">reg add "HKLM\SYSTEM\CurrentControlSet\Control\FileSystem" /v LongPathsEnabled /t REG_DWORD /d 1 /f</span></div>
+</div>
+</div>
+</div>
+<div class="windows-note">
+<strong>🪟 Windows gotcha — antivirus slowdown:</strong> Windows Defender scans
       every file written to disk. <code>node_modules</code> can contain 50,000+ files.
       Add your Projects folder to Windows Defender exclusions:
       Windows Security → Virus &amp; threat protection → Exclusions → Add a folder.
       This can make npm installs 3–5× faster.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ══════════ STEP 5: Project Structure ══ -->
-<div class="step">
-  <div class="step-header">
-    <div class="step-num">5</div>
-    <div>
-      <div class="step-title">Understand the Project Structure</div>
-      <div class="step-sub">What every file does and which ones you'll actually touch</div>
-    </div>
-  </div>
-  <div class="step-body">
-
-    <p>
+</div><!-- ══════════ STEP 5: Project Structure ══ --><div class="step">
+<div class="step-header">
+<div class="step-num">5</div>
+<div>
+<div class="step-title">Understand the Project Structure</div>
+<div class="step-sub">What every file does and which ones you'll actually touch</div>
+</div>
+</div>
+<div class="step-body">
+<p>
       Open the project in VS Code (<code>code .</code>). Here's what you're looking at:
     </p>
-
-    <div class="file-tree">
-      <div><span class="ft-dir">MyFirstApp/</span></div>
-      <div>├── <span class="ft-dir">app/</span>               <span class="ft-dim">← your screens (Expo Router)</span></div>
-      <div>│   ├── <span class="ft-key">(tabs)/</span>         <span class="ft-dim">← tab layout group</span></div>
-      <div>│   ├── <span class="ft-key">_layout.tsx</span>     <span class="ft-dim">← root navigation layout</span></div>
-      <div>│   └── <span class="ft-key">index.tsx</span>       <span class="ft-dim">← home screen  ← START HERE</span></div>
-      <div>├── <span class="ft-dir">assets/</span>            <span class="ft-dim">← images, fonts, icons</span></div>
-      <div>├── <span class="ft-dir">components/</span>        <span class="ft-dim">← reusable UI components</span></div>
-      <div>├── <span class="ft-dir">constants/</span>         <span class="ft-dim">← colors, sizes, config</span></div>
-      <div>├── <span class="ft-dir">node_modules/</span>      <span class="ft-dim">← installed packages (don't touch)</span></div>
-      <div>├── <span class="ft-key">app.json</span>           <span class="ft-dim">← app name, icon, splash screen, permissions</span></div>
-      <div>├── <span class="ft-key">package.json</span>       <span class="ft-dim">← dependencies and scripts</span></div>
-      <div>├── <span class="ft-key">tsconfig.json</span>      <span class="ft-dim">← TypeScript configuration</span></div>
-      <div>└── <span class="ft-key">.gitignore</span>         <span class="ft-dim">← tells Git to ignore node_modules etc.</span></div>
-    </div>
-
-    <div class="two-col">
-      <div class="card">
-        <h4>Files you edit constantly</h4>
-        <ul>
-          <li><code>app/</code> — your screens and navigation</li>
-          <li><code>components/</code> — your reusable pieces</li>
-          <li><code>app.json</code> — name, permissions, icons</li>
-          <li><code>constants/Colors.ts</code> — your theme</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h4>Files you rarely touch</h4>
-        <ul>
-          <li><code>node_modules/</code> — never edit, managed by npm</li>
-          <li><code>tsconfig.json</code> — TypeScript settings, set once</li>
-          <li><code>.gitignore</code> — already set up correctly</li>
-          <li><code>package-lock.json</code> — auto-generated by npm</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="callout">
-      <strong>app/ is the heart of the project.</strong> Expo Router uses file-based routing —
+<div class="file-tree">
+<div><span class="ft-dir">MyFirstApp/</span></div>
+<div>├── <span class="ft-dir">app/</span> <span class="ft-dim">← your screens (Expo Router)</span></div>
+<div>│   ├── <span class="ft-key">(tabs)/</span> <span class="ft-dim">← tab layout group</span></div>
+<div>│   ├── <span class="ft-key">_layout.tsx</span> <span class="ft-dim">← root navigation layout</span></div>
+<div>│   └── <span class="ft-key">index.tsx</span> <span class="ft-dim">← home screen  ← START HERE</span></div>
+<div>├── <span class="ft-dir">assets/</span> <span class="ft-dim">← images, fonts, icons</span></div>
+<div>├── <span class="ft-dir">components/</span> <span class="ft-dim">← reusable UI components</span></div>
+<div>├── <span class="ft-dir">constants/</span> <span class="ft-dim">← colors, sizes, config</span></div>
+<div>├── <span class="ft-dir">node_modules/</span> <span class="ft-dim">← installed packages (don't touch)</span></div>
+<div>├── <span class="ft-key">app.json</span> <span class="ft-dim">← app name, icon, splash screen, permissions</span></div>
+<div>├── <span class="ft-key">package.json</span> <span class="ft-dim">← dependencies and scripts</span></div>
+<div>├── <span class="ft-key">tsconfig.json</span> <span class="ft-dim">← TypeScript configuration</span></div>
+<div>└── <span class="ft-key">.gitignore</span> <span class="ft-dim">← tells Git to ignore node_modules etc.</span></div>
+</div>
+<div class="two-col">
+<div class="card">
+<h4>Files you edit constantly</h4>
+<ul>
+<li><code>app/</code> — your screens and navigation</li>
+<li><code>components/</code> — your reusable pieces</li>
+<li><code>app.json</code> — name, permissions, icons</li>
+<li><code>constants/Colors.ts</code> — your theme</li>
+</ul>
+</div>
+<div class="card">
+<h4>Files you rarely touch</h4>
+<ul>
+<li><code>node_modules/</code> — never edit, managed by npm</li>
+<li><code>tsconfig.json</code> — TypeScript settings, set once</li>
+<li><code>.gitignore</code> — already set up correctly</li>
+<li><code>package-lock.json</code> — auto-generated by npm</li>
+</ul>
+</div>
+</div>
+<div class="callout">
+<strong>app/ is the heart of the project.</strong> Expo Router uses file-based routing —
       the name of a file in the <code>app/</code> directory becomes the name of the route.
       <code>app/index.tsx</code> is the home screen. <code>app/profile.tsx</code> would be
       the <code>/profile</code> route. No manual routing configuration required.
     </div>
-
-  </div>
 </div>
-
-
-<!-- ══════════ STEP 6: Run It ══ -->
-<div class="step">
-  <div class="step-header">
-    <div class="step-num">6</div>
-    <div>
-      <div class="step-title">Start Metro and Connect Your Phone</div>
-      <div class="step-sub">One command, one QR code, your app on your phone</div>
-    </div>
-  </div>
-  <div class="step-body">
-
-    <p>
+</div><!-- ══════════ STEP 6: Run It ══ --><div class="step">
+<div class="step-header">
+<div class="step-num">6</div>
+<div>
+<div class="step-title">Start Metro and Connect Your Phone</div>
+<div class="step-sub">One command, one QR code, your app on your phone</div>
+</div>
+</div>
+<div class="step-body">
+<p>
       In your project folder — either in VS Code's integrated terminal
       (<code>Ctrl+`</code>) or in PowerShell — run:
     </p>
-
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
-        <span class="terminal-title">PowerShell — inside MyFirstApp/</span>
-      </div>
-      <div class="terminal-body">
-        <div><span class="t-prompt">C:\Projects\MyFirstApp&gt;</span> <span class="t-cmd">npx expo start</span></div>
-        <div style="margin-top:8px"><span class="t-out">Starting Metro Bundler</span></div>
-        <div><span class="t-out">▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄</span></div>
-        <div><span class="t-out">█ ▄▄▄▄▄ █ ▄█▄█▄█ ▄▄▄▄▄ █</span></div>
-        <div><span class="t-out">█ █   █ █▄▄█▄▄▄█ █   █ █</span> <span class="t-comment">  ← QR code in terminal</span></div>
-        <div><span class="t-out">█ █▄▄▄█ █ ▄▄▄▄▄█ █▄▄▄█ █</span></div>
-        <div><span class="t-out">▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀</span></div>
-        <div style="margin-top:8px"><span class="t-url">› Metro waiting on exp://192.168.1.42:8081</span></div>
-        <div><span class="t-out">› Scan the QR code above with Expo Go (Android)</span></div>
-        <div><span class="t-out">› or the Camera app (iOS)</span></div>
-        <div style="margin-top:8px"><span class="t-out">› Press a │ open Android</span></div>
-        <div><span class="t-out">› Press i │ open iOS simulator</span></div>
-        <div><span class="t-out">› Press w │ open web</span></div>
-        <div><span class="t-out">› Press r │ reload app</span></div>
-        <div><span class="t-out">› Press m │ toggle menu</span></div>
-      </div>
-    </div>
-
-    <h3>Connecting your phone</h3>
-    <ol>
-      <li>Make sure your phone is on the <strong>same WiFi network</strong> as your laptop. This is the single most common connection failure — phone on mobile data, laptop on campus WiFi, nothing connects.</li>
-      <li><strong>Android:</strong> Open Expo Go → tap "Scan QR code" → point at the terminal QR code.</li>
-      <li><strong>iOS:</strong> Open the default Camera app → point at the QR code → tap the Expo Go notification banner that appears.</li>
-      <li>Wait 10–20 seconds for the first bundle. After that, changes reload in under 2 seconds.</li>
-    </ol>
-
-    <div class="windows-note">
-      <strong>🪟 Windows gotcha — Windows Firewall blocking Metro:</strong> The first time
+<div class="terminal">
+<div class="terminal-bar">
+<div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
+<span class="terminal-title">PowerShell — inside MyFirstApp/</span>
+</div>
+<div class="terminal-body">
+<div><span class="t-prompt">C:\Projects\MyFirstApp&gt;</span> <span class="t-cmd">npx expo start</span></div>
+<div style="margin-top:8px"><span class="t-out">Starting Metro Bundler</span></div>
+<div><span class="t-out">▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄</span></div>
+<div><span class="t-out">█ ▄▄▄▄▄ █ ▄█▄█▄█ ▄▄▄▄▄ █</span></div>
+<div><span class="t-out">█ █   █ █▄▄█▄▄▄█ █   █ █</span> <span class="t-comment">  ← QR code in terminal</span></div>
+<div><span class="t-out">█ █▄▄▄█ █ ▄▄▄▄▄█ █▄▄▄█ █</span></div>
+<div><span class="t-out">▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀</span></div>
+<div style="margin-top:8px"><span class="t-url">› Metro waiting on exp://192.168.1.42:8081</span></div>
+<div><span class="t-out">› Scan the QR code above with Expo Go (Android)</span></div>
+<div><span class="t-out">› or the Camera app (iOS)</span></div>
+<div style="margin-top:8px"><span class="t-out">› Press a │ open Android</span></div>
+<div><span class="t-out">› Press i │ open iOS simulator</span></div>
+<div><span class="t-out">› Press w │ open web</span></div>
+<div><span class="t-out">› Press r │ reload app</span></div>
+<div><span class="t-out">› Press m │ toggle menu</span></div>
+</div>
+</div>
+<h3>Connecting your phone</h3>
+<ol>
+<li>Make sure your phone is on the <strong>same WiFi network</strong> as your laptop. This is the single most common connection failure — phone on mobile data, laptop on campus WiFi, nothing connects.</li>
+<li><strong>Android:</strong> Open Expo Go → tap "Scan QR code" → point at the terminal QR code.</li>
+<li><strong>iOS:</strong> Open the default Camera app → point at the QR code → tap the Expo Go notification banner that appears.</li>
+<li>Wait 10–20 seconds for the first bundle. After that, changes reload in under 2 seconds.</li>
+</ol>
+<div class="windows-note">
+<strong>🪟 Windows gotcha — Windows Firewall blocking Metro:</strong> The first time
       you run Metro, Windows Firewall may pop up asking to allow Node.js network access.
       Click <strong>"Allow access"</strong> on both Private and Public networks. If you
       accidentally blocked it, go to Windows Security → Firewall → Allow an app through
       firewall → find Node.js and enable both checkboxes.
     </div>
-
-    <div class="windows-note">
-      <strong>🪟 Windows gotcha — campus WiFi isolation:</strong> Some institutional WiFi
+<div class="windows-note">
+<strong>🪟 Windows gotcha — campus WiFi isolation:</strong> Some institutional WiFi
       networks block device-to-device communication. If your phone can't reach Metro on
       campus WiFi, run Metro in tunnel mode:
       <div class="terminal" style="margin-top:8px">
-        <div class="terminal-body">
-          <div><span class="t-prompt">C:\Projects\MyFirstApp&gt;</span> <span class="t-cmd">npx expo start --tunnel</span></div>
-        </div>
-      </div>
+<div class="terminal-body">
+<div><span class="t-prompt">C:\Projects\MyFirstApp&gt;</span> <span class="t-cmd">npx expo start --tunnel</span></div>
+</div>
+</div>
       Tunnel mode routes through Expo's servers instead of your local network. Slower, but
       works everywhere. It requires a free Expo account (<code>npx expo login</code>).
     </div>
-
-  </div>
 </div>
-
-
-<!-- ══════════ THE DEV LOOP ══ -->
-<h2>7. The Development Loop</h2>
-
-<p>
+</div><!-- ══════════ THE DEV LOOP ══ --><h2>7. The Development Loop</h2><p>
   Once Metro is running and your phone is connected, development is a continuous loop.
   Understanding the loop helps you work faster and debug problems faster.
-</p>
-
-<div class="dev-loop">
-  <div class="dl-box dlb-1">
-    <div class="dl-icon">✏️</div>
-    <div class="dl-title">Edit</div>
-    <div class="dl-desc">Change code in VS Code and save (<code>Ctrl+S</code>)</div>
-  </div>
-  <div class="dl-arrow">→</div>
-  <div class="dl-box dlb-2">
-    <div class="dl-icon">⚡</div>
-    <div class="dl-title">Metro bundles</div>
-    <div class="dl-desc">Metro detects the file change, re-bundles in ~1 second</div>
-  </div>
-  <div class="dl-arrow">→</div>
-  <div class="dl-box dlb-3">
-    <div class="dl-icon">🔄</div>
-    <div class="dl-title">Fast Refresh</div>
-    <div class="dl-desc">App updates on your phone without losing state</div>
-  </div>
-  <div class="dl-arrow">→</div>
-  <div class="dl-box dlb-4">
-    <div class="dl-icon">📱</div>
-    <div class="dl-title">See it live</div>
-    <div class="dl-desc">Result on your physical device immediately</div>
-  </div>
+</p><div class="dev-loop">
+<div class="dl-box dlb-1">
+<div class="dl-icon">✏️</div>
+<div class="dl-title">Edit</div>
+<div class="dl-desc">Change code in VS Code and save (<code>Ctrl+S</code>)</div>
 </div>
-
-<h3>Fast Refresh vs. Full Reload</h3>
-<p>
-  <strong>Fast Refresh</strong> updates only the changed component, preserving state —
+<div class="dl-arrow">→</div>
+<div class="dl-box dlb-2">
+<div class="dl-icon">⚡</div>
+<div class="dl-title">Metro bundles</div>
+<div class="dl-desc">Metro detects the file change, re-bundles in ~1 second</div>
+</div>
+<div class="dl-arrow">→</div>
+<div class="dl-box dlb-3">
+<div class="dl-icon">🔄</div>
+<div class="dl-title">Fast Refresh</div>
+<div class="dl-desc">App updates on your phone without losing state</div>
+</div>
+<div class="dl-arrow">→</div>
+<div class="dl-box dlb-4">
+<div class="dl-icon">📱</div>
+<div class="dl-title">See it live</div>
+<div class="dl-desc">Result on your physical device immediately</div>
+</div>
+</div><h3>Fast Refresh vs. Full Reload</h3><p>
+<strong>Fast Refresh</strong> updates only the changed component, preserving state —
   your app doesn't reset. This happens automatically on every save. It's what makes
   React Native development feel instant.
-</p>
-<p>
+</p><p>
   Sometimes Fast Refresh isn't enough — if you change a navigation structure, a hook's
   initial value, or something at the module level, you need a <strong>full reload</strong>.
   Shake your phone to open the developer menu, then tap "Reload." Or press <code>r</code>
   in the Metro terminal.
-</p>
-
-<h3>The developer menu</h3>
-<p>Shake your physical device to open it. Key options:</p>
-
-<table>
-  <thead><tr><th>Option</th><th>What it does</th></tr></thead>
-  <tbody>
-    <tr><td>Reload</td><td>Full JavaScript reload — clears all state and restarts the app</td></tr>
-    <tr><td>Toggle performance monitor</td><td>Shows FPS, memory, and JS thread activity overlay</td></tr>
-    <tr><td>Toggle element inspector</td><td>Tap any component to see its layout, styles, and hierarchy</td></tr>
-    <tr><td>Open JS debugger</td><td>Opens Chrome DevTools connected to your running app</td></tr>
-  </tbody>
-</table>
-
-
-<!-- ══════════ STEP 8: First Edit ══ -->
-<div class="step">
-  <div class="step-header">
-    <div class="step-num">7</div>
-    <div>
-      <div class="step-title">Make Your First Edit</div>
-      <div class="step-sub">Prove the loop works — change something, watch it update</div>
-    </div>
-  </div>
-  <div class="step-body">
-
-    <p>
+</p><h3>The developer menu</h3><p>Shake your physical device to open it. Key options:</p><table>
+<thead><tr><th scope="col">Option</th><th scope="col">What it does</th></tr></thead>
+<tbody>
+<tr><td>Reload</td><td>Full JavaScript reload — clears all state and restarts the app</td></tr>
+<tr><td>Toggle performance monitor</td><td>Shows FPS, memory, and JS thread activity overlay</td></tr>
+<tr><td>Toggle element inspector</td><td>Tap any component to see its layout, styles, and hierarchy</td></tr>
+<tr><td>Open JS debugger</td><td>Opens Chrome DevTools connected to your running app</td></tr>
+</tbody>
+</table><!-- ══════════ STEP 8: First Edit ══ --><div class="step">
+<div class="step-header">
+<div class="step-num">7</div>
+<div>
+<div class="step-title">Make Your First Edit</div>
+<div class="step-sub">Prove the loop works — change something, watch it update</div>
+</div>
+</div>
+<div class="step-body">
+<p>
       Open <code>app/index.tsx</code> in VS Code. You'll see the default Expo welcome screen
       component. Replace everything inside it with something minimal and your own:
     </p>
-
 <pre><span class="kw">import</span> { <span class="cls">View</span>, <span class="cls">Text</span>, <span class="cls">StyleSheet</span> } <span class="kw">from</span> <span class="str">'react-native'</span>;
 
 <span class="kw">export default function</span> <span class="fn">HomeScreen</span>() {
@@ -702,111 +617,93 @@
   title:     { fontSize: <span class="num">28</span>, fontWeight: <span class="str">'700'</span>, color: <span class="str">'#fff'</span>, marginBottom: <span class="num">12</span> },
   sub:       { fontSize: <span class="num">16</span>, color: <span class="str">'#a0c8e8'</span> },
 });</pre>
-
-    <p>
+<p>
       Hit <code>Ctrl+S</code>. Within a second or two, your phone updates. No QR scan.
       No compile step. No deploy. Just save and see. <em>That</em> is the development
       loop — and it stays this fast as your app grows.
     </p>
-
-    <div class="tip">
-      <strong>💡 Installing new packages:</strong> Whenever you need a new Expo package,
+<div class="tip">
+<strong>💡 Installing new packages:</strong> Whenever you need a new Expo package,
       use <code>npx expo install</code> instead of <code>npm install</code>. Expo's installer
       picks the version compatible with your current SDK. Using plain <code>npm install</code>
       can pull in incompatible versions and break your build in ways that are hard to diagnose.
       <div class="terminal" style="margin-top:10px">
-        <div class="terminal-body">
-          <div><span class="t-cmd">npx expo install expo-camera</span>       <span class="t-comment">← Expo packages: always use this</span></div>
-          <div><span class="t-cmd">npm install lodash</span>                  <span class="t-comment">← Plain JS packages: npm is fine</span></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
+<div class="terminal-body">
+<div><span class="t-cmd">npx expo install expo-camera</span> <span class="t-comment">← Expo packages: always use this</span></div>
+<div><span class="t-cmd">npm install lodash</span> <span class="t-comment">← Plain JS packages: npm is fine</span></div>
 </div>
-
-
-<!-- ══════════ 9. WINDOWS GOTCHA SUMMARY ══ -->
-<h2>8. Windows Gotchas — Complete Reference</h2>
-
-<p>
+</div>
+</div>
+</div>
+</div><!-- ══════════ 9. WINDOWS GOTCHA SUMMARY ══ --><h2>8. Windows Gotchas — Complete Reference</h2><p>
   Windows is a perfectly capable React Native development platform. It just has a few
   rough edges that trip up everyone the first time. Hit them now, fix them once, never
   think about them again.
-</p>
-
-<table>
-  <thead><tr><th>Problem</th><th>Symptom</th><th>Fix</th></tr></thead>
-  <tbody>
-    <tr>
-      <td>PowerShell execution policy</td>
-      <td>npm commands fail with "running scripts is disabled"</td>
-      <td><code>Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</code> in Admin PowerShell</td>
-    </tr>
-    <tr>
-      <td>Long file paths</td>
-      <td>npm install fails with ENAMETOOLONG or mysterious errors deep in node_modules</td>
-      <td>Enable long paths in Group Policy or registry. Reboot.</td>
-    </tr>
-    <tr>
-      <td>Antivirus scan slowdown</td>
-      <td>npm install takes 5+ minutes. Metro startup is sluggish.</td>
-      <td>Add your Projects folder to Windows Defender exclusions.</td>
-    </tr>
-    <tr>
-      <td>Firewall blocking Metro</td>
-      <td>Phone can't connect — "Something went wrong" in Expo Go</td>
-      <td>Allow Node.js through Windows Firewall (both Private and Public).</td>
-    </tr>
-    <tr>
-      <td>Phone on different network</td>
-      <td>QR scan works but app shows network error</td>
-      <td>Put phone and laptop on same WiFi. Or use <code>--tunnel</code> flag.</td>
-    </tr>
-    <tr>
-      <td>Campus WiFi client isolation</td>
-      <td>Same WiFi but still can't connect</td>
-      <td><code>npx expo start --tunnel</code>. Requires Expo account.</td>
-    </tr>
-    <tr>
-      <td>CRLF line endings</td>
-      <td>Git shows every line as changed after checkout on Windows</td>
-      <td>Git installer setting: "Checkout Windows-style, commit Unix-style." Or <code>git config --global core.autocrlf true</code></td>
-    </tr>
-    <tr>
-      <td>Node not in PATH after install</td>
-      <td>"node is not recognized" in a terminal you already had open</td>
-      <td>Close all terminals and open a new one. PATH changes don't affect existing sessions.</td>
-    </tr>
-  </tbody>
-</table>
-
-
-<!-- ══════════ 10. QUICK REFERENCE ══ -->
-<h2>9. Commands You'll Use Every Day</h2>
-
-<div class="terminal">
-  <div class="terminal-bar">
-    <div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
-    <span class="terminal-title">Essential commands</span>
-  </div>
-  <div class="terminal-body">
-    <div><span class="t-comment"># Create a new project</span></div>
-    <div><span class="t-cmd">npx create-expo-app@latest ProjectName</span></div>
-    <div style="margin-top:10px"><span class="t-comment"># Start Metro (normal — same WiFi required)</span></div>
-    <div><span class="t-cmd">npx expo start</span></div>
-    <div style="margin-top:10px"><span class="t-comment"># Start Metro (tunnel — works through any network)</span></div>
-    <div><span class="t-cmd">npx expo start --tunnel</span></div>
-    <div style="margin-top:10px"><span class="t-comment"># Install an Expo SDK package (always use this, not npm install)</span></div>
-    <div><span class="t-cmd">npx expo install expo-camera</span></div>
-    <div style="margin-top:10px"><span class="t-comment"># Install a plain JavaScript package</span></div>
-    <div><span class="t-cmd">npm install axios</span></div>
-    <div style="margin-top:10px"><span class="t-comment"># Install all dependencies after cloning someone else's project</span></div>
-    <div><span class="t-cmd">npm install</span></div>
-    <div style="margin-top:10px"><span class="t-comment"># Open the project in VS Code (run from inside the project folder)</span></div>
-    <div><span class="t-cmd">code .</span></div>
-  </div>
+</p><table>
+<thead><tr><th scope="col">Problem</th><th scope="col">Symptom</th><th scope="col">Fix</th></tr></thead>
+<tbody>
+<tr>
+<td>PowerShell execution policy</td>
+<td>npm commands fail with "running scripts is disabled"</td>
+<td><code>Set-ExecutionPolicy RemoteSigned -Scope CurrentUser</code> in Admin PowerShell</td>
+</tr>
+<tr>
+<td>Long file paths</td>
+<td>npm install fails with ENAMETOOLONG or mysterious errors deep in node_modules</td>
+<td>Enable long paths in Group Policy or registry. Reboot.</td>
+</tr>
+<tr>
+<td>Antivirus scan slowdown</td>
+<td>npm install takes 5+ minutes. Metro startup is sluggish.</td>
+<td>Add your Projects folder to Windows Defender exclusions.</td>
+</tr>
+<tr>
+<td>Firewall blocking Metro</td>
+<td>Phone can't connect — "Something went wrong" in Expo Go</td>
+<td>Allow Node.js through Windows Firewall (both Private and Public).</td>
+</tr>
+<tr>
+<td>Phone on different network</td>
+<td>QR scan works but app shows network error</td>
+<td>Put phone and laptop on same WiFi. Or use <code>--tunnel</code> flag.</td>
+</tr>
+<tr>
+<td>Campus WiFi client isolation</td>
+<td>Same WiFi but still can't connect</td>
+<td><code>npx expo start --tunnel</code>. Requires Expo account.</td>
+</tr>
+<tr>
+<td>CRLF line endings</td>
+<td>Git shows every line as changed after checkout on Windows</td>
+<td>Git installer setting: "Checkout Windows-style, commit Unix-style." Or <code>git config --global core.autocrlf true</code></td>
+</tr>
+<tr>
+<td>Node not in PATH after install</td>
+<td>"node is not recognized" in a terminal you already had open</td>
+<td>Close all terminals and open a new one. PATH changes don't affect existing sessions.</td>
+</tr>
+</tbody>
+</table><!-- ══════════ 10. QUICK REFERENCE ══ --><h2>9. Commands You'll Use Every Day</h2><div class="terminal">
+<div class="terminal-bar">
+<div class="terminal-dot td-red"></div><div class="terminal-dot td-yellow"></div><div class="terminal-dot td-green"></div>
+<span class="terminal-title">Essential commands</span>
 </div>
-
+<div class="terminal-body">
+<div><span class="t-comment"># Create a new project</span></div>
+<div><span class="t-cmd">npx create-expo-app@latest ProjectName</span></div>
+<div style="margin-top:10px"><span class="t-comment"># Start Metro (normal — same WiFi required)</span></div>
+<div><span class="t-cmd">npx expo start</span></div>
+<div style="margin-top:10px"><span class="t-comment"># Start Metro (tunnel — works through any network)</span></div>
+<div><span class="t-cmd">npx expo start --tunnel</span></div>
+<div style="margin-top:10px"><span class="t-comment"># Install an Expo SDK package (always use this, not npm install)</span></div>
+<div><span class="t-cmd">npx expo install expo-camera</span></div>
+<div style="margin-top:10px"><span class="t-comment"># Install a plain JavaScript package</span></div>
+<div><span class="t-cmd">npm install axios</span></div>
+<div style="margin-top:10px"><span class="t-comment"># Install all dependencies after cloning someone else's project</span></div>
+<div><span class="t-cmd">npm install</span></div>
+<div style="margin-top:10px"><span class="t-comment"># Open the project in VS Code (run from inside the project folder)</span></div>
+<div><span class="t-cmd">code .</span></div>
+</div>
+</div></main>
 </body>
 </html>

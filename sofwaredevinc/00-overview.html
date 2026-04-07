@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>C Memory Concepts — Overview</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Playfair+Display:wght@700;900&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #06090f;
@@ -267,316 +268,280 @@
     .map-container{padding:16px 8px;}
   }
 </style>
-</head>
-<body>
-<div class="page-grain"></div>
-
-<nav class="series-bar">
-  <span class="chip">Overview</span>
-  <span>C Memory Concepts</span>
-  <div class="nav-links">
-    <a href="00-overview.html" class="active">Overview</a>
-    <a href="01-pointers.html">Pointers</a>
-    <a href="02-arrays-are-pointers.html">Arrays</a>
-    <a href="03-malloc-free.html">malloc &amp; free</a>
-    <a href="04-stack-and-heap.html">Stack &amp; Heap</a>
-    <a href="05-garbage-collection.html">Garbage Collection</a>
-    <a href="06-pointer-training-cases.html">Training Cases</a>
-    <a href="07-pointer-types-and-casting.html">Types &amp; Casting</a>
-  </div>
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a>
+<div aria-hidden="true" class="page-grain"></div>
+<nav aria-label="Lesson sections" class="series-bar">
+<span class="chip">Overview</span>
+<span>C Memory Concepts</span>
+<div class="nav-links">
+<a class="active" href="00-overview.html">Overview</a>
+<a href="01-pointers.html">Pointers</a>
+<a href="02-arrays-are-pointers.html">Arrays</a>
+<a href="03-malloc-free.html">malloc &amp; free</a>
+<a href="04-stack-and-heap.html">Stack &amp; Heap</a>
+<a href="05-garbage-collection.html">Garbage Collection</a>
+<a href="06-pointer-training-cases.html">Training Cases</a>
+<a href="07-pointer-types-and-casting.html">Types &amp; Casting</a>
+</div>
 </nav>
-
 <!-- ═══════════════════════════════════════════ HERO -->
 <header class="hero">
-  <div class="hero-label">CS 253 — Software Development in C</div>
-  <h1>How <span class="hl-cyan">C</span> Really Works<br>on a <span class="hl-orange">Computer</span></h1>
-  <p class="hero-sub">Seven interconnected concepts that form the complete mental model of memory in C. Each builds on the others — together they explain why C gives you power no other mainstream language offers, and what it demands in return.</p>
+<div class="hero-label">CS 253 — Software Development in C</div>
+<h1>How <span class="hl-cyan">C</span> Really Works<br/>on a <span class="hl-orange">Computer</span></h1>
+<p class="hero-sub">Seven interconnected concepts that form the complete mental model of memory in C. Each builds on the others — together they explain why C gives you power no other mainstream language offers, and what it demands in return.</p>
 </header>
-
-<main class="content">
-
+<main class="content" id="main-content">
 <!-- ═══════════════════════════════════════════ WHY THESE SEVEN -->
 <h2>Why These Seven Topics?</h2>
-
 <p>C is unusual among programming languages because it exposes the raw mechanics of how a computer stores and retrieves data. Most languages hide these details behind abstractions. C does not. To write correct, efficient C, you need a mental model that connects seven ideas into a single coherent picture. Remove any one and the picture has a gap that will eventually cause bugs you can't diagnose.</p>
-
 <p>The seven topics aren't arbitrary — they form a dependency graph. Each concept either <em>requires</em> a previous concept to make sense, or <em>motivates</em> the need for the next one. The diagram below shows these relationships.</p>
-
 <!-- ═══════════════════════════════════════════ THE BIG MAP -->
 <div class="map-container">
-  <svg viewBox="0 0 820 680" width="100%" height="680">
-    <defs>
-      <!-- Arrow markers for each color -->
-      <marker id="m-cyan"   viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#00e5ff"/></marker>
-      <marker id="m-green"  viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#69f0ae"/></marker>
-      <marker id="m-orange" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#ffab40"/></marker>
-      <marker id="m-purple" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#b388ff"/></marker>
-      <marker id="m-pink"   viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#ff80ab"/></marker>
-      <marker id="m-blue"   viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#448aff"/></marker>
-      <marker id="m-yellow" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#ffd740"/></marker>
-      <marker id="m-dim"    viewBox="0 0 12 12" refX="11" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1L11 6L1 11z" fill="#6b7fa3"/></marker>
-
-      <!-- Glow filter -->
-      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="3" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-
-    <!-- ───────────── CONNECTION ARROWS (drawn first, behind nodes) ───────────── -->
-
-    <!-- 1 → 2  Pointers → Arrays -->
-    <path d="M 280 70 C 340 70, 380 100, 420 130" stroke="#69f0ae" stroke-width="2" fill="none" marker-end="url(#m-green)" opacity=".7"/>
-    <!-- 1 → 7  Pointers → Pointer Types -->
-    <path d="M 280 70 C 370 50, 520 40, 620 55" stroke="#448aff" stroke-width="2" fill="none" marker-end="url(#m-blue)" opacity=".7"/>
-    <!-- 1 → 3  Pointers → malloc & free -->
-    <path d="M 210 95 C 210 160, 210 200, 210 240" stroke="#ffab40" stroke-width="2" fill="none" marker-end="url(#m-orange)" opacity=".7"/>
-    <!-- 2 → 3  Arrays → malloc & free (arrays need dynamic alloc) -->
-    <path d="M 470 185 C 400 210, 310 225, 280 250" stroke="#ffab40" stroke-width="1.5" fill="none" marker-end="url(#m-orange)" opacity=".5" stroke-dasharray="6,4"/>
-    <!-- 7 → 3  Pointer Types → malloc (void* casting) -->
-    <path d="M 620 100 C 550 150, 380 210, 280 250" stroke="#ffab40" stroke-width="1.5" fill="none" marker-end="url(#m-orange)" opacity=".4" stroke-dasharray="6,4"/>
-    <!-- 3 → 4  malloc → Stack & Heap -->
-    <path d="M 210 310 C 210 350, 210 360, 210 395" stroke="#b388ff" stroke-width="2" fill="none" marker-end="url(#m-purple)" opacity=".7"/>
-    <!-- 2 → 4  Arrays → Stack & Heap (stack arrays vs heap arrays) -->
-    <path d="M 530 185 C 580 250, 530 340, 350 405" stroke="#b388ff" stroke-width="1.5" fill="none" marker-end="url(#m-purple)" opacity=".4" stroke-dasharray="6,4"/>
-    <!-- 7 → 6  Pointer Types → Training Cases -->
-    <path d="M 690 100 C 720 200, 720 370, 660 420" stroke="#ffd740" stroke-width="1.5" fill="none" marker-end="url(#m-yellow)" opacity=".5" stroke-dasharray="6,4"/>
-    <!-- 4 → 5  Stack & Heap → Garbage Collection -->
-    <path d="M 210 465 C 210 510, 210 530, 210 555" stroke="#ff80ab" stroke-width="2" fill="none" marker-end="url(#m-pink)" opacity=".7"/>
-    <!-- 3 → 5  malloc → GC (manual memory motivates GC) -->
-    <path d="M 140 290 C 70 380, 70 490, 140 565" stroke="#ff80ab" stroke-width="1.5" fill="none" marker-end="url(#m-pink)" opacity=".5" stroke-dasharray="6,4"/>
-    <!-- 1,2,3,4,7 → 6  Everything → Training Cases -->
-    <path d="M 350 435 C 430 430, 510 420, 560 430" stroke="#ffd740" stroke-width="2" fill="none" marker-end="url(#m-yellow)" opacity=".6"/>
-
-    <!-- ───────────── NODE 1: POINTERS ───────────── -->
-    <g>
-      <rect x="80" y="30" width="200" height="65" rx="10" fill="rgba(0,229,255,.08)" stroke="#00e5ff" stroke-width="2" filter="url(#glow)"/>
-      <text x="115" y="57" fill="#00e5ff" font-size="28" font-weight="600" opacity=".2">01</text>
-      <text x="155" y="57" fill="#00e5ff" font-size="15" font-weight="600">Pointers</text>
-      <text x="155" y="77" fill="#6b7fa3" font-size="10">A variable holding an address</text>
-    </g>
-
-    <!-- ───────────── NODE 2: ARRAYS ───────────── -->
-    <g>
-      <rect x="380" y="120" width="220" height="65" rx="10" fill="rgba(105,240,174,.08)" stroke="#69f0ae" stroke-width="2"/>
-      <text x="415" y="147" fill="#69f0ae" font-size="28" font-weight="600" opacity=".2">02</text>
-      <text x="460" y="147" fill="#69f0ae" font-size="15" font-weight="600">Arrays = Pointers</text>
-      <text x="460" y="167" fill="#6b7fa3" font-size="10">Decay, arithmetic, indexing</text>
-    </g>
-
-    <!-- ───────────── NODE 7: POINTER TYPES ───────────── -->
-    <g>
-      <rect x="560" y="40" width="220" height="65" rx="10" fill="rgba(68,138,255,.08)" stroke="#448aff" stroke-width="2"/>
-      <text x="595" y="67" fill="#448aff" font-size="28" font-weight="600" opacity=".2">07</text>
-      <text x="642" y="67" fill="#448aff" font-size="15" font-weight="600">Pointer Types</text>
-      <text x="642" y="87" fill="#6b7fa3" font-size="10">Size, step, interpretation, casting</text>
-    </g>
-
-    <!-- ───────────── NODE 3: MALLOC & FREE ───────────── -->
-    <g>
-      <rect x="80" y="245" width="200" height="65" rx="10" fill="rgba(255,171,64,.08)" stroke="#ffab40" stroke-width="2"/>
-      <text x="115" y="272" fill="#ffab40" font-size="28" font-weight="600" opacity=".2">03</text>
-      <text x="160" y="272" fill="#ffab40" font-size="15" font-weight="600">malloc &amp; free</text>
-      <text x="160" y="292" fill="#6b7fa3" font-size="10">Dynamic allocation lifecycle</text>
-    </g>
-
-    <!-- ───────────── NODE 4: STACK & HEAP ───────────── -->
-    <g>
-      <rect x="80" y="400" width="260" height="65" rx="10" fill="rgba(179,136,255,.08)" stroke="#b388ff" stroke-width="2"/>
-      <text x="115" y="427" fill="#b388ff" font-size="28" font-weight="600" opacity=".2">04</text>
-      <text x="160" y="427" fill="#b388ff" font-size="15" font-weight="600">Stack &amp; Heap</text>
-      <text x="160" y="447" fill="#6b7fa3" font-size="10">Memory layout, stack frames, lifetimes</text>
-    </g>
-
-    <!-- ───────────── NODE 5: GARBAGE COLLECTION ───────────── -->
-    <g>
-      <rect x="80" y="555" width="280" height="65" rx="10" fill="rgba(255,128,171,.08)" stroke="#ff80ab" stroke-width="2"/>
-      <text x="115" y="582" fill="#ff80ab" font-size="28" font-weight="600" opacity=".2">05</text>
-      <text x="165" y="582" fill="#ff80ab" font-size="15" font-weight="600">Garbage Collection</text>
-      <text x="165" y="602" fill="#6b7fa3" font-size="10">Why C doesn't have it &amp; what it costs</text>
-    </g>
-
-    <!-- ───────────── NODE 6: TRAINING CASES ───────────── -->
-    <g>
-      <rect x="500" y="410" width="260" height="65" rx="10" fill="rgba(255,215,64,.08)" stroke="#ffd740" stroke-width="2"/>
-      <text x="535" y="437" fill="#ffd740" font-size="28" font-weight="600" opacity=".2">06</text>
-      <text x="585" y="437" fill="#ffd740" font-size="15" font-weight="600">Training Cases</text>
-      <text x="585" y="457" fill="#6b7fa3" font-size="10">14 patterns applying all concepts</text>
-    </g>
-
-    <!-- ───────────── EDGE LABELS ───────────── -->
-    <text x="320" y="58" fill="#6b7fa3" font-size="9" font-style="italic">type gives meaning</text>
-    <text x="310" y="92" fill="#6b7fa3" font-size="9" font-style="italic">arrays are pointer arithmetic</text>
-    <text x="100" y="175" fill="#6b7fa3" font-size="9" font-style="italic">pointers enable</text>
-    <text x="100" y="188" fill="#6b7fa3" font-size="9" font-style="italic">dynamic allocation</text>
-    <text x="100" y="360" fill="#6b7fa3" font-size="9" font-style="italic">malloc uses the heap;</text>
-    <text x="100" y="373" fill="#6b7fa3" font-size="9" font-style="italic">locals use the stack</text>
-    <text x="90" y="520" fill="#6b7fa3" font-size="9" font-style="italic">manual memory motivates</text>
-    <text x="90" y="533" fill="#6b7fa3" font-size="9" font-style="italic">automatic garbage collection</text>
-    <text x="420" y="418" fill="#6b7fa3" font-size="9" font-style="italic">all concepts converge</text>
-
-    <!-- ───────────── FOUNDATION LABEL ───────────── -->
-    <rect x="80" y="645" width="680" height="30" rx="6" fill="rgba(255,171,64,.04)" stroke="var(--border)" stroke-width="1"/>
-    <text x="420" y="665" text-anchor="middle" fill="#ffab40" font-size="12" font-weight="600">Together: the complete mental model of how C manages memory on a real computer</text>
-  </svg>
-  <div class="caption">Solid arrows = "requires understanding of." Dashed arrows = "also connects to." Every concept feeds into Training Cases (06) and Pointer Types (07) ties back to everything.</div>
+<svg aria-label="Diagram: Why These Seven Topics?" height="680" role="img" viewbox="0 0 820 680" width="100%">
+<defs>
+<!-- Arrow markers for each color -->
+<marker id="m-cyan" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#00e5ff"></path></marker>
+<marker id="m-green" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#69f0ae"></path></marker>
+<marker id="m-orange" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#ffab40"></path></marker>
+<marker id="m-purple" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#b388ff"></path></marker>
+<marker id="m-pink" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#ff80ab"></path></marker>
+<marker id="m-blue" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#448aff"></path></marker>
+<marker id="m-yellow" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#ffd740"></path></marker>
+<marker id="m-dim" markerheight="8" markerwidth="8" orient="auto" refx="11" refy="6" viewbox="0 0 12 12"><path d="M1 1L11 6L1 11z" fill="#6b7fa3"></path></marker>
+<!-- Glow filter -->
+<filter height="140%" id="glow" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="blur" stddeviation="3"></fegaussianblur>
+<femerge><femergenode in="blur"></femergenode><femergenode in="SourceGraphic"></femergenode></femerge>
+</filter>
+</defs>
+<!-- ───────────── CONNECTION ARROWS (drawn first, behind nodes) ───────────── -->
+<!-- 1 → 2  Pointers → Arrays -->
+<path d="M 280 70 C 340 70, 380 100, 420 130" fill="none" marker-end="url(#m-green)" opacity=".7" stroke="#69f0ae" stroke-width="2"></path>
+<!-- 1 → 7  Pointers → Pointer Types -->
+<path d="M 280 70 C 370 50, 520 40, 620 55" fill="none" marker-end="url(#m-blue)" opacity=".7" stroke="#448aff" stroke-width="2"></path>
+<!-- 1 → 3  Pointers → malloc & free -->
+<path d="M 210 95 C 210 160, 210 200, 210 240" fill="none" marker-end="url(#m-orange)" opacity=".7" stroke="#ffab40" stroke-width="2"></path>
+<!-- 2 → 3  Arrays → malloc & free (arrays need dynamic alloc) -->
+<path d="M 470 185 C 400 210, 310 225, 280 250" fill="none" marker-end="url(#m-orange)" opacity=".5" stroke="#ffab40" stroke-dasharray="6,4" stroke-width="1.5"></path>
+<!-- 7 → 3  Pointer Types → malloc (void* casting) -->
+<path d="M 620 100 C 550 150, 380 210, 280 250" fill="none" marker-end="url(#m-orange)" opacity=".4" stroke="#ffab40" stroke-dasharray="6,4" stroke-width="1.5"></path>
+<!-- 3 → 4  malloc → Stack & Heap -->
+<path d="M 210 310 C 210 350, 210 360, 210 395" fill="none" marker-end="url(#m-purple)" opacity=".7" stroke="#b388ff" stroke-width="2"></path>
+<!-- 2 → 4  Arrays → Stack & Heap (stack arrays vs heap arrays) -->
+<path d="M 530 185 C 580 250, 530 340, 350 405" fill="none" marker-end="url(#m-purple)" opacity=".4" stroke="#b388ff" stroke-dasharray="6,4" stroke-width="1.5"></path>
+<!-- 7 → 6  Pointer Types → Training Cases -->
+<path d="M 690 100 C 720 200, 720 370, 660 420" fill="none" marker-end="url(#m-yellow)" opacity=".5" stroke="#ffd740" stroke-dasharray="6,4" stroke-width="1.5"></path>
+<!-- 4 → 5  Stack & Heap → Garbage Collection -->
+<path d="M 210 465 C 210 510, 210 530, 210 555" fill="none" marker-end="url(#m-pink)" opacity=".7" stroke="#ff80ab" stroke-width="2"></path>
+<!-- 3 → 5  malloc → GC (manual memory motivates GC) -->
+<path d="M 140 290 C 70 380, 70 490, 140 565" fill="none" marker-end="url(#m-pink)" opacity=".5" stroke="#ff80ab" stroke-dasharray="6,4" stroke-width="1.5"></path>
+<!-- 1,2,3,4,7 → 6  Everything → Training Cases -->
+<path d="M 350 435 C 430 430, 510 420, 560 430" fill="none" marker-end="url(#m-yellow)" opacity=".6" stroke="#ffd740" stroke-width="2"></path>
+<!-- ───────────── NODE 1: POINTERS ───────────── -->
+<g>
+<rect fill="rgba(0,229,255,.08)" filter="url(#glow)" height="65" rx="10" stroke="#00e5ff" stroke-width="2" width="200" x="80" y="30"></rect>
+<text fill="#00e5ff" font-size="28" font-weight="600" opacity=".2" x="115" y="57">01</text>
+<text fill="#00e5ff" font-size="15" font-weight="600" x="155" y="57">Pointers</text>
+<text fill="#6b7fa3" font-size="10" x="155" y="77">A variable holding an address</text>
+</g>
+<!-- ───────────── NODE 2: ARRAYS ───────────── -->
+<g>
+<rect fill="rgba(105,240,174,.08)" height="65" rx="10" stroke="#69f0ae" stroke-width="2" width="220" x="380" y="120"></rect>
+<text fill="#69f0ae" font-size="28" font-weight="600" opacity=".2" x="415" y="147">02</text>
+<text fill="#69f0ae" font-size="15" font-weight="600" x="460" y="147">Arrays = Pointers</text>
+<text fill="#6b7fa3" font-size="10" x="460" y="167">Decay, arithmetic, indexing</text>
+</g>
+<!-- ───────────── NODE 7: POINTER TYPES ───────────── -->
+<g>
+<rect fill="rgba(68,138,255,.08)" height="65" rx="10" stroke="#448aff" stroke-width="2" width="220" x="560" y="40"></rect>
+<text fill="#448aff" font-size="28" font-weight="600" opacity=".2" x="595" y="67">07</text>
+<text fill="#448aff" font-size="15" font-weight="600" x="642" y="67">Pointer Types</text>
+<text fill="#6b7fa3" font-size="10" x="642" y="87">Size, step, interpretation, casting</text>
+</g>
+<!-- ───────────── NODE 3: MALLOC & FREE ───────────── -->
+<g>
+<rect fill="rgba(255,171,64,.08)" height="65" rx="10" stroke="#ffab40" stroke-width="2" width="200" x="80" y="245"></rect>
+<text fill="#ffab40" font-size="28" font-weight="600" opacity=".2" x="115" y="272">03</text>
+<text fill="#ffab40" font-size="15" font-weight="600" x="160" y="272">malloc &amp; free</text>
+<text fill="#6b7fa3" font-size="10" x="160" y="292">Dynamic allocation lifecycle</text>
+</g>
+<!-- ───────────── NODE 4: STACK & HEAP ───────────── -->
+<g>
+<rect fill="rgba(179,136,255,.08)" height="65" rx="10" stroke="#b388ff" stroke-width="2" width="260" x="80" y="400"></rect>
+<text fill="#b388ff" font-size="28" font-weight="600" opacity=".2" x="115" y="427">04</text>
+<text fill="#b388ff" font-size="15" font-weight="600" x="160" y="427">Stack &amp; Heap</text>
+<text fill="#6b7fa3" font-size="10" x="160" y="447">Memory layout, stack frames, lifetimes</text>
+</g>
+<!-- ───────────── NODE 5: GARBAGE COLLECTION ───────────── -->
+<g>
+<rect fill="rgba(255,128,171,.08)" height="65" rx="10" stroke="#ff80ab" stroke-width="2" width="280" x="80" y="555"></rect>
+<text fill="#ff80ab" font-size="28" font-weight="600" opacity=".2" x="115" y="582">05</text>
+<text fill="#ff80ab" font-size="15" font-weight="600" x="165" y="582">Garbage Collection</text>
+<text fill="#6b7fa3" font-size="10" x="165" y="602">Why C doesn't have it &amp; what it costs</text>
+</g>
+<!-- ───────────── NODE 6: TRAINING CASES ───────────── -->
+<g>
+<rect fill="rgba(255,215,64,.08)" height="65" rx="10" stroke="#ffd740" stroke-width="2" width="260" x="500" y="410"></rect>
+<text fill="#ffd740" font-size="28" font-weight="600" opacity=".2" x="535" y="437">06</text>
+<text fill="#ffd740" font-size="15" font-weight="600" x="585" y="437">Training Cases</text>
+<text fill="#6b7fa3" font-size="10" x="585" y="457">14 patterns applying all concepts</text>
+</g>
+<!-- ───────────── EDGE LABELS ───────────── -->
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="320" y="58">type gives meaning</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="310" y="92">arrays are pointer arithmetic</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="100" y="175">pointers enable</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="100" y="188">dynamic allocation</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="100" y="360">malloc uses the heap;</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="100" y="373">locals use the stack</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="90" y="520">manual memory motivates</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="90" y="533">automatic garbage collection</text>
+<text fill="#6b7fa3" font-size="9" font-style="italic" x="420" y="418">all concepts converge</text>
+<!-- ───────────── FOUNDATION LABEL ───────────── -->
+<rect fill="rgba(255,171,64,.04)" height="30" rx="6" stroke="var(--border)" stroke-width="1" width="680" x="80" y="645"></rect>
+<text fill="#ffab40" font-size="12" font-weight="600" text-anchor="middle" x="420" y="665">Together: the complete mental model of how C manages memory on a real computer</text>
+</svg>
+<div class="caption">Solid arrows = "requires understanding of." Dashed arrows = "also connects to." Every concept feeds into Training Cases (06) and Pointer Types (07) ties back to everything.</div>
 </div>
-
-
 <!-- ═══════════════════════════════════════════ THE CHAIN OF REASONING -->
 <h2>The Chain of Reasoning</h2>
-
 <p>Start anywhere in this graph and you'll find that understanding the current topic forces you to understand the connected topics. Here is the logical chain, and why no link can be removed:</p>
-
 <div class="insight">
-  <strong>The Core Dependency Chain</strong><br>
-  <span style="color:var(--accent-cyan)">Pointers</span> → <span style="color:var(--accent-green)">Arrays</span> → <span style="color:var(--accent-orange)">malloc &amp; free</span> → <span style="color:var(--accent-purple)">Stack &amp; Heap</span> → <span style="color:var(--accent-pink)">Garbage Collection</span><br><br>
-  <span style="color:var(--accent-cyan)">Pointers</span> → <span style="color:var(--accent-blue)">Pointer Types</span> (parallel branch — enriches all the others)<br><br>
+<strong>The Core Dependency Chain</strong><br/>
+<span style="color:var(--accent-cyan)">Pointers</span> → <span style="color:var(--accent-green)">Arrays</span> → <span style="color:var(--accent-orange)">malloc &amp; free</span> → <span style="color:var(--accent-purple)">Stack &amp; Heap</span> → <span style="color:var(--accent-pink)">Garbage Collection</span><br/><br/>
+<span style="color:var(--accent-cyan)">Pointers</span> → <span style="color:var(--accent-blue)">Pointer Types</span> (parallel branch — enriches all the others)<br/><br/>
   All six concept topics → <span style="color:var(--accent-yellow)">Training Cases</span> (application — where theory meets practice)
 </div>
-
 <p><strong style="color:var(--accent-cyan)">Pointers</strong> are the foundation. Without understanding that a pointer is a variable holding an address, and the <code>&amp;</code> and <code>*</code> operators, nothing else makes sense. This is the single concept that separates C from languages like Python or Java.</p>
-
 <p><strong style="color:var(--accent-green)">Arrays = Pointers</strong> is the first consequence. Once you understand pointers, C reveals that array indexing <code>arr[i]</code> is just pointer arithmetic <code>*(arr + i)</code>. This explains why arrays decay when passed to functions, why you need to pass size separately, and how C can be so efficient — there's no bounds checking because there's no array object, just a pointer and an assumption.</p>
-
 <p><strong style="color:var(--accent-blue)">Pointer Types</strong> runs in parallel as a critical refinement. All pointers are the same size, but the type controls how many bytes are read, how far <code>p+1</code> steps, and how the bits are interpreted. Without this, you can't understand why casting between pointer types is dangerous, why <code>sizeof</code> matters in <code>malloc</code> calls, or why writing through a miscast pointer corrupts memory in non-obvious ways.</p>
-
 <p><strong style="color:var(--accent-orange)">malloc &amp; free</strong> is the next escalation. Pointers become essential when you need memory whose size is unknown at compile time or that must outlive the function that created it. <code>malloc</code> returns a pointer to heap memory; <code>free</code> takes that pointer and returns the memory. Understanding this requires understanding pointers (you navigate the heap through pointers) and motivates the next topic — where does this memory actually live?</p>
-
 <p><strong style="color:var(--accent-purple)">Stack &amp; Heap</strong> answers that question by showing the memory layout of a running C program. Local variables live on the stack (fast, automatic, limited). Dynamic allocations live on the heap (flexible, manual, large). Understanding this explains why returning a pointer to a local variable is fatal, why recursion can overflow, and why malloc is slower than local variables.</p>
-
 <p><strong style="color:var(--accent-pink)">Garbage Collection</strong> completes the picture by showing what other languages do instead of <code>malloc</code>/<code>free</code>. Once you understand the difficulty of manual memory management — memory leaks, dangling pointers, double frees — you understand the problem garbage collection solves, and also <em>why C doesn't use it</em>: the performance cost, the unpredictable pauses, and the loss of precise control that systems programming demands.</p>
-
 <p><strong style="color:var(--accent-yellow)">Training Cases</strong> is where all six concepts converge into practice. Each of the 14 cases requires multiple concepts working together — allocating an array needs pointers, pointer types, and malloc; freeing a linked list needs pointers, structs, and heap understanding; detecting leaks connects to the GC discussion about why manual management is hard.</p>
-
-
 <!-- ═══════════════════════════════════════════ SECOND DIAGRAM: WHY EACH TOPIC -->
 <h2>What Each Topic Unlocks</h2>
-
 <div class="map-container">
-  <svg viewBox="0 0 820 460" width="100%" height="460">
-    <!-- Left column: the concept -->
-    <!-- Right column: what it unlocks -->
-
-    <!-- Row 1: Pointers -->
-    <rect x="20" y="10" width="180" height="46" rx="6" fill="rgba(0,229,255,.08)" stroke="#00e5ff" stroke-width="1.5"/>
-    <text x="110" y="38" text-anchor="middle" fill="#00e5ff" font-size="13" font-weight="600">01 Pointers</text>
-    <line x1="200" y1="33" x2="270" y2="33" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#m-cyan)"/>
-    <text x="285" y="28" fill="#c8d6e5" font-size="11">→ &amp; and * operators, NULL, passing by reference</text>
-    <text x="285" y="44" fill="#6b7fa3" font-size="10">Unlocks: function output parameters, dynamic data structures, efficient argument passing</text>
-
-    <!-- Row 2: Arrays -->
-    <rect x="20" y="70" width="180" height="46" rx="6" fill="rgba(105,240,174,.08)" stroke="#69f0ae" stroke-width="1.5"/>
-    <text x="110" y="98" text-anchor="middle" fill="#69f0ae" font-size="13" font-weight="600">02 Arrays</text>
-    <line x1="200" y1="93" x2="270" y2="93" stroke="#69f0ae" stroke-width="1.5" marker-end="url(#m-green)"/>
-    <text x="285" y="88" fill="#c8d6e5" font-size="11">→ Contiguous memory, arr[i] ≡ *(arr+i), decay</text>
-    <text x="285" y="104" fill="#6b7fa3" font-size="10">Unlocks: string handling, buffer manipulation, understanding argc/argv</text>
-
-    <!-- Row 3: malloc & free -->
-    <rect x="20" y="130" width="180" height="46" rx="6" fill="rgba(255,171,64,.08)" stroke="#ffab40" stroke-width="1.5"/>
-    <text x="110" y="158" text-anchor="middle" fill="#ffab40" font-size="13" font-weight="600">03 malloc &amp; free</text>
-    <line x1="200" y1="153" x2="270" y2="153" stroke="#ffab40" stroke-width="1.5" marker-end="url(#m-orange)"/>
-    <text x="285" y="148" fill="#c8d6e5" font-size="11">→ Dynamic allocation, realloc, the ownership contract</text>
-    <text x="285" y="164" fill="#6b7fa3" font-size="10">Unlocks: runtime-sized data, data structures (lists, trees, hash tables), long-lived objects</text>
-
-    <!-- Row 4: Stack & Heap -->
-    <rect x="20" y="190" width="180" height="46" rx="6" fill="rgba(179,136,255,.08)" stroke="#b388ff" stroke-width="1.5"/>
-    <text x="110" y="218" text-anchor="middle" fill="#b388ff" font-size="13" font-weight="600">04 Stack &amp; Heap</text>
-    <line x1="200" y1="213" x2="270" y2="213" stroke="#b388ff" stroke-width="1.5" marker-end="url(#m-purple)"/>
-    <text x="285" y="208" fill="#c8d6e5" font-size="11">→ Memory layout, stack frames, lifetimes, overflow</text>
-    <text x="285" y="224" fill="#6b7fa3" font-size="10">Unlocks: debugging crashes, understanding recursion limits, choosing where data lives</text>
-
-    <!-- Row 5: GC -->
-    <rect x="20" y="250" width="180" height="46" rx="6" fill="rgba(255,128,171,.08)" stroke="#ff80ab" stroke-width="1.5"/>
-    <text x="110" y="278" text-anchor="middle" fill="#ff80ab" font-size="13" font-weight="600">05 Garbage Collection</text>
-    <line x1="200" y1="273" x2="270" y2="273" stroke="#ff80ab" stroke-width="1.5" marker-end="url(#m-pink)"/>
-    <text x="285" y="268" fill="#c8d6e5" font-size="11">→ Ref counting, mark-and-sweep, the control/safety trade-off</text>
-    <text x="285" y="284" fill="#6b7fa3" font-size="10">Unlocks: understanding Java/Python/Go design, appreciating C's trade-offs, language choice</text>
-
-    <!-- Row 6: Training Cases -->
-    <rect x="20" y="310" width="180" height="46" rx="6" fill="rgba(255,215,64,.08)" stroke="#ffd740" stroke-width="1.5"/>
-    <text x="110" y="338" text-anchor="middle" fill="#ffd740" font-size="13" font-weight="600">06 Training Cases</text>
-    <line x1="200" y1="333" x2="270" y2="333" stroke="#ffd740" stroke-width="1.5" marker-end="url(#m-yellow)"/>
-    <text x="285" y="328" fill="#c8d6e5" font-size="11">→ 14 real patterns: alloc, walk, cast, leak, linked list, Valgrind</text>
-    <text x="285" y="344" fill="#6b7fa3" font-size="10">Unlocks: writing real C programs, debugging memory bugs, passing code reviews</text>
-
-    <!-- Row 7: Pointer Types -->
-    <rect x="20" y="370" width="180" height="46" rx="6" fill="rgba(68,138,255,.08)" stroke="#448aff" stroke-width="1.5"/>
-    <text x="110" y="398" text-anchor="middle" fill="#448aff" font-size="13" font-weight="600">07 Pointer Types</text>
-    <line x1="200" y1="393" x2="270" y2="393" stroke="#448aff" stroke-width="1.5" marker-end="url(#m-blue)"/>
-    <text x="285" y="388" fill="#c8d6e5" font-size="11">→ Deref size, arithmetic step, bit interpretation, casting, alignment</text>
-    <text x="285" y="404" fill="#6b7fa3" font-size="10">Unlocks: safe casting, understanding void*, avoiding buffer overruns, reading binary data</text>
-
-    <!-- Bottom summary -->
-    <rect x="20" y="432" width="780" height="26" rx="5" fill="rgba(255,171,64,.04)" stroke="var(--border)" stroke-width="1"/>
-    <text x="410" y="450" text-anchor="middle" fill="#ffab40" font-size="11" font-weight="500">Remove any one of these → gaps in understanding that lead to bugs you can't explain</text>
-  </svg>
+<svg aria-label="Diagram: What Each Topic Unlocks" height="460" role="img" viewbox="0 0 820 460" width="100%">
+<!-- Left column: the concept -->
+<!-- Right column: what it unlocks -->
+<!-- Row 1: Pointers -->
+<rect fill="rgba(0,229,255,.08)" height="46" rx="6" stroke="#00e5ff" stroke-width="1.5" width="180" x="20" y="10"></rect>
+<text fill="#00e5ff" font-size="13" font-weight="600" text-anchor="middle" x="110" y="38">01 Pointers</text>
+<line marker-end="url(#m-cyan)" stroke="#00e5ff" stroke-width="1.5" x1="200" x2="270" y1="33" y2="33"></line>
+<text fill="#c8d6e5" font-size="11" x="285" y="28">→ &amp; and * operators, NULL, passing by reference</text>
+<text fill="#6b7fa3" font-size="10" x="285" y="44">Unlocks: function output parameters, dynamic data structures, efficient argument passing</text>
+<!-- Row 2: Arrays -->
+<rect fill="rgba(105,240,174,.08)" height="46" rx="6" stroke="#69f0ae" stroke-width="1.5" width="180" x="20" y="70"></rect>
+<text fill="#69f0ae" font-size="13" font-weight="600" text-anchor="middle" x="110" y="98">02 Arrays</text>
+<line marker-end="url(#m-green)" stroke="#69f0ae" stroke-width="1.5" x1="200" x2="270" y1="93" y2="93"></line>
+<text fill="#c8d6e5" font-size="11" x="285" y="88">→ Contiguous memory, arr[i] ≡ *(arr+i), decay</text>
+<text fill="#6b7fa3" font-size="10" x="285" y="104">Unlocks: string handling, buffer manipulation, understanding argc/argv</text>
+<!-- Row 3: malloc & free -->
+<rect fill="rgba(255,171,64,.08)" height="46" rx="6" stroke="#ffab40" stroke-width="1.5" width="180" x="20" y="130"></rect>
+<text fill="#ffab40" font-size="13" font-weight="600" text-anchor="middle" x="110" y="158">03 malloc &amp; free</text>
+<line marker-end="url(#m-orange)" stroke="#ffab40" stroke-width="1.5" x1="200" x2="270" y1="153" y2="153"></line>
+<text fill="#c8d6e5" font-size="11" x="285" y="148">→ Dynamic allocation, realloc, the ownership contract</text>
+<text fill="#6b7fa3" font-size="10" x="285" y="164">Unlocks: runtime-sized data, data structures (lists, trees, hash tables), long-lived objects</text>
+<!-- Row 4: Stack & Heap -->
+<rect fill="rgba(179,136,255,.08)" height="46" rx="6" stroke="#b388ff" stroke-width="1.5" width="180" x="20" y="190"></rect>
+<text fill="#b388ff" font-size="13" font-weight="600" text-anchor="middle" x="110" y="218">04 Stack &amp; Heap</text>
+<line marker-end="url(#m-purple)" stroke="#b388ff" stroke-width="1.5" x1="200" x2="270" y1="213" y2="213"></line>
+<text fill="#c8d6e5" font-size="11" x="285" y="208">→ Memory layout, stack frames, lifetimes, overflow</text>
+<text fill="#6b7fa3" font-size="10" x="285" y="224">Unlocks: debugging crashes, understanding recursion limits, choosing where data lives</text>
+<!-- Row 5: GC -->
+<rect fill="rgba(255,128,171,.08)" height="46" rx="6" stroke="#ff80ab" stroke-width="1.5" width="180" x="20" y="250"></rect>
+<text fill="#ff80ab" font-size="13" font-weight="600" text-anchor="middle" x="110" y="278">05 Garbage Collection</text>
+<line marker-end="url(#m-pink)" stroke="#ff80ab" stroke-width="1.5" x1="200" x2="270" y1="273" y2="273"></line>
+<text fill="#c8d6e5" font-size="11" x="285" y="268">→ Ref counting, mark-and-sweep, the control/safety trade-off</text>
+<text fill="#6b7fa3" font-size="10" x="285" y="284">Unlocks: understanding Java/Python/Go design, appreciating C's trade-offs, language choice</text>
+<!-- Row 6: Training Cases -->
+<rect fill="rgba(255,215,64,.08)" height="46" rx="6" stroke="#ffd740" stroke-width="1.5" width="180" x="20" y="310"></rect>
+<text fill="#ffd740" font-size="13" font-weight="600" text-anchor="middle" x="110" y="338">06 Training Cases</text>
+<line marker-end="url(#m-yellow)" stroke="#ffd740" stroke-width="1.5" x1="200" x2="270" y1="333" y2="333"></line>
+<text fill="#c8d6e5" font-size="11" x="285" y="328">→ 14 real patterns: alloc, walk, cast, leak, linked list, Valgrind</text>
+<text fill="#6b7fa3" font-size="10" x="285" y="344">Unlocks: writing real C programs, debugging memory bugs, passing code reviews</text>
+<!-- Row 7: Pointer Types -->
+<rect fill="rgba(68,138,255,.08)" height="46" rx="6" stroke="#448aff" stroke-width="1.5" width="180" x="20" y="370"></rect>
+<text fill="#448aff" font-size="13" font-weight="600" text-anchor="middle" x="110" y="398">07 Pointer Types</text>
+<line marker-end="url(#m-blue)" stroke="#448aff" stroke-width="1.5" x1="200" x2="270" y1="393" y2="393"></line>
+<text fill="#c8d6e5" font-size="11" x="285" y="388">→ Deref size, arithmetic step, bit interpretation, casting, alignment</text>
+<text fill="#6b7fa3" font-size="10" x="285" y="404">Unlocks: safe casting, understanding void*, avoiding buffer overruns, reading binary data</text>
+<!-- Bottom summary -->
+<rect fill="rgba(255,171,64,.04)" height="26" rx="5" stroke="var(--border)" stroke-width="1" width="780" x="20" y="432"></rect>
+<text fill="#ffab40" font-size="11" font-weight="500" text-anchor="middle" x="410" y="450">Remove any one of these → gaps in understanding that lead to bugs you can't explain</text>
+</svg>
 </div>
-
-
 <!-- ═══════════════════════════════════════════ CARD GRID -->
 <h2>The Seven Pages</h2>
-
 <div class="cards">
-
-  <a class="card" data-c="cyan" href="01-pointers.html">
-    <span class="card-num">01</span>
-    <div class="card-title">What Is a Pointer?</div>
-    <div class="card-desc">Variables as memory slots. The <code>&amp;</code> and <code>*</code> operators. Why pointers exist — modifying caller variables, dynamic memory, efficient data handling. NULL and pointer size.</div>
-    <div class="card-deps">Foundation — no prerequisites</div>
-  </a>
-
-  <a class="card" data-c="green" href="02-arrays-are-pointers.html">
-    <span class="card-num">02</span>
-    <div class="card-title">Arrays Are Pointers</div>
-    <div class="card-desc">Contiguous memory layout. Array decay. Pointer arithmetic. The equivalence <code>arr[i] ≡ *(arr+i)</code>. Why functions lose array size information.</div>
-    <div class="card-deps">Requires → 01 Pointers</div>
-  </a>
-
-  <a class="card" data-c="orange" href="03-malloc-free.html">
-    <span class="card-num">03</span>
-    <div class="card-title">malloc &amp; free</div>
-    <div class="card-desc">Dynamic allocation lifecycle. How malloc works internally (free lists, hidden headers). calloc, realloc. The four deadly sins: leaks, use-after-free, double free, overflow.</div>
-    <div class="card-deps">Requires → 01 Pointers, 02 Arrays</div>
-  </a>
-
-  <a class="card" data-c="purple" href="04-stack-and-heap.html">
-    <span class="card-num">04</span>
-    <div class="card-title">Stack &amp; Heap</div>
-    <div class="card-desc">Complete memory layout of a C program. Stack frames and function calls. Heap allocation. Returning stack addresses (the dangling pointer). Stack overflow.</div>
-    <div class="card-deps">Requires → 01 Pointers, 03 malloc</div>
-  </a>
-
-  <a class="card" data-c="pink" href="05-garbage-collection.html">
-    <span class="card-num">05</span>
-    <div class="card-title">Garbage Collection</div>
-    <div class="card-desc">The problem manual memory creates. Reference counting and its cycle problem. Mark-and-sweep. The spectrum from C (full manual) to Java (full GC). Why C chooses not to have it.</div>
-    <div class="card-deps">Requires → 03 malloc, 04 Stack &amp; Heap</div>
-  </a>
-
-  <a class="card" data-c="yellow" href="06-pointer-training-cases.html">
-    <span class="card-num">06</span>
-    <div class="card-title">Training Cases</div>
-    <div class="card-desc">14 practical pointer patterns: allocating values and arrays, pointer walks, pass-by-pointer, strings, struct pointers, double pointers, realloc, loop leaks, linked lists, Valgrind.</div>
-    <div class="card-deps">Requires → all previous topics</div>
-  </a>
-
-  <a class="card full" data-c="blue" href="07-pointer-types-and-casting.html">
-    <span class="card-num">07</span>
-    <div class="card-title">Why Pointer Type Matters</div>
-    <div class="card-desc">All pointers are the same size, but the type controls three critical behaviors: dereference size, arithmetic step, and bit interpretation. Casting between types. The char*-to-int* disaster. Buffer overruns via type mismatch. Alignment. When casting is safe and when it isn't.</div>
-    <div class="card-deps">Requires → 01 Pointers · Enriches → 02, 03, 04, 06</div>
-  </a>
-
+<a class="card" data-c="cyan" href="01-pointers.html">
+<span class="card-num">01</span>
+<div class="card-title">What Is a Pointer?</div>
+<div class="card-desc">Variables as memory slots. The <code>&amp;</code> and <code>*</code> operators. Why pointers exist — modifying caller variables, dynamic memory, efficient data handling. NULL and pointer size.</div>
+<div class="card-deps">Foundation — no prerequisites</div>
+</a>
+<a class="card" data-c="green" href="02-arrays-are-pointers.html">
+<span class="card-num">02</span>
+<div class="card-title">Arrays Are Pointers</div>
+<div class="card-desc">Contiguous memory layout. Array decay. Pointer arithmetic. The equivalence <code>arr[i] ≡ *(arr+i)</code>. Why functions lose array size information.</div>
+<div class="card-deps">Requires → 01 Pointers</div>
+</a>
+<a class="card" data-c="orange" href="03-malloc-free.html">
+<span class="card-num">03</span>
+<div class="card-title">malloc &amp; free</div>
+<div class="card-desc">Dynamic allocation lifecycle. How malloc works internally (free lists, hidden headers). calloc, realloc. The four deadly sins: leaks, use-after-free, double free, overflow.</div>
+<div class="card-deps">Requires → 01 Pointers, 02 Arrays</div>
+</a>
+<a class="card" data-c="purple" href="04-stack-and-heap.html">
+<span class="card-num">04</span>
+<div class="card-title">Stack &amp; Heap</div>
+<div class="card-desc">Complete memory layout of a C program. Stack frames and function calls. Heap allocation. Returning stack addresses (the dangling pointer). Stack overflow.</div>
+<div class="card-deps">Requires → 01 Pointers, 03 malloc</div>
+</a>
+<a class="card" data-c="pink" href="05-garbage-collection.html">
+<span class="card-num">05</span>
+<div class="card-title">Garbage Collection</div>
+<div class="card-desc">The problem manual memory creates. Reference counting and its cycle problem. Mark-and-sweep. The spectrum from C (full manual) to Java (full GC). Why C chooses not to have it.</div>
+<div class="card-deps">Requires → 03 malloc, 04 Stack &amp; Heap</div>
+</a>
+<a class="card" data-c="yellow" href="06-pointer-training-cases.html">
+<span class="card-num">06</span>
+<div class="card-title">Training Cases</div>
+<div class="card-desc">14 practical pointer patterns: allocating values and arrays, pointer walks, pass-by-pointer, strings, struct pointers, double pointers, realloc, loop leaks, linked lists, Valgrind.</div>
+<div class="card-deps">Requires → all previous topics</div>
+</a>
+<a class="card full" data-c="blue" href="07-pointer-types-and-casting.html">
+<span class="card-num">07</span>
+<div class="card-title">Why Pointer Type Matters</div>
+<div class="card-desc">All pointers are the same size, but the type controls three critical behaviors: dereference size, arithmetic step, and bit interpretation. Casting between types. The char*-to-int* disaster. Buffer overruns via type mismatch. Alignment. When casting is safe and when it isn't.</div>
+<div class="card-deps">Requires → 01 Pointers · Enriches → 02, 03, 04, 06</div>
+</a>
 </div>
-
-
 <!-- ═══════════════════════════════════════════ CLOSING -->
 <div class="insight">
-  <strong>The Mental Model</strong><br>
+<strong>The Mental Model</strong><br/>
   When you can hold all seven of these ideas in your head simultaneously — what a pointer is, how arrays use them, how malloc gives you heap memory and free takes it back, where the stack and heap sit in the address space, why garbage collection exists as an alternative, how pointer types control what happens at each address, and how all of these combine in real code patterns — then you understand how C actually works on a computer. Not as an abstraction, not as a metaphor, but as a concrete model of bytes, addresses, and the instructions that operate on them.
 </div>
-
 </main>
 </body>
 </html>

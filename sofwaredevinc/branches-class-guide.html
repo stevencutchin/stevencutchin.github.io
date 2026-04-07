@@ -1,10 +1,11 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Branches & Control Flow — Class Guide</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Branches &amp; Control Flow — Class Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
 <style>
   :root {
     --text: #1e1c1a;
@@ -78,146 +79,114 @@
   @media print { body { padding: 24px 28px; } }
   @media (max-width: 500px) { body { padding: 24px 20px; } }
 </style>
-</head>
-<body>
-
-<header>
-  <h1>Branches &amp; Control Flow — Class Guide</h1>
-  <div class="meta">CS253 &nbsp;·&nbsp; Two 75-min sessions &nbsp;·&nbsp; branches-01-if-else-switch.html &nbsp;·&nbsp; branches-02-user-input-exit.html</div>
-</header>
-
-<!-- ════════════════════════════════════════ -->
-<div class="session-label">Session 1 — if / else / switch</div>
-
-<h2>Motivation</h2>
-<ol>
-  <li><div>Ask: what does a program with no branching do differently if you give it different input? Answer: nothing. Same steps every time.</div></li>
-  <li><div>Explain: branching is how a program responds to its situation — different input, different path, different result.</div></li>
-</ol>
-
-<h2>Boolean Values in C</h2>
-<ol>
-  <li><div>State the rule: zero is false. Everything else is true. There is no boolean type in core C — conditions are just integers.</div></li>
-  <li><div>Show a few examples live to make it concrete.
+<style>/* Skip link — focus-visible for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100000;
+  padding: 0.65rem 1.1rem;
+  background: #1B3A5C;
+  color: #fff !important;
+  font: 600 0.9rem system-ui, Segoe UI, sans-serif;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.skip-link:focus {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 3px solid #ffd740;
+  outline-offset: 2px;
+}</style></head>
+<body><a class="skip-link" href="#main-content">Skip to main content</a><main id="main-content"><header>
+<h1>Branches &amp; Control Flow — Class Guide</h1>
+<div class="meta">CS253  ·  Two 75-min sessions  ·  branches-01-if-else-switch.html  ·  branches-02-user-input-exit.html</div>
+</header><!-- ════════════════════════════════════════ --><div class="session-label">Session 1 — if / else / switch</div><h2>Motivation</h2><ol>
+<li><div>Ask: what does a program with no branching do differently if you give it different input? Answer: nothing. Same steps every time.</div></li>
+<li><div>Explain: branching is how a program responds to its situation — different input, different path, different result.</div></li>
+</ol><h2>Boolean Values in C</h2><ol>
+<li><div>State the rule: zero is false. Everything else is true. There is no boolean type in core C — conditions are just integers.</div></li>
+<li><div>Show a few examples live to make it concrete.
     <pre>if (0)   { ... }   // never runs
 if (1)   { ... }   // always runs
 if (-42) { ... }   // always runs
 if (ptr) { ... }   // runs if ptr is not NULL</pre>
-  </div></li>
-  <li><div>Mention <code>stdbool.h</code> gives you <code>bool</code>, <code>true</code>, <code>false</code> — but they're just aliases for 1 and 0. The underlying rule doesn't change.</div></li>
-  <li><div>Show the comparison and logical operators. Call out <code>&amp;&amp;</code> and <code>||</code> specifically — explain short-circuit evaluation and why <code>if (ptr != NULL &amp;&amp; ptr-&gt;value &gt; 0)</code> is safe.</div></li>
-</ol>
-
-<h2>if / else if / else</h2>
-<ol>
-  <li><div>Write a grade classifier — five lines of if/else if. Walk through how conditions are tested in order, first match wins, rest are skipped.</div></li>
-  <li><div>Ask: what happens if <code>score &gt;= 60</code> is tested before <code>score &gt;= 90</code>? Answer: every A student gets labelled passing — the narrower case can never be reached. Order matters, most specific first.</div></li>
-  <li><div>Show the ternary operator as a shorthand for simple two-outcome decisions. Explain when to use it and when not to.
-    <pre>int max = (a > b) ? a : b;</pre>
-  </div></li>
-</ol>
-
-<h2>The Dangling else</h2>
-<ol>
-  <li><div>Write the misleading indentation version on the board — else that looks like it belongs to the outer if.</div></li>
-  <li><div>Ask the class which if the else belongs to. Let them answer. Show that C binds it to the nearest preceding if.</div></li>
-  <li><div>Fix it with braces. State the rule: always use braces, even for one-line bodies. It costs nothing and prevents this entire class of bug.</div></li>
-</ol>
-
-<h2>switch</h2>
-<ol>
-  <li><div>Write a switch on a character command — q, h, r, default. Show it next to the equivalent if/else chain. Switch wins on readability when dispatching one variable to many known values.</div></li>
-  <li><div>Ask: what happens if you remove the <code>break</code> from the 'q' case? Run it. Show it falls into the next case silently.</div></li>
-  <li><div>Explain fall-through: without break, execution continues into the next case regardless of whether its label matches. Show the intentional stacked-case pattern for 'r' and 'R'.</div></li>
-  <li><div>Warn: the compiler will not tell you about accidental fall-through by default. <code>-Wimplicit-fallthrough</code> helps. So do habits.</div></li>
-  <li><div>State when to use switch vs. if/else: switch for one variable vs. many integer/character constants; if/else for ranges, floats, strings, or multi-variable conditions.</div></li>
-  <li><div>Call out: <code>switch (str)</code> compares the pointer address, not the string content. Never switch on a string. Use <code>strcmp()</code> in an if/else chain.</div></li>
-</ol>
-
-<h2>Pitfalls — Session 1</h2>
-<ol>
-  <li><div>= instead of ==: <code>if (x = 5)</code> is always true and sets x. Legal C. Compiler may not warn. Enable <code>-Wall</code>.</div></li>
-  <li><div>Missing break in switch: the most common switch bug. Silent. Fix: add break, or comment <code>/* fall through */</code> if intentional.</div></li>
-  <li><div>Comparing floats with ==: <code>0.1 + 0.2 == 0.3</code> is false. Use <code>fabs(a - b) &lt; 1e-9</code>.</div></li>
-  <li><div>Omitting braces: <code>if (x) foo(); bar();</code> — bar always runs. Second line is never inside the if.</div></li>
-</ol>
-
-<!-- ════════════════════════════════════════ -->
-<div class="session-label">Session 2 — User Input &amp; Exit Status</div>
-
-<h2>How Input Reaches Your Program</h2>
-<ol>
-  <li><div>Draw the path on the board: user types → stdin buffer (held until Enter) → scanf/fgets → your variable.</div></li>
-  <li><div>Explain that the buffer is the source of most input bugs. Input doesn't arrive character by character — it arrives in a batch when the user presses Enter.</div></li>
-</ol>
-
-<h2>scanf</h2>
-<ol>
-  <li><div>Write a basic scanf for an int. Show the &amp; — explain scanf needs an address to write into, not the value itself.</div></li>
-  <li><div>Show the return value. Ask: what does scanf return if the user types "abc" when you expect a number? Answer: 0. The variable is untouched and contains garbage.</div></li>
-  <li><div>State the rule: always check scanf's return value before using the variable.
+</div></li>
+<li><div>Mention <code>stdbool.h</code> gives you <code>bool</code>, <code>true</code>, <code>false</code> — but they're just aliases for 1 and 0. The underlying rule doesn't change.</div></li>
+<li><div>Show the comparison and logical operators. Call out <code>&amp;&amp;</code> and <code>||</code> specifically — explain short-circuit evaluation and why <code>if (ptr != NULL &amp;&amp; ptr-&gt;value &gt; 0)</code> is safe.</div></li>
+</ol><h2>if / else if / else</h2><ol>
+<li><div>Write a grade classifier — five lines of if/else if. Walk through how conditions are tested in order, first match wins, rest are skipped.</div></li>
+<li><div>Ask: what happens if <code>score &gt;= 60</code> is tested before <code>score &gt;= 90</code>? Answer: every A student gets labelled passing — the narrower case can never be reached. Order matters, most specific first.</div></li>
+<li><div>Show the ternary operator as a shorthand for simple two-outcome decisions. Explain when to use it and when not to.
+    <pre>int max = (a &gt; b) ? a : b;</pre>
+</div></li>
+</ol><h2>The Dangling else</h2><ol>
+<li><div>Write the misleading indentation version on the board — else that looks like it belongs to the outer if.</div></li>
+<li><div>Ask the class which if the else belongs to. Let them answer. Show that C binds it to the nearest preceding if.</div></li>
+<li><div>Fix it with braces. State the rule: always use braces, even for one-line bodies. It costs nothing and prevents this entire class of bug.</div></li>
+</ol><h2>switch</h2><ol>
+<li><div>Write a switch on a character command — q, h, r, default. Show it next to the equivalent if/else chain. Switch wins on readability when dispatching one variable to many known values.</div></li>
+<li><div>Ask: what happens if you remove the <code>break</code> from the 'q' case? Run it. Show it falls into the next case silently.</div></li>
+<li><div>Explain fall-through: without break, execution continues into the next case regardless of whether its label matches. Show the intentional stacked-case pattern for 'r' and 'R'.</div></li>
+<li><div>Warn: the compiler will not tell you about accidental fall-through by default. <code>-Wimplicit-fallthrough</code> helps. So do habits.</div></li>
+<li><div>State when to use switch vs. if/else: switch for one variable vs. many integer/character constants; if/else for ranges, floats, strings, or multi-variable conditions.</div></li>
+<li><div>Call out: <code>switch (str)</code> compares the pointer address, not the string content. Never switch on a string. Use <code>strcmp()</code> in an if/else chain.</div></li>
+</ol><h2>Pitfalls — Session 1</h2><ol>
+<li><div>= instead of ==: <code>if (x = 5)</code> is always true and sets x. Legal C. Compiler may not warn. Enable <code>-Wall</code>.</div></li>
+<li><div>Missing break in switch: the most common switch bug. Silent. Fix: add break, or comment <code>/* fall through */</code> if intentional.</div></li>
+<li><div>Comparing floats with ==: <code>0.1 + 0.2 == 0.3</code> is false. Use <code>fabs(a - b) &lt; 1e-9</code>.</div></li>
+<li><div>Omitting braces: <code>if (x) foo(); bar();</code> — bar always runs. Second line is never inside the if.</div></li>
+</ol><!-- ════════════════════════════════════════ --><div class="session-label">Session 2 — User Input &amp; Exit Status</div><h2>How Input Reaches Your Program</h2><ol>
+<li><div>Draw the path on the board: user types → stdin buffer (held until Enter) → scanf/fgets → your variable.</div></li>
+<li><div>Explain that the buffer is the source of most input bugs. Input doesn't arrive character by character — it arrives in a batch when the user presses Enter.</div></li>
+</ol><h2>scanf</h2><ol>
+<li><div>Write a basic scanf for an int. Show the &amp; — explain scanf needs an address to write into, not the value itself.</div></li>
+<li><div>Show the return value. Ask: what does scanf return if the user types "abc" when you expect a number? Answer: 0. The variable is untouched and contains garbage.</div></li>
+<li><div>State the rule: always check scanf's return value before using the variable.
     <pre>if (scanf("%d", &amp;age) != 1) {
     fprintf(stderr, "Error: expected a number\n");
     return 1;
 }</pre>
-  </div></li>
-  <li><div>Show the format specifier table: %d for int, %lf for double (not %f), %c for char, %s for string.</div></li>
-</ol>
-
-<h2>The Leftover Newline Problem</h2>
-<ol>
-  <li><div>Write a program that reads an int then a char. Run it. Show that the char read skips — it gets the \n from the previous Enter immediately.</div></li>
-  <li><div>Draw the buffer on the board: after <code>scanf("%d")</code> reads 42, the \n is still sitting there. The next read consumes it.</div></li>
-  <li><div>Show the fix: flush with <code>while (getchar() != '\n');</code> between the two reads.</div></li>
-  <li><div>Ask: when does this problem not occur? Answer: when you use fgets for everything — it reads the whole line including the newline, leaving the buffer clean for the next call.</div></li>
-</ol>
-
-<h2>fgets</h2>
-<ol>
-  <li><div>Explain why fgets is safer than <code>scanf("%s")</code>: respects buffer size, reads the full line including spaces, returns NULL on EOF.</div></li>
-  <li><div>Write fgets usage. Show the NULL check. Draw the buffer with "Alice\n\0" — fgets keeps the newline.</div></li>
-  <li><div>Show the newline strip immediately after reading.
+</div></li>
+<li><div>Show the format specifier table: %d for int, %lf for double (not %f), %c for char, %s for string.</div></li>
+</ol><h2>The Leftover Newline Problem</h2><ol>
+<li><div>Write a program that reads an int then a char. Run it. Show that the char read skips — it gets the \n from the previous Enter immediately.</div></li>
+<li><div>Draw the buffer on the board: after <code>scanf("%d")</code> reads 42, the \n is still sitting there. The next read consumes it.</div></li>
+<li><div>Show the fix: flush with <code>while (getchar() != '\n');</code> between the two reads.</div></li>
+<li><div>Ask: when does this problem not occur? Answer: when you use fgets for everything — it reads the whole line including the newline, leaving the buffer clean for the next call.</div></li>
+</ol><h2>fgets</h2><ol>
+<li><div>Explain why fgets is safer than <code>scanf("%s")</code>: respects buffer size, reads the full line including spaces, returns NULL on EOF.</div></li>
+<li><div>Write fgets usage. Show the NULL check. Draw the buffer with "Alice\n\0" — fgets keeps the newline.</div></li>
+<li><div>Show the newline strip immediately after reading.
     <pre>fgets(buf, sizeof(buf), stdin);
 buf[strcspn(buf, "\n")] = '\0';</pre>
-  </div></li>
-  <li><div>Ask: what goes wrong if you compare the buffer with strcmp before stripping the newline? Answer: <code>strcmp(buf, "quit")</code> fails because buf contains <code>"quit\n"</code>.</div></li>
-</ol>
-
-<h2>Branching on Input — Full Pattern</h2>
-<ol>
-  <li><div>Write the complete validated input pattern: prompt → fgets → NULL check → strip newline → strcmp branch.</div></li>
-  <li><div>Point out: error messages go to <code>fprintf(stderr, ...)</code>, not printf. Explain why — stdout and stderr are separate streams; errors should not mix with normal output, especially when piping.</div></li>
-  <li><div>Build the complete interactive command loop live. Let students suggest what commands to add.</div></li>
-</ol>
-
-<h2>Exit Status</h2>
-<ol>
-  <li><div>Ask: when your program finishes, who is listening? Answer: the shell. The shell captures the exit status in <code>$?</code> and uses it to decide what to do next.</div></li>
-  <li><div>State the convention: 0 = success. Anything else = failure. This is a universal Unix contract — every tool follows it.</div></li>
-  <li><div>Show both ways to exit: <code>return 0</code> from main, and <code>exit(0)</code> from anywhere. Show <code>EXIT_SUCCESS</code> and <code>EXIT_FAILURE</code> from stdlib.h.</div></li>
-  <li><div>Show <code>$?</code> in the terminal after running a program. Then show <code>&amp;&amp;</code> and <code>||</code> in shell — this is how programs compose.
+</div></li>
+<li><div>Ask: what goes wrong if you compare the buffer with strcmp before stripping the newline? Answer: <code>strcmp(buf, "quit")</code> fails because buf contains <code>"quit\n"</code>.</div></li>
+</ol><h2>Branching on Input — Full Pattern</h2><ol>
+<li><div>Write the complete validated input pattern: prompt → fgets → NULL check → strip newline → strcmp branch.</div></li>
+<li><div>Point out: error messages go to <code>fprintf(stderr, ...)</code>, not printf. Explain why — stdout and stderr are separate streams; errors should not mix with normal output, especially when piping.</div></li>
+<li><div>Build the complete interactive command loop live. Let students suggest what commands to add.</div></li>
+</ol><h2>Exit Status</h2><ol>
+<li><div>Ask: when your program finishes, who is listening? Answer: the shell. The shell captures the exit status in <code>$?</code> and uses it to decide what to do next.</div></li>
+<li><div>State the convention: 0 = success. Anything else = failure. This is a universal Unix contract — every tool follows it.</div></li>
+<li><div>Show both ways to exit: <code>return 0</code> from main, and <code>exit(0)</code> from anywhere. Show <code>EXIT_SUCCESS</code> and <code>EXIT_FAILURE</code> from stdlib.h.</div></li>
+<li><div>Show <code>$?</code> in the terminal after running a program. Then show <code>&amp;&amp;</code> and <code>||</code> in shell — this is how programs compose.
     <pre>./validate &amp;&amp; ./process   # process only runs if validate succeeds
 ./compile  || exit 1      # script stops if compile fails</pre>
-  </div></li>
-</ol>
-
-<h2>Pitfalls — Session 2</h2>
-<ol>
-  <li><div>Not checking scanf's return: program continues with garbage. Always check.</div></li>
-  <li><div>Leftover newline: mixed scanf/fgets reads break silently. Flush between them.</div></li>
-  <li><div>Buffer overflow with <code>scanf("%s")</code>: no length limit. Use <code>fgets</code> instead.</div></li>
-  <li><div>Not stripping fgets newline: strcmp always fails. Strip immediately after reading.</div></li>
-  <li><div>Infinite loop on bad scanf: failed parse leaves bad input in buffer. Next attempt fails on same characters. Flush before retrying.</div></li>
-  <li><div>Returning 0 on failure: misleads the shell. Return a non-zero code whenever the program fails to do what it was asked.</div></li>
-  <li><div>Errors to stdout: corrupts piped output. Always use stderr for diagnostics.</div></li>
-</ol>
-
-<h2>Wrap-up</h2>
-<ol>
-  <li><div>The three decisions in every input-handling function: did scanf succeed? is the value in range? what do I do with a bad value?</div></li>
-  <li><div>The two streams: stdout for output, stderr for errors. Non-zero exit for failure.</div></li>
-  <li><div>Bridge forward: fgets + strcmp is the foundation of every command parser and config file reader they will write. File I/O uses the same pattern — open file, read line, branch, repeat.</div></li>
-</ol>
-
+</div></li>
+</ol><h2>Pitfalls — Session 2</h2><ol>
+<li><div>Not checking scanf's return: program continues with garbage. Always check.</div></li>
+<li><div>Leftover newline: mixed scanf/fgets reads break silently. Flush between them.</div></li>
+<li><div>Buffer overflow with <code>scanf("%s")</code>: no length limit. Use <code>fgets</code> instead.</div></li>
+<li><div>Not stripping fgets newline: strcmp always fails. Strip immediately after reading.</div></li>
+<li><div>Infinite loop on bad scanf: failed parse leaves bad input in buffer. Next attempt fails on same characters. Flush before retrying.</div></li>
+<li><div>Returning 0 on failure: misleads the shell. Return a non-zero code whenever the program fails to do what it was asked.</div></li>
+<li><div>Errors to stdout: corrupts piped output. Always use stderr for diagnostics.</div></li>
+</ol><h2>Wrap-up</h2><ol>
+<li><div>The three decisions in every input-handling function: did scanf succeed? is the value in range? what do I do with a bad value?</div></li>
+<li><div>The two streams: stdout for output, stderr for errors. Non-zero exit for failure.</div></li>
+<li><div>Bridge forward: fgets + strcmp is the foundation of every command parser and config file reader they will write. File I/O uses the same pattern — open file, read line, branch, repeat.</div></li>
+</ol></main>
 </body>
 </html>
