@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 1: The ProcEntry Type — myps Final Project</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --code-bg: #0a0f1a;
+    --accent-main: var(--accent-cyan);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-main); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+  .hero { padding: 80px 40px 60px; max-width: 980px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-main); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 680px; line-height: 1.6; }
+  .content { max-width: 980px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 20px; padding-top: 16px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-main); letter-spacing: 1px; text-transform: uppercase; margin: 36px 0 14px; }
+  p { margin-bottom: 18px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 22px 26px; margin: 22px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 14.5px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-yellow); }
+  .key-concept { background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(105,240,174,0.04)); border-left: 3px solid var(--accent-cyan); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-cyan); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .deeper { background: rgba(179,136,255,0.04); border-left: 3px solid var(--accent-purple); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .deeper strong { color: var(--accent-purple); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .pagefoot { display: flex; justify-content: space-between; gap: 16px; margin-top: 60px; padding-top: 32px; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .pagefoot a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; padding: 12px 0; }
+  .pagefoot a:hover { color: var(--accent-main); }
+  .pagefoot .next { text-align: right; }
+  .pagefoot .label { display: block; font-size: 11px; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
+  .pagefoot .title-line { color: var(--text); }
+  @media (max-width: 700px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">2 / 5</span>
+  <span>myps Final Project</span>
+  <div class="nav-links">
+    <a href="../index.html">← Course</a>
+    <a href="myps-01-orientation.html">Orientation</a>
+    <a href="myps-02-procentry.html" class="active">ProcEntry</a>
+    <a href="myps-03-directory.html">Directory</a>
+    <a href="myps-04-assembly.html">Assembly</a>
+    <a href="myps-05-testing.html">Testing</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="number">Part 1 — The ProcEntry Type</div>
+  <h1>One <span class="highlight">struct</span>, one parser</h1>
+  <p class="subtitle">Build the data type that represents a single process. Implement Create/Destroy. Parse a stat file into the struct. Then prove all of it is correct with unit tests that pass under valgrind.</p>
+</section>
+
+<main class="content">
+
+<h2>Read the header first</h2>
+<p>Before you write a single line of <code>ProcEntry.c</code>, open <code>ProcEntry.h</code> and read every line — including every comment block above every function declaration. The header is a <em>contract</em>. Your implementation has to honor it exactly, because the grader compiles its tests against this exact header file.</p>
+
+<p>You'll find a struct that looks substantially like this, plus four function declarations:</p>
+
+<pre><span class="kw">typedef struct</span> {
+    <span class="type">int</span> process_id;
+    <span class="type">int</span> parent_process_id;
+    <span class="type">char</span> *comm;                       <span class="comment">// heap-allocated string, includes the parens</span>
+    <span class="type">char</span> state;
+    <span class="type">unsigned long int</span> utime;
+    <span class="type">unsigned long int</span> stime;
+    <span class="type">long int</span> number_of_threads;
+    <span class="type">char</span> *path;                       <span class="comment">// heap-allocated string</span>
+} ProcEntry;
+
+ProcEntry *<span class="func">CreateProcEntry</span>(<span class="type">int</span> pid, <span class="type">int</span> ppid, <span class="type">char</span> *comm,
+                           <span class="type">char</span> state, <span class="type">unsigned long</span> utime,
+                           <span class="type">unsigned long</span> stime, <span class="type">long</span> num_threads,
+                           <span class="type">char</span> *path);
+
+<span class="kw">void</span>       <span class="func">DestroyProcEntry</span>(ProcEntry *entry);
+ProcEntry *<span class="func">CreateProcEntryFromFile</span>(<span class="type">char</span> *file);
+<span class="kw">void</span>       <span class="func">PrintProcEntry</span>(ProcEntry *entry);</pre>
+
+<div class="warning">
+  <strong>Do not modify ProcEntry.h</strong>
+  Even small "improvements" — adding fields, renaming a parameter, changing a type from <code>long</code> to <code>int</code> — will break the grader's tests. The header is frozen. If you find yourself wanting to change it, you're solving the wrong problem.
+</div>
+
+<h2>The Create/Destroy pattern</h2>
+<p>This is the same pattern from Lab09 and Lab10. The idea is that every heap-allocated type gets a paired pair of constructor and destructor functions, and <em>they are the only places that touch the heap</em> for that type. <code>Create</code> allocates and initializes; <code>Destroy</code> tears down in reverse order. No other code in the program ever calls <code>malloc</code> or <code>free</code> on a <code>ProcEntry</code>.</p>
+
+<div class="diagram-container">
+<svg viewBox="0 0 860 360" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:860px; display:block; margin:0 auto;">
+  <defs>
+    <marker id="ar-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#00e5ff"/>
+    </marker>
+    <marker id="ar-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ff5252"/>
+    </marker>
+  </defs>
+
+  <text x="430" y="24" text-anchor="middle" fill="#00e5ff" font-size="12" letter-spacing="2.5">CREATE / DESTROY LIFECYCLE</text>
+
+  <!-- Left: Create -->
+  <text x="120" y="64" text-anchor="middle" fill="#69f0ae" font-size="11" letter-spacing="2">CreateProcEntry()</text>
+
+  <rect x="20" y="80" width="200" height="48" rx="6" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1.5"/>
+  <text x="120" y="100" text-anchor="middle" fill="#e8f0fe" font-size="12">malloc ProcEntry</text>
+  <text x="120" y="116" text-anchor="middle" fill="#6b7fa3" font-size="10">sizeof(ProcEntry) bytes</text>
+
+  <line x1="120" y1="128" x2="120" y2="148" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#ar-c)"/>
+
+  <rect x="20" y="152" width="200" height="48" rx="6" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1.5"/>
+  <text x="120" y="172" text-anchor="middle" fill="#e8f0fe" font-size="12">strdup(comm)</text>
+  <text x="120" y="188" text-anchor="middle" fill="#6b7fa3" font-size="10">heap copy of the name</text>
+
+  <line x1="120" y1="200" x2="120" y2="220" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#ar-c)"/>
+
+  <rect x="20" y="224" width="200" height="48" rx="6" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1.5"/>
+  <text x="120" y="244" text-anchor="middle" fill="#e8f0fe" font-size="12">strdup(path)</text>
+  <text x="120" y="260" text-anchor="middle" fill="#6b7fa3" font-size="10">heap copy of the path</text>
+
+  <line x1="120" y1="272" x2="120" y2="292" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#ar-c)"/>
+
+  <rect x="20" y="296" width="200" height="48" rx="6" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1.5"/>
+  <text x="120" y="316" text-anchor="middle" fill="#e8f0fe" font-size="12">copy scalar fields</text>
+  <text x="120" y="332" text-anchor="middle" fill="#6b7fa3" font-size="10">pid, ppid, state, times, threads</text>
+
+  <!-- middle: alive / used -->
+  <rect x="280" y="120" width="280" height="160" rx="8" fill="rgba(0,229,255,0.05)" stroke="#00e5ff" stroke-width="2"/>
+  <text x="420" y="148" text-anchor="middle" fill="#00e5ff" font-size="11" letter-spacing="2">ALIVE</text>
+  <text x="420" y="172" text-anchor="middle" fill="#e8f0fe" font-size="13">PrintProcEntry()</text>
+  <text x="420" y="192" text-anchor="middle" fill="#e8f0fe" font-size="13">read fields</text>
+  <text x="420" y="212" text-anchor="middle" fill="#e8f0fe" font-size="13">store in array</text>
+  <text x="420" y="232" text-anchor="middle" fill="#e8f0fe" font-size="13">qsort comparators</text>
+  <text x="420" y="262" text-anchor="middle" fill="#6b7fa3" font-size="10">no allocation here</text>
+
+  <line x1="220" y1="200" x2="278" y2="200" stroke="#00e5ff" stroke-width="2" marker-end="url(#ar-c)"/>
+  <line x1="562" y1="200" x2="618" y2="200" stroke="#ff5252" stroke-width="2" marker-end="url(#ar-r)"/>
+
+  <!-- right: Destroy (reverse) -->
+  <text x="720" y="64" text-anchor="middle" fill="#ff5252" font-size="11" letter-spacing="2">DestroyProcEntry()</text>
+
+  <rect x="620" y="80" width="200" height="48" rx="6" fill="#0a0f1a" stroke="#ff5252" stroke-width="1.5"/>
+  <text x="720" y="100" text-anchor="middle" fill="#e8f0fe" font-size="12">free(entry-&gt;comm)</text>
+  <text x="720" y="116" text-anchor="middle" fill="#6b7fa3" font-size="10">strings before struct</text>
+
+  <line x1="720" y1="128" x2="720" y2="148" stroke="#ff5252" stroke-width="1.5" marker-end="url(#ar-r)"/>
+
+  <rect x="620" y="152" width="200" height="48" rx="6" fill="#0a0f1a" stroke="#ff5252" stroke-width="1.5"/>
+  <text x="720" y="172" text-anchor="middle" fill="#e8f0fe" font-size="12">free(entry-&gt;path)</text>
+  <text x="720" y="188" text-anchor="middle" fill="#6b7fa3" font-size="10">other heap string</text>
+
+  <line x1="720" y1="200" x2="720" y2="220" stroke="#ff5252" stroke-width="1.5" marker-end="url(#ar-r)"/>
+
+  <rect x="620" y="224" width="200" height="48" rx="6" fill="#0a0f1a" stroke="#ff5252" stroke-width="1.5"/>
+  <text x="720" y="244" text-anchor="middle" fill="#e8f0fe" font-size="12">free(entry)</text>
+  <text x="720" y="260" text-anchor="middle" fill="#6b7fa3" font-size="10">struct itself last</text>
+</svg>
+<div class="caption">Allocate inside-out, free outside-in. Reversal is the rule.</div>
+</div>
+
+<div class="key-concept">
+  <strong>Order matters</strong>
+  In <code>Destroy</code>, free the strings <em>before</em> you free the struct. If you free the struct first, you've lost the pointers to the strings — that's a leak. This is the same rule from linked-list cleanup: free children before parents.
+</div>
+
+<h2>CreateProcEntry — the constructor</h2>
+<p>Allocate the struct, allocate copies of the strings, copy the scalar fields. Note that we <em>copy</em> the strings — we don't store the caller's pointers, because we have no idea what the caller's lifetime is. Owning a heap copy gives <code>Destroy</code> a clean target to <code>free</code>.</p>
+
+<pre><span class="comment">// ProcEntry.c</span>
+<span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="str">"ProcEntry.h"</span>
+
+ProcEntry *<span class="func">CreateProcEntry</span>(<span class="type">int</span> pid, <span class="type">int</span> ppid, <span class="type">char</span> *comm,
+                           <span class="type">char</span> state, <span class="type">unsigned long</span> utime,
+                           <span class="type">unsigned long</span> stime, <span class="type">long</span> num_threads,
+                           <span class="type">char</span> *path)
+{
+    <span class="kw">if</span> (comm == <span class="kw">NULL</span> || path == <span class="kw">NULL</span>) {
+        <span class="func">fprintf</span>(stderr, <span class="str">"CreateProcEntry: NULL string argument\n"</span>);
+        <span class="kw">return</span> <span class="kw">NULL</span>;
+    }
+
+    ProcEntry *entry = <span class="func">malloc</span>(<span class="kw">sizeof</span>(ProcEntry));
+    <span class="kw">if</span> (entry == <span class="kw">NULL</span>) {
+        <span class="func">fprintf</span>(stderr, <span class="str">"CreateProcEntry: malloc failed\n"</span>);
+        <span class="kw">return</span> <span class="kw">NULL</span>;
+    }
+
+    entry-&gt;comm = <span class="func">strdup</span>(comm);
+    entry-&gt;path = <span class="func">strdup</span>(path);
+    <span class="kw">if</span> (entry-&gt;comm == <span class="kw">NULL</span> || entry-&gt;path == <span class="kw">NULL</span>) {
+        <span class="func">free</span>(entry-&gt;comm);          <span class="comment">// free(NULL) is a no-op, safe</span>
+        <span class="func">free</span>(entry-&gt;path);
+        <span class="func">free</span>(entry);
+        <span class="kw">return</span> <span class="kw">NULL</span>;
+    }
+
+    entry-&gt;process_id        = pid;
+    entry-&gt;parent_process_id = ppid;
+    entry-&gt;state             = state;
+    entry-&gt;utime             = utime;
+    entry-&gt;stime             = stime;
+    entry-&gt;number_of_threads = num_threads;
+
+    <span class="kw">return</span> entry;
+}</pre>
+
+<div class="key-concept">
+  <strong>Why <code>strdup</code>?</strong>
+  <code>strdup</code> is <code>malloc</code> + <code>strcpy</code> in one call. It allocates exactly enough memory to hold the string (including the null terminator) and returns a heap pointer you own. The matching cleanup is plain <code>free</code> — there is no <code>strfree</code>. If <code>strdup</code> returns <code>NULL</code>, the allocation failed; bail out and clean up whatever you've already allocated.
+</div>
+
+<h2>DestroyProcEntry — the destructor</h2>
+<p>Mirror of <code>Create</code>. Free strings, then free the struct. Tolerate a NULL argument because callers will sometimes pass back the result of a failed <code>Create</code>:</p>
+
+<pre><span class="kw">void</span> <span class="func">DestroyProcEntry</span>(ProcEntry *entry)
+{
+    <span class="kw">if</span> (entry == <span class="kw">NULL</span>) <span class="kw">return</span>;     <span class="comment">// safe to call with NULL</span>
+    <span class="func">free</span>(entry-&gt;comm);
+    <span class="func">free</span>(entry-&gt;path);
+    <span class="func">free</span>(entry);
+}</pre>
+
+<div class="warning">
+  <strong>Don't double-free</strong>
+  Once you call <code>DestroyProcEntry(p)</code>, the pointer <code>p</code> is dangling — it points at memory you don't own anymore. Setting <code>p = NULL</code> after destroy is good hygiene if you'll keep the variable in scope.
+</div>
+
+<h2>The stat file parser</h2>
+<p>This is the trickiest function in the whole project. You need to:</p>
+<ol style="margin: 12px 0 22px 28px;">
+  <li style="margin-bottom: 6px;">Open the file (handle missing or unreadable files cleanly).</li>
+  <li style="margin-bottom: 6px;">Parse seven specific fields out of fifty-something space-separated values.</li>
+  <li style="margin-bottom: 6px;">Build a comm string with the parens included (the kernel doesn't include them in field 2 directly when you parse with <code>%[^)]</code> — you have to add them).</li>
+  <li style="margin-bottom: 6px;">Hand the parsed values off to <code>CreateProcEntry</code> and return the result.</li>
+  <li style="margin-bottom: 6px;">Handle every failure path without leaking.</li>
+</ol>
+
+<h3>The fscanf format string</h3>
+<p>The trick is using <code>%*</code> (with no destination) to skip fields. The full sequence reading fields 1–4, then skipping 5–13, then reading 14–15, then skipping 16–19, then reading 20:</p>
+
+<pre><span class="comment">// fields:  1   2       3   4    5  6  7  8  9   10   11   12   13   14   15   16   17   18   19   20</span>
+<span class="comment">// types:  %d  (%s)    %c  %d  %d %d %d %d %u  %lu  %lu  %lu  %lu  %lu  %lu  %ld  %ld  %ld  %ld  %ld</span>
+<span class="kw">const char</span> *fmt = <span class="str">"%d (%[^)]) %c %d "</span>
+                   <span class="str">"%*d %*d %*d %*d %*u "</span>
+                   <span class="str">"%*lu %*lu %*lu %*lu "</span>
+                   <span class="str">"%lu %lu "</span>
+                   <span class="str">"%*ld %*ld %*ld %*ld "</span>
+                   <span class="str">"%ld"</span>;</pre>
+
+<div class="key-concept">
+  <strong>The <code>%[^)]</code> trick</strong>
+  This is a scanset: "match any character that isn't <code>)</code>." It reads the comm field up to but not including the closing paren. The literal <code>(</code> and <code>)</code> in the format string match the surrounding parens in the file. After the parse, the captured string has <em>no</em> parens — you'll add them back when building the comm string for the struct.
+</div>
+
+<h3>Putting it together</h3>
+
+<pre>ProcEntry *<span class="func">CreateProcEntryFromFile</span>(<span class="type">char</span> *file)
+{
+    <span class="kw">if</span> (file == <span class="kw">NULL</span>) {
+        <span class="func">fprintf</span>(stderr, <span class="str">"CreateProcEntryFromFile: NULL path\n"</span>);
+        <span class="kw">return</span> <span class="kw">NULL</span>;
+    }
+
+    FILE *fp = <span class="func">fopen</span>(file, <span class="str">"r"</span>);
+    <span class="kw">if</span> (fp == <span class="kw">NULL</span>) {
+        <span class="func">perror</span>(<span class="str">"CreateProcEntryFromFile"</span>);     <span class="comment">// "...: No such file or directory"</span>
+        <span class="kw">return</span> <span class="kw">NULL</span>;
+    }
+
+    <span class="type">int</span>  pid = <span class="num">0</span>, ppid = <span class="num">0</span>;
+    <span class="type">char</span> state = <span class="str">'?'</span>;
+    <span class="type">char</span> comm_raw[<span class="num">256</span>];
+    <span class="type">unsigned long</span> utime = <span class="num">0</span>, stime = <span class="num">0</span>;
+    <span class="type">long</span> num_threads = <span class="num">0</span>;
+
+    <span class="kw">const char</span> *fmt = <span class="str">"%d (%255[^)]) %c %d "</span>
+                       <span class="str">"%*d %*d %*d %*d %*u "</span>
+                       <span class="str">"%*lu %*lu %*lu %*lu "</span>
+                       <span class="str">"%lu %lu "</span>
+                       <span class="str">"%*ld %*ld %*ld %*ld "</span>
+                       <span class="str">"%ld"</span>;
+
+    <span class="type">int</span> matched = <span class="func">fscanf</span>(fp, fmt,
+                         &amp;pid, comm_raw, &amp;state, &amp;ppid,
+                         &amp;utime, &amp;stime,
+                         &amp;num_threads);
+    <span class="func">fclose</span>(fp);
+
+    <span class="kw">if</span> (matched != <span class="num">7</span>) {
+        <span class="func">fprintf</span>(stderr, <span class="str">"CreateProcEntryFromFile: bad format in %s\n"</span>, file);
+        <span class="kw">return</span> <span class="kw">NULL</span>;
+    }
+
+    <span class="comment">// Re-wrap comm in parens so the print output matches "(systemd)" format.</span>
+    <span class="type">char</span> comm_wrapped[<span class="num">258</span>];
+    <span class="func">snprintf</span>(comm_wrapped, <span class="kw">sizeof</span>(comm_wrapped), <span class="str">"(%s)"</span>, comm_raw);
+
+    <span class="kw">return</span> <span class="func">CreateProcEntry</span>(pid, ppid, comm_wrapped, state,
+                            utime, stime, num_threads, file);
+}</pre>
+
+<div class="diagram-container">
+<svg viewBox="0 0 860 320" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:860px; display:block; margin:0 auto;">
+  <defs>
+    <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#00e5ff"/>
+    </marker>
+  </defs>
+
+  <text x="430" y="22" text-anchor="middle" fill="#00e5ff" font-size="12" letter-spacing="2.5">PARSE PIPELINE</text>
+
+  <!-- raw line -->
+  <rect x="20" y="50" width="820" height="36" rx="4" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+  <text x="34" y="73" font-family="monospace" font-size="11" fill="#c8d6e5">
+    <tspan fill="#ffab40">1</tspan>
+    <tspan fill="#6b7fa3"> </tspan>
+    <tspan fill="#ffab40">(systemd)</tspan>
+    <tspan fill="#6b7fa3"> </tspan>
+    <tspan fill="#ffab40">S</tspan>
+    <tspan fill="#6b7fa3"> </tspan>
+    <tspan fill="#ffab40">0</tspan>
+    <tspan fill="#6b7fa3"> 0 0 0 -1 4194560 31729 12442 87 11 </tspan>
+    <tspan fill="#ffab40">73</tspan>
+    <tspan fill="#6b7fa3"> </tspan>
+    <tspan fill="#ffab40">298</tspan>
+    <tspan fill="#6b7fa3"> 13 39 20 0 </tspan>
+    <tspan fill="#ffab40">1</tspan>
+    <tspan fill="#6b7fa3"> 0 11 ...</tspan>
+  </text>
+  <text x="34" y="42" fill="#6b7fa3" font-size="10" letter-spacing="1">RAW · /proc/1/stat</text>
+
+  <!-- arrow -->
+  <line x1="430" y1="92" x2="430" y2="116" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#ar3)"/>
+  <text x="442" y="108" fill="#00e5ff" font-size="10">fscanf</text>
+
+  <!-- format string -->
+  <rect x="20" y="120" width="820" height="36" rx="4" fill="#0a0f1a" stroke="#00e5ff" stroke-width="1"/>
+  <text x="34" y="142" font-family="monospace" font-size="11" fill="#c8d6e5">
+    <tspan fill="#69f0ae">"%d (%[^)]) %c %d  </tspan>
+    <tspan fill="#6b7fa3">%*d %*d %*d %*d %*u %*lu %*lu %*lu %*lu  </tspan>
+    <tspan fill="#69f0ae">%lu %lu  </tspan>
+    <tspan fill="#6b7fa3">%*ld %*ld %*ld %*ld  </tspan>
+    <tspan fill="#69f0ae">%ld"</tspan>
+  </text>
+  <text x="34" y="112" fill="#00e5ff" font-size="10" letter-spacing="1">FORMAT · green = capture, gray = skip</text>
+
+  <line x1="430" y1="162" x2="430" y2="186" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+  <!-- 7 captured values -->
+  <rect x="20" y="190" width="820" height="44" rx="4" fill="#0a0f1a" stroke="#00e5ff" stroke-width="1"/>
+  <text x="34" y="182" fill="#00e5ff" font-size="10" letter-spacing="1">CAPTURED · 7 values into local variables</text>
+  <g font-family="monospace" font-size="11">
+    <text x="40" y="208" fill="#6b7fa3">pid=</text><text x="68" y="208" fill="#e8f0fe">1</text>
+    <text x="100" y="208" fill="#6b7fa3">comm_raw=</text><text x="160" y="208" fill="#e8f0fe">"systemd"</text>
+    <text x="240" y="208" fill="#6b7fa3">state=</text><text x="280" y="208" fill="#e8f0fe">'S'</text>
+    <text x="320" y="208" fill="#6b7fa3">ppid=</text><text x="354" y="208" fill="#e8f0fe">0</text>
+    <text x="380" y="208" fill="#6b7fa3">utime=</text><text x="418" y="208" fill="#e8f0fe">73</text>
+    <text x="460" y="208" fill="#6b7fa3">stime=</text><text x="498" y="208" fill="#e8f0fe">298</text>
+    <text x="550" y="208" fill="#6b7fa3">num_threads=</text><text x="630" y="208" fill="#e8f0fe">1</text>
+  </g>
+  <text x="40" y="226" font-family="monospace" font-size="10" fill="#b388ff">snprintf(comm_wrapped, ..., "(%s)", comm_raw)  →  comm_wrapped = "(systemd)"</text>
+
+  <line x1="430" y1="238" x2="430" y2="260" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#ar3)"/>
+
+  <!-- final call -->
+  <rect x="200" y="264" width="460" height="42" rx="6" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1.5"/>
+  <text x="430" y="291" text-anchor="middle" font-family="monospace" font-size="12" fill="#e8f0fe">
+    CreateProcEntry(<tspan fill="#ffab40">1</tspan>, <tspan fill="#ffab40">0</tspan>, <tspan fill="#69f0ae">"(systemd)"</tspan>, <tspan fill="#ffab40">'S'</tspan>, <tspan fill="#ffab40">73</tspan>, <tspan fill="#ffab40">298</tspan>, <tspan fill="#ffab40">1</tspan>, file)
+  </text>
+</svg>
+<div class="caption">fscanf as a sieve: keep what you need, skip the rest.</div>
+</div>
+
+<div class="deeper">
+  <strong>Going deeper — the parens edge case</strong>
+  A truly robust parser would handle a comm field like <code>(weird (program))</code> by finding the <em>last</em> close-paren in the line, not the first. The CS253 test data doesn't include any such names, so <code>%[^)]</code> is sufficient here. If you ever build the real <code>ps</code> for production, though, this is one of the classic gotchas — read the line into a buffer first, find the last <code>)</code>, then parse around it.
+</div>
+
+<h2>PrintProcEntry — provided verbatim</h2>
+<p>Copy this exactly. The grader's integration tests will diff your output character-for-character against the reference, so the format string is non-negotiable:</p>
+
+<pre><span class="kw">void</span> <span class="func">PrintProcEntry</span>(ProcEntry *entry)
+{
+    <span class="type">unsigned long int</span> utime = entry-&gt;utime / <span class="func">sysconf</span>(_SC_CLK_TCK);
+    <span class="type">unsigned long int</span> stime = entry-&gt;stime / <span class="func">sysconf</span>(_SC_CLK_TCK);
+    <span class="func">fprintf</span>(stdout, <span class="str">"%7d %7d %5c %5lu %5lu %7ld %-25s %-20s\n"</span>,
+            entry-&gt;process_id,
+            entry-&gt;parent_process_id,
+            entry-&gt;state,
+            utime,
+            stime,
+            entry-&gt;number_of_threads,
+            entry-&gt;comm,
+            entry-&gt;path);
+}</pre>
+
+<div class="key-concept">
+  <strong>What <code>sysconf(_SC_CLK_TCK)</code> does</strong>
+  The kernel reports CPU times in <em>clock ticks</em>, not seconds. The number of ticks per second varies by system (commonly 100, but not guaranteed). Dividing by <code>sysconf(_SC_CLK_TCK)</code> converts to seconds. You don't have to memorize this — the function is provided exactly as-is.
+</div>
+
+<h2>Unit tests in mytests.c</h2>
+<p>Worth 40 points. The pattern from Lab09/10 still applies: a series of tiny functions, each exercising one behavior, each printing a "passed" message on success. Aim for 80–90% coverage of <code>ProcEntry.c</code>.</p>
+
+<p>The project description lists these specific test cases, which means the grader's tests will look similar — your tests should cover at least these scenarios:</p>
+
+<pre><span class="comment">// mytests.c</span>
+<span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;assert.h&gt;</span>
+<span class="kw">#include</span> <span class="str">"ProcEntry.h"</span>
+
+<span class="kw">static void</span> <span class="func">test_create_destroy</span>(<span class="kw">void</span>)
+{
+    ProcEntry *p = <span class="func">CreateProcEntry</span>(<span class="num">42</span>, <span class="num">1</span>, <span class="str">"(test)"</span>, <span class="str">'S'</span>,
+                                   <span class="num">100</span>, <span class="num">200</span>, <span class="num">3</span>, <span class="str">"/tmp/fake/stat"</span>);
+    <span class="func">assert</span>(p != <span class="kw">NULL</span>);
+    <span class="func">assert</span>(p-&gt;process_id == <span class="num">42</span>);
+    <span class="func">assert</span>(p-&gt;parent_process_id == <span class="num">1</span>);
+    <span class="func">assert</span>(<span class="func">strcmp</span>(p-&gt;comm, <span class="str">"(test)"</span>) == <span class="num">0</span>);
+    <span class="func">assert</span>(p-&gt;state == <span class="str">'S'</span>);
+    <span class="func">assert</span>(p-&gt;utime == <span class="num">100</span>);
+    <span class="func">assert</span>(p-&gt;stime == <span class="num">200</span>);
+    <span class="func">assert</span>(p-&gt;number_of_threads == <span class="num">3</span>);
+    <span class="func">assert</span>(<span class="func">strcmp</span>(p-&gt;path, <span class="str">"/tmp/fake/stat"</span>) == <span class="num">0</span>);
+    <span class="func">DestroyProcEntry</span>(p);
+    <span class="func">printf</span>(<span class="str">"Create/Destroy Test passed\n"</span>);
+}
+
+<span class="kw">static void</span> <span class="func">test_create_from_file</span>(<span class="kw">void</span>)
+{
+    ProcEntry *p = <span class="func">CreateProcEntryFromFile</span>(<span class="str">"test_proc/999/stat"</span>);
+    <span class="func">assert</span>(p != <span class="kw">NULL</span>);
+    <span class="func">assert</span>(p-&gt;process_id == <span class="num">999</span>);
+    <span class="func">assert</span>(<span class="func">strcmp</span>(p-&gt;comm, <span class="str">"(gmain)"</span>) == <span class="num">0</span>);
+    <span class="func">DestroyProcEntry</span>(p);
+    <span class="func">printf</span>(<span class="str">"CreateFromFile/Destroy Test passed\n"</span>);
+}
+
+<span class="kw">static void</span> <span class="func">test_create_from_file_print</span>(<span class="kw">void</span>)
+{
+    ProcEntry *p = <span class="func">CreateProcEntryFromFile</span>(<span class="str">"test_proc/999/stat"</span>);
+    <span class="func">assert</span>(p != <span class="kw">NULL</span>);
+    <span class="func">PrintProcEntry</span>(p);                 <span class="comment">// visual sanity check</span>
+    <span class="func">DestroyProcEntry</span>(p);
+    <span class="func">printf</span>(<span class="str">"CreateFromFile/Print/Destroy Test passed\n"</span>);
+}
+
+<span class="kw">static void</span> <span class="func">test_null_path</span>(<span class="kw">void</span>)
+{
+    ProcEntry *p = <span class="func">CreateProcEntryFromFile</span>(<span class="kw">NULL</span>);
+    <span class="func">assert</span>(p == <span class="kw">NULL</span>);            <span class="comment">// must not crash, must return NULL</span>
+    <span class="func">printf</span>(<span class="str">"CreateFromFile NULL Test passed\n"</span>);
+}
+
+<span class="kw">static void</span> <span class="func">test_missing_file</span>(<span class="kw">void</span>)
+{
+    ProcEntry *p = <span class="func">CreateProcEntryFromFile</span>(<span class="str">"/no/such/path/stat"</span>);
+    <span class="func">assert</span>(p == <span class="kw">NULL</span>);
+    <span class="func">printf</span>(<span class="str">"CreateFromFile DoesNotExist Test passed\n"</span>);
+}
+
+<span class="kw">static void</span> <span class="func">test_invalid_format</span>(<span class="kw">void</span>)
+{
+    <span class="comment">// test_proc/bogus/stat contains a non-stat line, e.g. "this is not a stat file"</span>
+    ProcEntry *p = <span class="func">CreateProcEntryFromFile</span>(<span class="str">"test_proc/bogus/stat"</span>);
+    <span class="func">assert</span>(p == <span class="kw">NULL</span>);
+    <span class="func">printf</span>(<span class="str">"CreateFromFile InvalidFormat Test passed\n"</span>);
+}
+
+<span class="type">int</span> <span class="func">main</span>(<span class="kw">void</span>)
+{
+    <span class="func">test_create_destroy</span>();
+    <span class="func">test_create_from_file</span>();
+    <span class="func">test_create_from_file_print</span>();
+    <span class="func">test_null_path</span>();
+    <span class="func">test_missing_file</span>();
+    <span class="func">test_invalid_format</span>();
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+<div class="key-concept">
+  <strong>The test_proc fixtures</strong>
+  Make a small directory tree alongside your project: <code>test_proc/999/stat</code> with a real-looking stat line, <code>test_proc/bogus/stat</code> with garbage. Commit these to the repo so the tests are reproducible. Don't rely on real <code>/proc</code> for unit tests — process 999 might not exist on the grader's machine.
+</div>
+
+<h2>Run it under valgrind</h2>
+<p>The provided Makefile gives you <code>memtest-mytests</code>. Run it after every meaningful change:</p>
+
+<pre>$ make memtest-mytests
+valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./mytests
+==12345== Memcheck, a memory error detector
+...
+Create/Destroy Test passed
+CreateFromFile/Destroy Test passed
+CreateFromFile/Print/Destroy Test passed
+CreateFromFile NULL Test passed
+CreateProcEntryFromFile: No such file or directory
+CreateFromFile DoesNotExist Test passed
+CreateFromFile InvalidFormat Test passed
+==12345== HEAP SUMMARY:
+==12345==     in use at exit: <span style="color:#69f0ae">0 bytes in 0 blocks</span>
+==12345==   total heap usage: 16 allocs, 16 frees, 15,478 bytes allocated
+==12345== <span style="color:#69f0ae">All heap blocks were freed -- no leaks are possible</span>
+==12345== ERROR SUMMARY: <span style="color:#69f0ae">0 errors from 0 contexts</span></pre>
+
+<div class="warning">
+  <strong>Three numbers must match</strong>
+  "in use at exit: <strong>0 bytes</strong>", allocs <strong>= frees</strong>, and "ERROR SUMMARY: <strong>0 errors</strong>". If any of these is off, you have a leak or an invalid access — fix it before committing. Page 5 covers reading valgrind output in more depth.
+</div>
+
+<h2>Checkpoint</h2>
+<p>You should have a working <code>ProcEntry.c</code>, a passing <code>mytests.c</code> with at least the six tests above, and zero valgrind issues. Commit and push:</p>
+
+<pre>$ git add ProcEntry.c mytests.c test_proc/
+$ git commit -m <span class="str">"Part 1 complete: ProcEntry implementation + unit tests"</span>
+$ git push</pre>
+
+<p>Onwards to walking the directory.</p>
+
+<div class="pagefoot">
+  <a href="myps-01-orientation.html"><span class="label">← Part 0</span><span class="title-line">Orientation</span></a>
+  <a class="next" href="myps-03-directory.html"><span class="label">Part 2 →</span><span class="title-line">Walking the directory</span></a>
+</div>
+
+</main>
+</body>
+</html>

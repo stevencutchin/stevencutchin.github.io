@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 3: Assembly, Sort, Display — myps Final Project</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --code-bg: #0a0f1a;
+    --accent-main: var(--accent-cyan);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-main); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+  .hero { padding: 80px 40px 60px; max-width: 980px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-main); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 680px; line-height: 1.6; }
+  .content { max-width: 980px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 20px; padding-top: 16px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-main); letter-spacing: 1px; text-transform: uppercase; margin: 36px 0 14px; }
+  p { margin-bottom: 18px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 22px 26px; margin: 22px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 14.5px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-yellow); }
+  .key-concept { background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(105,240,174,0.04)); border-left: 3px solid var(--accent-cyan); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-cyan); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .deeper { background: rgba(179,136,255,0.04); border-left: 3px solid var(--accent-purple); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .deeper strong { color: var(--accent-purple); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .pagefoot { display: flex; justify-content: space-between; gap: 16px; margin-top: 60px; padding-top: 32px; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .pagefoot a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; padding: 12px 0; }
+  .pagefoot a:hover { color: var(--accent-main); }
+  .pagefoot .next { text-align: right; }
+  .pagefoot .label { display: block; font-size: 11px; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
+  .pagefoot .title-line { color: var(--text); }
+  @media (max-width: 700px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">4 / 5</span>
+  <span>myps Final Project</span>
+  <div class="nav-links">
+    <a href="../index.html">← Course</a>
+    <a href="myps-01-orientation.html">Orientation</a>
+    <a href="myps-02-procentry.html">ProcEntry</a>
+    <a href="myps-03-directory.html">Directory</a>
+    <a href="myps-04-assembly.html" class="active">Assembly</a>
+    <a href="myps-05-testing.html">Testing</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="number">Part 3 — Assembly, Sort, Display</div>
+  <h1>An <span class="highlight">array</span> of pointers, sorted</h1>
+  <p class="subtitle">Take the dirent list from Part 2, build a <code>ProcEntry</code> for each PID, sort the array with a comparator chosen at runtime, print the column-aligned output, and free everything cleanly. The whole project lands here.</p>
+</section>
+
+<main class="content">
+
+<h2>Allocate the ProcEntry array</h2>
+<p>You have <code>n</code> dirent pointers. You need an array of <code>n</code> <code>ProcEntry</code> pointers. Allocate that array first, before the loop that fills it:</p>
+
+<pre>ProcEntry **myprocs = <span class="func">malloc</span>(<span class="kw">sizeof</span>(ProcEntry *) * n);
+<span class="kw">if</span> (myprocs == <span class="kw">NULL</span>) {
+    <span class="func">fprintf</span>(stderr, <span class="str">"myps: malloc failed for ProcEntry array\n"</span>);
+    <span class="comment">/* still need to free dirents before exiting */</span>
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) <span class="func">free</span>(dirents[i]);
+    <span class="func">free</span>(dirents);
+    <span class="kw">return</span> EXIT_FAILURE;
+}</pre>
+
+<div class="diagram-container">
+<svg viewBox="0 0 880 360" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:880px; display:block; margin:0 auto;">
+  <defs>
+    <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#00e5ff"/>
+    </marker>
+  </defs>
+
+  <text x="440" y="22" text-anchor="middle" fill="#00e5ff" font-size="12" letter-spacing="2.5">ARRAY OF POINTERS · ProcEntry **myprocs</text>
+
+  <!-- The variable -->
+  <rect x="20" y="50" width="180" height="42" rx="6" fill="#0a0f1a" stroke="#00e5ff" stroke-width="2"/>
+  <text x="110" y="74" text-anchor="middle" fill="#e8f0fe" font-size="13">ProcEntry **myprocs</text>
+  <text x="110" y="86" text-anchor="middle" fill="#6b7fa3" font-size="10">stack variable</text>
+
+  <line x1="200" y1="71" x2="240" y2="71" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#arrA)"/>
+
+  <!-- Array of pointers -->
+  <text x="380" y="42" text-anchor="middle" fill="#00e5ff" font-size="10" letter-spacing="1">heap · array of ProcEntry*</text>
+
+  <g font-family="monospace" font-size="11">
+    <rect x="244" y="50" width="68" height="42" rx="3" fill="#0d1320" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="278" y="68" text-anchor="middle" fill="#6b7fa3" font-size="9">[0]</text>
+    <text x="278" y="84" text-anchor="middle" fill="#00e5ff">●</text>
+
+    <rect x="312" y="50" width="68" height="42" rx="3" fill="#0d1320" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="346" y="68" text-anchor="middle" fill="#6b7fa3" font-size="9">[1]</text>
+    <text x="346" y="84" text-anchor="middle" fill="#00e5ff">●</text>
+
+    <rect x="380" y="50" width="68" height="42" rx="3" fill="#0d1320" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="414" y="68" text-anchor="middle" fill="#6b7fa3" font-size="9">[2]</text>
+    <text x="414" y="84" text-anchor="middle" fill="#00e5ff">●</text>
+
+    <rect x="448" y="50" width="68" height="42" rx="3" fill="#0d1320" stroke="#00e5ff" stroke-width="1.5"/>
+    <text x="482" y="68" text-anchor="middle" fill="#6b7fa3" font-size="9">[3]</text>
+    <text x="482" y="84" text-anchor="middle" fill="#00e5ff">●</text>
+
+    <rect x="516" y="50" width="68" height="42" rx="3" fill="#0d1320" stroke="#1e2d4a" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="550" y="68" text-anchor="middle" fill="#6b7fa3" font-size="9">[...]</text>
+    <text x="550" y="84" text-anchor="middle" fill="#6b7fa3">…</text>
+  </g>
+
+  <!-- arrows down -->
+  <line x1="278" y1="92" x2="120" y2="155" stroke="#00e5ff" stroke-width="1" marker-end="url(#arrA)"/>
+  <line x1="346" y1="92" x2="290" y2="155" stroke="#00e5ff" stroke-width="1" marker-end="url(#arrA)"/>
+  <line x1="414" y1="92" x2="460" y2="155" stroke="#00e5ff" stroke-width="1" marker-end="url(#arrA)"/>
+  <line x1="482" y1="92" x2="630" y2="155" stroke="#00e5ff" stroke-width="1" marker-end="url(#arrA)"/>
+
+  <!-- ProcEntry instances -->
+  <g font-family="monospace" font-size="11">
+    <rect x="40" y="158" width="160" height="120" rx="6" fill="#0d1320" stroke="#69f0ae" stroke-width="1.5"/>
+    <text x="120" y="178" text-anchor="middle" fill="#69f0ae" font-size="10" letter-spacing="1">ProcEntry</text>
+    <text x="50" y="200" fill="#c8d6e5">pid: 1</text>
+    <text x="50" y="216" fill="#c8d6e5">ppid: 0</text>
+    <text x="50" y="232" fill="#c8d6e5">comm: ●→</text>
+    <text x="50" y="248" fill="#c8d6e5">state: 'S'</text>
+    <text x="50" y="264" fill="#c8d6e5">path: ●→</text>
+
+    <rect x="210" y="158" width="160" height="120" rx="6" fill="#0d1320" stroke="#69f0ae" stroke-width="1.5"/>
+    <text x="290" y="178" text-anchor="middle" fill="#69f0ae" font-size="10" letter-spacing="1">ProcEntry</text>
+    <text x="220" y="200" fill="#c8d6e5">pid: 2</text>
+    <text x="220" y="216" fill="#c8d6e5">ppid: 0</text>
+    <text x="220" y="232" fill="#c8d6e5">comm: ●→</text>
+    <text x="220" y="248" fill="#c8d6e5">state: 'S'</text>
+    <text x="220" y="264" fill="#c8d6e5">path: ●→</text>
+
+    <rect x="380" y="158" width="160" height="120" rx="6" fill="#0d1320" stroke="#69f0ae" stroke-width="1.5"/>
+    <text x="460" y="178" text-anchor="middle" fill="#69f0ae" font-size="10" letter-spacing="1">ProcEntry</text>
+    <text x="390" y="200" fill="#c8d6e5">pid: 1234</text>
+    <text x="390" y="216" fill="#c8d6e5">ppid: 1</text>
+    <text x="390" y="232" fill="#c8d6e5">comm: ●→</text>
+    <text x="390" y="248" fill="#c8d6e5">state: 'R'</text>
+    <text x="390" y="264" fill="#c8d6e5">path: ●→</text>
+
+    <rect x="550" y="158" width="160" height="120" rx="6" fill="#0d1320" stroke="#69f0ae" stroke-width="1.5"/>
+    <text x="630" y="178" text-anchor="middle" fill="#69f0ae" font-size="10" letter-spacing="1">ProcEntry</text>
+    <text x="560" y="200" fill="#c8d6e5">pid: 5678</text>
+    <text x="560" y="216" fill="#c8d6e5">ppid: 1</text>
+    <text x="560" y="232" fill="#c8d6e5">comm: ●→</text>
+    <text x="560" y="248" fill="#c8d6e5">state: 'Z'</text>
+    <text x="560" y="264" fill="#c8d6e5">path: ●→</text>
+  </g>
+
+  <!-- comm/path strings (faded) -->
+  <g font-family="monospace" font-size="10">
+    <rect x="40" y="290" width="160" height="22" rx="3" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+    <text x="50" y="305" fill="#69f0ae">"(systemd)"</text>
+
+    <rect x="210" y="290" width="160" height="22" rx="3" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+    <text x="220" y="305" fill="#69f0ae">"(kthreadd)"</text>
+
+    <rect x="380" y="290" width="160" height="22" rx="3" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+    <text x="390" y="305" fill="#69f0ae">"(bash)"</text>
+
+    <rect x="550" y="290" width="160" height="22" rx="3" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+    <text x="560" y="305" fill="#69f0ae">"(crashed)"</text>
+  </g>
+
+  <text x="440" y="338" text-anchor="middle" fill="#6b7fa3" font-size="11">myprocs[i] is a pointer · *myprocs[i] is the struct · sorting reorders pointers, never structs</text>
+</svg>
+<div class="caption">Three levels: stack pointer → array of heap pointers → ProcEntry structs (each owning two more heap strings).</div>
+</div>
+
+<div class="key-concept">
+  <strong>Why array of pointers, not array of structs?</strong>
+  Two reasons. First, the <code>Create/Destroy</code> contract returns and accepts pointers, not values. Second, sorting an array of pointers means swapping a couple of bytes per swap; sorting an array of structs means copying every field. Pointers are cheap, structs aren't.
+</div>
+
+<h2>The fill loop</h2>
+<p>For each dirent, build the path to its <code>stat</code> file, parse it, store the result. Some PIDs may have vanished between the <code>scandir</code> call and now (the <code>/proc</code> filesystem is volatile, remember from page 1) — handle <code>NULL</code> returns by storing <code>NULL</code> and skipping later:</p>
+
+<pre><span class="kw">int</span> myprocs_count = <span class="num">0</span>;
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) {
+    <span class="type">char</span> stat_path[PATH_MAX];
+    <span class="func">snprintf</span>(stat_path, <span class="kw">sizeof</span>(stat_path), <span class="str">"%s/%s/stat"</span>,
+             base_path, dirents[i]-&gt;d_name);
+
+    ProcEntry *entry = <span class="func">CreateProcEntryFromFile</span>(stat_path);
+    <span class="kw">if</span> (entry != <span class="kw">NULL</span>) {
+        myprocs[myprocs_count++] = entry;
+    }
+    <span class="comment">// silently skip missing/malformed files; the volatile nature of /proc</span>
+    <span class="comment">// means a process may have exited between scandir and the open here.</span>
+}</pre>
+
+<div class="warning">
+  <strong>You need <code>limits.h</code></strong>
+  <code>PATH_MAX</code> is declared in <code>&lt;limits.h&gt;</code>. Add <code>#include &lt;limits.h&gt;</code> to the top of <code>myps.c</code>. If you don't and <code>PATH_MAX</code> happens to be defined as a macro through some indirect include, your code will compile on your machine but fail on the grader's.
+</div>
+
+<h2>The qsort comparators</h2>
+<p>The project gives you <code>pidSort</code> verbatim. Note the double-pointer dance: <code>qsort</code> hands the comparator <code>void *</code> pointers <em>to elements of the array</em>. Our array elements are <code>ProcEntry*</code>, so the <code>void*</code> is a <em>pointer to a pointer</em> — and we cast and dereference it once to get the actual <code>ProcEntry*</code>:</p>
+
+<pre><span class="kw">static int</span> <span class="func">pidSort</span>(<span class="kw">const void</span> *aIn, <span class="kw">const void</span> *bIn)
+{
+    ProcEntry *f = *(ProcEntry **)aIn;        <span class="comment">// cast then dereference</span>
+    ProcEntry *s = *(ProcEntry **)bIn;
+    <span class="type">int</span> rval = f-&gt;process_id - s-&gt;process_id;
+    <span class="kw">return</span> rval;
+}
+
+<span class="kw">static int</span> <span class="func">commSort</span>(<span class="kw">const void</span> *aIn, <span class="kw">const void</span> *bIn)
+{
+    ProcEntry *f = *(ProcEntry **)aIn;
+    ProcEntry *s = *(ProcEntry **)bIn;
+    <span class="kw">return</span> <span class="func">strcmp</span>(f-&gt;comm, s-&gt;comm);
+}</pre>
+
+<div class="diagram-container">
+<svg viewBox="0 0 860 280" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:860px; display:block; margin:0 auto;">
+  <defs>
+    <marker id="arrQ" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#00e5ff"/>
+    </marker>
+  </defs>
+
+  <text x="430" y="22" text-anchor="middle" fill="#00e5ff" font-size="12" letter-spacing="2.5">QSORT CALLBACK · UNPACKING void**</text>
+
+  <!-- qsort call -->
+  <rect x="20" y="46" width="200" height="60" rx="6" fill="#0a0f1a" stroke="#ffd740" stroke-width="1.5"/>
+  <text x="120" y="70" text-anchor="middle" fill="#ffd740" font-size="11" letter-spacing="1">qsort()</text>
+  <text x="120" y="90" text-anchor="middle" fill="#e8f0fe" font-size="11">passes void * to your fn</text>
+
+  <line x1="220" y1="76" x2="270" y2="76" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#arrQ)"/>
+
+  <!-- void *aIn -->
+  <rect x="270" y="50" width="170" height="52" rx="6" fill="#0d1320" stroke="#6b7fa3" stroke-width="1"/>
+  <text x="355" y="70" text-anchor="middle" fill="#6b7fa3" font-size="10">void *aIn</text>
+  <text x="355" y="90" text-anchor="middle" fill="#c8d6e5" font-size="11">opaque pointer</text>
+
+  <line x1="440" y1="76" x2="490" y2="76" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#arrQ)"/>
+  <text x="455" y="68" fill="#00e5ff" font-size="9">cast</text>
+
+  <!-- ProcEntry **aIn -->
+  <rect x="490" y="50" width="170" height="52" rx="6" fill="#0d1320" stroke="#00e5ff" stroke-width="1"/>
+  <text x="575" y="70" text-anchor="middle" fill="#00e5ff" font-size="10">(ProcEntry **)aIn</text>
+  <text x="575" y="90" text-anchor="middle" fill="#c8d6e5" font-size="11">pointer to a pointer</text>
+
+  <line x1="660" y1="76" x2="710" y2="76" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#arrQ)"/>
+  <text x="678" y="68" fill="#00e5ff" font-size="9">deref</text>
+
+  <!-- ProcEntry *f -->
+  <rect x="710" y="50" width="135" height="52" rx="6" fill="#0d1320" stroke="#69f0ae" stroke-width="1.5"/>
+  <text x="777" y="70" text-anchor="middle" fill="#69f0ae" font-size="10">ProcEntry *f</text>
+  <text x="777" y="90" text-anchor="middle" fill="#c8d6e5" font-size="11">the struct</text>
+
+  <!-- code annotation -->
+  <rect x="120" y="140" width="620" height="48" rx="6" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+  <text x="430" y="170" text-anchor="middle" font-family="monospace" font-size="14" fill="#e8f0fe">
+    ProcEntry *f = <tspan fill="#b388ff">*</tspan><tspan fill="#00e5ff">(ProcEntry **)</tspan>aIn;
+  </text>
+
+  <!-- legend -->
+  <rect x="20" y="208" width="820" height="56" rx="6" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+  <text x="36" y="228" fill="#c8d6e5" font-size="11">qsort is generic: it sorts <em style="color:#00e5ff">any</em> array of <em style="color:#00e5ff">any</em> element type.</text>
+  <text x="36" y="246" fill="#c8d6e5" font-size="11">It can't know the element type, so it hands you <em style="color:#69f0ae">a pointer to an element</em>. Your job is to cast and dereference.</text>
+  <text x="36" y="260" fill="#6b7fa3" font-size="10.5">Element type here is ProcEntry* — so "pointer to element" is ProcEntry**, and one deref gets you the ProcEntry*.</text>
+</svg>
+<div class="caption">Two casts, one dereference. Once you've seen this pattern, qsort is no longer mysterious.</div>
+</div>
+
+<h3>Calling qsort with the chosen comparator</h3>
+
+<pre><span class="comment">// Pick the comparator at runtime based on the flag.</span>
+<span class="kw">int</span> (*compare)(<span class="kw">const void</span> *, <span class="kw">const void</span> *) = sort_by_comm ? commSort : pidSort;
+
+<span class="func">qsort</span>(myprocs, myprocs_count, <span class="kw">sizeof</span>(ProcEntry *), compare);</pre>
+
+<div class="key-concept">
+  <strong>Function pointers are values</strong>
+  <code>compare</code> is a variable that holds a function pointer. The ternary picks one of two functions; the resulting pointer gets stored. <code>qsort</code> doesn't care which one — it just calls <code>compare(...)</code> on each pair it needs to compare. This is the same pattern as the strategy pattern in OOP languages.
+</div>
+
+<h2>Print the column header and the rows</h2>
+<p>The header line is part of the integration test. Copy this format string <em>verbatim</em> — don't reformat, don't change the column widths, don't add or remove spaces. Then loop through the array and print each entry, applying the <code>-z</code> filter at this stage:</p>
+
+<pre><span class="func">fprintf</span>(stdout,
+        <span class="str">"%7s %7s %5s %5s %5s %7s %-25s %-20s\n"</span>,
+        <span class="str">"PID"</span>, <span class="str">"PPID"</span>, <span class="str">"STATE"</span>, <span class="str">"UTIME"</span>, <span class="str">"STIME"</span>,
+        <span class="str">"THREADS"</span>, <span class="str">"CMD"</span>, <span class="str">"STAT_FILE"</span>);
+
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; myprocs_count; i++) {
+    <span class="kw">if</span> (zombies_only &amp;&amp; myprocs[i]-&gt;state != <span class="str">'Z'</span>) {
+        <span class="kw">continue</span>;        <span class="comment">// -z: skip non-zombies</span>
+    }
+    <span class="func">PrintProcEntry</span>(myprocs[i]);
+}</pre>
+
+<div class="warning">
+  <strong>The header format string is not flexible</strong>
+  The widths and spacing must match <code>PrintProcEntry</code>'s format string exactly so that columns line up <em>and</em> match the reference output. The two format strings above are identical except for the type specifiers (<code>%s</code> for the header, mixed types for the rows). Diff is unforgiving — one extra space breaks the test.
+</div>
+
+<h2>Cleanup, in two passes</h2>
+<p>You allocated two things: an array of <code>ProcEntry*</code>, and an array of <code>struct dirent*</code>. Each contains heap-allocated objects. Free the objects in a loop, then free the arrays themselves:</p>
+
+<pre><span class="comment">// Free every ProcEntry, then free the array of pointers.</span>
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; myprocs_count; i++) {
+    <span class="func">DestroyProcEntry</span>(myprocs[i]);
+}
+<span class="func">free</span>(myprocs);
+
+<span class="comment">// Free every dirent copy, then free the array of pointers.</span>
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) {
+    <span class="func">free</span>(dirents[i]);
+}
+<span class="func">free</span>(dirents);
+
+<span class="kw">return</span> EXIT_SUCCESS;</pre>
+
+<div class="key-concept">
+  <strong>The cleanup invariant</strong>
+  Every <code>malloc</code>/<code>strdup</code>/<code>scandir</code> in the program has a matching <code>free</code> on the cleanup path. If you can count one and not the other, you've got a leak. <code>DestroyProcEntry</code> handles three frees (struct + two strings) per call; the dirent loop handles one free per iteration.
+</div>
+
+<div class="deeper">
+  <strong>Going deeper — error paths leak too</strong>
+  The cleanup above runs on the <em>success</em> path. If <code>scandir</code> fails or the <code>myprocs</code> malloc fails, you also need to free anything allocated before the failure. In a small program, an early <code>return EXIT_FAILURE</code> with a few targeted frees is fine. In larger programs, you'd push everything through a single <code>cleanup:</code> label using <code>goto</code>. (Yes, <code>goto</code> for cleanup is idiomatic C — see the Linux kernel source.)
+</div>
+
+<h2>The complete main, in one piece</h2>
+<p>For reference, here's the full <code>main</code> — every section above stitched together:</p>
+
+<pre><span class="type">int</span> <span class="func">main</span>(<span class="type">int</span> argc, <span class="type">char</span> **argv)
+{
+    <span class="kw">const char</span> *base_path = <span class="str">"/proc"</span>;
+    <span class="type">int</span> sort_by_comm = <span class="num">0</span>;
+    <span class="type">int</span> zombies_only = <span class="num">0</span>;
+
+    <span class="type">int</span> opt;
+    <span class="kw">while</span> ((opt = <span class="func">getopt</span>(argc, argv, <span class="str">"d:pczh"</span>)) != -<span class="num">1</span>) {
+        <span class="kw">switch</span> (opt) {
+            <span class="kw">case</span> <span class="str">'d'</span>: base_path   = optarg; <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'p'</span>: sort_by_comm = <span class="num">0</span>;     <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'c'</span>: sort_by_comm = <span class="num">1</span>;     <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'z'</span>: zombies_only = <span class="num">1</span>;     <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'h'</span>: <span class="func">print_usage</span>(argv[<span class="num">0</span>]); <span class="kw">return</span> EXIT_SUCCESS;
+            <span class="kw">default</span>: <span class="func">print_usage</span>(argv[<span class="num">0</span>]); <span class="kw">return</span> EXIT_FAILURE;
+        }
+    }
+
+    <span class="kw">struct</span> dirent **dirents = <span class="kw">NULL</span>;
+    <span class="type">int</span> n = <span class="func">scandir</span>(base_path, &amp;dirents, pid_filter, <span class="kw">NULL</span>);
+    <span class="kw">if</span> (n &lt; <span class="num">0</span>) { <span class="func">perror</span>(<span class="str">"scandir"</span>); <span class="kw">return</span> EXIT_FAILURE; }
+
+    ProcEntry **myprocs = <span class="func">malloc</span>(<span class="kw">sizeof</span>(ProcEntry *) * n);
+    <span class="kw">if</span> (myprocs == <span class="kw">NULL</span>) { <span class="comment">/* free dirents and bail */</span> }
+
+    <span class="type">int</span> myprocs_count = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) {
+        <span class="type">char</span> stat_path[PATH_MAX];
+        <span class="func">snprintf</span>(stat_path, <span class="kw">sizeof</span>(stat_path), <span class="str">"%s/%s/stat"</span>,
+                 base_path, dirents[i]-&gt;d_name);
+        ProcEntry *e = <span class="func">CreateProcEntryFromFile</span>(stat_path);
+        <span class="kw">if</span> (e != <span class="kw">NULL</span>) myprocs[myprocs_count++] = e;
+    }
+
+    <span class="func">qsort</span>(myprocs, myprocs_count, <span class="kw">sizeof</span>(ProcEntry *),
+          sort_by_comm ? commSort : pidSort);
+
+    <span class="func">fprintf</span>(stdout, <span class="str">"%7s %7s %5s %5s %5s %7s %-25s %-20s\n"</span>,
+            <span class="str">"PID"</span>, <span class="str">"PPID"</span>, <span class="str">"STATE"</span>, <span class="str">"UTIME"</span>, <span class="str">"STIME"</span>,
+            <span class="str">"THREADS"</span>, <span class="str">"CMD"</span>, <span class="str">"STAT_FILE"</span>);
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; myprocs_count; i++) {
+        <span class="kw">if</span> (zombies_only &amp;&amp; myprocs[i]-&gt;state != <span class="str">'Z'</span>) <span class="kw">continue</span>;
+        <span class="func">PrintProcEntry</span>(myprocs[i]);
+    }
+
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; myprocs_count; i++) <span class="func">DestroyProcEntry</span>(myprocs[i]);
+    <span class="func">free</span>(myprocs);
+    <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) <span class="func">free</span>(dirents[i]);
+    <span class="func">free</span>(dirents);
+    <span class="kw">return</span> EXIT_SUCCESS;
+}</pre>
+
+<h2>A first end-to-end run</h2>
+<p>Build, run, see something:</p>
+
+<pre>$ make myps
+gcc -Wall -Wextra -O2 -c myps.c
+gcc -Wall -Wextra -O2 -c ProcEntry.c
+gcc myps.o ProcEntry.o -o myps
+
+$ ./myps -d test_data/onyx_proc -p | head -6
+    PID    PPID STATE UTIME STIME THREADS CMD                       STAT_FILE
+      1       0     S     1     3       1 (systemd)                 test_data/onyx_proc/1/stat
+      2       0     S     0     0       1 (kthreadd)                test_data/onyx_proc/2/stat
+      4       2     S     0     0       1 (kworker/0:0H)            test_data/onyx_proc/4/stat
+      6       2     S     0     0       1 (ksoftirqd/0)             test_data/onyx_proc/6/stat
+      7       2     S     0     0       1 (migration/0)             test_data/onyx_proc/7/stat</pre>
+
+<p>Try the other two flags:</p>
+
+<pre>$ ./myps -d test_data/onyx_proc -c | head -4
+$ ./myps -d test_data/onyx_proc -z</pre>
+
+<p>The first should sort by command name (lowest <code>strcmp</code> first); the second should print only entries whose state is <code>Z</code>.</p>
+
+<h2>Checkpoint</h2>
+<p>Functionally complete. The program walks <code>/proc</code> (or any directory you point it at), parses every PID's stat file, sorts the results, prints them, and frees everything on the way out. Commit:</p>
+
+<pre>$ git add myps.c
+$ git commit -m <span class="str">"Part 3 complete: array assembly, qsort, display, cleanup"</span>
+$ git push</pre>
+
+<p>One page left — and it's the page that determines whether your 120 points actually land. Testing is where careful work pays off.</p>
+
+<div class="pagefoot">
+  <a href="myps-03-directory.html"><span class="label">← Part 2</span><span class="title-line">Walking the directory</span></a>
+  <a class="next" href="myps-05-testing.html"><span class="label">Part 4 →</span><span class="title-line">Testing &amp; submission</span></a>
+</div>
+
+</main>
+</body>
+</html>

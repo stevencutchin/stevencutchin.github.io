@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 2: Walking the Directory — myps Final Project</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Playfair+Display:wght@700;900&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #06090f;
+    --surface: #0d1320;
+    --surface2: #141d2f;
+    --border: #1e2d4a;
+    --text: #c8d6e5;
+    --text-dim: #6b7fa3;
+    --heading: #e8f0fe;
+    --accent-cyan: #00e5ff;
+    --accent-green: #69f0ae;
+    --accent-orange: #ffab40;
+    --accent-purple: #b388ff;
+    --accent-red: #ff5252;
+    --accent-yellow: #ffd740;
+    --code-bg: #0a0f1a;
+    --accent-main: var(--accent-green);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.75; }
+  .page-grain { position: fixed; inset: 0; pointer-events: none; z-index: 100; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat: repeat; }
+  .series-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; align-items: center; gap: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+  .series-bar .chip { background: var(--accent-main); color: var(--bg); padding: 2px 10px; border-radius: 3px; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .series-bar .nav-links { margin-left: auto; display: flex; gap: 18px; flex-wrap: wrap; }
+  .series-bar .nav-links a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; }
+  .series-bar .nav-links a:hover { color: var(--accent-cyan); }
+  .series-bar .nav-links a.active { color: var(--accent-main); }
+  .hero { padding: 80px 40px 60px; max-width: 980px; margin: 0 auto; }
+  .hero .number { font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: var(--accent-main); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+  h1 { font-family: 'Playfair Display', serif; font-weight: 900; font-size: clamp(40px, 6vw, 64px); color: var(--heading); line-height: 1.1; margin-bottom: 20px; }
+  h1 .highlight { background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 20px; color: var(--text-dim); max-width: 680px; line-height: 1.6; }
+  .content { max-width: 980px; margin: 0 auto; padding: 0 40px 100px; }
+  h2 { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 32px; color: var(--heading); margin: 60px 0 20px; padding-top: 16px; }
+  h3 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; color: var(--accent-main); letter-spacing: 1px; text-transform: uppercase; margin: 36px 0 14px; }
+  p { margin-bottom: 18px; }
+  .diagram-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 32px 0; overflow-x: auto; }
+  .diagram-container .caption { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-top: 16px; text-align: center; letter-spacing: 0.5px; text-transform: uppercase; }
+  svg text { font-family: 'IBM Plex Mono', monospace; }
+  code { font-family: 'IBM Plex Mono', monospace; background: var(--code-bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--accent-green); }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 22px 26px; margin: 22px 0; overflow-x: auto; font-family: 'IBM Plex Mono', monospace; font-size: 14.5px; line-height: 1.7; color: var(--text); }
+  pre .kw { color: var(--accent-purple); }
+  pre .type { color: var(--accent-cyan); }
+  pre .str { color: var(--accent-green); }
+  pre .comment { color: var(--text-dim); font-style: italic; }
+  pre .num { color: var(--accent-orange); }
+  pre .func { color: var(--accent-yellow); }
+  .key-concept { background: linear-gradient(135deg, rgba(105,240,174,0.06), rgba(0,229,255,0.04)); border-left: 3px solid var(--accent-green); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .key-concept strong { color: var(--accent-green); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .warning { background: rgba(255,82,82,0.06); border-left: 3px solid var(--accent-red); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .warning strong { color: var(--accent-red); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .deeper { background: rgba(179,136,255,0.04); border-left: 3px solid var(--accent-purple); padding: 18px 22px; margin: 26px 0; border-radius: 0 8px 8px 0; }
+  .deeper strong { color: var(--accent-purple); font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .opt-table { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0; margin: 22px 0; overflow: hidden; }
+  .opt-table .row { display: grid; grid-template-columns: 100px 180px 1fr; gap: 16px; padding: 14px 22px; border-bottom: 1px dashed rgba(30,45,74,0.5); align-items: baseline; }
+  .opt-table .row:last-child { border-bottom: 0; }
+  .opt-table .flag { font-family: 'IBM Plex Mono', monospace; color: var(--accent-green); font-weight: 600; font-size: 15px; }
+  .opt-table .arg { font-family: 'IBM Plex Mono', monospace; color: var(--accent-orange); font-size: 13px; }
+  .opt-table .desc { font-size: 15px; color: var(--text); }
+  .pagefoot { display: flex; justify-content: space-between; gap: 16px; margin-top: 60px; padding-top: 32px; border-top: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+  .pagefoot a { color: var(--text-dim); text-decoration: none; transition: color 0.2s; padding: 12px 0; }
+  .pagefoot a:hover { color: var(--accent-main); }
+  .pagefoot .next { text-align: right; }
+  .pagefoot .label { display: block; font-size: 11px; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
+  .pagefoot .title-line { color: var(--text); }
+  @media (max-width: 700px) { .hero, .content { padding-left: 20px; padding-right: 20px; } .series-bar { padding: 10px 16px; font-size: 11px; } .diagram-container { padding: 16px; } .opt-table .row { grid-template-columns: 1fr; gap: 4px; } }
+</style>
+</head>
+<body>
+<div class="page-grain"></div>
+
+<nav class="series-bar">
+  <span class="chip">3 / 5</span>
+  <span>myps Final Project</span>
+  <div class="nav-links">
+    <a href="../index.html">← Course</a>
+    <a href="myps-01-orientation.html">Orientation</a>
+    <a href="myps-02-procentry.html">ProcEntry</a>
+    <a href="myps-03-directory.html" class="active">Directory</a>
+    <a href="myps-04-assembly.html">Assembly</a>
+    <a href="myps-05-testing.html">Testing</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="number">Part 2 — Walking the Directory</div>
+  <h1>Argv, then <span class="highlight">opendir</span></h1>
+  <p class="subtitle">Parse the command-line flags. Open the directory the user specified. Pull out only the entries that look like process IDs. Hand off a clean array of <code>struct dirent</code> pointers to Part 3.</p>
+</section>
+
+<main class="content">
+
+<h2>The shape of myps.c</h2>
+<p>Before writing any code, here's the skeleton your <code>main</code> function will fill in. The whole program is short — under 200 lines including comments. Each block on this list maps to a section below or on the next page:</p>
+
+<pre><span class="comment">// myps.c — high-level structure</span>
+<span class="kw">int</span> <span class="func">main</span>(<span class="type">int</span> argc, <span class="type">char</span> **argv)
+{
+    <span class="comment">// 1. parse flags with getopt   ─────────────  this page</span>
+    <span class="comment">// 2. scandir the proc path with a PID filter   this page</span>
+    <span class="comment">// 3. allocate ProcEntry **myprocs[n]   ──────  next page</span>
+    <span class="comment">// 4. for each dirent: build "path/pid/stat",</span>
+    <span class="comment">//    call CreateProcEntryFromFile, store    ─  next page</span>
+    <span class="comment">// 5. qsort by chosen comparator     ────────  next page</span>
+    <span class="comment">// 6. print column header, then loop printing</span>
+    <span class="comment">//    each entry (skip non-zombies if -z)   ─  next page</span>
+    <span class="comment">// 7. free everything, exit cleanly   ───────  next page</span>
+    <span class="kw">return</span> <span class="num">0</span>;
+}</pre>
+
+<h2>The command-line interface</h2>
+<p>The required usage from the project description, in tabular form:</p>
+
+<div class="opt-table">
+  <div class="row">
+    <div class="flag">-d</div>
+    <div class="arg">&lt;path&gt;</div>
+    <div class="desc">Directory containing proc entries. Defaults to <code>/proc</code>. Critical for testing.</div>
+  </div>
+  <div class="row">
+    <div class="flag">-p</div>
+    <div class="arg">&nbsp;</div>
+    <div class="desc">Sort by PID. The default if no sort flag is given.</div>
+  </div>
+  <div class="row">
+    <div class="flag">-c</div>
+    <div class="arg">&nbsp;</div>
+    <div class="desc">Sort by command (lexicographic).</div>
+  </div>
+  <div class="row">
+    <div class="flag">-z</div>
+    <div class="arg">&nbsp;</div>
+    <div class="desc">Show only processes in zombie state (state == 'Z').</div>
+  </div>
+  <div class="row">
+    <div class="flag">-h</div>
+    <div class="arg">&nbsp;</div>
+    <div class="desc">Print the usage message and exit.</div>
+  </div>
+</div>
+
+<h2>Parsing flags with getopt</h2>
+<p><code>getopt</code> is the standard POSIX way to parse single-letter options. You give it a string describing which letters are valid (a colon after a letter means "takes an argument"), and it returns one option at a time until it runs out:</p>
+
+<pre><span class="kw">#include</span> <span class="str">&lt;stdio.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;stdlib.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;ctype.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;dirent.h&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;unistd.h&gt;</span>
+<span class="kw">#include</span> <span class="str">"ProcEntry.h"</span>
+
+<span class="kw">static void</span> <span class="func">print_usage</span>(<span class="kw">const char</span> *prog)
+{
+    <span class="func">fprintf</span>(stderr,
+        <span class="str">"Usage: %s [-d &lt;path&gt;] [-p] [-c] [-z] [-h]\n"</span>
+        <span class="str">"\t-d &lt;path&gt; Directory containing proc entries (default: /proc)\n"</span>
+        <span class="str">"\t-p        Display proc entries sorted by pid (default)\n"</span>
+        <span class="str">"\t-c        Display proc entries sorted by command lexicographically\n"</span>
+        <span class="str">"\t-z        Display ONLY proc entries in the zombie state\n"</span>
+        <span class="str">"\t-h        Display this help message\n"</span>,
+        prog);
+}
+
+<span class="type">int</span> <span class="func">main</span>(<span class="type">int</span> argc, <span class="type">char</span> **argv)
+{
+    <span class="kw">const char</span> *base_path = <span class="str">"/proc"</span>;
+    <span class="type">int</span> sort_by_comm = <span class="num">0</span>;        <span class="comment">// 0 = pid (default), 1 = comm</span>
+    <span class="type">int</span> zombies_only = <span class="num">0</span>;
+
+    <span class="type">int</span> opt;
+    <span class="kw">while</span> ((opt = <span class="func">getopt</span>(argc, argv, <span class="str">"d:pczh"</span>)) != -<span class="num">1</span>) {
+        <span class="kw">switch</span> (opt) {
+            <span class="kw">case</span> <span class="str">'d'</span>: base_path = optarg; <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'p'</span>: sort_by_comm = <span class="num">0</span>; <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'c'</span>: sort_by_comm = <span class="num">1</span>; <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'z'</span>: zombies_only = <span class="num">1</span>; <span class="kw">break</span>;
+            <span class="kw">case</span> <span class="str">'h'</span>:
+                <span class="func">print_usage</span>(argv[<span class="num">0</span>]);
+                <span class="kw">return</span> EXIT_SUCCESS;
+            <span class="kw">default</span>:                          <span class="comment">// unknown flag</span>
+                <span class="func">print_usage</span>(argv[<span class="num">0</span>]);
+                <span class="kw">return</span> EXIT_FAILURE;
+        }
+    }
+
+    <span class="comment">/* ... directory walk and rest of program ... */</span>
+    <span class="kw">return</span> EXIT_SUCCESS;
+}</pre>
+
+<div class="key-concept">
+  <strong>The colon after <code>d</code></strong>
+  <code>"d:pczh"</code> means: <code>-d</code> takes an argument (the colon says so), <code>-p</code>, <code>-c</code>, <code>-z</code>, and <code>-h</code> don't. When <code>getopt</code> sees <code>-d</code>, it stuffs the argument into the global <code>optarg</code> for you to read.
+</div>
+
+<div class="warning">
+  <strong>Send usage to stderr, not stdout</strong>
+  Notice <code>fprintf(stderr, ...)</code> in <code>print_usage</code>. This is intentional. Anything on <code>stdout</code> gets diffed against the reference output during grading. Errors and usage messages always go to stderr — that's a near-universal convention in Unix tools, and it keeps <code>./myps -h</code> from polluting any pipeline you stick it in.
+</div>
+
+<h2>Filtering for PID directories</h2>
+<p>Now we need to walk the chosen directory and pull out only the entries that look like process IDs. That means two conditions:</p>
+
+<ol style="margin: 12px 0 22px 28px;">
+  <li style="margin-bottom: 6px;"><strong>It's a directory</strong> — <code>d_type == DT_DIR</code>. Files and symlinks are not processes.</li>
+  <li style="margin-bottom: 6px;"><strong>Its name starts with a digit</strong> — <code>isdigit(name[0])</code>. PID directory names are integers; anything alphabetic is not a process.</li>
+</ol>
+
+<p>Both conditions matter. <code>/proc/sys/</code> is a directory but its name doesn't start with a digit. A regular file in <code>/proc</code> starts with a letter. The pair of checks together gives you exactly the PID directories.</p>
+
+<div class="diagram-container">
+<svg viewBox="0 0 880 380" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:880px; display:block; margin:0 auto;">
+  <defs>
+    <marker id="ar-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#69f0ae"/>
+    </marker>
+    <marker id="ar-d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7fa3"/>
+    </marker>
+  </defs>
+
+  <text x="440" y="22" text-anchor="middle" fill="#69f0ae" font-size="12" letter-spacing="2.5">THE FILTER · scandir + pid_filter</text>
+
+  <!-- Left: stream of entries -->
+  <text x="100" y="60" text-anchor="middle" fill="#6b7fa3" font-size="10" letter-spacing="1">readdir STREAM</text>
+
+  <g font-family="monospace" font-size="12">
+    <rect x="20" y="74" width="160" height="28" rx="4" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1"/>
+    <text x="32" y="93" fill="#69f0ae">1/</text>
+    <text x="170" y="93" text-anchor="end" fill="#6b7fa3" font-size="10">DT_DIR</text>
+
+    <rect x="20" y="106" width="160" height="28" rx="4" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1"/>
+    <text x="32" y="125" fill="#69f0ae">2/</text>
+    <text x="170" y="125" text-anchor="end" fill="#6b7fa3" font-size="10">DT_DIR</text>
+
+    <rect x="20" y="138" width="160" height="28" rx="4" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+    <text x="32" y="157" fill="#c8d6e5">cpuinfo</text>
+    <text x="170" y="157" text-anchor="end" fill="#6b7fa3" font-size="10">DT_REG</text>
+
+    <rect x="20" y="170" width="160" height="28" rx="4" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1"/>
+    <text x="32" y="189" fill="#69f0ae">1234/</text>
+    <text x="170" y="189" text-anchor="end" fill="#6b7fa3" font-size="10">DT_DIR</text>
+
+    <rect x="20" y="202" width="160" height="28" rx="4" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+    <text x="32" y="221" fill="#c8d6e5">sys/</text>
+    <text x="170" y="221" text-anchor="end" fill="#6b7fa3" font-size="10">DT_DIR</text>
+
+    <rect x="20" y="234" width="160" height="28" rx="4" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+    <text x="32" y="253" fill="#c8d6e5">.hidden</text>
+    <text x="170" y="253" text-anchor="end" fill="#6b7fa3" font-size="10">DT_REG</text>
+
+    <rect x="20" y="266" width="160" height="28" rx="4" fill="#0a0f1a" stroke="#69f0ae" stroke-width="1"/>
+    <text x="32" y="285" fill="#69f0ae">5678/</text>
+    <text x="170" y="285" text-anchor="end" fill="#6b7fa3" font-size="10">DT_DIR</text>
+  </g>
+
+  <!-- arrows into filter -->
+  <line x1="180" y1="88" x2="290" y2="180" stroke="#69f0ae" stroke-width="1" opacity="0.7"/>
+  <line x1="180" y1="120" x2="290" y2="180" stroke="#69f0ae" stroke-width="1" opacity="0.7"/>
+  <line x1="180" y1="152" x2="290" y2="180" stroke="#6b7fa3" stroke-width="1" opacity="0.5"/>
+  <line x1="180" y1="184" x2="290" y2="180" stroke="#69f0ae" stroke-width="1" opacity="0.7"/>
+  <line x1="180" y1="216" x2="290" y2="180" stroke="#6b7fa3" stroke-width="1" opacity="0.5"/>
+  <line x1="180" y1="248" x2="290" y2="180" stroke="#6b7fa3" stroke-width="1" opacity="0.5"/>
+  <line x1="180" y1="280" x2="290" y2="180" stroke="#69f0ae" stroke-width="1" opacity="0.7"/>
+
+  <!-- Filter box (sieve) -->
+  <rect x="290" y="120" width="240" height="124" rx="8" fill="rgba(105,240,174,0.06)" stroke="#69f0ae" stroke-width="2"/>
+  <text x="410" y="148" text-anchor="middle" fill="#69f0ae" font-size="11" letter-spacing="2">pid_filter</text>
+  <text x="410" y="174" text-anchor="middle" fill="#e8f0fe" font-size="13">d-&gt;d_type == DT_DIR</text>
+  <text x="410" y="194" text-anchor="middle" fill="#e8f0fe" font-size="13">&amp;&amp;</text>
+  <text x="410" y="214" text-anchor="middle" fill="#e8f0fe" font-size="13">isdigit(d-&gt;d_name[0])</text>
+
+  <!-- pass arrows -->
+  <line x1="530" y1="160" x2="618" y2="100" stroke="#69f0ae" stroke-width="1.5" marker-end="url(#ar-g)"/>
+  <line x1="530" y1="180" x2="618" y2="148" stroke="#69f0ae" stroke-width="1.5" marker-end="url(#ar-g)"/>
+  <line x1="530" y1="200" x2="618" y2="196" stroke="#69f0ae" stroke-width="1.5" marker-end="url(#ar-g)"/>
+  <line x1="530" y1="220" x2="618" y2="244" stroke="#69f0ae" stroke-width="1.5" marker-end="url(#ar-g)"/>
+
+  <!-- discard arrows -->
+  <line x1="410" y1="244" x2="410" y2="320" stroke="#6b7fa3" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#ar-d)"/>
+  <text x="420" y="304" fill="#6b7fa3" font-size="10">discarded</text>
+  <text x="420" y="316" fill="#6b7fa3" font-size="10">cpuinfo, sys/, .hidden</text>
+
+  <!-- Right: result array -->
+  <text x="720" y="60" text-anchor="middle" fill="#00e5ff" font-size="10" letter-spacing="1">struct dirent **dirents</text>
+
+  <g font-family="monospace" font-size="12">
+    <rect x="620" y="74" width="200" height="34" rx="4" fill="#0a0f1a" stroke="#00e5ff" stroke-width="1"/>
+    <text x="632" y="96" fill="#6b7fa3">[0]</text>
+    <text x="660" y="96" fill="#69f0ae">→ "1"</text>
+
+    <rect x="620" y="120" width="200" height="34" rx="4" fill="#0a0f1a" stroke="#00e5ff" stroke-width="1"/>
+    <text x="632" y="142" fill="#6b7fa3">[1]</text>
+    <text x="660" y="142" fill="#69f0ae">→ "2"</text>
+
+    <rect x="620" y="166" width="200" height="34" rx="4" fill="#0a0f1a" stroke="#00e5ff" stroke-width="1"/>
+    <text x="632" y="188" fill="#6b7fa3">[2]</text>
+    <text x="660" y="188" fill="#69f0ae">→ "1234"</text>
+
+    <rect x="620" y="212" width="200" height="34" rx="4" fill="#0a0f1a" stroke="#00e5ff" stroke-width="1"/>
+    <text x="632" y="234" fill="#6b7fa3">[3]</text>
+    <text x="660" y="234" fill="#69f0ae">→ "5678"</text>
+  </g>
+
+  <text x="720" y="278" text-anchor="middle" fill="#6b7fa3" font-size="11">n = 4</text>
+
+  <!-- legend at bottom -->
+  <rect x="20" y="332" width="800" height="32" rx="6" fill="#0a0f1a" stroke="#1e2d4a" stroke-width="1"/>
+  <text x="34" y="354" fill="#c8d6e5" font-size="11">scandir() walks the directory, calls our filter on each entry, and returns an allocated array of pointers to dirent copies that passed.</text>
+</svg>
+<div class="caption">scandir = readdir loop + filter callback + sort + allocation, all in one call.</div>
+</div>
+
+<h2>scandir does the work for you</h2>
+<p>You could call <code>opendir</code> + <code>readdir</code> in a loop, allocate your own array, and copy each matching entry — and that's a perfectly valid solution. But the standard library already has the helper you want: <code>scandir</code>. It walks a directory, calls your filter callback on each entry, allocates an array of <code>struct dirent*</code> for the entries that pass, and hands the whole thing back to you.</p>
+
+<pre><span class="comment">// Filter callback — return non-zero to keep the entry, 0 to drop it.</span>
+<span class="kw">static int</span> <span class="func">pid_filter</span>(<span class="kw">const struct</span> dirent *d)
+{
+    <span class="kw">return</span> d-&gt;d_type == DT_DIR
+        &amp;&amp; <span class="func">isdigit</span>((<span class="type">unsigned char</span>)d-&gt;d_name[<span class="num">0</span>]);
+}</pre>
+
+<p>Then in <code>main</code>, after option parsing:</p>
+
+<pre><span class="kw">struct</span> dirent **dirents = <span class="kw">NULL</span>;
+<span class="type">int</span> n = <span class="func">scandir</span>(base_path, &amp;dirents, pid_filter, <span class="kw">NULL</span>);
+<span class="kw">if</span> (n &lt; <span class="num">0</span>) {
+    <span class="func">perror</span>(<span class="str">"scandir"</span>);
+    <span class="kw">return</span> EXIT_FAILURE;
+}
+
+<span class="comment">// Optional debug — useful while developing, but goes to STDERR so it</span>
+<span class="comment">// doesn't pollute stdout for the integration test.</span>
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) {
+    <span class="func">fprintf</span>(stderr, <span class="str">"  dirent[%d]: %s\n"</span>, i, dirents[i]-&gt;d_name);
+}</pre>
+
+<div class="key-concept">
+  <strong>The signature decoded</strong>
+  <code>int scandir(const char *path, struct dirent ***namelist, int (*filter)(const struct dirent *), int (*compar)(...));</code>
+  &mdash; pass <code>NULL</code> for <code>compar</code> if you don't want scandir to sort (we'll sort the <code>ProcEntry</code> array ourselves later, so order here doesn't matter). The triple-pointer for <code>namelist</code> is so the function can write <em>your</em> pointer variable, which itself points to an array of pointers.
+</div>
+
+<div class="warning">
+  <strong>Why the cast on isdigit?</strong>
+  <code>isdigit</code> takes an <code>int</code> but is undefined for negative values other than <code>EOF</code>. Plain <code>char</code> may be signed on some platforms — passing <code>d_name[0]</code> directly can sign-extend a high-byte character to a negative <code>int</code>. The cast to <code>unsigned char</code> first fixes that. Without the cast, you'll get a UBSan warning on some systems — and lose code-quality points.
+</div>
+
+<h2>Cleanup is your responsibility</h2>
+<p>scandir allocates two things that you have to free: each individual <code>struct dirent</code> it copied (one per entry), and the array of pointers itself. Forgetting either is a leak that valgrind will catch.</p>
+
+<pre><span class="comment">// At program exit, after you're done using the dirents:</span>
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; n; i++) {
+    <span class="func">free</span>(dirents[i]);
+}
+<span class="func">free</span>(dirents);</pre>
+
+<div class="key-concept">
+  <strong>Two-level free</strong>
+  This is the same pattern you'll use for <code>myprocs</code> on the next page. When you have an array of pointers to heap-allocated objects, you free the objects in a loop, then free the array. Inside-out, always.
+</div>
+
+<h2>Test it as you go</h2>
+<p>At this point your <code>main</code> doesn't do much yet — but it does enough that you can see whether the directory walking works. Run it against the test data:</p>
+
+<pre>$ ./myps -d test_data/onyx_proc 2&gt;&amp;1 &gt;/dev/null | head
+  dirent[0]: 1
+  dirent[1]: 1488
+  dirent[2]: 1539
+  dirent[3]: 1623
+  dirent[4]: 19068
+  dirent[5]: 19089
+  ...</pre>
+
+<p>The redirect <code>2&gt;&amp;1 &gt;/dev/null</code> sends stdout to the void and routes stderr to your terminal — exactly what you want when you're debugging the directory walk and don't yet have any "real" stdout output to look at.</p>
+
+<div class="deeper">
+  <strong>Going deeper — the readdir alternative</strong>
+  If you'd rather use <code>opendir</code>/<code>readdir</code> directly, the loop looks like this. It's more code but a useful pattern to know:
+  <pre style="margin-top:12px;">DIR *dir = <span class="func">opendir</span>(base_path);
+<span class="kw">if</span> (dir == <span class="kw">NULL</span>) { <span class="func">perror</span>(<span class="str">"opendir"</span>); <span class="kw">return</span> EXIT_FAILURE; }
+
+<span class="kw">struct</span> dirent **dirents = <span class="kw">NULL</span>;
+<span class="type">int</span> n = <span class="num">0</span>, cap = <span class="num">0</span>;
+<span class="kw">struct</span> dirent *d;
+<span class="kw">while</span> ((d = <span class="func">readdir</span>(dir)) != <span class="kw">NULL</span>) {
+    <span class="kw">if</span> (!<span class="func">pid_filter</span>(d)) <span class="kw">continue</span>;
+    <span class="kw">if</span> (n == cap) {
+        cap = cap ? cap * <span class="num">2</span> : <span class="num">16</span>;
+        dirents = <span class="func">realloc</span>(dirents, cap * <span class="kw">sizeof</span>(*dirents));
+    }
+    dirents[n] = <span class="func">malloc</span>(<span class="kw">sizeof</span>(<span class="kw">struct</span> dirent));
+    <span class="func">memcpy</span>(dirents[n], d, <span class="kw">sizeof</span>(<span class="kw">struct</span> dirent));
+    n++;
+}
+<span class="func">closedir</span>(dir);</pre>
+  Same end result. Pick whichever you find clearer — the grader doesn't care which one you used as long as the behavior is correct.
+</div>
+
+<h2>Checkpoint</h2>
+<p>You've got option parsing and a filtered list of PID directories. The skeleton compiles, runs, and prints the right names to stderr. Commit:</p>
+
+<pre>$ git add myps.c
+$ git commit -m <span class="str">"Part 2 complete: argv parsing + scandir filter for PID directories"</span>
+$ git push</pre>
+
+<p>Next up: turning that list of directory names into a sorted, printed list of <code>ProcEntry</code> structs.</p>
+
+<div class="pagefoot">
+  <a href="myps-02-procentry.html"><span class="label">← Part 1</span><span class="title-line">The ProcEntry type</span></a>
+  <a class="next" href="myps-04-assembly.html"><span class="label">Part 3 →</span><span class="title-line">Assembly, sort, display</span></a>
+</div>
+
+</main>
+</body>
+</html>
