@@ -85,7 +85,6 @@
   <span class="chip">5 / 5</span>
   <span>myps Final Project</span>
   <div class="nav-links">
-    <a href="../index.html">← Course</a>
     <a href="myps-01-orientation.html">Orientation</a>
     <a href="myps-02-procentry.html">ProcEntry</a>
     <a href="myps-03-directory.html">Directory</a>
@@ -158,27 +157,27 @@ valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./myps -d test_da
 <h2>The integration test pipeline</h2>
 <p>Each integration test is a single shell pipeline. The ones from the project description, verbatim — these are the exact commands the grader runs:</p>
 
-<pre><span class="comment"># Test 1 · sort by PID</span>
+<pre><span class="comment"># Test 1 · sort by PID — straight diff</span>
 $ ./myps -d test_data/onyx_proc -p &gt; myps-pid_sort.out
 $ diff myps-pid_sort.out test_data/onyx_proc_expected/myps-pid_sort.out
 
-<span class="comment"># Test 2 · sort by command (path column varies, so strip it with awk)</span>
-$ ./myps -d test_data/onyx_proc -c | awk <span class="str">'{print $7}'</span> &gt; myps-cmd_sort.out
-$ diff myps-cmd_sort.out test_data/onyx_proc_expected/myps-cmd_sort.out
+<span class="comment"># Test 2 · sort by command — strip BOTH sides to just the comm column, then diff</span>
+$ ./myps -d test_data/onyx_proc -c | awk <span class="str">'{print $7}'</span> &gt; myps-cmd_sort-stripped.out
+$ cat test_data/onyx_proc_expected/myps-cmd_sort.out | awk <span class="str">'{print $7}'</span> &gt; \
+    test_data/onyx_proc_expected/myps-cmd_sort-stripped.out
+$ diff myps-cmd_sort-stripped.out \
+       test_data/onyx_proc_expected/myps-cmd_sort-stripped.out
 
 <span class="comment"># Test 3 · zombies-only filter</span>
-$ ./myps -d test_data/onyx_proc -z &gt; myps-zombies.out
-$ diff myps-zombies.out test_data/onyx_proc_expected/myps-zombies.out</pre>
+$ ./myps -d test_data/onyx_proc -z &gt; myps-zombie_only.out
+$ diff myps-zombie_only.out test_data/onyx_proc_expected/myps-zombie_only.out</pre>
 
-<p>If <code>diff</code> prints anything, the test failed. If it prints nothing and exits with status 0, the test passed. Run all three before submitting:</p>
+<div class="key-concept">
+  <strong>Why test 2 strips both sides</strong>
+  Several processes can share a command name &mdash; for example, multiple <code>(nfsd)</code> entries. When the project sorts by command, the spec doesn't require any secondary sort on PID, so two correct implementations can legitimately disagree on the order of the duplicates. Stripping both sides down to just column 7 (the <code>(comm)</code> field) means the diff compares only what the <code>-c</code> sort actually controls. Without that step, you'd fail the test for being correct in a different way than the reference.
+</div>
 
-<pre>$ <span class="kw">for</span> test <span class="kw">in</span> pid_sort cmd_sort zombies; <span class="kw">do</span>
-&gt;   <span class="kw">echo</span> -n <span class="str">"$test: "</span>
-&gt;   diff myps-$test.out test_data/onyx_proc_expected/myps-$test.out &amp;&amp; <span class="kw">echo</span> PASS || <span class="kw">echo</span> FAIL
-&gt; <span class="kw">done</span>
-pid_sort: <span class="ok">PASS</span>
-cmd_sort: <span class="ok">PASS</span>
-zombies:  <span class="ok">PASS</span></pre>
+<p>If <code>diff</code> prints anything, the test failed. If it prints nothing and exits with status 0, the test passed. Confirm exit status with <code>echo $?</code> after each diff &mdash; you want to see <code>0</code> three times in a row before you submit.</p>
 
 <div class="diagram-container">
 <svg viewBox="0 0 880 320" xmlns="http://www.w3.org/2000/svg" style="width:100%; max-width:880px; display:block; margin:0 auto;">
@@ -391,12 +390,14 @@ $ tar -xzf test_data.tgz
 $ make clean &amp;&amp; make
 $ make memtest-mytests
 $ make memtest-myps
-$ ./myps -d test_data/onyx_proc -p &gt; out-p.txt
-$ ./myps -d test_data/onyx_proc -c | awk <span class="str">'{print $7}'</span> &gt; out-c.txt
-$ ./myps -d test_data/onyx_proc -z &gt; out-z.txt
-$ diff out-p.txt test_data/onyx_proc_expected/myps-pid_sort.out
-$ diff out-c.txt test_data/onyx_proc_expected/myps-cmd_sort.out
-$ diff out-z.txt test_data/onyx_proc_expected/myps-zombies.out</pre>
+$ ./myps -d test_data/onyx_proc -p &gt; myps-pid_sort.out
+$ ./myps -d test_data/onyx_proc -c | awk <span class="str">'{print $7}'</span> &gt; myps-cmd_sort-stripped.out
+$ cat test_data/onyx_proc_expected/myps-cmd_sort.out | awk <span class="str">'{print $7}'</span> &gt; \
+    test_data/onyx_proc_expected/myps-cmd_sort-stripped.out
+$ ./myps -d test_data/onyx_proc -z &gt; myps-zombie_only.out
+$ diff myps-pid_sort.out test_data/onyx_proc_expected/myps-pid_sort.out
+$ diff myps-cmd_sort-stripped.out test_data/onyx_proc_expected/myps-cmd_sort-stripped.out
+$ diff myps-zombie_only.out test_data/onyx_proc_expected/myps-zombie_only.out</pre>
 
 <p>Every command succeeds silently. Every diff returns nothing. If anything breaks here, fix it on your dev tree, push, and rerun the whole sequence. Don't submit until this script is silent end-to-end.</p>
 
