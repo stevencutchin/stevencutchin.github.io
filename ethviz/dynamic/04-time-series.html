@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ethereum time series · deck.gl</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:rgba(16,22,38,0.82); --line:rgba(255,255,255,0.08);
+    --ink:#e8edf7; --muted:#8896b4; --accent:#f1632a;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden}
+  #deck{position:fixed;inset:0}
+  .panel{position:fixed;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;backdrop-filter:blur(8px);max-width:340px;z-index:2}
+  .tl{top:18px;left:18px}
+  .bl{bottom:18px;left:18px;padding:12px 14px}
+  .tr{top:18px;right:18px;font:11px/1.5 var(--mono);color:var(--muted);
+    background:none;border:none;backdrop-filter:none;text-align:right}
+  h1{margin:0 0 2px;font-size:16px;font-weight:650;letter-spacing:-0.01em}
+  .eyebrow{font:11px/1 var(--mono);letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+  .cap{margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+  .cap b{color:var(--ink);font-weight:600}
+  .legend{display:grid;gap:7px;font-size:12px}
+  .row{display:flex;align-items:center;gap:9px}
+  .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .ramp{width:130px;height:9px;border-radius:2px}
+  .lbl{color:var(--muted)}
+  .tt{font:12px/1.45 var(--mono);background:#070a13;border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;color:var(--ink);pointer-events:none}
+  .tt .k{color:var(--muted)} .tt .v{color:var(--accent)}
+  .picker{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:3}
+  .pk-inner{max-width:460px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px;backdrop-filter:blur(8px)}
+  .pk-h{font-size:15px;font-weight:650;margin-bottom:6px}
+  .pk-p{font-size:13px;line-height:1.55;color:var(--muted);margin:8px 0}
+  pre.pk-code{font:12px/1.5 var(--mono);background:#070a13;border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--ink);white-space:pre;overflow:auto;margin:8px 0}
+  .pk-btn{display:inline-block;margin-top:6px;background:var(--accent);color:#0a0e1a;font-weight:650;font-size:13px;padding:9px 14px;border-radius:8px;cursor:pointer}
+  code{font-family:var(--mono);color:var(--accent)}
+  @media (max-width:520px){.panel{max-width:64vw}.tr{display:none}}
+</style>
+</head>
+<body>
+<div id="deck"></div>
+<script src="https://unpkg.com/deck.gl@^9.0.0/dist.min.js"></script>
+<script src="viz-common.js"></script>
+<style>
+  .axis-x{position:fixed;bottom:18px;right:18px;font:11px/1 var(--mono);letter-spacing:.08em;color:var(--muted);z-index:2}
+  .axis-y{position:fixed;left:14px;top:50%;transform:translateY(-50%) rotate(-90deg);transform-origin:left center;
+    font:11px/1 var(--mono);letter-spacing:.08em;color:var(--muted);z-index:2;white-space:nowrap}
+</style>
+<div class="panel tl">
+  <div class="eyebrow">Example 04 · Time Series</div>
+  <h1>Transactions over time</h1>
+  <p class="cap">Every transfer in <code>transactions.csv</code> placed by <b>time (x)</b> and
+  <b>value (y, log ETH)</b>. Color reinforces value; dots outlined in white touch a hub
+  address. A static temporal layout &mdash; read left to right to see when value moves and
+  when the hubs are active.</p>
+</div>
+<div class="axis-y">transaction value &mdash; ETH, log scale</div>
+<div class="axis-x">time (UTC) &rarr;</div>
+<div class="panel bl"><div class="legend">
+  <div class="row"><div class="ramp" style="background:linear-gradient(90deg,rgb(58,86,140),rgb(64,150,170),rgb(120,190,140),rgb(235,170,70),rgb(245,110,40))"></div></div>
+  <div class="row"><span class="lbl">low</span><span class="lbl" style="margin-left:auto">high value (ETH)</span></div>
+  <div class="row" style="margin-top:2px"><div class="dot" style="background:#9fb0d0;border:1.5px solid #fff"></div><span class="lbl">touches a hub</span></div>
+</div></div>
+<div class="panel tr">drag&nbsp;·&nbsp;pan&nbsp;&nbsp;|&nbsp;&nbsp;scroll&nbsp;·&nbsp;zoom</div>
+<script>
+const { DeckGL, ScatterplotLayer, LineLayer, TextLayer, OrthographicView, COORDINATE_SYSTEM } = deck;
+const CART = COORDINATE_SYSTEM.CARTESIAN;
+
+// --- nice ticks ---
+function timeTicks(tMin, tMax, target=7){
+  const span=tMax-tMin, steps=[60,120,300,600,900,1800,3600,7200,10800,21600,43200,86400,172800];
+  let step=steps[steps.length-1];
+  for(const s of steps){ if(span/s<=target){ step=s; break; } }
+  const ticks=[]; for(let t=Math.ceil(tMin/step)*step; t<=tMax; t+=step) ticks.push(t);
+  return {ticks, step};
+}
+function fmtTime(t, step){
+  const d=new Date(t*1000);
+  const p=n=>String(n).padStart(2,'0');
+  if(step>=86400) return p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate());
+  return p(d.getUTCHours())+':'+p(d.getUTCMinutes());
+}
+function fmtEth(v){ return v>=0.001 ? String(+v.toFixed(3)) : v.toExponential(0); }
+
+loadTransactions('transactions.csv', rows => {
+  const txs = rows.map(r => ({
+    t:+r.timestamp, v:parseFloat(r.value_eth)||0,
+    from:r.from_address, to:r.to_address, block:+r.block_number,
+  })).filter(d => d.t && d.v>0).sort((a,b)=>a.t-b.t);
+
+  // hub membership (for the white outline)
+  const g = buildGraph(rows); markHubs(g.nodes);
+  const hubSet = new Set(g.nodes.filter(n=>n.isHub).map(n=>n.address));
+  txs.forEach(d => d.hub = hubSet.has(d.from) || hubSet.has(d.to));
+
+  const W=960, H=420, pad=30;
+  const tMin=txs[0].t, tMax=txs[txs.length-1].t, tSpan=(tMax-tMin)||1;
+  const vMin=Math.min(...txs.map(d=>d.v)), vMax=Math.max(...txs.map(d=>d.v));
+  const lo=Math.floor(Math.log10(vMin)), hi=Math.ceil(Math.log10(vMax)), lSpan=(hi-lo)||1;
+  const X = t => pad + ((t-tMin)/tSpan)*(W-2*pad);
+  const Y = v => ((hi-Math.log10(v))/lSpan)*H;          // flipY=true -> high value at top
+
+  // gridlines + frame as line segments
+  const segs=[];
+  const { ticks:tTicks, step } = timeTicks(tMin, tMax);
+  tTicks.forEach(t => segs.push({s:[X(t),0], e:[X(t),H], c:[255,255,255,16]}));
+  const vTicks=[]; for(let e=lo; e<=hi; e++) vTicks.push(Math.pow(10,e));
+  vTicks.forEach(v => segs.push({s:[0,Y(v)], e:[W,Y(v)], c:[255,255,255,16]}));
+  segs.push({s:[0,0], e:[0,H], c:[255,255,255,55]});     // y axis
+  segs.push({s:[0,H], e:[W,H], c:[255,255,255,55]});     // x axis
+
+  // tick labels (world position, constant pixel size)
+  const labels=[];
+  tTicks.forEach(t => labels.push({p:[X(t),H+8], text:fmtTime(t,step), anchor:'middle', base:'top'}));
+  vTicks.forEach(v => labels.push({p:[-10,Y(v)], text:fmtEth(v), anchor:'end', base:'center'}));
+
+  const grid = new LineLayer({
+    id:'grid', data:segs, coordinateSystem:CART,
+    getSourcePosition:d=>d.s, getTargetPosition:d=>d.e,
+    getColor:d=>d.c, getWidth:1, widthUnits:'pixels',
+  });
+  const text = new TextLayer({
+    id:'ticks', data:labels, coordinateSystem:CART,
+    getPosition:d=>d.p, getText:d=>d.text,
+    getColor:[136,150,180], getSize:12, sizeUnits:'pixels',
+    getTextAnchor:d=>d.anchor, getAlignmentBaseline:d=>d.base,
+    fontFamily:'ui-monospace, Menlo, monospace',
+  });
+  const dots = new ScatterplotLayer({
+    id:'tx', data:txs, coordinateSystem:CART,
+    getPosition:d=>[X(d.t), Y(d.v)],
+    getRadius:d=>3 + Math.sqrt(d.v)*2.2, radiusUnits:'pixels', radiusMinPixels:3,
+    getFillColor:d=>valueColor(d.v),
+    stroked:true, getLineColor:d=>d.hub?[255,255,255]:[0,0,0,0],
+    getLineWidth:d=>d.hub?1.4:0, lineWidthUnits:'pixels',
+    pickable:true, parameters:{depthTest:false},
+  });
+
+  new DeckGL({
+    parent:document.getElementById('deck'),
+    views:new OrthographicView({}),                       // flipY defaults true
+    initialViewState:{ target:[W/2, H/2, 0], zoom:-0.45 },
+    controller:{ scrollZoom:{ speed:0.02, smooth:true } },
+    layers:[grid, dots, text],
+    getTooltip:({object}) => object && object.v!==undefined && { html:
+      `<div class="tt"><div><span class="k">value </span><span class="v">${object.v} ETH</span></div>`+
+      `<div><span class="k">time  </span>${new Date(object.t*1000).toISOString().slice(0,16).replace('T',' ')}Z</div>`+
+      `<div><span class="k">from </span>${short(object.from)}</div>`+
+      `<div><span class="k">to   </span>${short(object.to)}</div></div>` },
+  });
+});
+</script>
+</body></html>
