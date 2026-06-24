@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cabal graph · clustered view</title>
+<script src="https://unpkg.com/deck.gl@8.9.35/dist.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  :root{--ink:#e8e6df;--dim:#8b8a83;--line:#2a2c31;--ground:#0e0f12;
+    --panel:#16181c;--accent:#d9d5c8;}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);
+    font:13px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    -webkit-font-smoothing:antialiased}
+  #deck{position:fixed;inset:0}
+  .panel{position:fixed;top:14px;left:14px;z-index:10;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:13px 15px;min-width:210px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .panel h1{margin:0 0 2px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;color:var(--accent)}
+  .panel .sub{color:var(--dim);font-size:11px;margin-bottom:12px}
+  .row{display:flex;justify-content:space-between;gap:18px;padding:2px 0;color:var(--dim)}
+  .row b{color:var(--ink);font-weight:600}
+  .bar{margin-top:10px;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
+  .actions{margin-top:12px;border-top:1px solid var(--line);padding-top:11px;
+    display:flex;gap:8px;flex-wrap:wrap}
+  .btn,.actions label{cursor:pointer;color:var(--accent);border:1px solid var(--line);
+    border-radius:4px;padding:5px 10px;font-size:11px;letter-spacing:.05em;
+    background:transparent;font-family:inherit;transition:border-color .15s,color .15s}
+  .btn:hover,.actions label:hover{border-color:var(--accent);color:var(--ink)}
+  .actions input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .hint{color:var(--dim);font-size:10.5px;margin-top:8px}
+  #drop{position:fixed;inset:0;z-index:20;display:none;align-items:center;
+    justify-content:center;background:rgba(14,15,18,.86);color:var(--accent);
+    letter-spacing:.1em;text-transform:uppercase;font-size:13px}
+  #drop.on{display:flex}
+  .tip{font:11px/1.4 ui-monospace,Menlo,monospace;background:#1b1d22;color:#e8e6df;
+    border:1px solid #313438;border-radius:5px;padding:7px 9px;max-width:300px}
+  .tip .a{color:#9fd0ff;word-break:break-all}.tip .m{color:#8b8a83}
+</style>
+</head>
+<body>
+<div id="deck"></div>
+<div class="panel">
+  <h1>Cabal Graph</h1>
+  <div class="sub" id="src">no graph loaded</div>
+  <div class="row"><span>nodes</span><b id="nN">—</b></div>
+  <div class="row"><span>edges</span><b id="nE">—</b></div>
+  <div class="row"><span>groups</span><b id="nC">—</b></div>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="actions">
+    <button class="btn" id="relayout">re-run layout</button>
+    <label>load json<input id="file" type="file" accept=".json,application/json"></label>
+  </div>
+  <div class="hint">color = group · drop a file anywhere · ?src=grouped.json</div>
+</div>
+<div id="drop">drop graph json to load</div>
+
+<script>
+const {Deck, OrthographicView, ScatterplotLayer, LineLayer} = deck;
+
+function hslToRgb(h,s,l){h/=360;const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h*12)%12;return l-a*Math.max(-1,Math.min(k-3,9-k,1));};
+  return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];}
+const groupColor = g => hslToRgb((g*137.508)%360,0.62,0.58);
+
+let deckgl=null, sim=null, viewState=null, autoFit=true, current=null;
+
+function fit(nodes){
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+  const w=Math.max(maxX-minX,1),h=Math.max(maxY-minY,1);
+  const z=Math.log2(Math.min(window.innerWidth/w,window.innerHeight/h)*0.82);
+  return {target:[cx,cy,0],zoom:z,minZoom:-6,maxZoom:14};
+}
+
+function layers(nodes,edges){
+  return [
+    new LineLayer({id:'edges',data:edges,
+      getSourcePosition:e=>[nodes[e.source_index].x,nodes[e.source_index].y],
+      getTargetPosition:e=>[nodes[e.target_index].x,nodes[e.target_index].y],
+      getColor:e=>{const c=groupColor(nodes[e.source_index].group??0);return [c[0],c[1],c[2],130];},
+      getWidth:e=>Math.sqrt((e.value_eth||0)+0.1),
+      widthUnits:'common',widthScale:0.5,widthMinPixels:1,widthMaxPixels:12,
+      updateTriggers:{getSourcePosition:current.tick,getTargetPosition:current.tick},
+      pickable:true}),
+    new ScatterplotLayer({id:'nodes',data:nodes,
+      getPosition:n=>[n.x,n.y],
+      getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1),
+      radiusUnits:'common',radiusScale:0.8,radiusMinPixels:3,radiusMaxPixels:20,
+      getFillColor:n=>groupColor(n.group??0),
+      stroked:true,lineWidthUnits:'pixels',
+      getLineWidth:n=>n.is_bridge?2:0,
+      getLineColor:n=>n.cabal_bridge?[255,255,255]:(n.is_bridge?[255,210,79]:[0,0,0,0]),
+      updateTriggers:{getPosition:current.tick},pickable:true})
+  ];
+}
+
+function draw(){
+  const {nodes,edges}=current;
+  if(autoFit) viewState=fit(nodes);
+  const props={views:new OrthographicView({flipY:false}),controller:true,
+    viewState,onViewStateChange:({viewState:vs})=>{autoFit=false;viewState=vs;deckgl.setProps({viewState});},
+    layers:layers(nodes,edges)};
+  if(deckgl) deckgl.setProps(props);
+  else deckgl=new Deck(Object.assign({parent:document.getElementById('deck'),
+    getTooltip:({object})=>{
+      if(!object) return null;
+      if('address' in object){const o=object;
+        return {html:`<div class="tip"><div class="a">${o.address}</div><div class="m">`+
+          `group ${o.group} · in ${o.in_tx} / out ${o.out_tx} · `+
+          `${(o.value_in||0).toFixed(2)}↓ ${(o.value_out||0).toFixed(2)}↑ ETH`+
+          (o.cabal_bridge?` · <span style="color:#fff">CABAL BRIDGE</span>`:
+            o.is_bridge?` · <span style="color:#ffd24f">cut vertex</span>`:'')+
+          `</div></div>`,style:{background:'transparent'}};}
+      const e=object;
+      return {html:`<div class="tip"><div class="m">${(e.value_eth??0)} ETH`+
+        (e.collection?` · ${e.collection} #${e.token_id}`:'')+
+        (e.cabal_label?` · ${e.cabal_label}`:'')+`</div></div>`,style:{background:'transparent'}};
+    }},props));
+}
+
+function runLayout(g){
+  current=g; current.tick=0; autoFit=true;
+  const nodes=g.nodes, edges=g.edges;
+  document.getElementById('src').textContent=(g.metadata&&g.metadata.source)||'graph';
+  document.getElementById('nN').textContent=nodes.length;
+  document.getElementById('nE').textContent=edges.length;
+  document.getElementById('nC').textContent=(g.metadata&&g.metadata.grouping&&g.metadata.grouping.group_count)??'—';
+
+  // seed positions in a small disc; d3 settles from there
+  nodes.forEach((n,i)=>{const a=i*2.399;n.x=Math.cos(a)*Math.sqrt(i);n.y=Math.sin(a)*Math.sqrt(i);});
+  const links=edges.map(e=>({source:e.source_index,target:e.target_index}));
+
+  if(sim) sim.stop();
+  // charge spreads nodes, link springs pull cabals tight, x/y gravity keeps the
+  // disconnected components gathered in one frame so color does the separating
+  sim=d3.forceSimulation(nodes)
+    .force('charge',d3.forceManyBody().strength(-24).distanceMax(60))
+    .force('link',d3.forceLink(links).distance(8).strength(0.7))
+    .force('x',d3.forceX(0).strength(0.05))
+    .force('y',d3.forceY(0).strength(0.05))
+    .force('collide',d3.forceCollide(1.4))
+    .alphaDecay(0.018);
+
+  const alpha0=sim.alpha();
+  sim.on('tick',()=>{current.tick++;
+      document.getElementById('prog').style.width=
+        Math.min(100,(1-sim.alpha()/alpha0)*100)+'%';
+      draw();})
+     .on('end',()=>{autoFit=false;document.getElementById('prog').style.width='100%';draw();});
+}
+
+// ---- loaders ----
+function ingest(text){try{runLayout(JSON.parse(text));}catch(e){alert('bad JSON: '+e.message);}}
+function loadFile(f){const r=new FileReader();r.onload=()=>ingest(r.result);r.readAsText(f);}
+document.getElementById('file').addEventListener('change',e=>e.target.files[0]&&loadFile(e.target.files[0]));
+document.getElementById('relayout').addEventListener('click',()=>current&&runLayout(current));
+const drop=document.getElementById('drop');
+addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('on');});
+addEventListener('dragleave',e=>{if(e.target===drop)drop.classList.remove('on');});
+addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('on');
+  e.dataTransfer.files[0]&&loadFile(e.dataTransfer.files[0]);});
+const src=new URLSearchParams(location.search).get('src')||'samplegraph.json';
+fetch(src).then(r=>r.json()).then(runLayout)
+  .catch(err=>document.getElementById('src').textContent='fetch failed: '+err.message);
+</script>
+</body>
+</html>
