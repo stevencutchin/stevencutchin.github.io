@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why It Works · Trust Markers in a Pseudonymous System</title>
+<style>
+  :root{
+    --bg:#0d141b; --panel:#131e28; --edge:#263644;
+    --ink:#e6edf3; --muted:#8397a8; --faint:#4a5c6b;
+    --nft:#f2a33c; --eth:#6fcf97; --link:#46c9d6; --addr:#bb8ff2;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(900px 500px at 78% -8%,rgba(111,207,151,.05),transparent 60%),var(--bg);
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;
+    padding:clamp(20px,4vw,56px)}
+  .wrap{max-width:1020px;margin:0 auto}
+
+  header{border-bottom:1px solid var(--edge);padding-bottom:22px;margin-bottom:30px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.34em;color:var(--muted);
+    font-weight:600;margin-bottom:10px}
+  h1{margin:.05em 0 .3em;font-size:clamp(23px,3.5vw,38px);letter-spacing:-.018em;font-weight:650}
+  .thesis{color:var(--muted);font-size:clamp(15px,1.5vw,17px);max-width:66ch;margin:0}
+  .thesis b{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.9em}
+
+  .stage{background:linear-gradient(180deg,#14212c,#101a23);border:1px solid var(--edge);
+    border-radius:14px;padding:20px clamp(14px,2.5vw,26px) 10px;margin-bottom:24px;position:relative;overflow:hidden}
+  .stage::before{content:attr(data-tag);position:absolute;top:12px;right:18px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--faint)}
+  .caption{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;margin:4px 4px 4px}
+  svg{display:block;width:100%;height:auto}
+
+  /* inference strip */
+  .infer{display:flex;align-items:stretch;gap:0;border:1px solid var(--edge);border-radius:12px;
+    overflow:hidden;background:#0e1720;margin-bottom:26px;flex-wrap:wrap}
+  .infer-cell{flex:1;min-width:200px;padding:16px 18px}
+  .infer-cell + .infer-op{border-left:1px solid var(--edge)}
+  .infer-op{flex:none;display:flex;align-items:center;justify-content:center;padding:0 16px;
+    font-family:var(--mono);font-size:24px;color:var(--faint);background:#0b131b;
+    border-right:1px solid var(--edge)}
+  .infer-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:6px;font-weight:700}
+  .infer-main{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px}
+  .infer-sub{font-size:12.5px;color:var(--muted)}
+  .infer-cell.result{background:rgba(242,163,60,.05)}
+  .infer-cell.result .infer-main{color:var(--nft)}
+
+  h2.k{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted);
+    text-transform:uppercase;margin:30px 0 16px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:16px 17px}
+  .card .dot{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:8px}
+  .card h3{margin:0 0 6px;font-size:14px;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  .card p b{color:var(--ink)}
+
+  @media (max-width:760px){.grid{grid-template-columns:1fr}.infer{flex-direction:column}
+    .infer-op{border:none;border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);padding:6px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">THE ARGUMENT</div>
+    <h1>Why the linking graph + traces reveal wash trading</h1>
+    <p class="thesis">A trade on the NFT market shows only that two addresses <b>interacted there</b> — nothing
+    beyond it. An ETH transaction shows the same for its market. Neither alone is a relationship. But when
+    the <b>same two addresses</b> appear in one token's trace <b>and</b> are connected on the Ethereum
+    market, two independent interactions across <b>separate systems</b> point at the same pair — and that
+    cross-market conjunction is proof of an <b>existing relationship</b>: they know each other, the
+    precondition of a wash trade.</p>
+  </header>
+
+  <!-- ============ TWO MARKETS, ONE PAIR ============ -->
+  <div class="stage" data-tag="TWO SEPARATE MARKETS · THE SAME PAIR IN BOTH">
+    <svg viewBox="0 0 920 430" role="img"
+         aria-label="Two separate markets shown as two panels: on the NFT market addresses A and B trade a token repeatedly; on the Ethereum market the same A and B are connected through a funding path; the coincidence identifies a trust relationship">
+
+      <!-- ===== NFT market panel ===== -->
+      <rect x="30" y="34" width="410" height="330" rx="14" fill="var(--nft)" fill-opacity=".035"
+            stroke="var(--nft)" stroke-width="1.6" stroke-opacity=".7"/>
+      <text x="52" y="66" font-family="var(--mono)" font-size="13" font-weight="700" fill="var(--nft)">NFT MARKET</text>
+      <text x="52" y="83" font-family="var(--mono)" font-size="10" fill="var(--muted)">pseudonymous — a trade names no one</text>
+
+      <g font-family="var(--mono)" text-anchor="middle">
+        <circle cx="140" cy="180" r="20" fill="#171225" stroke="var(--addr)" stroke-width="2.2"/>
+        <text x="140" y="185" font-size="12" font-weight="700" fill="var(--ink)">A</text>
+        <circle cx="330" cy="180" r="20" fill="#171225" stroke="var(--addr)" stroke-width="2.2"/>
+        <text x="330" y="185" font-size="12" font-weight="700" fill="var(--ink)">B</text>
+      </g>
+      <!-- repeated trades -->
+      <path d="M160,168 Q235,130 310,168" fill="none" stroke="var(--nft)" stroke-width="2.2"/>
+      <path d="M310,192 Q235,230 160,192" fill="none" stroke="var(--nft)" stroke-width="2.2"/>
+      <text x="235" y="128" font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--nft)" text-anchor="middle">MOON #7001 · 1.5Ξ ×5</text>
+      <text x="235" y="248" font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--nft)" text-anchor="middle">MOON #7001 · 1.5Ξ ×5</text>
+      <text x="235" y="310" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic" text-anchor="middle">the trace shows the pair interacting —</text>
+      <text x="235" y="328" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic" text-anchor="middle">on this market, nothing beyond it</text>
+
+      <!-- ===== separation ===== -->
+      <line x1="460" y1="50" x2="460" y2="350" stroke="var(--edge)" stroke-width="1.4" stroke-dasharray="3 6"/>
+      <text x="460" y="392" font-family="var(--mono)" font-size="10.5" fill="var(--faint)" text-anchor="middle">two independent systems — activity in one implies nothing in the other</text>
+
+      <!-- ===== ETH market panel ===== -->
+      <rect x="480" y="34" width="410" height="330" rx="14" fill="var(--eth)" fill-opacity=".035"
+            stroke="var(--eth)" stroke-width="1.6" stroke-opacity=".7"/>
+      <text x="502" y="66" font-family="var(--mono)" font-size="13" font-weight="700" fill="var(--eth)">ETHEREUM MARKET</text>
+      <text x="502" y="83" font-family="var(--mono)" font-size="10" fill="var(--muted)">a normal transaction takes both parties' consent</text>
+
+      <g font-family="var(--mono)" text-anchor="middle">
+        <circle cx="590" cy="180" r="20" fill="#171225" stroke="var(--addr)" stroke-width="2.2"/>
+        <text x="590" y="185" font-size="12" font-weight="700" fill="var(--ink)">A</text>
+        <circle cx="780" cy="180" r="20" fill="#171225" stroke="var(--addr)" stroke-width="2.2"/>
+        <text x="780" y="185" font-size="12" font-weight="700" fill="var(--ink)">B</text>
+        <circle cx="685" cy="258" r="15" fill="#0f1e22" stroke="var(--link)" stroke-width="1.8" stroke-dasharray="3 3"/>
+        <text x="685" y="262" font-size="10" font-weight="700" fill="var(--link)">Z</text>
+      </g>
+      <!-- funding path -->
+      <path d="M672,248 L602,196" fill="none" stroke="var(--link)" stroke-width="2.2" stroke-dasharray="5 4"/>
+      <path d="M698,248 L768,196" fill="none" stroke="var(--link)" stroke-width="2.2" stroke-dasharray="5 4"/>
+      <text x="620" y="238" font-family="var(--mono)" font-size="10" fill="var(--link)" text-anchor="middle">funds</text>
+      <text x="752" y="238" font-family="var(--mono)" font-size="10" fill="var(--link)" text-anchor="middle">funds</text>
+      <text x="685" y="292" font-family="var(--mono)" font-size="9.5" fill="var(--muted)" text-anchor="middle">shared funder — a path counts as a tie</text>
+      <text x="685" y="316" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic" text-anchor="middle">the linking graph shows the pair interacted —</text>
+      <text x="685" y="334" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic" text-anchor="middle">on this market, nothing beyond it</text>
+    </svg>
+    <p class="caption">Each panel alone shows an interaction — only that. The same pair recurring across two separate markets is what proves a relationship.</p>
+  </div>
+
+  <!-- ============ THE INFERENCE ============ -->
+  <div class="infer">
+    <div class="infer-cell">
+      <div class="infer-tag" style="color:var(--nft)">Trace · NFT market</div>
+      <div class="infer-main">A and B interacted here</div>
+      <div class="infer-sub">the same token's trace — an interaction, only that</div>
+    </div>
+    <div class="infer-op">+</div>
+    <div class="infer-cell">
+      <div class="infer-tag" style="color:var(--link)">Linking graph · ETH market</div>
+      <div class="infer-main">A and B interacted here too</div>
+      <div class="infer-sub">a separate, independent interaction — only that</div>
+    </div>
+    <div class="infer-op">=</div>
+    <div class="infer-cell result">
+      <div class="infer-tag" style="color:var(--nft)">The inference</div>
+      <div class="infer-main">Two independent interactions → an existing relationship</div>
+      <div class="infer-sub">the cross-market conjunction is the proof they know each other — the precondition of a wash trade</div>
+    </div>
+  </div>
+
+  <!-- ============ WHY THE MARKER IS TRUE ============ -->
+  <h2 class="k">Why the cross-market connection is the proof</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><span class="dot" style="background:var(--addr)"></span>An interaction proves only itself</h3>
+      <p>One trade, on either market, shows that two addresses <b>met once</b> — strangers do that
+      constantly. Neither the NFT trade nor the ETH transaction, taken alone, says anything beyond the
+      transaction it records.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--eth)"></span>The conjunction can't be coincidence</h3>
+      <p>The two markets are <b>independent systems</b> — neither produces activity in the other. So the same
+      pair appearing in both is not something either market's mechanics can generate: the recurrence comes
+      from <b>the people behind the addresses</b>. That is an existing relationship.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--nft)"></span>Wash trading requires the relationship</h3>
+      <p>A wash trade is by definition executed by <b>related parties</b> — one hand or a colluding group.
+      And running one leaves cross-market tracks: sock-puppet wallets must be <b>funded</b>, and proceeds
+      <b>collected</b>, on the very layer the linking graph reads.</p>
+    </div>
+  </div>
+
+  <!-- ============ THE ASYMMETRY ============ -->
+  <div class="stage" data-tag="THE SAME EVIDENCE READS BOTH WAYS" style="margin-top:26px">
+    <svg viewBox="0 0 920 210" role="img"
+         aria-label="Two verdicts from the same test: a pair with trades and an ETH tie is flagged; a pair with trades and no tie is consistent with an organic sale">
+      <g font-family="var(--mono)" text-anchor="middle">
+        <!-- flagged pair -->
+        <circle cx="150" cy="80" r="17" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="150" y="85" font-size="11" font-weight="700" fill="var(--ink)">A</text>
+        <circle cx="310" cy="80" r="17" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="310" y="85" font-size="11" font-weight="700" fill="var(--ink)">B</text>
+        <path d="M167,72 Q230,46 293,72" fill="none" stroke="var(--nft)" stroke-width="2"/>
+        <path d="M167,90 Q230,116 293,90" fill="none" stroke="var(--link)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="230" y="40" font-size="9.5" fill="var(--nft)">trades</text>
+        <text x="230" y="132" font-size="9.5" fill="var(--link)">ETH tie</text>
+        <rect x="130" y="152" width="200" height="24" rx="6" fill="var(--nft)" fill-opacity=".14" stroke="var(--nft)"/>
+        <text x="230" y="169" font-size="10.5" font-weight="700" fill="var(--nft)">both markets — wash candidate</text>
+
+        <!-- organic pair -->
+        <circle cx="610" cy="80" r="17" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="610" y="85" font-size="11" font-weight="700" fill="var(--ink)">C</text>
+        <circle cx="770" cy="80" r="17" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="770" y="85" font-size="11" font-weight="700" fill="var(--ink)">K</text>
+        <path d="M627,72 Q690,46 753,72" fill="none" stroke="var(--nft)" stroke-width="2"/>
+        <text x="690" y="40" font-size="9.5" fill="var(--nft)">one trade</text>
+        <rect x="590" y="152" width="200" height="24" rx="6" fill="none" stroke="var(--edge)"/>
+        <text x="690" y="169" font-size="10.5" fill="var(--muted)">one market — consistent with organic</text>
+      </g>
+      <text x="460" y="110" font-family="var(--mono)" font-size="16" fill="var(--faint)" text-anchor="middle">vs</text>
+    </svg>
+    <p class="caption">One market's interaction proves nothing beyond itself. Recurrence across both markets proves the relationship — that is the signature the pipeline surfaces.</p>
+  </div>
+
+</div>
+</body>
+</html>
