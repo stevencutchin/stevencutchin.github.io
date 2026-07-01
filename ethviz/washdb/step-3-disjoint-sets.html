@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 3 · Cluster into Disjoint Sets</title>
+<style>
+  :root{
+    --bg:#0d141b; --panel:#131e28; --edge:#263644;
+    --ink:#e6edf3; --muted:#8397a8; --faint:#4a5c6b;
+    --link:#46c9d6; --xfer:#f2a33c; --set:#bb8ff2; --trade:#7d8ea0;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(900px 500px at 82% -8%,rgba(187,143,242,.06),transparent 60%),var(--bg);
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;
+    padding:clamp(20px,4vw,56px)}
+  .wrap{max-width:1020px;margin:0 auto}
+
+  header{display:flex;align-items:flex-start;gap:clamp(16px,3vw,34px);
+    border-bottom:1px solid var(--edge);padding-bottom:22px;margin-bottom:22px}
+  .num{font-family:var(--mono);font-size:clamp(52px,9vw,104px);line-height:.82;font-weight:600;
+    color:var(--set);letter-spacing:-.04em;flex:none;text-shadow:0 0 30px rgba(187,143,242,.22)}
+  .num small{display:block;font-size:12px;letter-spacing:.34em;color:var(--muted);font-weight:600;
+    margin-bottom:10px;text-shadow:none}
+  .htxt{padding-top:4px}
+  h1{margin:.1em 0 .28em;font-size:clamp(23px,3.3vw,36px);letter-spacing:-.018em;font-weight:650}
+  .thesis{color:var(--muted);font-size:clamp(15px,1.5vw,17px);max-width:64ch;margin:0}
+  .thesis b{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.9em}
+
+  .legend{display:flex;gap:20px;flex-wrap:wrap;margin:0 2px 26px;
+    font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:20px;height:0;vertical-align:middle;margin-right:6px}
+  .l-xfer{border-top:3px solid var(--xfer)} .l-trade{border-top:3px solid var(--trade)}
+  .l-link{border-top:3px dashed var(--link)} .l-set{border-top:3px solid var(--set)}
+
+  .section{background:linear-gradient(180deg,#14212c,#101a23);border:1px solid var(--edge);
+    border-radius:14px;padding:0;margin-bottom:16px;overflow:hidden;display:flex;flex-wrap:wrap}
+  .sec-rail{flex:none;width:150px;min-width:130px;padding:18px 0 18px 20px;
+    border-right:1px solid var(--edge);background:rgba(187,143,242,.04)}
+  .sec-tag{font-family:var(--mono);font-size:12px;letter-spacing:.24em;color:var(--set);
+    font-weight:700;text-transform:uppercase}
+  .sec-step{font-family:var(--mono);font-size:34px;font-weight:600;color:var(--faint);
+    letter-spacing:-.03em;margin-top:6px;line-height:1}
+  .sec-body{flex:1;min-width:340px;padding:18px 22px 12px}
+  .sec-body h3{margin:0 0 6px;font-size:15px;letter-spacing:-.01em}
+  .sec-body p{margin:0 0 12px;color:var(--muted);font-size:13.5px}
+  .sec-body p b{color:var(--ink);font-weight:600}
+  .sec-body code{color:var(--ink);background:#0e1720;border:1px solid var(--edge);border-radius:4px;padding:1px 5px;font-size:12px}
+  .sec-body ol{margin:0 0 12px;padding-left:18px;color:var(--muted);font-size:13.5px}
+  .sec-body ol li{margin-bottom:5px} .sec-body ol li b{color:var(--ink)}
+  svg{display:block;width:100%;height:auto}
+  .note{font-family:var(--mono);font-size:11.5px;color:var(--set);
+    border-left:2px solid var(--set);padding:4px 0 4px 12px;margin:6px 2px 8px}
+  .note b{color:var(--ink)}
+
+  footer{display:flex;gap:10px;margin-top:26px;align-items:center;font-family:var(--mono);
+    font-size:12px;color:var(--faint);flex-wrap:wrap}
+  .steps{display:flex;gap:8px;flex:1;min-width:240px}
+  .seg{flex:1;height:5px;border-radius:3px;background:var(--edge)}
+  .seg.on{background:var(--set)}
+  .src{font-family:var(--mono);font-size:11px;color:var(--faint);margin:18px 2px 0}
+
+  @media (max-width:720px){.num{font-size:64px}.sec-rail{width:100%;border-right:none;
+    border-bottom:1px solid var(--edge);display:flex;align-items:baseline;gap:14px;padding:14px 20px}
+    .sec-step{margin-top:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="num"><small>THE METHOD · TOŠIĆ ET AL. · ALG. 2</small>03</div>
+    <div class="htxt">
+      <h1>Cluster a token's addresses into disjoint sets</h1>
+      <p class="thesis">Run <b>once per NFT ownership trace</b>. Seed candidate sets from the token's
+      transfers, merge sets that share a member, then merge further using links from the linking graph.
+      The output is that token's <b>disjoint sets</b> — the groups used to flag its wash trades.</p>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span><i class="l-xfer"></i>transfer (weight 0) — seeds a set</span>
+    <span><i class="l-trade"></i>trade (weight &gt; 0)</span>
+    <span><i class="l-link"></i>link — from the linking graph</span>
+    <span><i class="l-set"></i>disjoint set — output</span>
+  </div>
+
+  <!-- ============ INPUT ============ -->
+  <div class="section">
+    <div class="sec-rail"><div class="sec-tag">Input</div><div class="sec-step">01</div></div>
+    <div class="sec-body">
+      <h3>One token's trace, plus the linking graph</h3>
+      <p>Two inputs: <code>G_nft</code> — a single token's ownership trace from step 1 (transfers and
+      priced trades, time-ordered) — and <code>G_ln</code> — the linking graph from step 2.</p>
+      <svg viewBox="0 0 680 150" role="img" aria-label="Two inputs: one token's ownership trace, and the linking graph">
+        <!-- G_nft tile -->
+        <rect x="6" y="8" width="392" height="134" rx="10" fill="none" stroke="var(--edge)"/>
+        <text x="22" y="30" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--ink)">G_nft — token trace</text>
+        <text x="22" y="44" font-family="var(--mono)" font-size="9.5" fill="var(--faint)">from step 1</text>
+        <line x1="70" y1="100" x2="140" y2="100" stroke="var(--xfer)" stroke-width="2.4"/>
+        <line x1="160" y1="100" x2="230" y2="100" stroke="var(--trade)" stroke-width="2.4"/>
+        <line x1="250" y1="100" x2="320" y2="100" stroke="var(--xfer)" stroke-width="2.4"/>
+        <g font-family="var(--mono)" font-size="10" font-weight="700" fill="var(--ink)" text-anchor="middle">
+          <circle cx="70" cy="100" r="13" fill="#16242f" stroke="var(--set)" stroke-width="1.8"/><text x="70" y="104">A</text>
+          <circle cx="150" cy="100" r="13" fill="#16242f" stroke="var(--set)" stroke-width="1.8"/><text x="150" y="104">B</text>
+          <circle cx="240" cy="100" r="13" fill="#16242f" stroke="var(--set)" stroke-width="1.8"/><text x="240" y="104">C</text>
+          <circle cx="330" cy="100" r="13" fill="#16242f" stroke="var(--set)" stroke-width="1.8"/><text x="330" y="104">D</text>
+        </g>
+        <!-- G_ln tile -->
+        <rect x="410" y="8" width="264" height="134" rx="10" fill="none" stroke="var(--edge)"/>
+        <text x="426" y="30" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--ink)">G_ln — linking graph</text>
+        <text x="426" y="44" font-family="var(--mono)" font-size="9.5" fill="var(--faint)">from step 2</text>
+        <line x1="500" y1="95" x2="590" y2="95" stroke="var(--link)" stroke-width="2.2" stroke-dasharray="5 4"/>
+        <line x1="590" y1="95" x2="560" y2="55" stroke="var(--link)" stroke-width="1.6" stroke-dasharray="5 4" opacity=".5"/>
+        <g font-family="var(--mono)" font-size="10" font-weight="700" fill="var(--ink)" text-anchor="middle">
+          <circle cx="560" cy="55" r="11" fill="#16242f" stroke="var(--link)" stroke-width="1.6"/>
+          <circle cx="500" cy="95" r="13" fill="#16242f" stroke="var(--link)" stroke-width="1.8"/><text x="500" y="99">B</text>
+          <circle cx="590" cy="95" r="13" fill="#16242f" stroke="var(--link)" stroke-width="1.8"/><text x="590" y="99">C</text>
+        </g>
+        <text x="545" y="128" font-family="var(--mono)" font-size="9.5" fill="var(--link)" text-anchor="middle">B ↔ C linked off-market</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ============ SETUP ============ -->
+  <div class="section">
+    <div class="sec-rail"><div class="sec-tag">Setup</div><div class="sec-step">02</div></div>
+    <div class="sec-body">
+      <h3>Seed one set per transfer</h3>
+      <p>Walk the trace. For every <b>transfer</b> (weight 0), add the pair <code>{source, target}</code> as
+      a set. Priced trades seed nothing; an address that never touches a transfer never enters a set.</p>
+      <svg viewBox="0 0 680 210" role="img" aria-label="Transfers in the trace each seed a two-address set">
+        <!-- trace -->
+        <g font-family="var(--mono)" font-size="10.5" font-weight="700" text-anchor="middle">
+          <line x1="88" y1="55" x2="152" y2="55" stroke="var(--xfer)" stroke-width="2.6"/>
+          <line x1="188" y1="55" x2="252" y2="55" stroke="var(--trade)" stroke-width="2.6"/>
+          <line x1="288" y1="55" x2="352" y2="55" stroke="var(--xfer)" stroke-width="2.6"/>
+          <line x1="388" y1="55" x2="452" y2="55" stroke="var(--trade)" stroke-width="2.6"/>
+          <circle cx="70" cy="55" r="14" fill="#16242f" stroke="var(--ink)" stroke-width="1.6"/><text x="70" y="59" fill="var(--ink)">A</text>
+          <circle cx="170" cy="55" r="14" fill="#16242f" stroke="var(--ink)" stroke-width="1.6"/><text x="170" y="59" fill="var(--ink)">B</text>
+          <circle cx="270" cy="55" r="14" fill="#16242f" stroke="var(--ink)" stroke-width="1.6"/><text x="270" y="59" fill="var(--ink)">C</text>
+          <circle cx="370" cy="55" r="14" fill="#16242f" stroke="var(--ink)" stroke-width="1.6"/><text x="370" y="59" fill="var(--ink)">D</text>
+          <circle cx="470" cy="55" r="14" fill="#16242f" stroke="var(--faint)" stroke-width="1.6"/><text x="470" y="59" fill="var(--muted)">E</text>
+        </g>
+        <g font-family="var(--mono)" font-size="9" fill="var(--faint)" text-anchor="middle">
+          <text x="120" y="34" fill="var(--xfer)">transfer 0Ξ</text>
+          <text x="220" y="34">trade</text>
+          <text x="320" y="34" fill="var(--xfer)">transfer 0Ξ</text>
+          <text x="420" y="34">trade</text>
+        </g>
+        <!-- arrows down to seeds -->
+        <path d="M120,72 L120,110" stroke="var(--xfer)" stroke-width="1.4" fill="none" marker-end="url(#a3)"/>
+        <path d="M320,72 L320,110" stroke="var(--xfer)" stroke-width="1.4" fill="none" marker-end="url(#a3)"/>
+        <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="4" refY="6" orient="auto">
+          <path d="M0,0 L8,0 L4,7 Z" fill="var(--xfer)"/></marker></defs>
+        <!-- seed sets -->
+        <rect x="72" y="120" width="96" height="48" rx="14" fill="var(--xfer)" fill-opacity=".08" stroke="var(--xfer)" stroke-width="1.6"/>
+        <text x="120" y="149" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--ink)" text-anchor="middle">{A, B}</text>
+        <rect x="272" y="120" width="96" height="48" rx="14" fill="var(--xfer)" fill-opacity=".08" stroke="var(--xfer)" stroke-width="1.6"/>
+        <text x="320" y="149" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--ink)" text-anchor="middle">{C, D}</text>
+        <text x="470" y="92" font-family="var(--mono)" font-size="9.5" fill="var(--faint)" text-anchor="middle">no transfer</text>
+        <text x="470" y="104" font-family="var(--mono)" font-size="9.5" fill="var(--faint)" text-anchor="middle">→ not seeded</text>
+        <text x="596" y="149" font-family="var(--mono)" font-size="11" fill="var(--muted)" text-anchor="middle">L = [ {A,B}, {C,D} ]</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ============ PROCESS ============ -->
+  <div class="section">
+    <div class="sec-rail"><div class="sec-tag">Process</div><div class="sec-step">03</div></div>
+    <div class="sec-body">
+      <h3>Merge until nothing more can merge</h3>
+      <ol>
+        <li><b>Merge shared members.</b> Fuse any two sets with a common address; repeat until the sets are disjoint.</li>
+        <li><b>Merge by link.</b> Fuse any two sets when a member of one is linked to a member of the other in <code>G_ln</code>. Repeat to a fixed point.</li>
+      </ol>
+      <svg viewBox="0 0 680 176" role="img" aria-label="Pass one leaves the two sets separate; pass two merges them through a linking-graph link">
+        <!-- pass 1 -->
+        <text x="120" y="24" font-family="var(--mono)" font-size="10" fill="var(--muted)" text-anchor="middle">pass 1 · shared members</text>
+        <rect x="60" y="40" width="60" height="44" rx="14" fill="var(--xfer)" fill-opacity=".08" stroke="var(--xfer)" stroke-width="1.5"/>
+        <text x="90" y="67" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--ink)" text-anchor="middle">A,B</text>
+        <rect x="140" y="40" width="60" height="44" rx="14" fill="var(--xfer)" fill-opacity=".08" stroke="var(--xfer)" stroke-width="1.5"/>
+        <text x="170" y="67" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--ink)" text-anchor="middle">C,D</text>
+        <text x="130" y="108" font-family="var(--mono)" font-size="9.5" fill="var(--faint)" text-anchor="middle">no overlap → unchanged</text>
+
+        <text x="300" y="88" font-family="var(--mono)" font-size="22" fill="var(--faint)" text-anchor="middle">→</text>
+
+        <!-- pass 2 -->
+        <text x="420" y="24" font-family="var(--mono)" font-size="10" fill="var(--muted)" text-anchor="middle">pass 2 · link from G_ln</text>
+        <rect x="360" y="40" width="60" height="44" rx="14" fill="var(--xfer)" fill-opacity=".05" stroke="var(--xfer)" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <text x="390" y="67" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--muted)" text-anchor="middle">A,B</text>
+        <rect x="440" y="40" width="60" height="44" rx="14" fill="var(--xfer)" fill-opacity=".05" stroke="var(--xfer)" stroke-width="1.2" stroke-dasharray="3 3"/>
+        <text x="470" y="67" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--muted)" text-anchor="middle">C,D</text>
+        <line x1="404" y1="98" x2="456" y2="98" stroke="var(--link)" stroke-width="2.2" stroke-dasharray="5 4"/>
+        <text x="430" y="120" font-family="var(--mono)" font-size="9" fill="var(--link)" text-anchor="middle">B ↔ C</text>
+
+        <text x="560" y="88" font-family="var(--mono)" font-size="22" fill="var(--faint)" text-anchor="middle">→</text>
+
+        <rect x="592" y="46" width="78" height="60" rx="18" fill="var(--set)" fill-opacity=".12" stroke="var(--set)" stroke-width="2"/>
+        <text x="631" y="80" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--ink)" text-anchor="middle">A,B,C,D</text>
+        <text x="631" y="128" font-family="var(--mono)" font-size="9.5" fill="var(--set)" text-anchor="middle">one set</text>
+      </svg>
+      <div class="note">The link merges only sets that transfers already seeded — <b>it recruits no new address</b>. The intermediary on the ETH path stays inside the linking graph, never a set member.</div>
+    </div>
+  </div>
+
+  <!-- ============ OUTPUT ============ -->
+  <div class="section">
+    <div class="sec-rail"><div class="sec-tag">Output</div><div class="sec-step">04</div></div>
+    <div class="sec-body">
+      <h3>The token's disjoint sets — then flag its trades</h3>
+      <p>The result is a list of disjoint sets for this token. A priced <b>trade is flagged</b> when its
+      buyer and seller both sit in one set.</p>
+      <svg viewBox="0 0 680 172" role="img" aria-label="The disjoint set A B C D; the trade between B and C is flagged, others are not">
+        <rect x="40" y="30" width="230" height="112" rx="24" fill="var(--set)" fill-opacity=".12" stroke="var(--set)" stroke-width="2"/>
+        <text x="155" y="22" font-family="var(--mono)" font-size="10" font-weight="700" fill="var(--set)" text-anchor="middle">SET · one hand in this token</text>
+        <g font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--ink)" text-anchor="middle">
+          <circle cx="95" cy="70" r="15" fill="#16242f" stroke="var(--set)" stroke-width="2"/><text x="95" y="74">A</text>
+          <circle cx="215" cy="70" r="15" fill="#16242f" stroke="var(--set)" stroke-width="2"/><text x="215" y="74">B</text>
+          <circle cx="95" cy="112" r="15" fill="#16242f" stroke="var(--set)" stroke-width="2"/><text x="95" y="116">C</text>
+          <circle cx="215" cy="112" r="15" fill="#16242f" stroke="var(--set)" stroke-width="2"/><text x="215" y="116">D</text>
+        </g>
+        <circle cx="360" cy="86" r="15" fill="#16242f" stroke="var(--faint)" stroke-width="1.6"/>
+        <text x="360" y="90" font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--muted)" text-anchor="middle">E</text>
+        <text x="360" y="118" font-family="var(--mono)" font-size="9" fill="var(--faint)" text-anchor="middle">outside</text>
+
+        <!-- trade checks (the trace's two priced trades) -->
+        <g font-family="var(--mono)" font-size="11">
+          <text x="440" y="70" fill="var(--muted)">trade B→C</text>
+          <rect x="540" y="58" width="118" height="20" rx="5" fill="var(--set)" fill-opacity=".18" stroke="var(--set)"/>
+          <text x="599" y="72" fill="var(--set)" font-weight="700" text-anchor="middle">WASH — both in set</text>
+          <text x="440" y="106" fill="var(--muted)">trade D→E</text>
+          <rect x="540" y="94" width="118" height="20" rx="5" fill="none" stroke="var(--edge)"/>
+          <text x="599" y="108" fill="var(--faint)" text-anchor="middle">clear — E outside</text>
+        </g>
+      </svg>
+      <div class="note">Scoped to <b>this token</b>. The next token starts a fresh list of sets — separate tokens are <b>not</b> merged into shared sets.</div>
+    </div>
+  </div>
+
+  <p class="src">Source: Tošić, Vičič &amp; Hrovatin, "Beyond the surface: advanced wash-trading detection in decentralized NFT markets," Financial Innovation 11:86 (2025) — Algorithm 2.</p>
+
+  <footer>
+    <div class="steps"><span class="seg on"></span><span class="seg on"></span><span class="seg on"></span></div>
+    <span>STEP 3 / 3 — DISJOINT SETS (PER TOKEN)</span>
+  </footer>
+
+</div>
+</body>
+</html>

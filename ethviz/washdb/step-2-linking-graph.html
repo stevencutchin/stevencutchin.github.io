@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 2 · Create the Linking Graph</title>
+<style>
+  :root{
+    --bg:#0d141b; --panel:#131e28; --edge:#263644;
+    --ink:#e6edf3; --muted:#8397a8; --faint:#4a5c6b;
+    --link:#46c9d6; --flag:#f2a33c;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(900px 500px at 82% -8%,rgba(70,201,214,.06),transparent 60%),var(--bg);
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;
+    padding:clamp(20px,4vw,56px)}
+  .wrap{max-width:1060px;margin:0 auto}
+
+  header{display:flex;align-items:flex-start;gap:clamp(16px,3vw,34px);
+    border-bottom:1px solid var(--edge);padding-bottom:22px;margin-bottom:38px}
+  .num{font-family:var(--mono);font-size:clamp(52px,9vw,104px);line-height:.82;font-weight:600;
+    color:var(--link);letter-spacing:-.04em;flex:none;text-shadow:0 0 30px rgba(70,201,214,.22)}
+  .num small{display:block;font-size:12px;letter-spacing:.34em;color:var(--muted);font-weight:600;
+    margin-bottom:10px;text-shadow:none}
+  .htxt{padding-top:4px}
+  h1{margin:.1em 0 .28em;font-size:clamp(24px,3.4vw,38px);letter-spacing:-.018em;font-weight:650}
+  .thesis{color:var(--muted);font-size:clamp(15px,1.5vw,17px);max-width:60ch;margin:0}
+  .thesis b{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.9em}
+
+  /* ---- development timeline ---- */
+  .frame{background:linear-gradient(180deg,#14212c,#101a23);border:1px solid var(--edge);
+    border-radius:14px;padding:16px clamp(12px,2vw,20px) 6px;display:flex;gap:clamp(14px,2.5vw,28px);
+    align-items:center;flex-wrap:wrap}
+  .frame-side{flex:none;width:210px;min-width:170px}
+  .frame-idx{font-family:var(--mono);font-size:34px;font-weight:600;color:var(--link);
+    letter-spacing:-.03em;line-height:1}
+  .frame-idx b{color:var(--faint);font-weight:600}
+  .frame-title{font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;color:var(--ink);
+    font-weight:600;margin:9px 0 6px}
+  .frame-cap{color:var(--muted);font-size:13px;margin:0}
+  .frame-cap em{color:var(--flag);font-style:normal;font-weight:600}
+  .frame-svg{flex:1;min-width:300px}
+  .arw{display:flex;justify-content:center;color:var(--faint);font-family:var(--mono);
+    font-size:20px;margin:7px 0;line-height:1}
+
+  svg{display:block;width:100%;height:auto}
+
+  h2.k{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted);
+    text-transform:uppercase;margin:36px 0 16px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:17px 18px}
+  .card .dot{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:8px;background:var(--link)}
+  .card .dot.amber{background:var(--flag)}
+  .card h3{margin:0 0 7px;font-size:14.5px;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:13.5px}
+  .card code{color:var(--ink);background:#0e1720;border:1px solid var(--edge);border-radius:4px;padding:1px 5px;font-size:12px}
+
+  footer{display:flex;gap:10px;margin-top:34px;align-items:center;font-family:var(--mono);
+    font-size:12px;color:var(--faint);flex-wrap:wrap}
+  .steps{display:flex;gap:8px;flex:1;min-width:260px}
+  .seg{flex:1;height:5px;border-radius:3px;background:var(--edge)}
+  .seg.on{background:var(--link)}
+
+  @media (max-width:760px){.grid{grid-template-columns:1fr}.num{font-size:64px}.frame-side{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="num"><small>THE METHOD · TOŠIĆ ET AL.</small>02</div>
+    <div class="htxt">
+      <h1>Create the linking graph</h1>
+      <p class="thesis">Start from the initial set of addresses and run a <b>breadth-first search</b> over their
+      Ethereum transactions. Each hop pulls in the counterparties of the current frontier; where branches
+      meet, addresses land in one component. The output is a <b>connectivity graph</b>.</p>
+    </div>
+  </header>
+
+  <div id="timeline"></div>
+
+  <h2 class="k">Essential elements</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><span class="dot"></span>The seed set is the frontier</h3>
+      <p>The initial addresses are where BFS begins — the <code>hop&nbsp;0</code> frontier every later ring
+      grows out from.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>Each hop adds counterparties</h3>
+      <p>Every address in the frontier contributes its direct ETH transaction partners. Those become the
+      next frontier; each edge is a <b style="color:var(--ink)">transaction between two addresses</b>.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot amber"></span>Meeting branches connect</h3>
+      <p>When two expansions reach the <b style="color:var(--ink)">same address</b>, their seeds join one
+      component. That shared reachability is the connectivity the graph records.</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="steps"><span class="seg on"></span><span class="seg on"></span><span class="seg"></span></div>
+    <span>STEP 2 / 3 — LINKING GRAPH</span>
+  </footer>
+
+</div>
+
+<script>
+const NS="http://www.w3.org/2000/svg";
+const cs=getComputedStyle(document.documentElement);
+const C={link:cs.getPropertyValue('--link').trim(),flag:cs.getPropertyValue('--flag').trim(),
+  faint:cs.getPropertyValue('--faint').trim(),muted:cs.getPropertyValue('--muted').trim(),
+  ink:cs.getPropertyValue('--ink').trim(),node:'#16242f'};
+
+const P={ // fixed positions, reused every frame
+  S1:[72,58],S2:[72,140],S3:[72,222],S4:[72,296],
+  a:[252,42],b:[252,100],c:[252,162],d:[252,224],e:[252,300],
+  f:[432,150],g:[432,300]
+};
+const seeds=["S1","S2","S3","S4"];
+const H1=[["S1","a"],["S1","b"],["S2","b"],["S2","c"],["S3","d"],["S4","e"]];
+const H2=[["c","f"],["d","f"],["e","g"]];
+
+function el(tag,attrs){const e=document.createElementNS(NS,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+
+function frame(active,edges,fresh,connectors,hulls){
+  const svg=el("svg",{viewBox:"0 0 510 340",role:"img"});
+  // component hulls (result frame)
+  (hulls||[]).forEach(h=>{
+    const pts=h.nodes.map(n=>P[n]);
+    const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+    const x0=Math.min(...xs)-30,x1=Math.max(...xs)+30,y0=Math.min(...ys)-28,y1=Math.max(...ys)+28;
+    svg.appendChild(el("rect",{x:x0,y:y0,width:x1-x0,height:y1-y0,rx:34,
+      fill:C.link,"fill-opacity":.08,stroke:C.link,"stroke-opacity":.35,"stroke-width":1.5}));
+  });
+  // edges
+  edges.forEach(([u,v])=>{
+    const isNew=fresh.some(f=>Array.isArray(f)&&f[0]===u&&f[1]===v);
+    svg.appendChild(el("line",{x1:P[u][0],y1:P[u][1],x2:P[v][0],y2:P[v][1],
+      stroke:C.link,"stroke-width":isNew?2.4:1.6,"stroke-opacity":isNew?1:.4}));
+  });
+  // nodes
+  active.forEach(n=>{
+    const isSeed=seeds.includes(n);
+    const isNew=fresh.includes(n);
+    const isConn=(connectors||[]).includes(n);
+    const r=isSeed?16:12;
+    if(isConn) svg.appendChild(el("circle",{cx:P[n][0],cy:P[n][1],r:r+7,fill:"none",
+      stroke:C.flag,"stroke-width":2.2}));
+    svg.appendChild(el("circle",{cx:P[n][0],cy:P[n][1],r:r,fill:C.node,
+      stroke:isConn?C.flag:C.link,"stroke-width":isSeed?2.4:1.8,
+      "stroke-opacity":isNew||isSeed||isConn?1:.55}));
+    if(isSeed){
+      const t=el("text",{x:P[n][0],y:P[n][1]+4,"text-anchor":"middle",
+        "font-family":"var(--mono)","font-size":"11","font-weight":"700",fill:C.ink});
+      t.textContent=n; svg.appendChild(t);
+    }
+  });
+  // connector tags
+  (connectors||[]).forEach(n=>{
+    const t=el("text",{x:P[n][0],y:P[n][1]-24,"text-anchor":"middle",
+      "font-family":"var(--mono)","font-size":"9.5",fill:C.flag,"font-weight":"700"});
+    t.textContent="shared"; svg.appendChild(t);
+  });
+  return svg;
+}
+
+const frames=[
+  {idx:"00",tot:"frontier",title:"THE INITIAL SET",
+   cap:"Four seed addresses. This is where BFS starts.",
+   build:()=>frame(seeds,[],seeds,[],null)},
+  {idx:"01",tot:"hop 1",title:"EXPAND ONE HOP",
+   cap:"Add each address's direct ETH counterparties. A <em>shared counterparty</em> puts S1 and S2 in one component.",
+   build:()=>frame([...seeds,"a","b","c","d","e"],H1,["a","b","c","d","e",...H1],["b"],null)},
+  {idx:"02",tot:"hop 2",title:"EXPAND THE FRONTIER",
+   cap:"Grow from the new addresses. A <em>shared address</em> joins the S2 and S3 branches.",
+   build:()=>frame([...seeds,"a","b","c","d","e","f","g"],[...H1,...H2],["f","g",...H2],["f"],null)},
+  {idx:"→",tot:"result",title:"CONNECTIVITY GRAPH",
+   cap:"No new addresses remain. The output: components of mutually reachable addresses.",
+   build:()=>frame([...seeds,"a","b","c","d","e","f","g"],[...H1,...H2],[],[],
+     [{nodes:["S1","S2","S3","a","b","c","d","f"]},{nodes:["S4","e","g"]}])}
+];
+
+const tl=document.getElementById("timeline");
+frames.forEach((f,i)=>{
+  const row=document.createElement("div"); row.className="frame";
+  const side=document.createElement("div"); side.className="frame-side";
+  side.innerHTML=`<div class="frame-idx">${f.idx==="→"?'<b>&rarr;</b>':f.idx} <b style="font-size:13px;letter-spacing:.14em;text-transform:uppercase">${f.tot}</b></div>
+    <div class="frame-title">${f.title}</div><p class="frame-cap">${f.cap}</p>`;
+  const svgwrap=document.createElement("div"); svgwrap.className="frame-svg";
+  svgwrap.appendChild(f.build());
+  row.appendChild(side); row.appendChild(svgwrap);
+  tl.appendChild(row);
+  if(i<frames.length-1){const a=document.createElement("div");a.className="arw";a.textContent="↓";tl.appendChild(a);}
+});
+</script>
+</body>
+</html>
