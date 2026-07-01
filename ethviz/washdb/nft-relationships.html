@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NFT Fundamentals · Token, Address, Sale, Collection</title>
+<style>
+  :root{
+    --bg:#0d141b; --panel:#131e28; --edge:#263644;
+    --ink:#e6edf3; --muted:#8397a8; --faint:#4a5c6b;
+    --coll:#46c9d6;   /* collection cyan   */
+    --tok:#f2a33c;    /* token amber       */
+    --addr:#bb8ff2;   /* address violet    */
+    --eth:#6fcf97;    /* ETH green         */
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(900px 500px at 80% -8%,rgba(242,163,60,.05),transparent 60%),var(--bg);
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;
+    padding:clamp(20px,4vw,56px)}
+  .wrap{max-width:1020px;margin:0 auto}
+
+  header{border-bottom:1px solid var(--edge);padding-bottom:22px;margin-bottom:30px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.34em;color:var(--muted);
+    font-weight:600;margin-bottom:10px}
+  h1{margin:.05em 0 .3em;font-size:clamp(24px,3.6vw,40px);letter-spacing:-.018em;font-weight:650}
+  .thesis{color:var(--muted);font-size:clamp(15px,1.5vw,17px);max-width:62ch;margin:0}
+  .thesis b{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.9em}
+
+  .stage{background:linear-gradient(180deg,#14212c,#101a23);border:1px solid var(--edge);
+    border-radius:14px;padding:20px clamp(14px,2.5vw,26px) 10px;margin-bottom:26px;position:relative;overflow:hidden}
+  .stage::before{content:attr(data-tag);position:absolute;top:12px;right:18px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--faint)}
+  .caption{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;margin:4px 4px 4px}
+  svg{display:block;width:100%;height:auto}
+
+  h2.k{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted);
+    text-transform:uppercase;margin:30px 0 16px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:16px 16px}
+  .card .dot{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:8px}
+  .card h3{margin:0 0 6px;font-size:14px;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  .card p b{color:var(--ink)}
+  .card code{color:var(--ink);background:#0e1720;border:1px solid var(--edge);border-radius:4px;padding:1px 5px;font-size:11.5px}
+
+  /* relationship rows */
+  .rels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  .rel{background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:14px 16px;
+    font-size:13.5px;color:var(--muted)}
+  .rel b{color:var(--ink)}
+  .rel .card-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.06em;margin-bottom:5px;font-weight:700}
+
+  @media (max-width:860px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.grid,.rels{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">NFT FUNDAMENTALS</div>
+    <h1>Token, address, sale, collection</h1>
+    <p class="thesis">Four things make up an NFT marketplace, and everything else is a relationship between
+    them: a <b>collection</b> contains tokens, a <b>token</b> points to exactly one owning
+    <b>address</b>, and a <b>sale</b> swaps that ownership against ETH between two addresses.</p>
+  </header>
+
+  <!-- ============ THE ENTITY MAP ============ -->
+  <div class="stage" data-tag="THE RELATIONSHIP MAP">
+    <svg viewBox="0 0 920 480" role="img"
+         aria-label="Relationship map: a collection contains many tokens; each token points to exactly one owning address; an address can own many tokens">
+      <defs>
+        <marker id="ar" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4 L0,8 Z" fill="var(--tok)"/>
+        </marker>
+      </defs>
+
+      <!-- ===== COLLECTION container ===== -->
+      <rect x="40" y="52" width="380" height="380" rx="18" fill="var(--coll)" fill-opacity=".05"
+            stroke="var(--coll)" stroke-width="2"/>
+      <text x="62" y="86" font-family="var(--mono)" font-size="14" font-weight="700" fill="var(--coll)">COLLECTION · MOON</text>
+      <text x="62" y="104" font-family="var(--mono)" font-size="10.5" fill="var(--muted)">one smart contract · 0x60e4…a7c6</text>
+
+      <!-- tokens inside -->
+      <g font-family="var(--mono)" text-anchor="middle">
+        <rect x="80"  y="140" width="120" height="64" rx="10" fill="#1a1710" stroke="var(--tok)" stroke-width="2"/>
+        <text x="140" y="167" font-size="12" font-weight="700" fill="var(--tok)">TOKEN #7001</text>
+        <text x="140" y="186" font-size="9.5" fill="var(--muted)">contract + token_id</text>
+
+        <rect x="80"  y="230" width="120" height="64" rx="10" fill="#1a1710" stroke="var(--tok)" stroke-width="2"/>
+        <text x="140" y="257" font-size="12" font-weight="700" fill="var(--tok)">TOKEN #5501</text>
+        <text x="140" y="276" font-size="9.5" fill="var(--muted)">contract + token_id</text>
+
+        <rect x="80"  y="320" width="120" height="64" rx="10" fill="#1a1710" stroke="var(--tok)" stroke-width="2" stroke-opacity=".45"/>
+        <text x="140" y="352" font-size="12" font-weight="700" fill="var(--tok)" opacity=".45">TOKEN #8000</text>
+        <text x="140" y="370" font-size="10" fill="var(--faint)">… #0001–#9999</text>
+      </g>
+      <text x="140" y="418" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic" text-anchor="middle">contains <tspan font-family="var(--mono)" font-style="normal" fill="var(--coll)">1 → many</tspan></text>
+
+      <!-- ===== ownerOf arrows ===== -->
+      <path d="M200,172 C320,172 400,150 508,138" fill="none" stroke="var(--tok)" stroke-width="2.2" marker-end="url(#ar)"/>
+      <path d="M200,262 C320,262 410,286 508,296" fill="none" stroke="var(--tok)" stroke-width="2.2" marker-end="url(#ar)"/>
+      <text x="368" y="132" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--tok)" text-anchor="middle">ownerOf → exactly 1</text>
+      <text x="368" y="308" font-family="var(--mono)" font-size="11.5" font-weight="700" fill="var(--tok)" text-anchor="middle">ownerOf → exactly 1</text>
+
+      <!-- ===== ADDRESSES ===== -->
+      <g font-family="var(--mono)" text-anchor="middle">
+        <rect x="516" y="104" width="170" height="66" rx="12" fill="#171225" stroke="var(--addr)" stroke-width="2"/>
+        <text x="601" y="132" font-size="12.5" font-weight="700" fill="var(--addr)">ADDRESS A</text>
+        <text x="601" y="151" font-size="9.5" fill="var(--muted)">wallet · 0xa1f7…3be1</text>
+
+        <rect x="516" y="264" width="170" height="66" rx="12" fill="#171225" stroke="var(--addr)" stroke-width="2"/>
+        <text x="601" y="292" font-size="12.5" font-weight="700" fill="var(--addr)">ADDRESS B</text>
+        <text x="601" y="311" font-size="9.5" fill="var(--muted)">wallet · 0x8816…aba0</text>
+      </g>
+
+      <!-- address B owns another token from elsewhere -->
+      <rect x="748" y="252" width="132" height="46" rx="9" fill="#1a1710" stroke="var(--tok)" stroke-width="1.6" stroke-dasharray="4 3"/>
+      <text x="814" y="272" font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--tok)" text-anchor="middle">AZUKI #318</text>
+      <text x="814" y="288" font-family="var(--mono)" font-size="9" fill="var(--faint)" text-anchor="middle">another collection</text>
+      <path d="M748,282 C726,290 706,294 688,296" fill="none" stroke="var(--tok)" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+      <text x="762" y="318" font-family="var(--mono)" font-size="10" fill="var(--muted)" text-anchor="middle">one address owns many</text>
+
+      <!-- cardinality footer -->
+      <text x="601" y="222" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic" text-anchor="middle">an address holds any number of tokens;</text>
+      <text x="601" y="240" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic" text-anchor="middle">a token is held by exactly one address</text>
+    </svg>
+    <p class="caption">Collection 1→many Token · Token →1 Address · Address →many Tokens (across collections).</p>
+  </div>
+
+  <!-- ============ THE SALE ============ -->
+  <div class="stage" data-tag="THE SALE · THE ONE RELATIONSHIP THAT MOVES">
+    <svg viewBox="0 0 920 240" role="img"
+         aria-label="A sale: the token moves from address A to address B while ETH moves from B to A; afterwards ownerOf points to B">
+      <defs>
+        <marker id="at" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4 L0,8 Z" fill="var(--tok)"/></marker>
+        <marker id="ae" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4 L0,8 Z" fill="var(--eth)"/></marker>
+      </defs>
+
+      <g font-family="var(--mono)" text-anchor="middle">
+        <rect x="70" y="70" width="170" height="66" rx="12" fill="#171225" stroke="var(--addr)" stroke-width="2"/>
+        <text x="155" y="98" font-size="12.5" font-weight="700" fill="var(--addr)">ADDRESS A</text>
+        <text x="155" y="117" font-size="9.5" fill="var(--muted)">seller</text>
+
+        <rect x="680" y="70" width="170" height="66" rx="12" fill="#171225" stroke="var(--addr)" stroke-width="2"/>
+        <text x="765" y="98" font-size="12.5" font-weight="700" fill="var(--addr)">ADDRESS B</text>
+        <text x="765" y="117" font-size="9.5" fill="var(--muted)">buyer</text>
+      </g>
+
+      <!-- token one way -->
+      <path d="M240,84 L672,84" fill="none" stroke="var(--tok)" stroke-width="2.4" marker-end="url(#at)"/>
+      <rect x="410" y="62" width="102" height="26" rx="7" fill="#1a1710" stroke="var(--tok)" stroke-width="1.8"/>
+      <text x="461" y="80" font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--tok)" text-anchor="middle">TOKEN #7001</text>
+
+      <!-- ETH other way -->
+      <path d="M680,122 L248,122" fill="none" stroke="var(--eth)" stroke-width="2.4" marker-end="url(#ae)"/>
+      <rect x="422" y="128" width="78" height="24" rx="7" fill="#10201a" stroke="var(--eth)" stroke-width="1.8"/>
+      <text x="461" y="145" font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--eth)" text-anchor="middle">1.5 Ξ ETH</text>
+
+      <!-- after-state -->
+      <text x="461" y="196" font-family="var(--sans)" font-size="13" fill="var(--muted)" font-style="italic" text-anchor="middle">one atomic swap — afterwards</text>
+      <text x="461" y="218" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--ink)" text-anchor="middle">ownerOf(#7001) = B <tspan fill="var(--faint)">·</tspan> <tspan fill="var(--eth)">balance(A) += 1.5Ξ</tspan></text>
+    </svg>
+    <p class="caption">Token one way, ETH the other, between two addresses. The owner pointer changing IS the sale — recorded on chain, no other receipt.</p>
+  </div>
+
+  <!-- ============ DEFINITIONS ============ -->
+  <h2 class="k">The four entities</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><span class="dot" style="background:var(--coll)"></span>Collection</h3>
+      <p>One smart contract on Ethereum. It defines a family of tokens and holds the ownership ledger for
+      all of them. Named by its <code>contract_address</code>.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--tok)"></span>Token</h3>
+      <p>One unique item inside a collection — identity is <code>contract + token_id</code>, fixed for life.
+      It carries a pointer to its current owner.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--addr)"></span>Address</h3>
+      <p>A wallet — the actor. It owns tokens and holds ETH. Free to create, so <b>one person can hold
+      many addresses</b>; the chain records addresses, not people.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--eth)"></span>Sale</h3>
+      <p>A swap between two addresses: the token's owner pointer moves one way, ETH moves the other, with
+      a <code>price</code> and <code>timestamp</code>. At 0Ξ it's a <b>transfer</b> — ownership moves, no payment.</p>
+    </div>
+  </div>
+
+  <!-- ============ THE RELATIONSHIPS, STATED ============ -->
+  <h2 class="k">The relationships</h2>
+  <div class="rels">
+    <div class="rel"><div class="card-lbl" style="color:var(--coll)">COLLECTION ⟶ TOKEN · one to many</div>
+      Every token belongs to exactly one collection, permanently. A collection holds thousands of tokens.</div>
+    <div class="rel"><div class="card-lbl" style="color:var(--tok)">TOKEN ⟶ ADDRESS · exactly one</div>
+      At any instant a token has exactly one owner. The token is a pointer to an address, and only a sale
+      or transfer moves it.</div>
+    <div class="rel"><div class="card-lbl" style="color:var(--addr)">ADDRESS ⟶ TOKEN · many, across collections</div>
+      An address can hold any number of tokens from any number of collections — and any number of
+      addresses can belong to one person.</div>
+    <div class="rel"><div class="card-lbl" style="color:var(--eth)">SALE · address ⇄ address</div>
+      The only relationship that changes state: token one way, ETH the other. Every sale is a public,
+      timestamped fact linking two addresses.</div>
+  </div>
+
+</div>
+</body>
+</html>

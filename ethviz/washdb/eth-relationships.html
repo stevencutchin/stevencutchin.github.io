@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ethereum Fundamentals · Address, ETH, Transaction, Network</title>
+<style>
+  :root{
+    --bg:#0d141b; --panel:#131e28; --edge:#263644;
+    --ink:#e6edf3; --muted:#8397a8; --faint:#4a5c6b;
+    --addr:#bb8ff2;   /* address violet — same as NFT page */
+    --eth:#6fcf97;    /* ETH green — same as NFT page      */
+    --tx:#46c9d6;     /* transaction cyan                  */
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(900px 500px at 80% -8%,rgba(111,207,151,.05),transparent 60%),var(--bg);
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;
+    padding:clamp(20px,4vw,56px)}
+  .wrap{max-width:1020px;margin:0 auto}
+
+  header{border-bottom:1px solid var(--edge);padding-bottom:22px;margin-bottom:30px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.34em;color:var(--muted);
+    font-weight:600;margin-bottom:10px}
+  h1{margin:.05em 0 .3em;font-size:clamp(24px,3.6vw,40px);letter-spacing:-.018em;font-weight:650}
+  .thesis{color:var(--muted);font-size:clamp(15px,1.5vw,17px);max-width:64ch;margin:0}
+  .thesis b{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.9em}
+
+  .stage{background:linear-gradient(180deg,#14212c,#101a23);border:1px solid var(--edge);
+    border-radius:14px;padding:20px clamp(14px,2.5vw,26px) 10px;margin-bottom:26px;position:relative;overflow:hidden}
+  .stage::before{content:attr(data-tag);position:absolute;top:12px;right:18px;
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--faint)}
+  .caption{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.05em;margin:4px 4px 4px}
+  svg{display:block;width:100%;height:auto}
+
+  h2.k{font-family:var(--mono);font-size:11px;letter-spacing:.28em;color:var(--muted);
+    text-transform:uppercase;margin:30px 0 16px;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:16px 16px}
+  .card .dot{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:8px}
+  .card h3{margin:0 0 6px;font-size:14px;letter-spacing:-.01em}
+  .card p{margin:0;color:var(--muted);font-size:13px}
+  .card p b{color:var(--ink)}
+  .card code{color:var(--ink);background:#0e1720;border:1px solid var(--edge);border-radius:4px;padding:1px 5px;font-size:11.5px}
+
+  .rels{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  .rel{background:var(--panel);border:1px solid var(--edge);border-radius:11px;padding:14px 16px;
+    font-size:13.5px;color:var(--muted)}
+  .rel b{color:var(--ink)}
+  .rel .card-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.06em;margin-bottom:5px;font-weight:700}
+
+  @media (max-width:860px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.grid,.rels{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">ETHEREUM FUNDAMENTALS</div>
+    <h1>Address, ETH, transaction, network</h1>
+    <p class="thesis">The Ethereum market is three things and the graph they form: an <b>address</b> holds a
+    balance of <b>ETH</b>, a <b>transaction</b> moves ETH from one address to another, and the full history of
+    transactions forms the <b>Ethereum transaction network</b> — a directed graph over every address.</p>
+  </header>
+
+  <!-- ============ THE TRANSACTION ============ -->
+  <div class="stage" data-tag="THE TRANSACTION · ONE DIRECTED EDGE">
+    <svg viewBox="0 0 920 250" role="img"
+         aria-label="One transaction: ETH moves from address A to address B; balances change; the record carries value, timestamp, and block">
+      <defs>
+        <marker id="ax" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4 L0,8 Z" fill="var(--eth)"/></marker>
+      </defs>
+
+      <g font-family="var(--mono)" text-anchor="middle">
+        <rect x="80" y="62" width="180" height="86" rx="12" fill="#171225" stroke="var(--addr)" stroke-width="2"/>
+        <text x="170" y="92" font-size="12.5" font-weight="700" fill="var(--addr)">ADDRESS A</text>
+        <text x="170" y="111" font-size="9.5" fill="var(--muted)">sender</text>
+        <text x="170" y="132" font-size="11" fill="var(--eth)">balance 5.0Ξ → 4.6Ξ</text>
+
+        <rect x="660" y="62" width="180" height="86" rx="12" fill="#171225" stroke="var(--addr)" stroke-width="2"/>
+        <text x="750" y="92" font-size="12.5" font-weight="700" fill="var(--addr)">ADDRESS B</text>
+        <text x="750" y="111" font-size="9.5" fill="var(--muted)">receiver</text>
+        <text x="750" y="132" font-size="11" fill="var(--eth)">balance 1.2Ξ → 1.6Ξ</text>
+      </g>
+
+      <!-- the edge -->
+      <path d="M260,105 L652,105" fill="none" stroke="var(--eth)" stroke-width="2.6" marker-end="url(#ax)"/>
+      <rect x="384" y="82" width="152" height="46" rx="9" fill="#0f1e22" stroke="var(--tx)" stroke-width="1.8"/>
+      <text x="460" y="102" font-family="var(--mono)" font-size="11" font-weight="700" fill="var(--tx)" text-anchor="middle">TRANSACTION</text>
+      <text x="460" y="119" font-family="var(--mono)" font-size="10" fill="var(--eth)" text-anchor="middle">0.4 Ξ</text>
+
+      <!-- the record -->
+      <text x="460" y="180" font-family="var(--sans)" font-size="13" fill="var(--muted)" font-style="italic" text-anchor="middle">every transaction is a permanent public record:</text>
+      <text x="460" y="204" font-family="var(--mono)" font-size="11.5" fill="var(--ink)" text-anchor="middle">(<tspan fill="var(--addr)">from</tspan>, <tspan fill="var(--addr)">to</tspan>, <tspan fill="var(--eth)">value</tspan>, <tspan fill="var(--muted)">timestamp</tspan>, <tspan fill="var(--muted)">block</tspan>)</text>
+      <text x="460" y="230" font-family="var(--mono)" font-size="10" fill="var(--faint)" text-anchor="middle">ETH is fungible — an amount, not an item. Only the number moves.</text>
+    </svg>
+    <p class="caption">One transaction · exactly two endpoints · ETH one way · both balances change · recorded forever.</p>
+  </div>
+
+  <!-- ============ THE NETWORK ============ -->
+  <div class="stage" data-tag="THE NETWORK · ALL TRANSACTIONS, ONE GRAPH">
+    <svg viewBox="0 0 920 330" role="img"
+         aria-label="Many transactions across addresses form one directed graph: addresses are nodes, transactions are edges; one address takes part in many transactions">
+      <defs>
+        <marker id="an" markerWidth="8" markerHeight="8" refX="6.6" refY="3.6" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L8,3.6 L0,7.2 Z" fill="var(--tx)"/></marker>
+      </defs>
+
+      <!-- edges (transactions) -->
+      <g stroke="var(--tx)" stroke-width="1.8" fill="none" marker-end="url(#an)" opacity=".9">
+        <path d="M158,120 L282,84"/>
+        <path d="M158,132 L280,176"/>
+        <path d="M310,188 L436,120"/>
+        <path d="M310,72 L438,102"/>
+        <path d="M468,126 L588,88"/>
+        <path d="M468,116 Q540,60 604,74"/>
+        <path d="M616,92 L716,150"/>
+        <path d="M588,96 Q520,160 480,132"/>
+        <path d="M296,196 Q360,260 430,240"/>
+        <path d="M456,238 L700,168"/>
+      </g>
+
+      <!-- nodes (addresses) -->
+      <g font-family="var(--mono)" font-size="10.5" font-weight="700" fill="var(--ink)" text-anchor="middle">
+        <circle cx="144" cy="126" r="15" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="144" y="130">A</text>
+        <circle cx="296" cy="78"  r="15" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="296" y="82">B</text>
+        <circle cx="296" cy="184" r="15" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="296" y="188">C</text>
+        <circle cx="452" cy="118" r="15" fill="#171225" stroke="var(--addr)" stroke-width="2.6"/><text x="452" y="122">D</text>
+        <circle cx="602" cy="84"  r="15" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="602" y="88">E</text>
+        <circle cx="730" cy="158" r="15" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="730" y="162">F</text>
+        <circle cx="444" cy="240" r="15" fill="#171225" stroke="var(--addr)" stroke-width="2"/><text x="444" y="244">G</text>
+      </g>
+
+      <!-- annotations -->
+      <text x="452" y="66" font-family="var(--mono)" font-size="10" fill="var(--addr)" text-anchor="middle">D · in many transactions</text>
+      <text x="452" y="80" font-family="var(--mono)" font-size="9" fill="var(--faint)" text-anchor="middle">in 2 · out 2</text>
+      <text x="180" y="292" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic">address = node</text>
+      <text x="392" y="292" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic">transaction = directed edge</text>
+      <text x="672" y="292" font-family="var(--sans)" font-size="12.5" fill="var(--muted)" font-style="italic">history = the whole graph</text>
+    </svg>
+    <p class="caption">Every transaction ever made is an edge. Together they are one directed graph over all addresses — the Ethereum transaction network.</p>
+  </div>
+
+  <!-- ============ DEFINITIONS ============ -->
+  <h2 class="k">The four entities</h2>
+  <div class="grid">
+    <div class="card">
+      <h3><span class="dot" style="background:var(--addr)"></span>Address</h3>
+      <p>A wallet — the actor, and the <b>same entity that owns NFTs</b>. It holds an ETH balance and sends
+      or receives transactions. Free to create; the chain records addresses, not people.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--eth)"></span>ETH</h3>
+      <p>The currency. <b>Fungible</b> — an amount with no identity, unlike a token. It exists only as
+      balances on addresses, and moving it is what a transaction does.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--tx)"></span>Transaction</h3>
+      <p>One transfer of ETH between exactly two addresses:
+      <code>(from, to, value, t)</code>. Public, timestamped, permanent — sending one requires
+      <b>both parties' involvement</b>, so it evidences a real relationship.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--tx)"></span>Network</h3>
+      <p>All transactions together: a <b>directed graph</b> with addresses as nodes and transactions as
+      edges, spanning Ethereum's entire history. This is the graph the linking graph is built from.</p>
+    </div>
+  </div>
+
+  <!-- ============ THE RELATIONSHIPS ============ -->
+  <h2 class="k">The relationships</h2>
+  <div class="rels">
+    <div class="rel"><div class="card-lbl" style="color:var(--addr)">ADDRESS ⟶ ETH · one balance</div>
+      Every address holds exactly one ETH balance. It is a running sum — the net of every transaction the
+      address has ever sent and received.</div>
+    <div class="rel"><div class="card-lbl" style="color:var(--tx)">TRANSACTION ⟶ ADDRESS · exactly two</div>
+      A transaction connects exactly one sender to one receiver, moving one amount at one time. It is the
+      atomic unit of the market.</div>
+    <div class="rel"><div class="card-lbl" style="color:var(--addr)">ADDRESS ⟶ TRANSACTION · many</div>
+      An address takes part in any number of transactions, incoming and outgoing. Its full history is its
+      neighborhood in the graph.</div>
+    <div class="rel"><div class="card-lbl" style="color:var(--tx)">TRANSACTIONS ⟶ NETWORK · edges of one graph</div>
+      The set of all transactions <b>is</b> the network: addresses as vertices, transactions as directed
+      edges. Any two addresses are related exactly as the paths between them say.</div>
+  </div>
+
+</div>
+</body>
+</html>
