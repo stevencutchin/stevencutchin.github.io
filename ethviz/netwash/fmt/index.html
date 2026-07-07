@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph JSON Format · index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#0d1014;
+    --panel:#151b24;
+    --panel-2:#1b222d;
+    --line:rgba(220,228,242,.09);
+    --line-strong:rgba(220,228,242,.18);
+    --ink:#e8edf6;
+    --muted:#8b94a4;
+    --faint:#5b6473;
+
+    --meta:#a78bfa;
+    --node:#f0b429;
+    --edge:#3fc1d4;
+    --open:#4ade80;
+
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:var(--body);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px;}
+  a{color:var(--edge);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+
+  header{padding:80px 0 24px;}
+  .crumb{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;
+    color:var(--faint);margin:0 0 18px;
+  }
+  .crumb a{color:var(--muted);}
+  .eyebrow{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--faint);margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--display);font-weight:700;
+    font-size:clamp(2.2rem,4.5vw,3.4rem);line-height:1.05;
+    margin:0 0 18px;letter-spacing:-.02em;
+  }
+  .accent{
+    background:linear-gradient(90deg,var(--node),var(--edge));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lede{font-size:1.1rem;color:var(--muted);max-width:62ch;margin:0;}
+
+  .swatch-row{display:flex;gap:10px;margin:28px 0 0;flex-wrap:wrap;}
+  .swatch{
+    font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--faint);
+    display:flex;align-items:center;gap:7px;
+  }
+  .sw{width:12px;height:12px;border-radius:3px;}
+
+  section{padding:40px 0 64px;}
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));}
+
+  .card{
+    display:flex;flex-direction:column;position:relative;
+    background:var(--panel);
+    border:1px solid var(--line-strong);
+    border-radius:16px;
+    padding:26px 26px 24px;
+    transition:border-color .18s ease,transform .18s ease,background .18s ease;
+  }
+  .card:hover{border-color:var(--accent,var(--edge));transform:translateY(-3px);background:var(--panel-2);}
+  .card .tag{
+    font-family:var(--mono);font-size:.68rem;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--faint);margin:0 0 14px;
+  }
+  .card h2{
+    font-family:var(--display);font-weight:500;font-size:1.4rem;
+    margin:0 0 10px;letter-spacing:-.01em;color:var(--ink);
+  }
+  .card p{margin:0 0 20px;color:var(--muted);font-size:.96rem;flex:1;}
+  .card .go{
+    font-family:var(--mono);font-size:.8rem;letter-spacing:.04em;
+    color:var(--ink);display:inline-flex;align-items:center;gap:8px;
+  }
+  .card .go::after{content:'→';transition:transform .18s ease;}
+  .card:hover .go::after{transform:translateX(4px);}
+  .card a.cover{position:absolute;inset:0;}
+
+  .c-spec{--accent:var(--meta);} .c-spec h2{color:var(--meta);}
+  .c-example{--accent:var(--node);} .c-example h2{color:var(--node);}
+  .c-plan{--accent:var(--open);} .c-plan h2{color:var(--open);}
+
+  .meta{
+    margin-top:8px;border-top:1px solid var(--line);padding-top:28px;
+    display:flex;flex-wrap:wrap;gap:28px;font-family:var(--mono);
+    font-size:.82rem;color:var(--muted);
+  }
+  .meta b{color:var(--ink);font-weight:600;}
+  .meta .k{color:var(--faint);}
+
+  footer{padding:32px 0 56px;color:var(--faint);font-family:var(--mono);font-size:.74rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="crumb"><a href="../index.html">workbench</a> / fmt</p>
+    <p class="eyebrow">specification</p>
+    <h1>Graph JSON <span class="accent">format</span></h1>
+    <p class="lede">One object, three keys — <code>metadata</code>, <code>nodes</code>, <code>edges</code>.
+      Every pipeline stage reads this shape and writes it back, adding columns without reshaping.</p>
+    <div class="swatch-row">
+      <span class="swatch"><span class="sw" style="background:var(--meta)"></span>metadata</span>
+      <span class="swatch"><span class="sw" style="background:var(--node)"></span>nodes</span>
+      <span class="swatch"><span class="sw" style="background:var(--edge)"></span>edges</span>
+      <span class="swatch"><span class="sw" style="background:var(--open)"></span>open attributes</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="grid">
+
+      <div class="card c-spec">
+        <p class="tag">reference</p>
+        <h2>The Graph JSON Format</h2>
+        <p>Required fields, optional stage columns, the open-attribute rule, and a minimal valid file —
+          with diagrams for top-level shape, endpoint indices, and column discovery.</p>
+        <span class="go">Read the spec</span>
+        <a class="cover" href="graph_format.html" aria-label="Open the graph JSON format reference"></a>
+      </div>
+
+      <div class="card c-example">
+        <p class="tag">sample data</p>
+        <h2>example_graph.json</h2>
+        <p>A hand-checkable two-component graph: layout positions, groups, bridges, seeds,
+          and heterogeneous ride-along attributes. Use it to test loaders and viewers.</p>
+        <span class="go">Download example</span>
+        <a class="cover" href="example_graph.json" aria-label="Open example graph JSON"></a>
+      </div>
+
+      <div class="card c-plan">
+        <p class="tag">design</p>
+        <h2>Loader Plan</h2>
+        <p>How <code>graph_loader.js</code> will validate core fields, discover open attributes into
+          columnar storage, and expose the same API as <code>cbin_loader.js</code>.</p>
+        <span class="go">Read the plan</span>
+        <a class="cover" href="LOADER_PLAN.md" aria-label="Open the loader plan"></a>
+      </div>
+
+    </div>
+
+    <div class="meta">
+      <span><span class="k">example · </span><b>6 nodes</b></span>
+      <span><span class="k">edges </span><b>8</b></span>
+      <span><span class="k">groups </span><b>2</b></span>
+      <span><span class="k">core keys </span><b>metadata · nodes · edges</b></span>
+      <span><span class="k">viewers · </span><a href="../graph_viewer.html"><b>deck.gl</b></a></span>
+      <span><span class="k"> </span><a href="../graph_viewer_clustered.html"><b>clustered</b></a></span>
+    </div>
+  </section>
+
+  <footer>required core + open attributes · JSON interchange, .cbin for production scale</footer>
+
+</div>
+</body>
+</html>

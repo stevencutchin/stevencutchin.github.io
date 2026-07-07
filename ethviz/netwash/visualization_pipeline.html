@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Visualization Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#0d1014;
+    --panel:#151b24;
+    --panel-2:#1b222d;
+    --line:rgba(220,228,242,.09);
+    --line-strong:rgba(220,228,242,.18);
+    --ink:#e8edf6;
+    --muted:#8b94a4;
+    --faint:#5b6473;
+
+    /* sequential ramp: cold raw data -> warm rendered display.
+       each pipeline stage owns one stop. */
+    --s1:#2b4a8e;
+    --s2:#2f7fa8;
+    --s3:#34a89a;
+    --s4:#46c07a;
+    --s5:#9bd24a;
+    --s6:#ebc63f;
+    --s7:#f08a3c;
+    --s8:#e25446;
+
+    --display:'Space Grotesk',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--canvas);
+    color:var(--ink);
+    font-family:var(--body);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    /* faint plotting grid across the whole page */
+    background-image:
+      linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px;}
+
+  /* ---------- header / hero ---------- */
+  header{padding:72px 0 24px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.28em;
+    text-transform:uppercase;
+    color:var(--faint);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:clamp(2.4rem,6vw,4.4rem);
+    line-height:1.02;
+    letter-spacing:-.02em;
+    margin:0 0 18px;
+  }
+  h1 .accent{
+    background:linear-gradient(90deg,var(--s1),var(--s3),var(--s5),var(--s7),var(--s8));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .lede{
+    font-size:1.12rem;
+    color:var(--muted);
+    max-width:62ch;
+    margin:0;
+  }
+
+  /* hero stage demo */
+  .demo{
+    margin:40px 0 8px;
+    border:1px solid var(--line-strong);
+    border-radius:10px;
+    background:linear-gradient(180deg,var(--panel),#10151c);
+    overflow:hidden;
+  }
+  .demo-bar{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 16px;
+    border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:.74rem;
+    color:var(--faint);
+    letter-spacing:.04em;
+  }
+  .dot{width:9px;height:9px;border-radius:50%;}
+  .demo svg{display:block;width:100%;height:auto;}
+
+  /* ---------- section scaffolding ---------- */
+  section{padding:30px 0;}
+  .section-head{
+    display:flex;align-items:baseline;gap:16px;
+    margin:48px 0 22px;
+    border-top:1px solid var(--line-strong);
+    padding-top:22px;
+  }
+  .section-head .tag{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--faint);white-space:nowrap;
+  }
+  .section-head h2{
+    font-family:var(--display);font-weight:500;font-size:1.5rem;
+    margin:0;letter-spacing:-.01em;
+  }
+
+  /* ---------- stage cards ---------- */
+  .stages{display:flex;flex-direction:column;gap:14px;}
+  .stage{
+    position:relative;
+    display:grid;
+    grid-template-columns:64px 84px 1fr;
+    gap:22px;align-items:center;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--c);
+    border-radius:8px;
+    padding:20px 24px 20px 21px;
+    transition:transform .18s ease,border-color .18s ease,background .18s ease;
+  }
+  .stage:hover{transform:translateX(4px);background:var(--panel-2);border-color:var(--line-strong);}
+  .stage .num{
+    font-family:var(--mono);font-weight:600;
+    font-size:1.5rem;color:var(--c);line-height:1;
+  }
+  .stage .num small{display:block;font-size:.6rem;color:var(--faint);letter-spacing:.18em;margin-top:7px;font-weight:500;}
+  .stage .icon{width:84px;height:54px;}
+  .stage .icon svg{width:84px;height:54px;display:block;}
+  .stage .body h3{
+    font-family:var(--display);font-weight:500;font-size:1.12rem;
+    margin:0 0 5px;letter-spacing:-.01em;
+  }
+  .stage .body p{margin:0;color:var(--muted);font-size:.95rem;}
+  .stage .body .model{
+    font-family:var(--mono);font-size:.7rem;color:var(--faint);
+    letter-spacing:.04em;margin-top:9px;display:block;
+  }
+
+  /* feedback loop note */
+  .loop{
+    margin-top:18px;
+    display:flex;gap:14px;align-items:flex-start;
+    background:rgba(226,84,70,.06);
+    border:1px solid rgba(226,84,70,.22);
+    border-radius:8px;padding:16px 20px;
+    font-size:.92rem;color:var(--muted);
+  }
+  .loop b{color:var(--ink);font-weight:600;}
+  .loop svg{flex:none;margin-top:2px;}
+
+  /* ---------- references ---------- */
+  .refs{margin-top:8px;}
+  ol.refs-list{
+    list-style:none;counter-reset:r;padding:0;margin:0;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  ol.refs-list li{
+    counter-increment:r;
+    position:relative;
+    padding:15px 16px 15px 56px;
+    font-size:.9rem;color:var(--muted);
+    border-bottom:1px solid var(--line);
+  }
+  ol.refs-list li::before{
+    content:"["counter(r)"]";
+    position:absolute;left:14px;top:15px;
+    font-family:var(--mono);font-size:.78rem;color:var(--faint);
+  }
+  ol.refs-list li cite{color:var(--ink);font-style:normal;font-weight:500;}
+  ol.refs-list li .pub{font-style:italic;}
+
+  footer{
+    padding:44px 0 64px;color:var(--faint);
+    font-family:var(--mono);font-size:.74rem;letter-spacing:.04em;
+  }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:680px){
+    .stage{grid-template-columns:48px 1fr;gap:14px;padding:18px;}
+    .stage .icon{display:none;}
+    .stage .num{font-size:1.25rem;}
+    .section-head{flex-direction:column;gap:4px;}
+  }
+
+  a:focus-visible,.stage:focus-visible{outline:2px solid var(--s5);outline-offset:3px;}
+
+  /* ---------- hero animation ---------- */
+  .pt{fill:#4a5160;}
+  .axis{stroke:var(--line-strong);stroke-width:1.5;}
+  @media (prefers-reduced-motion:no-preference){
+    .axis{stroke-dasharray:600;stroke-dashoffset:600;animation:draw 1s ease forwards;}
+    .axis.y{animation-delay:.15s;}
+    .pt{
+      transform:translate(var(--sx),var(--sy));
+      animation:settle 1.5s cubic-bezier(.34,.9,.3,1) forwards;
+      animation-delay:calc(1s + var(--d));
+    }
+    @keyframes draw{to{stroke-dashoffset:0;}}
+    @keyframes settle{
+      0%{transform:translate(var(--sx),var(--sy));fill:#4a5160;opacity:.35;}
+      55%{fill:#4a5160;}
+      100%{transform:translate(var(--ex),var(--ey));fill:var(--c);opacity:1;}
+    }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .pt{transform:translate(var(--ex),var(--ey));fill:var(--c);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Reference Model · Information Visualization</p>
+    <h1>How raw data becomes a&nbsp;<span class="accent">picture you can explore</span></h1>
+    <p class="lede">A visualization pipeline is the sequence of transforms that carries values from a source all the way to marks on a screen — and back again, as the person looking at it asks new questions. Here are the eight stages, in order.</p>
+
+    <div class="demo">
+      <div class="demo-bar">
+        <span class="dot" style="background:var(--s8)"></span>
+        <span class="dot" style="background:var(--s6)"></span>
+        <span class="dot" style="background:var(--s4)"></span>
+        <span>pipeline.run() — raw values → embedded → glyphs → color → rendered</span>
+      </div>
+      <!-- hero: the pipeline running on its own description -->
+      <svg viewBox="0 0 800 340" role="img" aria-label="Animation of scattered data points settling into a colored 2D scatter plot.">
+        <!-- axes -->
+        <line class="axis y" x1="90" y1="40" x2="90" y2="300"/>
+        <line class="axis x" x1="90" y1="300" x2="740" y2="300"/>
+        <!-- points: --sx/--sy start clustered at source, --ex/--ey final scatter, --c stage color, --d stagger -->
+        <circle class="pt" r="6" style="--sx:120px;--sy:170px;--ex:170px;--ey:240px;--c:var(--s1);--d:0s"/>
+        <circle class="pt" r="6" style="--sx:128px;--sy:178px;--ex:215px;--ey:205px;--c:var(--s1);--d:.04s"/>
+        <circle class="pt" r="6" style="--sx:134px;--sy:166px;--ex:255px;--ey:255px;--c:var(--s2);--d:.08s"/>
+        <circle class="pt" r="6" style="--sx:122px;--sy:184px;--ex:300px;--ey:188px;--c:var(--s2);--d:.12s"/>
+        <circle class="pt" r="6" style="--sx:130px;--sy:172px;--ex:330px;--ey:228px;--c:var(--s3);--d:.16s"/>
+        <circle class="pt" r="6" style="--sx:126px;--sy:160px;--ex:375px;--ey:160px;--c:var(--s3);--d:.2s"/>
+        <circle class="pt" r="6" style="--sx:118px;--sy:176px;--ex:405px;--ey:210px;--c:var(--s4);--d:.24s"/>
+        <circle class="pt" r="6" style="--sx:132px;--sy:182px;--ex:445px;--ey:150px;--c:var(--s4);--d:.28s"/>
+        <circle class="pt" r="6" style="--sx:124px;--sy:168px;--ex:475px;--ey:195px;--c:var(--s5);--d:.32s"/>
+        <circle class="pt" r="6" style="--sx:136px;--sy:174px;--ex:515px;--ey:128px;--c:var(--s5);--d:.36s"/>
+        <circle class="pt" r="6" style="--sx:120px;--sy:164px;--ex:545px;--ey:172px;--c:var(--s6);--d:.4s"/>
+        <circle class="pt" r="6" style="--sx:128px;--sy:180px;--ex:585px;--ey:112px;--c:var(--s6);--d:.44s"/>
+        <circle class="pt" r="6" style="--sx:130px;--sy:170px;--ex:615px;--ey:150px;--c:var(--s7);--d:.48s"/>
+        <circle class="pt" r="6" style="--sx:122px;--sy:176px;--ex:660px;--ey:96px;--c:var(--s7);--d:.52s"/>
+        <circle class="pt" r="6" style="--sx:134px;--sy:166px;--ex:690px;--ey:135px;--c:var(--s8);--d:.56s"/>
+        <circle class="pt" r="6" style="--sx:126px;--sy:182px;--ex:720px;--ey:78px;--c:var(--s8);--d:.6s"/>
+      </svg>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <span class="tag">8 Stages</span>
+      <h2>From source to sight</h2>
+    </div>
+
+    <div class="stages">
+
+      <article class="stage" tabindex="0" style="--c:var(--s1)">
+        <div class="num">01<small>ACQUIRE</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <ellipse cx="26" cy="16" rx="16" ry="6" fill="none" stroke="var(--s1)" stroke-width="2"/>
+            <path d="M10 16v22c0 3.3 7.2 6 16 6s16-2.7 16-6V16" fill="none" stroke="var(--s1)" stroke-width="2"/>
+            <path d="M10 27c0 3.3 7.2 6 16 6s16-2.7 16-6" fill="none" stroke="var(--s1)" stroke-width="2" opacity=".5"/>
+            <path d="M50 27h22m0 0-6-5m6 5-6 5" fill="none" stroke="var(--s1)" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Extract the data</h3>
+          <p>Pull the raw values out of wherever they live — a file, a database, an API, a sensor stream — and bring them into reach.</p>
+          <span class="model">Haber &amp; McNabb: data input · Fry: acquire</span>
+        </div>
+      </article>
+
+      <article class="stage" tabindex="0" style="--c:var(--s2)">
+        <div class="num">02<small>PARSE</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <g stroke="var(--s2)" stroke-width="2" fill="none">
+              <rect x="14" y="12" width="56" height="30" rx="2"/>
+              <line x1="14" y1="22" x2="70" y2="22"/>
+              <line x1="14" y1="32" x2="70" y2="32"/>
+              <line x1="32" y1="12" x2="32" y2="42"/>
+              <line x1="52" y1="12" x2="52" y2="42"/>
+            </g>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Convert to a processing format</h3>
+          <p>Parse and normalize the input into the pipeline's internal representation — clean records, typed fields, a table the later stages can rely on.</p>
+          <span class="model">Card et al.: data tables · Fry: parse</span>
+        </div>
+      </article>
+
+      <article class="stage" tabindex="0" style="--c:var(--s3)">
+        <div class="num">03<small>ANALYZE</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <g fill="none" stroke="var(--s3)" stroke-width="2">
+              <path d="M14 40 L30 28 L46 32 L62 16 L72 22"/>
+            </g>
+            <g fill="var(--s3)"><circle cx="30" cy="28" r="2.5"/><circle cx="46" cy="32" r="2.5"/><circle cx="62" cy="16" r="2.5"/></g>
+            <line x1="14" y1="44" x2="72" y2="44" stroke="var(--s3)" stroke-width="2" opacity=".4"/>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Process and annotate</h3>
+          <p>Run the analysis: aggregate, summarize, cluster, reduce dimensions, fit models — then attach the derived results back onto the records as new attributes.</p>
+          <span class="model">Fry: filter / mine · Chi: analytical abstraction</span>
+        </div>
+      </article>
+
+      <article class="stage" tabindex="0" style="--c:var(--s4)">
+        <div class="num">04<small>EMBED</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <line x1="18" y1="10" x2="18" y2="44" stroke="var(--s4)" stroke-width="2"/>
+            <line x1="18" y1="44" x2="70" y2="44" stroke="var(--s4)" stroke-width="2"/>
+            <g fill="var(--s4)"><circle cx="32" cy="34" r="3"/><circle cx="46" cy="22" r="3"/><circle cx="58" cy="30" r="3"/></g>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Embed in a coordinate system</h3>
+          <p>Map each record to a position in space — usually a 2D plane. Scales, projections, and layouts decide where every value lands.</p>
+          <span class="model">Card et al.: spatial substrate · Munzner: encode</span>
+        </div>
+      </article>
+
+      <article class="stage" tabindex="0" style="--c:var(--s5)">
+        <div class="num">05<small>MARK</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <g fill="none" stroke="var(--s5)" stroke-width="2">
+              <circle cx="20" cy="27" r="6"/>
+              <rect x="34" y="21" width="12" height="12"/>
+              <path d="M58 33 L64 21 L70 33 Z"/>
+            </g>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Assign glyphs and geometry</h3>
+          <p>Choose the marks — points, bars, lines, areas — and bind data attributes to their geometric channels: position, length, size, shape.</p>
+          <span class="model">Bertin: marks &amp; variables · Card et al.: visual structures</span>
+        </div>
+      </article>
+
+      <article class="stage" tabindex="0" style="--c:var(--s6)">
+        <div class="num">06<small>COLOR</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <g>
+              <rect x="14" y="22" width="11" height="11" fill="var(--s4)"/>
+              <rect x="25" y="22" width="11" height="11" fill="var(--s5)"/>
+              <rect x="36" y="22" width="11" height="11" fill="var(--s6)"/>
+              <rect x="47" y="22" width="11" height="11" fill="var(--s7)"/>
+              <rect x="58" y="22" width="11" height="11" fill="var(--s8)"/>
+            </g>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Assign color</h3>
+          <p>Map an attribute onto a color scale — sequential, diverging, or categorical — to carry an extra channel of meaning the eye reads instantly.</p>
+          <span class="model">Bertin: retinal variable · sequential / diverging scales</span>
+        </div>
+      </article>
+
+      <article class="stage" tabindex="0" style="--c:var(--s7)">
+        <div class="num">07<small>RENDER</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <rect x="14" y="12" width="56" height="34" rx="2" fill="none" stroke="var(--s7)" stroke-width="2"/>
+            <g fill="var(--s7)"><circle cx="28" cy="36" r="2.5"/><circle cx="40" cy="26" r="2.5"/><circle cx="52" cy="32" r="2.5"/><circle cx="60" cy="20" r="2.5"/></g>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Load and display</h3>
+          <p>Hand the encoded scene to the visualizer and draw it — rasterized to pixels or composited as vectors — into the view the person sees.</p>
+          <span class="model">Haber &amp; McNabb: rendering · Card et al.: views</span>
+        </div>
+      </article>
+
+      <article class="stage" tabindex="0" style="--c:var(--s8)">
+        <div class="num">08<small>EXPLORE</small></div>
+        <div class="icon">
+          <svg viewBox="0 0 84 54" aria-hidden="true">
+            <g fill="var(--s8)" opacity=".5"><circle cx="24" cy="34" r="2.5"/><circle cx="40" cy="24" r="2.5"/><circle cx="54" cy="36" r="2.5"/></g>
+            <circle cx="46" cy="24" r="11" fill="none" stroke="var(--s8)" stroke-width="2"/>
+            <line x1="54" y1="32" x2="64" y2="42" stroke="var(--s8)" stroke-width="2.5"/>
+          </svg>
+        </div>
+        <div class="body">
+          <h3>Interact and explore</h3>
+          <p>The person drives: zoom, pan, scan, and filter to move from overview to detail-on-demand, testing the questions the static picture can't answer alone.</p>
+          <span class="model">Shneiderman: overview, zoom &amp; filter, details-on-demand</span>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="loop">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M20 11a8 8 0 1 0-2.3 5.6" stroke="var(--s8)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M20 5v6h-6" stroke="var(--s8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span><b>The pipeline is a loop, not a line.</b> Every interaction in stage 8 can feed back upstream — a filter changes the analysis, a zoom re-embeds the coordinates, a brushed selection re-colors the marks. Treating the human in the loop as part of the system, not its endpoint, is what separates a visualization from a static chart.</span>
+    </div>
+  </section>
+
+  <section class="refs">
+    <div class="section-head">
+      <span class="tag">References</span>
+      <h2>Where the model comes from</h2>
+    </div>
+    <ol class="refs-list">
+      <li><cite>Bertin, J.</cite> (1983). <span class="pub">Semiology of Graphics: Diagrams, Networks, Maps</span>. University of Wisconsin Press. (Original work published 1967.)</li>
+      <li><cite>Haber, R. B., &amp; McNabb, D. A.</cite> (1990). Visualization idioms: A conceptual model for scientific visualization systems. In <span class="pub">Visualization in Scientific Computing</span> (pp. 74–93). IEEE Computer Society Press.</li>
+      <li><cite>Shneiderman, B.</cite> (1996). The eyes have it: A task by data type taxonomy for information visualizations. In <span class="pub">Proceedings of the IEEE Symposium on Visual Languages</span> (pp. 336–343).</li>
+      <li><cite>Card, S. K., Mackinlay, J. D., &amp; Shneiderman, B.</cite> (1999). <span class="pub">Readings in Information Visualization: Using Vision to Think</span>. Morgan Kaufmann.</li>
+      <li><cite>Chi, E. H.</cite> (2000). A taxonomy of visualization techniques using the data state reference model. In <span class="pub">Proceedings of IEEE InfoVis</span> (pp. 69–75).</li>
+      <li><cite>Fry, B.</cite> (2008). <span class="pub">Visualizing Data: Exploring and Explaining Data with the Processing Environment</span>. O'Reilly Media.</li>
+      <li><cite>Moreland, K.</cite> (2013). A survey of visualization pipelines. <span class="pub">IEEE Transactions on Visualization and Computer Graphics, 19</span>(3), 367–378.</li>
+      <li><cite>Munzner, T.</cite> (2014). <span class="pub">Visualization Analysis and Design</span>. CRC Press.</li>
+    </ol>
+  </section>
+
+  <footer>THE VISUALIZATION PIPELINE · DATA → TABLE → ANALYSIS → SPACE → MARKS → COLOR → PIXELS → YOU</footer>
+
+</div>
+</body>
+</html>

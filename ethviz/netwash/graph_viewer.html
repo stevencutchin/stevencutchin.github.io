@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cabal graph · viewer</title>
+<script src="https://unpkg.com/deck.gl@8.9.35/dist.min.js"></script>
+<style>
+  :root{
+    --ink:#e8e6df; --dim:#8b8a83; --line:#2a2c31;
+    --ground:#0e0f12; --panel:#16181c; --accent:#d9d5c8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);
+    font:13px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    -webkit-font-smoothing:antialiased}
+  #deck{position:fixed;inset:0}
+  /* instrument panel — quiet, lets the graph carry the color */
+  .panel{position:fixed;top:14px;left:14px;z-index:10;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:13px 15px;min-width:210px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .panel h1{margin:0 0 2px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;color:var(--accent)}
+  .panel .sub{color:var(--dim);font-size:11px;margin-bottom:12px}
+  .row{display:flex;justify-content:space-between;gap:18px;padding:2px 0;color:var(--dim)}
+  .row b{color:var(--ink);font-weight:600}
+  .file{margin-top:12px;border-top:1px solid var(--line);padding-top:11px}
+  .file label{display:inline-block;cursor:pointer;color:var(--accent);
+    border:1px solid var(--line);border-radius:4px;padding:5px 10px;font-size:11px;
+    letter-spacing:.05em;transition:border-color .15s,color .15s}
+  .file label:hover{border-color:var(--accent);color:var(--ink)}
+  .file input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .hint{color:var(--dim);font-size:10.5px;margin-top:8px}
+  .legend{margin-top:11px;border-top:1px solid var(--line);padding-top:10px;
+    color:var(--dim);font-size:11px}
+  .legend .k{display:flex;align-items:center;gap:7px;padding:2px 0}
+  .sw{width:18px;height:3px;border-radius:2px;flex:none}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;border:1.5px solid}
+  #drop{position:fixed;inset:0;z-index:20;display:none;align-items:center;
+    justify-content:center;background:rgba(14,15,18,.86);
+    color:var(--accent);letter-spacing:.1em;text-transform:uppercase;font-size:13px}
+  #drop.on{display:flex}
+  .tip{font:11px/1.4 ui-monospace,Menlo,monospace;background:#1b1d22;color:#e8e6df;
+    border:1px solid #313438;border-radius:5px;padding:7px 9px;max-width:300px}
+  .tip .a{color:#9fd0ff;word-break:break-all}
+  .tip .m{color:#8b8a83}
+</style>
+</head>
+<body>
+<div id="deck"></div>
+
+<div class="panel">
+  <h1>Cabal Graph</h1>
+  <div class="sub" id="src">no graph loaded</div>
+  <div class="row"><span>nodes</span><b id="nN">—</b></div>
+  <div class="row"><span>edges</span><b id="nE">—</b></div>
+  <div class="row"><span>components</span><b id="nC">—</b></div>
+  <div class="row"><span>cabal bridges</span><b id="nB">—</b></div>
+  <div class="legend">
+    <div class="k"><span class="sw" style="background:#d9d5c8"></span>directed edge · width = value</div>
+    <div class="k"><span class="dot" style="border-color:#ffd24f;background:transparent"></span>cut vertex</div>
+    <div class="k"><span class="dot" style="border-color:#fff;background:transparent"></span>cabal bridge</div>
+  </div>
+  <div class="file">
+    <label>Load graph.json<input id="file" type="file" accept=".json,application/json"></label>
+    <div class="hint">or drop a file anywhere · or open with ?src=graph.json</div>
+  </div>
+</div>
+
+<div id="drop">drop graph json to load</div>
+
+<script>
+const {Deck, OrthographicView, ScatterplotLayer, PathLayer, SolidPolygonLayer} = deck;
+
+function parallelKey(e){
+  return e.source_index+'\t'+e.target_index;
+}
+
+function assignParallelLanes(edges){
+  const groups = new Map();
+  for(const e of edges){
+    const k = parallelKey(e);
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(e);
+  }
+  for(const group of groups.values()){
+    const n = group.length;
+    for(let i=0; i<n; i++){
+      group[i]._lane = i;
+      group[i]._laneCount = n;
+    }
+  }
+}
+
+function curvedEdgePath(s, t, lane, laneCount, shortenSource=0.03, shortenTarget=0.1){
+  const dx=t[0]-s[0], dy=t[1]-s[1];
+  const len=Math.hypot(dx,dy);
+  if(len<1e-9) return {path:[s,t], end:t, tangent:[1,0], len:0};
+  const ux=dx/len, uy=dy/len;
+  const px=-uy, py=ux;
+  const start=[s[0]+ux*len*shortenSource, s[1]+uy*len*shortenSource];
+  const end=[t[0]-ux*len*shortenTarget, t[1]-uy*len*shortenTarget];
+  const spacing = laneCount<=1 ? 0 : (len*0.4)/(laneCount-1);
+  const offset = laneCount<=1 ? 0 : (lane-(laneCount-1)/2)*spacing;
+  const mid=[(start[0]+end[0])/2+px*offset, (start[1]+end[1])/2+py*offset];
+  const path=[];
+  for(let i=0; i<=16; i++){
+    const u=i/16, om=1-u;
+    path.push([
+      om*om*start[0]+2*om*u*mid[0]+u*u*end[0],
+      om*om*start[1]+2*om*u*mid[1]+u*u*end[1]
+    ]);
+  }
+  const tx=end[0]-mid[0], ty=end[1]-mid[1];
+  const tlen=Math.hypot(tx,ty)||1;
+  return {path, end, tangent:[tx/tlen,ty/tlen], len};
+}
+
+function arrowPolygon(tx, ty, tip, size){
+  const px=-ty, py=tx;
+  const back=size*1.9, half=size*0.65;
+  return [
+    tip,
+    [tip[0]-tx*back+px*half, tip[1]-ty*back+py*half],
+    [tip[0]-tx*back-px*half, tip[1]-ty*back-py*half]
+  ];
+}
+
+function hslToRgb(h,s,l){
+  h/=360; const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h*12)%12; return l-a*Math.max(-1,Math.min(k-3,9-k,1));};
+  return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
+}
+const groupColor = g => hslToRgb((g*137.508)%360,0.62,0.58);
+
+let deckgl = null;
+
+function fitView(nodes){
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  const w=Math.max(maxX-minX,1e-3), h=Math.max(maxY-minY,1e-3);
+  const pad=0.85;
+  const z=Math.log2(Math.min(window.innerWidth/w, window.innerHeight/h)*pad);
+  return {target:[cx,cy,0], zoom:z, minZoom:-5, maxZoom:12};
+}
+
+function render(g){
+  const nodes=g.nodes, edges=g.edges;
+  const pos = nodes.map(n=>[n.x,n.y]);
+  assignParallelLanes(edges);
+  // attach endpoint coords and curved path geometry via index
+  for(const e of edges){
+    e._s = pos[e.source_index]; e._t = pos[e.target_index];
+    const w = Math.sqrt((e.value_eth||0)+0.1);
+    const geom = curvedEdgePath(e._s, e._t, e._lane??0, e._laneCount??1);
+    e._path = geom.path;
+    e._lineEnd = geom.end;
+    const [tx,ty] = geom.tangent;
+    e._arrow = geom.len>0 ? arrowPolygon(tx, ty, geom.end, w*0.11) : null;
+  }
+  // panel stats
+  document.getElementById('nN').textContent=nodes.length;
+  document.getElementById('nE').textContent=edges.length;
+  document.getElementById('nC').textContent=(g.metadata&&g.metadata.grouping&&g.metadata.grouping.group_count)??'—';
+  document.getElementById('nB').textContent=(g.metadata&&g.metadata.bridges&&g.metadata.bridges.cabal_bridges)??'—';
+  document.getElementById('src').textContent=(g.metadata&&g.metadata.source)||'graph';
+
+  const edgeColor = e=>{const c=groupColor(e.group??0); return [c[0],c[1],c[2],150];};
+  const edgeWidth = e=>Math.sqrt((e.value_eth||0)+0.1);
+
+  const edgeLayer = new PathLayer({
+    id:'edges', data:edges,
+    getPath:e=>e._path,
+    getColor:edgeColor,
+    getWidth:edgeWidth,
+    widthUnits:'common', widthScale:0.06, widthMinPixels:1.1, widthMaxPixels:14,
+    capRounded:true, jointRounded:true,
+    pickable:true
+  });
+
+  const arrowLayer = new SolidPolygonLayer({
+    id:'arrows', data:edges.filter(e=>e._arrow),
+    getPolygon:e=>e._arrow,
+    getFillColor:edgeColor,
+    pickable:false
+  });
+
+  const nodeLayer = new ScatterplotLayer({
+    id:'nodes', data:nodes,
+    getPosition:n=>[n.x,n.y],
+    getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1),
+    radiusUnits:'common', radiusScale:0.09, radiusMinPixels:3, radiusMaxPixels:22,
+    getFillColor:n=>groupColor(n.group??0),
+    stroked:true, lineWidthUnits:'pixels',
+    getLineWidth:n=>n.is_bridge?2:0,
+    getLineColor:n=>n.cabal_bridge?[255,255,255]:(n.is_bridge?[255,210,79]:[0,0,0,0]),
+    pickable:true
+  });
+
+  const view = new OrthographicView({id:'ortho',flipY:false});
+  const initialViewState = fitView(nodes);
+
+  if(deckgl){
+    deckgl.setProps({layers:[edgeLayer,arrowLayer,nodeLayer], initialViewState});
+  } else {
+    deckgl = new Deck({
+      parent:document.getElementById('deck'),
+      views:view, controller:true, initialViewState,
+      layers:[edgeLayer,arrowLayer,nodeLayer],
+      getTooltip:({object})=>{
+        if(!object) return null;
+        if('address' in object){
+          const o=object;
+          return {html:`<div class="tip"><div class="a">${o.address}</div>`+
+            `<div class="m">group ${o.group} · in ${o.in_tx} / out ${o.out_tx}`+
+            ` · ${(o.value_in||0).toFixed(2)}↓ ${(o.value_out||0).toFixed(2)}↑ ETH`+
+            (o.cabal_bridge?` · <span style="color:#fff">CABAL BRIDGE ${JSON.stringify(o.bridge_pieces)}</span>`
+              :o.is_bridge?` · <span style="color:#ffd24f">cut vertex</span>`:'')+
+            `</div></div>`, style:{background:'transparent'}};
+        }
+        const e=object;
+        const dir = (e.source&&e.target)
+          ? `<div class="a">${e.source}</div><div class="m">→ ${e.target}</div>`
+          : '';
+        return {html:`<div class="tip">${dir}<div class="m">`+
+          `${(e.value_eth??0)} ETH`+(e.collection?` · ${e.collection} #${e.token_id}`:'')+
+          (e.cabal_label?` · ${e.cabal_label}`:'')+`</div></div>`,
+          style:{background:'transparent'}};
+      }
+    });
+  }
+}
+
+// ---- loading: file picker, drag-drop, ?src= fetch ----
+function loadFile(f){
+  const r=new FileReader();
+  r.onload=()=>{try{render(JSON.parse(r.result));}catch(err){alert('bad JSON: '+err.message);}};
+  r.readAsText(f);
+}
+document.getElementById('file').addEventListener('change',e=>{
+  if(e.target.files[0]) loadFile(e.target.files[0]);
+});
+const drop=document.getElementById('drop');
+addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('on');});
+addEventListener('dragleave',e=>{if(e.target===drop)drop.classList.remove('on');});
+addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('on');
+  if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);});
+
+const src=new URLSearchParams(location.search).get('src');
+if(src){ fetch(src).then(r=>r.json()).then(render)
+  .catch(err=>document.getElementById('src').textContent='fetch failed: '+err.message); }
+</script>
+</body>
+</html>

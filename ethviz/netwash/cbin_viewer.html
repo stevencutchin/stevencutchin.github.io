@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cabal graph · cbin view</title>
+<script src="https://unpkg.com/deck.gl@8.9.35/dist.min.js"></script>
+<script src="cbin_loader.js"></script>
+<style>
+  :root{--ink:#e8e6df;--dim:#8b8a83;--line:#2a2c31;--ground:#0e0f12;
+    --panel:#16181c;--accent:#d9d5c8;}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);
+    font:13px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    -webkit-font-smoothing:antialiased}
+  #deck{position:fixed;inset:0}
+  .panel{position:fixed;top:14px;left:14px;z-index:10;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:13px 15px;min-width:220px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .panel h1{margin:0 0 2px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;color:var(--accent)}
+  .panel .sub{color:var(--dim);font-size:11px;margin-bottom:12px}
+  .row{display:flex;justify-content:space-between;gap:18px;padding:2px 0;color:var(--dim)}
+  .row b{color:var(--ink);font-weight:600}
+  .actions{margin-top:12px;border-top:1px solid var(--line);padding-top:11px;
+    display:flex;gap:8px;flex-wrap:wrap}
+  .actions label{cursor:pointer;color:var(--accent);border:1px solid var(--line);
+    border-radius:4px;padding:5px 10px;font-size:11px;letter-spacing:.05em;
+    background:transparent;transition:border-color .15s,color .15s}
+  .actions label:hover{border-color:var(--accent);color:var(--ink)}
+  .actions input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .hint{color:var(--dim);font-size:10.5px;margin-top:8px}
+  #drop{position:fixed;inset:0;z-index:20;display:none;align-items:center;
+    justify-content:center;background:rgba(14,15,18,.86);color:var(--accent);
+    letter-spacing:.1em;text-transform:uppercase;font-size:13px}
+  #drop.on{display:flex}
+  .tip{font:11px/1.4 ui-monospace,Menlo,monospace;background:#1b1d22;color:#e8e6df;
+    border:1px solid #313438;border-radius:5px;padding:7px 9px;max-width:320px}
+  .tip .a{color:#9fd0ff;word-break:break-all}.tip .m{color:#8b8a83}
+</style>
+</head>
+<body>
+<div id="deck"></div>
+<div class="panel">
+  <h1>Cabal Graph · cbin</h1>
+  <div class="sub" id="src">no graph loaded</div>
+  <div class="row"><span>nodes</span><b id="nN">—</b></div>
+  <div class="row"><span>edges</span><b id="nE">—</b></div>
+  <div class="row"><span>groups</span><b id="nC">—</b></div>
+  <div class="row"><span>size</span><b id="nSz">—</b></div>
+  <div class="actions">
+    <label>load cbin<input id="file" type="file" accept=".cbin,application/octet-stream"></label>
+  </div>
+  <div class="hint">baked positions · drop a .cbin anywhere · ?src=graph.cbin</div>
+</div>
+<div id="drop">drop a .cbin to load</div>
+
+<script>
+const {Deck, OrthographicView, ScatterplotLayer, LineLayer} = deck;
+let deckgl = null;
+
+function fit(xs, ys){
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for(let i=0;i<xs.length;i++){
+    const x=xs[i],y=ys[i];
+    if(!Number.isFinite(x)||!Number.isFinite(y)) continue;   // skip un-laid-out NaN
+    if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+  }
+  if(!Number.isFinite(minX)) return {target:[0,0,0],zoom:0};
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  const w=Math.max(maxX-minX,1), h=Math.max(maxY-minY,1);
+  const z=Math.log2(Math.min(innerWidth/w, innerHeight/h)*0.82);
+  return {target:[cx,cy,0],zoom:z,minZoom:-8,maxZoom:16};
+}
+
+function distinctGroups(arr){const s=new Set();for(let i=0;i<arr.length;i++)s.add(arr[i]);return s.size;}
+
+function render(g, label, bytes){
+  document.getElementById('src').textContent = label;
+  document.getElementById('nN').textContent = g.nodeCount.toLocaleString();
+  document.getElementById('nE').textContent = g.edgeCount.toLocaleString();
+  document.getElementById('nC').textContent = distinctGroups(g.node.group).toLocaleString();
+  document.getElementById('nSz').textContent = (bytes/1e6).toFixed(1)+' MB';
+
+  const layers = [
+    new LineLayer({id:'edges', data: g.deckEdges(),
+      widthUnits:'common', widthScale:0.5, widthMinPixels:1, widthMaxPixels:12,
+      pickable:true}),
+    new ScatterplotLayer({id:'nodes', data: g.deckNodes(),
+      radiusUnits:'common', radiusScale:0.8, radiusMinPixels:3, radiusMaxPixels:20,
+      stroked:true, lineWidthUnits:'pixels', pickable:true}),
+  ];
+  const props = {
+    views: new OrthographicView({flipY:false}),
+    controller: true,
+    initialViewState: fit(g.node.x, g.node.y),
+    layers,
+    getTooltip: ({index, layer}) => {
+      if(index < 0 || !layer) return null;
+      if(layer.id === 'nodes'){
+        const grp = g.node.group[index];
+        const ring = g.cabalBridge(index) ? ' · <span style="color:#fff">CABAL BRIDGE</span>'
+                   : g.isBridge(index)    ? ' · <span style="color:#ffd24f">cut vertex</span>' : '';
+        return {html:`<div class="tip"><div class="a">${g.address(index)}</div>`+
+          `<div class="m">group ${grp} · in ${g.node.in_tx[index]} / out ${g.node.out_tx[index]} · `+
+          `${g.node.value_in[index].toFixed(2)}↓ ${g.node.value_out[index].toFixed(2)}↑ ETH${ring}</div></div>`,
+          style:{background:'transparent'}};
+      }
+      const coll = g.collection(index), tok = g.tokenId(index), lab = g.label(index);
+      return {html:`<div class="tip"><div class="m">${g.edge.value_eth[index].toFixed(4)} ETH`+
+        (coll?` · ${coll} #${tok}`:'')+(lab?` · ${lab}`:'')+`</div></div>`,
+        style:{background:'transparent'}};
+    },
+  };
+  if(deckgl) deckgl.setProps(props);
+  else deckgl = new Deck(Object.assign({parent:document.getElementById('deck')}, props));
+}
+
+function ingest(buf, label){
+  try { render(window.CabalBin.parse(buf), label, buf.byteLength); }
+  catch(e){ document.getElementById('src').textContent = 'load failed: '+e.message; }
+}
+function loadFile(f){const r=new FileReader();r.onload=()=>ingest(r.result,f.name);r.readAsArrayBuffer(f);}
+
+document.getElementById('file').addEventListener('change',e=>e.target.files[0]&&loadFile(e.target.files[0]));
+const drop=document.getElementById('drop');
+addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('on');});
+addEventListener('dragleave',e=>{if(e.target===drop)drop.classList.remove('on');});
+addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('on');
+  e.dataTransfer.files[0]&&loadFile(e.dataTransfer.files[0]);});
+
+const src=new URLSearchParams(location.search).get('src');
+if(src) fetch(src).then(r=>r.arrayBuffer()).then(b=>ingest(b,src))
+  .catch(err=>document.getElementById('src').textContent='fetch failed: '+err.message);
+</script>
+</body>
+</html>
