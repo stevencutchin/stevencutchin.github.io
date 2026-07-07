@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>netview · graph viewer</title>
+<script src="https://unpkg.com/deck.gl@8.9.35/dist.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  :root{
+    --ink:#e8e6df; --dim:#8b8a83; --line:#2a2c31;
+    --ground:#0e0f12; --panel:#16181c; --accent:#d9d5c8;
+    --ok:#4ade80; --warn:#f0b429; --off:#4a4f58;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);
+    font:13px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    -webkit-font-smoothing:antialiased}
+  #deck{position:fixed;inset:0}
+  .panel{
+    position:fixed;top:14px;left:14px;z-index:10;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:13px 15px;min-width:230px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4);max-height:calc(100vh - 28px);overflow:auto;
+  }
+  .panel h1{margin:0 0 2px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;color:var(--accent)}
+  .panel .sub{color:var(--dim);font-size:11px;margin-bottom:12px;word-break:break-all}
+  .row{display:flex;justify-content:space-between;gap:18px;padding:2px 0;color:var(--dim)}
+  .row b{color:var(--ink);font-weight:600}
+  .section{margin-top:12px;border-top:1px solid var(--line);padding-top:11px}
+  .section h2{margin:0 0 8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);font-weight:600}
+  .seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .seg button{
+    flex:1;border:none;background:transparent;color:var(--dim);padding:6px 8px;
+    font:inherit;font-size:11px;cursor:pointer;transition:background .15s,color .15s;
+  }
+  .seg button.on{background:var(--line);color:var(--ink)}
+  .seg button:disabled{opacity:.4;cursor:not-allowed}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn,.actions label{
+    cursor:pointer;color:var(--accent);border:1px solid var(--line);border-radius:4px;
+    padding:5px 10px;font-size:11px;letter-spacing:.05em;background:transparent;
+    font-family:inherit;transition:border-color .15s,color .15s;
+  }
+  .btn:hover,.actions label:hover{border-color:var(--accent);color:var(--ink)}
+  .actions input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .pick{
+    width:100%;margin-bottom:8px;padding:6px 8px;
+    border:1px solid var(--line);border-radius:4px;
+    background:var(--ground);color:var(--ink);
+    font:inherit;font-size:11px;cursor:pointer;
+  }
+  .pick:focus{outline:none;border-color:var(--accent)}
+  .pick option{background:var(--panel)}
+  .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
+  .hint{color:var(--dim);font-size:10.5px;margin-top:8px}
+  .legend{color:var(--dim);font-size:11px}
+  .legend .k{display:flex;align-items:center;gap:7px;padding:2px 0}
+  .sw{width:18px;height:3px;border-radius:2px;flex:none}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;border:1.5px solid}
+  .feat-toggle{
+    position:fixed;top:14px;right:14px;z-index:13;
+    border:1px solid var(--line);background:var(--panel);color:var(--accent);
+    border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:.08em;
+    cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  .feat-toggle:hover,.feat-toggle.on{border-color:var(--accent);color:var(--ink)}
+  .feat-toggle.on{background:var(--line)}
+  .feat-panel{
+    position:fixed;top:50px;right:14px;z-index:12;width:min(360px,calc(100vw - 28px));
+    max-height:calc(100vh - 64px);overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.4);
+    transform:translateX(calc(100% + 20px));opacity:0;pointer-events:none;
+    transition:transform .2s ease,opacity .2s ease;
+  }
+  .feat-panel.open{transform:none;opacity:1;pointer-events:auto}
+  .feat-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+  .feat-panel h2{margin:0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .feat-close{
+    border:1px solid var(--line);background:transparent;color:var(--dim);
+    border-radius:4px;width:26px;height:26px;padding:0;font:inherit;font-size:14px;
+    line-height:1;cursor:pointer;flex:none;transition:border-color .15s,color .15s;
+  }
+  .feat-close:hover{border-color:var(--accent);color:var(--ink)}
+  .feat-panel .lead{color:var(--dim);font-size:11px;margin:0 0 12px}
+  .feat-panel .doc-link{display:inline-block;margin-bottom:12px;font-size:11px;color:var(--accent)}
+  .feat-list{list-style:none;margin:0;padding:0}
+  .feat-list li{
+    display:flex;align-items:flex-start;gap:9px;padding:6px 0;
+    border-bottom:1px solid var(--line);font-size:11.5px;color:var(--dim);
+  }
+  .feat-list li:last-child{border-bottom:none}
+  .feat-list .st{
+    width:8px;height:8px;border-radius:50%;flex:none;margin-top:4px;
+    background:var(--off);
+  }
+  .feat-list .st.ok{background:var(--ok)}
+  .feat-list .st.warn{background:var(--warn)}
+  .feat-list b{color:var(--ink);font-weight:600;display:block;margin-bottom:1px}
+  #drop{
+    position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    background:rgba(14,15,18,.86);color:var(--accent);letter-spacing:.1em;
+    text-transform:uppercase;font-size:13px;
+  }
+  #drop.on{display:flex}
+  .tip{font:11px/1.4 ui-monospace,Menlo,monospace;background:#1b1d22;color:#e8e6df;
+    border:1px solid #313438;border-radius:5px;padding:7px 9px;max-width:320px}
+  .tip .a{color:#9fd0ff;word-break:break-all}
+  .tip .m{color:#8b8a83}
+  .err{color:#f87171;font-size:11px;margin-top:6px}
+</style>
+</head>
+<body>
+<div id="deck"></div>
+
+<div class="panel">
+  <h1>Netview</h1>
+  <div class="sub" id="src">no graph loaded</div>
+  <div class="row"><span>nodes</span><b id="nN">—</b></div>
+  <div class="row"><span>edges</span><b id="nE">—</b></div>
+  <div class="row"><span>components</span><b id="nC">—</b></div>
+  <div class="row"><span>layout</span><b id="nL">—</b></div>
+
+  <div class="section">
+    <h2>Layout</h2>
+    <div class="seg" id="layoutSeg">
+      <button type="button" data-mode="baked" id="btnBaked">baked x,y</button>
+      <button type="button" data-mode="force" id="btnForce">force</button>
+    </div>
+    <div class="bar" id="layoutBar" hidden><i id="prog"></i></div>
+    <div class="hint" id="layoutHint">uses node x,y from file</div>
+  </div>
+
+  <div class="section">
+    <h2>Load</h2>
+    <select class="pick" id="graphPick" aria-label="Sample graphs in fmt directory">
+      <option value="">sample graphs…</option>
+    </select>
+    <div class="actions">
+      <label>Load JSON<input id="file" type="file" accept=".json,application/json"></label>
+    </div>
+    <div class="hint">drop a file anywhere · ?src=path.json</div>
+    <div class="err" id="err" hidden></div>
+  </div>
+
+  <div class="section legend">
+    <h2>Legend</h2>
+    <div class="k"><span class="sw" style="background:#d9d5c8"></span>directed edge · width = value</div>
+    <div class="k"><span class="dot" style="border-color:#ffd24f;background:transparent"></span>cut vertex</div>
+    <div class="k"><span class="dot" style="border-color:#fff;background:transparent"></span>cabal bridge</div>
+    <div class="k"><span class="dot" style="background:hsl(137deg,62%,58%);border:none"></span>color = component (group)</div>
+  </div>
+</div>
+
+<button class="feat-toggle" type="button" id="featToggle" aria-expanded="false" aria-controls="featPanel">Features</button>
+
+<aside class="feat-panel" id="featPanel" aria-hidden="true">
+  <div class="feat-head">
+    <h2>Feature checklist</h2>
+    <button class="feat-close" type="button" id="featClose" aria-label="Close features panel">×</button>
+  </div>
+  <p class="lead">Live status for this viewer. See <a class="doc-link" href="netview_features.md">netview_features.md</a> for the full test plan.</p>
+  <ul class="feat-list" id="featList"></ul>
+</aside>
+
+<div id="drop">drop graph json to load</div>
+
+<script>
+const {Deck, OrthographicView, ScatterplotLayer, PathLayer, SolidPolygonLayer} = deck;
+const CATALOG_URL = 'graphs.json';
+const FALLBACK_GRAPHS = [
+  {file:'example_graph.json', label:'example_graph.json', description:'6 nodes · 2 components'},
+  {file:'synthetic_8comp.json', label:'synthetic_8comp.json', description:'54 nodes · 8 components'},
+];
+
+const FEATURES = [
+  {id:'format', label:'Graph JSON format', detail:'metadata, nodes, edges with required core fields'},
+  {id:'validate', label:'Validation on load', detail:'rejects malformed files with a clear error'},
+  {id:'loadFile', label:'Load from file', detail:'file picker and drag-and-drop'},
+  {id:'loadCatalog', label:'Sample graph picker', detail:'dropdown of JSON graphs in fmt directory'},
+  {id:'urlSrc', label:'?src= URL load', detail:'fetch graph from query parameter'},
+  {id:'directed', label:'Directed edges', detail:'arrowheads at target, source → target'},
+  {id:'parallel', label:'Parallel edges', detail:'multiple edges between same pair fan out on curves'},
+  {id:'components', label:'Component colors', detail:'nodes and edges colored by group'},
+  {id:'layoutBaked', label:'Baked layout', detail:'positions from node x,y in file'},
+  {id:'layoutForce', label:'Force layout', detail:'d3 force-directed simulation'},
+  {id:'layoutSwitch', label:'Layout switch', detail:'toggle between baked and force modes'},
+  {id:'tooltips', label:'Hover tooltips', detail:'node address and edge source → target'},
+  {id:'panZoom', label:'Pan and zoom', detail:'orthographic deck.gl controller'},
+  {id:'edgeWidth', label:'Edge width', detail:'scales with value_eth'},
+  {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
+  {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
+  {id:'featPanel', label:'Features panel', detail:'this checklist, toggled from the button'},
+];
+
+let deckgl = null;
+let sim = null;
+let graph = null;
+let bakedPos = null;
+let layoutMode = 'baked';
+let tick = 0;
+let autoFit = true;
+let viewState = null;
+let featOpen = false;
+let status = Object.fromEntries(FEATURES.map(f => [f.id, false]));
+let graphCatalog = [];
+let currentCatalogFile = '';
+
+// ---- geometry (directed + parallel edges) ----
+function parallelKey(e){ return e.source_index+'\t'+e.target_index; }
+
+function assignParallelLanes(edges){
+  const groups = new Map();
+  for(const e of edges){
+    const k = parallelKey(e);
+    if(!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(e);
+  }
+  for(const group of groups.values()){
+    const n = group.length;
+    for(let i= 0; i<n; i++){
+      group[i]._lane = i;
+      group[i]._laneCount = n;
+    }
+  }
+}
+
+function curvedEdgePath(s, t, lane, laneCount, shortenSource=0.03, shortenTarget=0.1){
+  const dx=t[0]-s[0], dy=t[1]-s[1];
+  const len=Math.hypot(dx,dy);
+  if(len<1e-9) return {path:[s,t], end:t, tangent:[1,0], len:0};
+  const ux=dx/len, uy=dy/len;
+  const px=-uy, py=ux;
+  const start=[s[0]+ux*len*shortenSource, s[1]+uy*len*shortenSource];
+  const end=[t[0]-ux*len*shortenTarget, t[1]-uy*len*shortenTarget];
+  const spacing = laneCount<=1 ? 0 : (len*0.4)/(laneCount-1);
+  const offset = laneCount<=1 ? 0 : (lane-(laneCount-1)/2)*spacing;
+  const mid=[(start[0]+end[0])/2+px*offset, (start[1]+end[1])/2+py*offset];
+  const path=[];
+  for(let i=0; i<=16; i++){
+    const u=i/16, om=1-u;
+    path.push([
+      om*om*start[0]+2*om*u*mid[0]+u*u*end[0],
+      om*om*start[1]+2*om*u*mid[1]+u*u*end[1]
+    ]);
+  }
+  const tx=end[0]-mid[0], ty=end[1]-mid[1];
+  const tlen=Math.hypot(tx,ty)||1;
+  return {path, end, tangent:[tx/tlen,ty/tlen], len};
+}
+
+function arrowPolygon(tx, ty, tip, size){
+  const px=-ty, py=tx;
+  const back=size*1.9, half=size*0.65;
+  return [tip,
+    [tip[0]-tx*back+px*half, tip[1]-ty*back+py*half],
+    [tip[0]-tx*back-px*half, tip[1]-ty*back-py*half]];
+}
+
+function hslToRgb(h,s,l){
+  h/=360; const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h*12)%12; return l-a*Math.max(-1,Math.min(k-3,9-k,1));};
+  return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
+}
+const groupColor = g => hslToRgb((g*137.508)%360,0.62,0.58);
+
+// ---- validation (fmt spec core) ----
+function validateGraph(g){
+  if(!g || typeof g !== 'object') throw new Error('root must be an object');
+  if(!g.metadata || typeof g.metadata !== 'object') throw new Error('metadata must be an object');
+  if(!Array.isArray(g.nodes)) throw new Error('nodes must be an array');
+  if(!Array.isArray(g.edges)) throw new Error('edges must be an array');
+  const n = g.nodes.length;
+  g.nodes.forEach((node, i) => {
+    if(!node || typeof node !== 'object') throw new Error(`nodes[${i}] must be an object`);
+    if(node.index !== i) throw new Error(`nodes[${i}].index must be ${i}, got ${node.index}`);
+    if(typeof node.address !== 'string') throw new Error(`nodes[${i}].address must be a string`);
+  });
+  g.edges.forEach((edge, i) => {
+    if(!edge || typeof edge !== 'object') throw new Error(`edges[${i}] must be an object`);
+    if(edge.index !== i) throw new Error(`edges[${i}].index must be ${i}, got ${edge.index}`);
+    if(typeof edge.source !== 'string' || typeof edge.target !== 'string')
+      throw new Error(`edges[${i}] needs source and target strings`);
+    if(!Number.isInteger(edge.source_index) || !Number.isInteger(edge.target_index))
+      throw new Error(`edges[${i}] needs integer source_index and target_index`);
+    if(edge.source_index < 0 || edge.source_index >= n || edge.target_index < 0 || edge.target_index >= n)
+      throw new Error(`edges[${i}] endpoint index out of range`);
+  });
+}
+
+function hasBakedLayout(nodes){
+  return nodes.length > 0 && nodes.every(n => Number.isFinite(n.x) && Number.isFinite(n.y));
+}
+
+function componentCount(g){
+  const fromMeta = g.metadata?.grouping?.group_count;
+  if(Number.isFinite(fromMeta)) return fromMeta;
+  const groups = new Set(g.nodes.map(n => n.group ?? 0));
+  return groups.size;
+}
+
+function hasParallelEdges(edges){
+  const seen = new Set();
+  for(const e of edges){
+    const k = parallelKey(e);
+    if(seen.has(k)) return true;
+    seen.add(k);
+  }
+  return false;
+}
+
+// ---- layout ----
+function fitView(nodes){
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
+  const w=Math.max(maxX-minX,1e-3), h=Math.max(maxY-minY,1e-3);
+  const z=Math.log2(Math.min(window.innerWidth/w, window.innerHeight/h)*0.85);
+  return {target:[cx,cy,0], zoom:z, minZoom:-6, maxZoom:14};
+}
+
+function stopSim(){
+  if(sim){ sim.stop(); sim = null; }
+  document.getElementById('layoutBar').hidden = true;
+}
+
+function applyBakedLayout(){
+  if(!graph || !bakedPos) return;
+  graph.nodes.forEach((n, i) => {
+    n.x = bakedPos[i][0];
+    n.y = bakedPos[i][1];
+  });
+  stopSim();
+  tick++;
+  autoFit = true;
+  draw();
+}
+
+function runForceLayout(){
+  if(!graph) return;
+  stopSim();
+  const nodes = graph.nodes;
+  const edges = graph.edges;
+  nodes.forEach((n, i) => {
+    const a = i * 2.399;
+    n.x = Math.cos(a) * Math.sqrt(i + 1);
+    n.y = Math.sin(a) * Math.sqrt(i + 1);
+  });
+  const links = edges.map(e => ({source: e.source_index, target: e.target_index}));
+  const bar = document.getElementById('layoutBar');
+  const prog = document.getElementById('prog');
+  bar.hidden = false;
+  prog.style.width = '0%';
+  sim = d3.forceSimulation(nodes)
+    .force('charge', d3.forceManyBody().strength(-28).distanceMax(80))
+    .force('link', d3.forceLink(links).distance(10).strength(0.65))
+    .force('x', d3.forceX(0).strength(0.04))
+    .force('y', d3.forceY(0).strength(0.04))
+    .force('collide', d3.forceCollide(1.6))
+    .alphaDecay(0.02);
+  const alpha0 = sim.alpha();
+  sim.on('tick', () => {
+    tick++;
+    prog.style.width = Math.min(100, (1 - sim.alpha() / alpha0) * 100) + '%';
+    draw();
+  }).on('end', () => {
+    autoFit = false;
+    prog.style.width = '100%';
+    draw();
+  });
+  autoFit = true;
+  draw();
+}
+
+function setLayoutMode(mode){
+  if(!graph) return;
+  if(mode === 'baked' && !hasBakedLayout(graph.nodes)){
+    showError('baked layout unavailable — node x,y missing or null');
+    return;
+  }
+  layoutMode = mode;
+  updateLayoutUI();
+  clearError();
+  if(mode === 'baked') applyBakedLayout();
+  else runForceLayout();
+  updateFeatureStatus();
+}
+
+function updateLayoutUI(){
+  document.getElementById('btnBaked').classList.toggle('on', layoutMode === 'baked');
+  document.getElementById('btnForce').classList.toggle('on', layoutMode === 'force');
+  document.getElementById('btnBaked').disabled = graph && !hasBakedLayout(graph.nodes);
+  document.getElementById('nL').textContent = layoutMode === 'baked' ? 'baked x,y' : 'force';
+  document.getElementById('layoutHint').textContent =
+    layoutMode === 'baked' ? 'uses node x,y from file' : 'd3 force simulation running';
+}
+
+// ---- render ----
+function buildEdgeGeometry(nodes, edges){
+  const pos = nodes.map(n => [n.x, n.y]);
+  assignParallelLanes(edges);
+  for(const e of edges){
+    e._s = pos[e.source_index];
+    e._t = pos[e.target_index];
+    const w = Math.sqrt((e.value_eth || 0) + 0.1);
+    const geom = curvedEdgePath(e._s, e._t, e._lane ?? 0, e._laneCount ?? 1);
+    e._path = geom.path;
+    const [tx, ty] = geom.tangent;
+    e._arrow = geom.len > 0 ? arrowPolygon(tx, ty, geom.end, w * 0.11) : null;
+  }
+}
+
+function layers(nodes, edges){
+  const edgeColor = e => {
+    const g = e.group ?? nodes[e.source_index]?.group ?? 0;
+    const c = groupColor(g);
+    return [c[0], c[1], c[2], 150];
+  };
+  const edgeWidth = e => Math.sqrt((e.value_eth || 0) + 0.1);
+  return [
+    new PathLayer({
+      id:'edges', data:edges,
+      getPath:e=>e._path,
+      getColor:edgeColor,
+      getWidth:edgeWidth,
+      widthUnits:'common', widthScale:0.06, widthMinPixels:1.1, widthMaxPixels:14,
+      capRounded:true, jointRounded:true,
+      updateTriggers:{getPath:tick},
+      pickable:true
+    }),
+    new SolidPolygonLayer({
+      id:'arrows', data:edges.filter(e=>e._arrow),
+      getPolygon:e=>e._arrow,
+      getFillColor:edgeColor,
+      updateTriggers:{getPolygon:tick},
+      pickable:false
+    }),
+    new ScatterplotLayer({
+      id:'nodes', data:nodes,
+      getPosition:n=>[n.x,n.y],
+      getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1),
+      radiusUnits:'common', radiusScale:0.09, radiusMinPixels:3, radiusMaxPixels:22,
+      getFillColor:n=>groupColor(n.group??0),
+      stroked:true, lineWidthUnits:'pixels',
+      getLineWidth:n=>n.is_bridge?2:0,
+      getLineColor:n=>n.cabal_bridge?[255,255,255]:(n.is_bridge?[255,210,79]:[0,0,0,0]),
+      updateTriggers:{getPosition:tick},
+      pickable:true
+    })
+  ];
+}
+
+function draw(){
+  if(!graph) return;
+  const {nodes, edges} = graph;
+  buildEdgeGeometry(nodes, edges);
+  if(autoFit) viewState = fitView(nodes);
+  const props = {
+    views: new OrthographicView({flipY:false}),
+    controller: true,
+    viewState,
+    onViewStateChange: ({viewState: vs}) => {
+      autoFit = false;
+      viewState = vs;
+      deckgl.setProps({viewState});
+    },
+    layers: layers(nodes, edges)
+  };
+  if(deckgl) deckgl.setProps(props);
+  else {
+    deckgl = new Deck(Object.assign({
+      parent: document.getElementById('deck'),
+      getTooltip: ({object}) => {
+        if(!object) return null;
+        if('address' in object){
+          const o = object;
+          return {html:`<div class="tip"><div class="a">${o.address}</div>`+
+            `<div class="m">group ${o.group ?? 0}`+
+            (o.in_tx != null ? ` · in ${o.in_tx} / out ${o.out_tx}` : '')+
+            (o.ens_name ? ` · ${o.ens_name}` : '')+
+            (o.cabal_bridge ? ` · <span style="color:#fff">CABAL BRIDGE</span>` :
+              o.is_bridge ? ` · <span style="color:#ffd24f">cut vertex</span>` : '')+
+            `</div></div>`, style:{background:'transparent'}};
+        }
+        const e = object;
+        const dir = (e.source && e.target)
+          ? `<div class="a">${e.source}</div><div class="m">→ ${e.target}</div>` : '';
+        return {html:`<div class="tip">${dir}<div class="m">`+
+          `${(e.value_eth ?? 0)} ETH`+
+          (e.collection ? ` · ${e.collection} #${e.token_id}` : '')+
+          (e.is_seed ? ` · seed` : '')+
+          `</div></div>`, style:{background:'transparent'}};
+      }
+    }, props));
+  }
+}
+
+// ---- load / UI ----
+function showError(msg){
+  const el = document.getElementById('err');
+  el.textContent = msg;
+  el.hidden = false;
+}
+
+function clearError(){
+  const el = document.getElementById('err');
+  el.textContent = '';
+  el.hidden = true;
+}
+
+function updatePanel(){
+  if(!graph){
+    document.getElementById('nN').textContent = '—';
+    document.getElementById('nE').textContent = '—';
+    document.getElementById('nC').textContent = '—';
+    document.getElementById('nL').textContent = '—';
+    return;
+  }
+  document.getElementById('nN').textContent = graph.nodes.length;
+  document.getElementById('nE').textContent = graph.edges.length;
+  document.getElementById('nC').textContent = componentCount(graph);
+  updateLayoutUI();
+}
+
+function updateFeatureStatus(){
+  const loaded = !!graph;
+  status.format = loaded;
+  status.validate = loaded;
+  status.loadFile = loaded;
+  status.loadCatalog = loaded && !!currentCatalogFile;
+  status.urlSrc = !!new URLSearchParams(location.search).get('src') && loaded;
+  status.directed = loaded && graph.edges.length > 0;
+  status.parallel = loaded && hasParallelEdges(graph.edges);
+  status.components = loaded && componentCount(graph) > 0;
+  status.layoutBaked = loaded && hasBakedLayout(graph.nodes);
+  status.layoutForce = loaded && layoutMode === 'force';
+  status.layoutSwitch = loaded;
+  status.tooltips = loaded;
+  status.panZoom = true;
+  status.edgeWidth = loaded && graph.edges.some(e => e.value_eth != null);
+  status.nodeSize = loaded && graph.nodes.some(n => n.in_tx != null || n.out_tx != null);
+  status.bridges = loaded && graph.nodes.some(n => n.is_bridge || n.cabal_bridge);
+  status.featPanel = featOpen;
+  renderFeatureList();
+}
+
+function renderFeatureList(){
+  const ul = document.getElementById('featList');
+  ul.innerHTML = FEATURES.map(f => {
+    const on = status[f.id];
+    const optional = f.id === 'parallel' || f.id === 'bridges' || f.id === 'urlSrc';
+    const st = on ? 'ok' : (graph && optional ? 'warn' : '');
+    return `<li><span class="st ${st}"></span><div>`+
+      `<b>${f.label}</b>${f.detail}</div></li>`;
+  }).join('');
+}
+
+function setGraphPick(file){
+  currentCatalogFile = file || '';
+  const pick = document.getElementById('graphPick');
+  if(pick.value !== file) pick.value = file || '';
+}
+
+function populateGraphPick(graphs){
+  graphCatalog = graphs;
+  const pick = document.getElementById('graphPick');
+  pick.innerHTML = '<option value="">sample graphs…</option>' +
+    graphs.map(g => {
+      const text = g.description ? `${g.label} — ${g.description}` : g.label;
+      return `<option value="${g.file}">${text}</option>`;
+    }).join('');
+  if(currentCatalogFile && graphs.some(g => g.file === currentCatalogFile)){
+    pick.value = currentCatalogFile;
+  }
+}
+
+function loadCatalog(){
+  return fetch(CATALOG_URL)
+    .then(r => { if(!r.ok) throw new Error(r.statusText); return r.json(); })
+    .then(data => populateGraphPick(data.graphs || FALLBACK_GRAPHS))
+    .catch(() => populateGraphPick(FALLBACK_GRAPHS));
+}
+
+function loadGraphFile(file){
+  if(!file) return;
+  fetch(file)
+    .then(r => { if(!r.ok) throw new Error(r.statusText); return r.json(); })
+    .then(data => {
+      setGraphPick(file);
+      ingest(data, file);
+    })
+    .catch(err => showError('load failed: '+err.message));
+}
+
+function ingest(data, label){
+  try{
+    validateGraph(data);
+    graph = data;
+    bakedPos = data.nodes.map(n => [n.x, n.y]);
+    if(!hasBakedLayout(data.nodes) && layoutMode === 'baked') layoutMode = 'force';
+    const fromCatalog = graphCatalog.some(g => g.file === label);
+    if(!fromCatalog) setGraphPick('');
+    document.getElementById('src').textContent =
+      (data.metadata && data.metadata.source) || label || 'graph';
+    clearError();
+    updatePanel();
+    if(layoutMode === 'baked' && hasBakedLayout(data.nodes)) applyBakedLayout();
+    else { layoutMode = 'force'; updateLayoutUI(); runForceLayout(); }
+    updateFeatureStatus();
+  }catch(err){
+    showError(err.message);
+    status.validate = false;
+    updateFeatureStatus();
+  }
+}
+
+function loadText(text, label){ ingest(JSON.parse(text), label); }
+
+function loadFile(f){
+  setGraphPick('');
+  const r = new FileReader();
+  r.onload = () => { try { loadText(r.result, f.name); } catch(e) { showError('bad JSON: '+e.message); } };
+  r.readAsText(f);
+}
+
+// ---- feature panel ----
+function setFeatPanel(open){
+  featOpen = open;
+  document.getElementById('featPanel').classList.toggle('open', open);
+  document.getElementById('featToggle').classList.toggle('on', open);
+  document.getElementById('featToggle').setAttribute('aria-expanded', open);
+  document.getElementById('featToggle').textContent = open ? 'Features ▾' : 'Features';
+  document.getElementById('featPanel').setAttribute('aria-hidden', !open);
+  updateFeatureStatus();
+}
+
+document.getElementById('featToggle').addEventListener('click', () => setFeatPanel(!featOpen));
+document.getElementById('featClose').addEventListener('click', () => setFeatPanel(false));
+document.getElementById('layoutSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-mode]');
+  if(btn && !btn.disabled) setLayoutMode(btn.dataset.mode);
+});
+document.getElementById('graphPick').addEventListener('change', e => {
+  if(e.target.value) loadGraphFile(e.target.value);
+});
+document.getElementById('file').addEventListener('change', e => {
+  if(e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+const drop = document.getElementById('drop');
+addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('on'); });
+addEventListener('dragleave', e => { if(e.target === drop) drop.classList.remove('on'); });
+addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('on');
+  if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+renderFeatureList();
+updateFeatureStatus();
+
+loadCatalog().then(() => {
+  const src = new URLSearchParams(location.search).get('src');
+  if(src){
+    fetch(src).then(r => r.json()).then(data => {
+      if(graphCatalog.some(g => g.file === src)) setGraphPick(src);
+      ingest(data, src);
+    }).catch(err => showError('fetch failed: '+err.message));
+  }
+});
+</script>
+</body>
+</html>
