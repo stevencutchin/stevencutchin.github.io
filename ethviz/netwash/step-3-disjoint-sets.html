@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Step 3 · Cluster into Disjoint Sets</title>
+<style>
+  :root{
+    --bg:#0d141b; --panel:#131e28; --edge:#263644;
+    --ink:#e6edf3; --muted:#8397a8; --faint:#4a5c6b;
+    --link:#46c9d6; --xfer:#f2a33c; --set:#bb8ff2; --trade:#7d8ea0;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:radial-gradient(900px 500px at 82% -8%,rgba(187,143,242,.06),transparent 60%),var(--bg);
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;
+    padding:clamp(20px,4vw,56px)}
+  .wrap{max-width:1020px;margin:0 auto}
+
+  header{display:flex;align-items:flex-start;gap:clamp(16px,3vw,34px);
+    border-bottom:1px solid var(--edge);padding-bottom:22px;margin-bottom:22px}
+  .num{font-family:var(--mono);font-size:clamp(52px,9vw,104px);line-height:.82;font-weight:600;
+    color:var(--set);letter-spacing:-.04em;flex:none;text-shadow:0 0 30px rgba(187,143,242,.22)}
+  .num small{display:block;font-size:12px;letter-spacing:.34em;color:var(--muted);font-weight:600;
+    margin-bottom:8px;text-shadow:none}
+  h1{font-size:clamp(24px,4vw,38px);margin:6px 0 8px;font-weight:650;letter-spacing:-.02em}
+  .lede{color:var(--muted);max-width:60ch;margin:0;font-size:clamp(14px,1.6vw,16.5px)}
+  .lede b{color:var(--set);font-weight:600}
+  .scope{display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+    font-family:var(--mono);font-size:12.5px;color:var(--xfer);
+    border:1px solid rgba(242,163,60,.35);border-radius:999px;padding:5px 14px;
+    background:rgba(242,163,60,.06)}
+  .scope::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--xfer)}
+
+  section{background:var(--panel);border:1px solid var(--edge);border-radius:14px;
+    padding:clamp(18px,3vw,30px);margin:18px 0}
+  .tag{font-family:var(--mono);font-size:12px;letter-spacing:.3em;font-weight:600;
+    color:var(--set);margin:0 0 6px}
+  section h2{margin:0 0 10px;font-size:clamp(18px,2.4vw,23px);font-weight:650;letter-spacing:-.01em}
+  section p{color:var(--muted);max-width:72ch;margin:8px 0}
+  section p b{color:var(--ink);font-weight:600}
+  .c-xfer{color:var(--xfer)} .c-link{color:var(--link)} .c-set{color:var(--set)}
+
+  figure{margin:18px 0 4px;background:#0f1822;border:1px solid var(--edge);
+    border-radius:10px;padding:14px}
+  figure svg{display:block;width:100%;height:auto}
+  figcaption{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
+
+  .rule{display:flex;gap:14px;align-items:baseline;margin:16px 0 4px}
+  .rule .rn{font-family:var(--mono);color:var(--set);font-weight:600;font-size:14px;flex:none}
+  .rule h3{margin:0;font-size:16px;font-weight:650}
+
+  .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:18px;height:0;border-top:3px solid;border-radius:2px;display:inline-block}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+  footer{color:var(--faint);font-family:var(--mono);font-size:12px;margin-top:26px;
+    border-top:1px solid var(--edge);padding-top:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="num"><small>STEP</small>3</div>
+  <div>
+    <h1>Cluster into Disjoint Sets</h1>
+    <p class="lede">Turn one token's transfers into <b>disjoint sets of addresses</b> — each set the candidate footprint of a single hand — by seeding a pair from every transfer and merging until no two sets touch.</p>
+    <div class="scope">runs once per token · everything below is scoped to token T</div>
+  </div>
+</header>
+
+<!-- ============================== INPUT ============================== -->
+<section>
+  <p class="tag">INPUT</p>
+  <h2>Two structures arrive</h2>
+  <p><b class="c-xfer">The token's trace</b> — the ordered ownership sequence of token T: every movement of the token between addresses, each marked as a <b class="c-xfer">transfer</b> (zero value) or a <b>trade</b> (priced), in time order.</p>
+  <p><b class="c-link">The linking graph</b> — an undirected graph over addresses. An edge between two addresses records that they are connected through Ethereum transaction activity.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 300" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <!-- panel: trace -->
+      <text x="20" y="26" fill="#8397a8" font-size="13" letter-spacing="2">TRACE OF TOKEN T</text>
+      <!-- owners A..G along a line -->
+      <g font-size="13" text-anchor="middle">
+        <!-- edge segments -->
+        <line x1="80" y1="80" x2="180" y2="80" stroke="#f2a33c" stroke-width="3"/>
+        <line x1="200" y1="80" x2="300" y2="80" stroke="#7d8ea0" stroke-width="2"/>
+        <line x1="320" y1="80" x2="420" y2="80" stroke="#f2a33c" stroke-width="3"/>
+        <line x1="440" y1="80" x2="540" y2="80" stroke="#7d8ea0" stroke-width="2"/>
+        <line x1="560" y1="80" x2="660" y2="80" stroke="#f2a33c" stroke-width="3"/>
+        <line x1="680" y1="80" x2="780" y2="80" stroke="#7d8ea0" stroke-width="2"/>
+        <line x1="800" y1="80" x2="880" y2="80" stroke="#f2a33c" stroke-width="3"/>
+        <!-- edge labels -->
+        <text x="130" y="66" fill="#f2a33c" font-size="11">transfer</text>
+        <text x="250" y="66" fill="#7d8ea0" font-size="11">trade</text>
+        <text x="370" y="66" fill="#f2a33c" font-size="11">transfer</text>
+        <text x="490" y="66" fill="#7d8ea0" font-size="11">trade</text>
+        <text x="610" y="66" fill="#f2a33c" font-size="11">transfer</text>
+        <text x="730" y="66" fill="#7d8ea0" font-size="11">trade</text>
+        <text x="840" y="66" fill="#f2a33c" font-size="11">transfer</text>
+        <!-- ownership order note: A→B xfer, B→C trade, C→D xfer, D→A trade, A→E xfer, E→F trade, F→G xfer -->
+        <g fill="#e6edf3">
+          <circle cx="70" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="70" y="84">A</text>
+          <circle cx="190" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="190" y="84">B</text>
+          <circle cx="310" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="310" y="84">C</text>
+          <circle cx="430" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="430" y="84">D</text>
+          <circle cx="550" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="550" y="84">A</text>
+          <circle cx="670" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="670" y="84">E</text>
+          <circle cx="790" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="790" y="84">F</text>
+          <circle cx="890" cy="80" r="13" fill="#131e28" stroke="#4a5c6b"/><text x="890" y="84">G</text>
+        </g>
+        <text x="480" y="120" fill="#4a5c6b" font-size="11">time →   ·   token T changes hands seven times; four movements are transfers</text>
+      </g>
+
+      <!-- panel: linking graph -->
+      <text x="20" y="176" fill="#8397a8" font-size="13" letter-spacing="2">LINKING GRAPH (address layer)</text>
+      <g font-size="13" text-anchor="middle">
+        <!-- edges -->
+        <line x1="120" y1="240" x2="220" y2="230" stroke="#46c9d6" stroke-width="2"/>
+        <line x1="220" y1="230" x2="330" y2="255" stroke="#46c9d6" stroke-width="2"/>
+        <line x1="430" y1="235" x2="540" y2="250" stroke="#46c9d6" stroke-width="2"/>
+        <line x1="640" y1="235" x2="720" y2="260" stroke="#46c9d6" stroke-width="2"/>
+        <!-- nodes: B—D is the edge that will matter; include others as ambient -->
+        <g fill="#e6edf3">
+          <circle cx="120" cy="240" r="12" fill="#131e28" stroke="#46c9d6"/><text x="120" y="244">B</text>
+          <circle cx="220" cy="230" r="12" fill="#131e28" stroke="#46c9d6"/><text x="220" y="234">D</text>
+          <circle cx="330" cy="255" r="12" fill="#131e28" stroke="#46c9d6"/><text x="330" y="259">K</text>
+          <circle cx="430" cy="235" r="12" fill="#131e28" stroke="#46c9d6"/><text x="430" y="239">M</text>
+          <circle cx="540" cy="250" r="12" fill="#131e28" stroke="#46c9d6"/><text x="540" y="254">N</text>
+          <circle cx="640" cy="235" r="12" fill="#131e28" stroke="#46c9d6"/><text x="640" y="239">P</text>
+          <circle cx="720" cy="260" r="12" fill="#131e28" stroke="#46c9d6"/><text x="720" y="264">Q</text>
+        </g>
+        <text x="480" y="292" fill="#4a5c6b" font-size="11">an edge means the two addresses are connected on the Ethereum layer</text>
+      </g>
+    </svg>
+    <figcaption>fig 3.0 — the two inputs: token T's ordered trace, and the address-level linking graph</figcaption>
+  </figure>
+
+  <div class="legend">
+    <span><i class="sw" style="border-color:#f2a33c"></i> transfer (0 ETH)</span>
+    <span><i class="sw" style="border-color:#7d8ea0"></i> trade (priced)</span>
+    <span><i class="sw" style="border-color:#46c9d6"></i> linking edge</span>
+    <span><i class="dot" style="background:#bb8ff2"></i> candidate set</span>
+  </div>
+</section>
+
+<!-- ============================== SETUP ============================== -->
+<section>
+  <p class="tag">SETUP</p>
+  <h2>Every transfer seeds a pair</h2>
+  <p>Walk token T's trace and take each <b class="c-xfer">transfer edge</b>. Its two endpoints — sender and receiver — become a <b class="c-set">2-set</b>: the smallest possible candidate, born directly from one zero-value movement of the token. Four transfers in the trace produce four seeds.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 250" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <!-- transfers only, extracted from the trace -->
+      <g font-size="13" text-anchor="middle">
+        <text x="20" y="26" fill="#8397a8" font-size="13" letter-spacing="2" text-anchor="start">TRANSFERS IN T'S TRACE</text>
+        <!-- A→B -->
+        <line x1="90" y1="70" x2="190" y2="70" stroke="#f2a33c" stroke-width="3"/>
+        <circle cx="80" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="80" y="74" fill="#e6edf3">A</text>
+        <circle cx="200" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="200" y="74" fill="#e6edf3">B</text>
+        <!-- C→D -->
+        <line x1="330" y1="70" x2="430" y2="70" stroke="#f2a33c" stroke-width="3"/>
+        <circle cx="320" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="320" y="74" fill="#e6edf3">C</text>
+        <circle cx="440" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="440" y="74" fill="#e6edf3">D</text>
+        <!-- A→E -->
+        <line x1="570" y1="70" x2="670" y2="70" stroke="#f2a33c" stroke-width="3"/>
+        <circle cx="560" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="560" y="74" fill="#e6edf3">A</text>
+        <circle cx="680" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="680" y="74" fill="#e6edf3">E</text>
+        <!-- F→G -->
+        <line x1="800" y1="70" x2="880" y2="70" stroke="#f2a33c" stroke-width="3"/>
+        <circle cx="790" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="790" y="74" fill="#e6edf3">F</text>
+        <circle cx="890" cy="70" r="13" fill="#131e28" stroke="#f2a33c"/><text x="890" y="74" fill="#e6edf3">G</text>
+
+        <!-- drop lines -->
+        <g stroke="#bb8ff2" stroke-width="1.5" stroke-dasharray="4 4" opacity=".7">
+          <line x1="140" y1="88" x2="140" y2="150"/>
+          <line x1="380" y1="88" x2="380" y2="150"/>
+          <line x1="620" y1="88" x2="620" y2="150"/>
+          <line x1="845" y1="88" x2="845" y2="150"/>
+        </g>
+
+        <!-- seed pills -->
+        <g font-size="14" fill="#e6edf3">
+          <rect x="85" y="152" width="110" height="40" rx="20" fill="rgba(187,143,242,.10)" stroke="#bb8ff2"/>
+          <text x="140" y="177">{ A, B }</text>
+          <rect x="325" y="152" width="110" height="40" rx="20" fill="rgba(187,143,242,.10)" stroke="#bb8ff2"/>
+          <text x="380" y="177">{ C, D }</text>
+          <rect x="565" y="152" width="110" height="40" rx="20" fill="rgba(187,143,242,.10)" stroke="#bb8ff2"/>
+          <text x="620" y="177">{ A, E }</text>
+          <rect x="790" y="152" width="110" height="40" rx="20" fill="rgba(187,143,242,.10)" stroke="#bb8ff2"/>
+          <text x="845" y="177">{ F, G }</text>
+        </g>
+        <text x="480" y="228" fill="#4a5c6b" font-size="11">one seed per transfer · a seed is exactly the transfer's two endpoints</text>
+      </g>
+    </svg>
+    <figcaption>fig 3.1 — seeding: four transfer edges → four 2-sets</figcaption>
+  </figure>
+</section>
+
+<!-- ============================== PROCESS ============================== -->
+<section>
+  <p class="tag">PROCESS</p>
+  <h2>Merge until disjoint</h2>
+  <p>Two union rules run over the seed sets, repeating until a full pass changes nothing. Order between the rules is free — the fixed point is the same.</p>
+
+  <div class="rule"><span class="rn">RULE 1</span><h3>Shared member</h3></div>
+  <p>Two sets that contain the <b>same address</b> merge into one. Address A appears in both <span class="c-set">{A,B}</span> and <span class="c-set">{A,E}</span> — one address, one hand, one set.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 210" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <g font-size="14" fill="#e6edf3" text-anchor="middle">
+        <!-- before -->
+        <rect x="60" y="50" width="110" height="40" rx="20" fill="rgba(187,143,242,.10)" stroke="#bb8ff2"/>
+        <text x="115" y="75">{ A, B }</text>
+        <rect x="60" y="120" width="110" height="40" rx="20" fill="rgba(187,143,242,.10)" stroke="#bb8ff2"/>
+        <text x="115" y="145">{ A, E }</text>
+        <!-- shared member highlight -->
+        <circle cx="92" cy="70" r="11" fill="none" stroke="#f2a33c" stroke-width="2"/>
+        <circle cx="92" cy="140" r="11" fill="none" stroke="#f2a33c" stroke-width="2"/>
+        <path d="M 92 82 C 92 100, 92 110, 92 128" stroke="#f2a33c" stroke-width="1.5" fill="none" stroke-dasharray="3 4"/>
+        <text x="215" y="109" fill="#f2a33c" font-size="12">A ∈ both</text>
+
+        <!-- arrow -->
+        <line x1="300" y1="105" x2="400" y2="105" stroke="#8397a8" stroke-width="2"/>
+        <polygon points="400,105 388,99 388,111" fill="#8397a8"/>
+        <text x="350" y="92" fill="#8397a8" font-size="12">union</text>
+
+        <!-- after -->
+        <rect x="430" y="85" width="160" height="40" rx="20" fill="rgba(187,143,242,.16)" stroke="#bb8ff2" stroke-width="2"/>
+        <text x="510" y="110">{ A, B, E }</text>
+
+        <!-- untouched sets -->
+        <g opacity=".55">
+          <rect x="680" y="50" width="110" height="40" rx="20" fill="rgba(187,143,242,.08)" stroke="#bb8ff2"/>
+          <text x="735" y="75">{ C, D }</text>
+          <rect x="680" y="120" width="110" height="40" rx="20" fill="rgba(187,143,242,.08)" stroke="#bb8ff2"/>
+          <text x="735" y="145">{ F, G }</text>
+          <text x="735" y="190" fill="#4a5c6b" font-size="11">no shared member — unchanged</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>fig 3.2 — rule 1: {A,B} ∪ {A,E} → {A,B,E} · sets after pass: {A,B,E} {C,D} {F,G}</figcaption>
+  </figure>
+
+  <div class="rule"><span class="rn">RULE 2</span><h3>Linkability</h3></div>
+  <p>Two sets merge when a member of one and a member of the other are <b class="c-link">connected in the linking graph</b>. The linking edge <span class="c-link">B — D</span> joins <span class="c-set">{A,B,E}</span> and <span class="c-set">{C,D}</span>. The rule merges the sets that exist; the sets keep only the addresses they already hold.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 210" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <g font-size="14" fill="#e6edf3" text-anchor="middle">
+        <!-- before -->
+        <rect x="50" y="85" width="160" height="40" rx="20" fill="rgba(187,143,242,.16)" stroke="#bb8ff2" stroke-width="2"/>
+        <text x="130" y="110">{ A, B, E }</text>
+        <rect x="290" y="85" width="110" height="40" rx="20" fill="rgba(187,143,242,.10)" stroke="#bb8ff2"/>
+        <text x="345" y="110">{ C, D }</text>
+        <!-- linking edge between B (in set 1) and D (in set 2) -->
+        <circle cx="130" cy="105" r="0"/>
+        <path d="M 150 82 C 200 40, 280 40, 322 82" stroke="#46c9d6" stroke-width="2.5" fill="none"/>
+        <text x="236" y="42" fill="#46c9d6" font-size="12">B — D in linking graph</text>
+
+        <!-- arrow -->
+        <line x1="440" y1="105" x2="530" y2="105" stroke="#8397a8" stroke-width="2"/>
+        <polygon points="530,105 518,99 518,111" fill="#8397a8"/>
+        <text x="485" y="92" fill="#8397a8" font-size="12">union</text>
+
+        <!-- after -->
+        <rect x="560" y="85" width="220" height="40" rx="20" fill="rgba(187,143,242,.20)" stroke="#bb8ff2" stroke-width="2"/>
+        <text x="670" y="110">{ A, B, C, D, E }</text>
+
+        <!-- untouched set -->
+        <g opacity=".55">
+          <rect x="810" y="85" width="110" height="40" rx="20" fill="rgba(187,143,242,.08)" stroke="#bb8ff2"/>
+          <text x="865" y="110">{ F, G }</text>
+          <text x="865" y="155" fill="#4a5c6b" font-size="11">no link — unchanged</text>
+        </g>
+      </g>
+    </svg>
+    <figcaption>fig 3.3 — rule 2: one cyan edge welds two sets · sets after pass: {A,B,C,D,E} {F,G}</figcaption>
+  </figure>
+
+  <p>A further pass applies both rules again and finds nothing to merge: no two sets share an address, and no linking edge crosses between them. The process is at its fixed point.</p>
+</section>
+
+<!-- ============================== OUTPUT ============================== -->
+<section>
+  <p class="tag">OUTPUT</p>
+  <h2>Disjoint sets for token T</h2>
+  <p>The result is a family of <b class="c-set">disjoint address sets</b>, each the candidate footprint of one hand behind token T's transfers. Every address in a set traces back to a transfer of T, directly or through the merges; every set is separated from every other set both by membership and by the linking graph.</p>
+
+  <figure>
+    <svg viewBox="0 0 940 240" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,Consolas,monospace">
+      <g font-size="13" fill="#e6edf3" text-anchor="middle">
+        <text x="20" y="26" fill="#8397a8" letter-spacing="2" text-anchor="start">DISJOINT SETS · TOKEN T</text>
+
+        <!-- island 1 -->
+        <ellipse cx="300" cy="140" rx="200" ry="75" fill="rgba(187,143,242,.07)" stroke="#bb8ff2" stroke-width="2"/>
+        <text x="300" y="70" fill="#bb8ff2" font-size="12">SET 1 · five addresses</text>
+        <g>
+          <circle cx="200" cy="130" r="14" fill="#131e28" stroke="#bb8ff2"/><text x="200" y="134">A</text>
+          <circle cx="260" cy="165" r="14" fill="#131e28" stroke="#bb8ff2"/><text x="260" y="169">B</text>
+          <circle cx="320" cy="120" r="14" fill="#131e28" stroke="#bb8ff2"/><text x="320" y="124">C</text>
+          <circle cx="380" cy="160" r="14" fill="#131e28" stroke="#bb8ff2"/><text x="380" y="164">D</text>
+          <circle cx="430" cy="120" r="14" fill="#131e28" stroke="#bb8ff2"/><text x="430" y="124">E</text>
+        </g>
+
+        <!-- island 2 -->
+        <ellipse cx="720" cy="140" rx="110" ry="60" fill="rgba(187,143,242,.07)" stroke="#bb8ff2" stroke-width="2"/>
+        <text x="720" y="70" fill="#bb8ff2" font-size="12">SET 2 · two addresses</text>
+        <g>
+          <circle cx="685" cy="140" r="14" fill="#131e28" stroke="#bb8ff2"/><text x="685" y="144">F</text>
+          <circle cx="755" cy="140" r="14" fill="#131e28" stroke="#bb8ff2"/><text x="755" y="144">G</text>
+        </g>
+
+        <text x="480" y="228" fill="#4a5c6b" font-size="11">no address appears twice · no linking edge crosses between sets</text>
+      </g>
+    </svg>
+    <figcaption>fig 3.4 — output: { A, B, C, D, E } and { F, G }, disjoint</figcaption>
+  </figure>
+
+  <p>These sets are the step's deliverable: for token T, the family <span class="c-set">{ {A,B,C,D,E}, {F,G} }</span>, carried forward with the token identifier attached.</p>
+</section>
+
+<footer>
+  <span>step 3 · cluster into disjoint sets · per Tošić, Vičič &amp; Hrovatin (2025), Algorithm 2</span>
+  <span>token-scoped · seeds from transfers · merged by membership and linkability</span>
+</footer>
+
+</div>
+</body>
+</html>
