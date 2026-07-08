@@ -17,13 +17,31 @@
     font:13px/1.45 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
     -webkit-font-smoothing:antialiased}
   #deck{position:fixed;inset:0}
-  .panel{
-    position:fixed;top:14px;left:14px;z-index:10;background:var(--panel);
-    border:1px solid var(--line);border-radius:6px;padding:13px 15px;min-width:230px;
-    box-shadow:0 8px 30px rgba(0,0,0,.4);max-height:calc(100vh - 28px);overflow:auto;
+  .panel-toggle{
+    position:fixed;top:14px;left:14px;z-index:13;
+    border:1px solid var(--line);background:var(--panel);color:var(--accent);
+    border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:.08em;
+    cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4);
   }
-  .panel h1{margin:0 0 2px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  .panel-toggle:hover,.panel-toggle.on{border-color:var(--accent);color:var(--ink)}
+  .panel-toggle.on{background:var(--line)}
+  .panel{
+    position:fixed;top:50px;left:14px;z-index:12;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:13px 15px;min-width:230px;
+    box-shadow:0 8px 30px rgba(0,0,0,.4);max-height:calc(100vh - 64px);overflow:auto;
+    transform:translateX(calc(-100% - 20px));opacity:0;pointer-events:none;
+    transition:transform .2s ease,opacity .2s ease;
+  }
+  .panel.open{transform:none;opacity:1;pointer-events:auto}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:2px}
+  .panel h1{margin:0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
     font-weight:600;color:var(--accent)}
+  .panel-close{
+    border:1px solid var(--line);background:transparent;color:var(--dim);
+    border-radius:4px;width:26px;height:26px;padding:0;font:inherit;font-size:14px;
+    line-height:1;cursor:pointer;flex:none;transition:border-color .15s,color .15s;
+  }
+  .panel-close:hover{border-color:var(--accent);color:var(--ink)}
   .panel .sub{color:var(--dim);font-size:11px;margin-bottom:12px;word-break:break-all}
   .row{display:flex;justify-content:space-between;gap:18px;padding:2px 0;color:var(--dim)}
   .row b{color:var(--ink);font-weight:600}
@@ -53,6 +71,9 @@
   }
   .pick:focus{outline:none;border-color:var(--accent)}
   .pick option{background:var(--panel)}
+  .time-range{width:100%;margin:8px 0 4px}
+  .time-meta{display:flex;justify-content:space-between;gap:10px;color:var(--dim);font-size:10.5px}
+  .time-meta b{color:var(--ink);font-weight:600}
   .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px}
   .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .1s}
   .hint{color:var(--dim);font-size:10.5px;margin-top:8px}
@@ -116,8 +137,13 @@
 <body>
 <div id="deck"></div>
 
-<div class="panel">
-  <h1>Netview</h1>
+<button class="panel-toggle on" type="button" id="panelToggle" aria-expanded="true" aria-controls="mainPanel">Netview ▾</button>
+
+<aside class="panel open" id="mainPanel" aria-hidden="false">
+  <div class="panel-head">
+    <h1>Netview</h1>
+    <button class="panel-close" type="button" id="panelClose" aria-label="Close netview panel">×</button>
+  </div>
   <div class="sub" id="src">no graph loaded</div>
   <div class="row"><span>nodes</span><b id="nN">—</b></div>
   <div class="row"><span>edges</span><b id="nE">—</b></div>
@@ -135,6 +161,29 @@
   </div>
 
   <div class="section">
+    <h2>Edge Display</h2>
+    <div class="seg" id="edgeDisplaySeg">
+      <button type="button" data-mode="color" id="btnEdgeColor">color by ETH</button>
+      <button type="button" data-mode="width" id="btnEdgeWidth">width by ETH</button>
+    </div>
+    <div class="hint" id="edgeDisplayHint">fixed width · color = ETH value</div>
+  </div>
+
+  <div class="section">
+    <h2>Timeline</h2>
+    <div class="seg" id="timeModeSeg">
+      <button type="button" data-mode="upto" id="btnTimeUpto">up to time</button>
+      <button type="button" data-mode="current" id="btnTimeCurrent">current only</button>
+    </div>
+    <input class="time-range" id="timeSlider" type="range" min="0" max="0" step="1" value="0" disabled>
+    <div class="time-meta">
+      <span>time <b id="timeCurrent">all edges</b></span>
+      <span>visible <b id="timeCount">—</b></span>
+    </div>
+    <div class="hint" id="timeHint">enable by loading a graph with edge timestamps</div>
+  </div>
+
+  <div class="section">
     <h2>Load</h2>
     <select class="pick" id="graphPick" aria-label="Sample graphs in fmt directory">
       <option value="">sample graphs…</option>
@@ -148,12 +197,13 @@
 
   <div class="section legend">
     <h2>Legend</h2>
-    <div class="k"><span class="sw" style="background:#d9d5c8"></span>directed edge · width = value</div>
+    <div class="k" id="edgeLegend"><span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value</div>
+    <div class="k" id="zeroEthLegend" hidden><span class="sw" style="background:#ff4aa3"></span>0 ETH transaction</div>
     <div class="k"><span class="dot" style="border-color:#ffd24f;background:transparent"></span>cut vertex</div>
     <div class="k"><span class="dot" style="border-color:#fff;background:transparent"></span>cabal bridge</div>
     <div class="k"><span class="dot" style="background:hsl(137deg,62%,58%);border:none"></span>color = component (group)</div>
   </div>
-</div>
+</aside>
 
 <button class="feat-toggle" type="button" id="featToggle" aria-expanded="false" aria-controls="featPanel">Features</button>
 
@@ -188,9 +238,13 @@ const FEATURES = [
   {id:'layoutBaked', label:'Baked layout', detail:'positions from node x,y in file'},
   {id:'layoutForce', label:'Force layout', detail:'d3 force-directed simulation'},
   {id:'layoutSwitch', label:'Layout switch', detail:'toggle between baked and force modes'},
+  {id:'timeline', label:'Timeline slider', detail:'scrub from earliest to latest edge timestamp'},
+  {id:'timelineMode', label:'Timeline modes', detail:'show cumulative edges or current timestamp only'},
+  {id:'panelMain', label:'Netview panel toggle', detail:'left panel toggles open/closed from the button'},
   {id:'tooltips', label:'Hover tooltips', detail:'node address and edge source → target'},
   {id:'panZoom', label:'Pan and zoom', detail:'orthographic deck.gl controller'},
-  {id:'edgeWidth', label:'Edge width', detail:'scales with value_eth'},
+  {id:'edgeDisplay', label:'Edge display control', detail:'color by ETH or width by ETH'},
+  {id:'zeroEthLegend', label:'0 ETH legend', detail:'magenta legend entry appears in color-by-ETH mode'},
   {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
   {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
   {id:'featPanel', label:'Features panel', detail:'this checklist, toggled from the button'},
@@ -201,13 +255,19 @@ let sim = null;
 let graph = null;
 let bakedPos = null;
 let layoutMode = 'baked';
+let edgeDisplayMode = 'width';
+let timeDisplayMode = 'upto';
+const FIXED_EDGE_WIDTH = 2;
 let tick = 0;
 let autoFit = true;
 let viewState = null;
 let featOpen = false;
+let panelOpen = true;
 let status = Object.fromEntries(FEATURES.map(f => [f.id, false]));
 let graphCatalog = [];
 let currentCatalogFile = '';
+let timeValues = [];
+let timeIndex = 0;
 
 // ---- geometry (directed + parallel edges) ----
 function parallelKey(e){ return e.source_index+'\t'+e.target_index; }
@@ -266,6 +326,54 @@ function hslToRgb(h,s,l){
   return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
 }
 const groupColor = g => hslToRgb((g*137.508)%360,0.62,0.58);
+
+function ethRange(edges){
+  let min=Infinity, max=-Infinity;
+  for(const e of edges){
+    const v=Number(e.value_eth)||0;
+    if(v<min) min=v;
+    if(v>max) max=v;
+  }
+  if(!Number.isFinite(min)){ min=0; max=1; }
+  return {min,max};
+}
+
+function ethColor(value, min, max){
+  const v=Number(value)||0;
+  if(v === 0) return [255, 74, 163, 230];
+  const t=max>min ? Math.max(0,Math.min(1,(v-min)/(max-min))) : 0.5;
+  return [
+    Math.round(70+t*185),
+    Math.round(110+t*70),
+    Math.round(210-t*150),
+    195
+  ];
+}
+
+function edgeWidthFactor(e){
+  return Math.sqrt((e.value_eth||0)+0.1);
+}
+
+function edgeTimestamp(e){
+  const t = Number(e.timestamp);
+  return Number.isFinite(t) ? t : null;
+}
+
+function timelineEnabled(edges){
+  return edges.some(e => edgeTimestamp(e) !== null);
+}
+
+function deriveTimeValues(edges){
+  const vals = [...new Set(edges.map(edgeTimestamp).filter(v => v !== null))].sort((a,b)=>a-b);
+  return vals;
+}
+
+function formatTimestamp(ts){
+  if(ts === null || ts === undefined) return 'all edges';
+  const d = new Date(ts * 1000);
+  if(Number.isNaN(d.getTime())) return String(ts);
+  return d.toISOString().replace('T', ' ').replace('.000Z', ' UTC');
+}
 
 // ---- validation (fmt spec core) ----
 function validateGraph(g){
@@ -398,6 +506,68 @@ function updateLayoutUI(){
     layoutMode === 'baked' ? 'uses node x,y from file' : 'd3 force simulation running';
 }
 
+function setEdgeDisplayMode(mode){
+  edgeDisplayMode = mode;
+  updateEdgeDisplayUI();
+  draw();
+  updateFeatureStatus();
+}
+
+function updateEdgeDisplayUI(){
+  document.getElementById('btnEdgeColor').classList.toggle('on', edgeDisplayMode === 'color');
+  document.getElementById('btnEdgeWidth').classList.toggle('on', edgeDisplayMode === 'width');
+  document.getElementById('zeroEthLegend').hidden = edgeDisplayMode !== 'color';
+  document.getElementById('edgeDisplayHint').textContent =
+    edgeDisplayMode === 'color'
+      ? 'fixed width · color = ETH value'
+      : 'width = ETH value · color = component';
+  document.getElementById('edgeLegend').innerHTML =
+    edgeDisplayMode === 'color'
+      ? '<span class="sw" style="background:linear-gradient(90deg,#4670d2,#e8b43a)"></span>directed edge · fixed width · color = ETH'
+      : '<span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value';
+}
+
+function visibleEdges(edges){
+  if(!timeValues.length) return edges;
+  const current = timeValues[timeIndex] ?? timeValues[timeValues.length - 1];
+  return edges.filter(e => {
+    const ts = edgeTimestamp(e);
+    if(ts === null) return timeDisplayMode === 'upto';
+    return timeDisplayMode === 'upto' ? ts <= current : ts === current;
+  });
+}
+
+function updateTimelineUI(){
+  const slider = document.getElementById('timeSlider');
+  const enabled = !!graph && timeValues.length > 0;
+  slider.disabled = !enabled;
+  slider.max = Math.max(0, timeValues.length - 1);
+  slider.value = Math.min(timeIndex, Math.max(0, timeValues.length - 1));
+  document.getElementById('btnTimeUpto').classList.toggle('on', timeDisplayMode === 'upto');
+  document.getElementById('btnTimeCurrent').classList.toggle('on', timeDisplayMode === 'current');
+  if(!enabled){
+    document.getElementById('timeCurrent').textContent = graph ? 'no timestamps' : 'all edges';
+    document.getElementById('timeCount').textContent = graph ? graph.edges.length : '—';
+    document.getElementById('timeHint').textContent = graph
+      ? 'this graph has no edge timestamps; showing all edges'
+      : 'enable by loading a graph with edge timestamps';
+    return;
+  }
+  const current = timeValues[timeIndex];
+  document.getElementById('timeCurrent').textContent = formatTimestamp(current);
+  document.getElementById('timeCount').textContent = visibleEdges(graph.edges).length + '/' + graph.edges.length;
+  document.getElementById('timeHint').textContent = timeDisplayMode === 'upto'
+    ? 'shows all edges up to the selected time'
+    : 'shows only edges at the selected timestamp';
+}
+
+function setTimeMode(mode){
+  timeDisplayMode = mode;
+  updateTimelineUI();
+  draw();
+  updateFeatureStatus();
+}
+
 // ---- render ----
 function buildEdgeGeometry(nodes, edges){
   const pos = nodes.map(n => [n.x, n.y]);
@@ -405,7 +575,9 @@ function buildEdgeGeometry(nodes, edges){
   for(const e of edges){
     e._s = pos[e.source_index];
     e._t = pos[e.target_index];
-    const w = Math.sqrt((e.value_eth || 0) + 0.1);
+    const w = edgeDisplayMode === 'width'
+      ? edgeWidthFactor(e)
+      : FIXED_EDGE_WIDTH;
     const geom = curvedEdgePath(e._s, e._t, e._lane ?? 0, e._laneCount ?? 1);
     e._path = geom.path;
     const [tx, ty] = geom.tangent;
@@ -414,12 +586,15 @@ function buildEdgeGeometry(nodes, edges){
 }
 
 function layers(nodes, edges){
+  const {min, max} = ethRange(edges);
   const edgeColor = e => {
+    if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
     const g = e.group ?? nodes[e.source_index]?.group ?? 0;
     const c = groupColor(g);
     return [c[0], c[1], c[2], 150];
   };
-  const edgeWidth = e => Math.sqrt((e.value_eth || 0) + 0.1);
+  const edgeWidth = e => edgeDisplayMode === 'width' ? edgeWidthFactor(e) : FIXED_EDGE_WIDTH;
+  const edgeTriggers = {getPath:tick, getColor:edgeDisplayMode, getWidth:edgeDisplayMode};
   return [
     new PathLayer({
       id:'edges', data:edges,
@@ -428,14 +603,14 @@ function layers(nodes, edges){
       getWidth:edgeWidth,
       widthUnits:'common', widthScale:0.06, widthMinPixels:1.1, widthMaxPixels:14,
       capRounded:true, jointRounded:true,
-      updateTriggers:{getPath:tick},
+      updateTriggers:edgeTriggers,
       pickable:true
     }),
     new SolidPolygonLayer({
       id:'arrows', data:edges.filter(e=>e._arrow),
       getPolygon:e=>e._arrow,
       getFillColor:edgeColor,
-      updateTriggers:{getPolygon:tick},
+      updateTriggers:{getPolygon:tick, getFillColor:edgeDisplayMode},
       pickable:false
     }),
     new ScatterplotLayer({
@@ -455,8 +630,10 @@ function layers(nodes, edges){
 
 function draw(){
   if(!graph) return;
-  const {nodes, edges} = graph;
+  const {nodes} = graph;
+  const edges = visibleEdges(graph.edges);
   buildEdgeGeometry(nodes, edges);
+  updateTimelineUI();
   if(autoFit) viewState = fitView(nodes);
   const props = {
     views: new OrthographicView({flipY:false}),
@@ -520,9 +697,10 @@ function updatePanel(){
     return;
   }
   document.getElementById('nN').textContent = graph.nodes.length;
-  document.getElementById('nE').textContent = graph.edges.length;
+  document.getElementById('nE').textContent = visibleEdges(graph.edges).length + '/' + graph.edges.length;
   document.getElementById('nC').textContent = componentCount(graph);
   updateLayoutUI();
+  updateTimelineUI();
 }
 
 function updateFeatureStatus(){
@@ -538,9 +716,13 @@ function updateFeatureStatus(){
   status.layoutBaked = loaded && hasBakedLayout(graph.nodes);
   status.layoutForce = loaded && layoutMode === 'force';
   status.layoutSwitch = loaded;
+  status.timeline = loaded && timeValues.length > 0;
+  status.timelineMode = loaded && timeValues.length > 0;
+  status.panelMain = panelOpen;
   status.tooltips = loaded;
   status.panZoom = true;
-  status.edgeWidth = loaded && graph.edges.some(e => e.value_eth != null);
+  status.edgeDisplay = loaded && graph.edges.some(e => e.value_eth != null);
+  status.zeroEthLegend = loaded && edgeDisplayMode === 'color';
   status.nodeSize = loaded && graph.nodes.some(n => n.in_tx != null || n.out_tx != null);
   status.bridges = loaded && graph.nodes.some(n => n.is_bridge || n.cabal_bridge);
   status.featPanel = featOpen;
@@ -551,7 +733,7 @@ function renderFeatureList(){
   const ul = document.getElementById('featList');
   ul.innerHTML = FEATURES.map(f => {
     const on = status[f.id];
-    const optional = f.id === 'parallel' || f.id === 'bridges' || f.id === 'urlSrc';
+    const optional = f.id === 'parallel' || f.id === 'bridges' || f.id === 'urlSrc' || f.id === 'zeroEthLegend';
     const st = on ? 'ok' : (graph && optional ? 'warn' : '');
     return `<li><span class="st ${st}"></span><div>`+
       `<b>${f.label}</b>${f.detail}</div></li>`;
@@ -562,6 +744,11 @@ function setGraphPick(file){
   currentCatalogFile = file || '';
   const pick = document.getElementById('graphPick');
   if(pick.value !== file) pick.value = file || '';
+}
+
+function resetTimeline(edges){
+  timeValues = deriveTimeValues(edges);
+  timeIndex = Math.max(0, timeValues.length - 1);
 }
 
 function populateGraphPick(graphs){
@@ -600,6 +787,7 @@ function ingest(data, label){
     validateGraph(data);
     graph = data;
     bakedPos = data.nodes.map(n => [n.x, n.y]);
+    resetTimeline(data.edges);
     if(!hasBakedLayout(data.nodes) && layoutMode === 'baked') layoutMode = 'force';
     const fromCatalog = graphCatalog.some(g => g.file === label);
     if(!fromCatalog) setGraphPick('');
@@ -626,7 +814,17 @@ function loadFile(f){
   r.readAsText(f);
 }
 
-// ---- feature panel ----
+// ---- panels ----
+function setMainPanel(open){
+  panelOpen = open;
+  document.getElementById('mainPanel').classList.toggle('open', open);
+  document.getElementById('panelToggle').classList.toggle('on', open);
+  document.getElementById('panelToggle').setAttribute('aria-expanded', open);
+  document.getElementById('panelToggle').textContent = open ? 'Netview ▾' : 'Netview';
+  document.getElementById('mainPanel').setAttribute('aria-hidden', !open);
+  updateFeatureStatus();
+}
+
 function setFeatPanel(open){
   featOpen = open;
   document.getElementById('featPanel').classList.toggle('open', open);
@@ -637,11 +835,27 @@ function setFeatPanel(open){
   updateFeatureStatus();
 }
 
+document.getElementById('panelToggle').addEventListener('click', () => setMainPanel(!panelOpen));
+document.getElementById('panelClose').addEventListener('click', () => setMainPanel(false));
 document.getElementById('featToggle').addEventListener('click', () => setFeatPanel(!featOpen));
 document.getElementById('featClose').addEventListener('click', () => setFeatPanel(false));
 document.getElementById('layoutSeg').addEventListener('click', e => {
   const btn = e.target.closest('button[data-mode]');
   if(btn && !btn.disabled) setLayoutMode(btn.dataset.mode);
+});
+document.getElementById('edgeDisplaySeg').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-mode]');
+  if(btn) setEdgeDisplayMode(btn.dataset.mode);
+});
+document.getElementById('timeModeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-mode]');
+  if(btn) setTimeMode(btn.dataset.mode);
+});
+document.getElementById('timeSlider').addEventListener('input', e => {
+  timeIndex = Number(e.target.value) || 0;
+  updatePanel();
+  draw();
+  updateFeatureStatus();
 });
 document.getElementById('graphPick').addEventListener('change', e => {
   if(e.target.value) loadGraphFile(e.target.value);
@@ -661,6 +875,7 @@ addEventListener('drop', e => {
 
 renderFeatureList();
 updateFeatureStatus();
+updateEdgeDisplayUI();
 
 loadCatalog().then(() => {
   const src = new URLSearchParams(location.search).get('src');

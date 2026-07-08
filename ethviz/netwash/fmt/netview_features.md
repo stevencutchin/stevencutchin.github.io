@@ -2,7 +2,7 @@
 
 Use this document to confirm graph viewer functionality. Open [netview.html](netview.html) and work through each section.
 
-**Quick start:** pick a graph from the **sample graphs** dropdown (e.g. `example_graph.json`), then open the **Features** panel (top right) to see live status.
+**Quick start:** pick a graph from the **sample graphs** dropdown (e.g. `example_graph.json`), keep the **Netview** panel open on the left, then open the **Features** panel (top right) to see live status.
 
 ---
 
@@ -68,39 +68,66 @@ See [graph_format.html](graph_format.html) for the full specification.
 
 ---
 
-## 6. Interaction
+## 6. Timeline
 
 | # | Feature | How to verify | Example |
 |---|---------|---------------|---------|
-| 6.1 | **Pan** | Click-drag the canvas. View moves. | |
-| 6.2 | **Zoom** | Scroll wheel zooms in/out. | |
-| 6.3 | **Node tooltip** | Hover a node — address, group, tx counts, optional attributes (`ens_name`, bridge flags). | ✓ |
-| 6.4 | **Edge tooltip** | Hover an edge — source, target, value, optional fields (`collection`, `is_seed`). | ✓ |
+| 6.1 | **Timeline slider** | Load a graph with timestamps. Slider range spans earliest to latest edge timestamp. | ✓ |
+| 6.2 | **Up to time mode** | Select *up to time*. As you scrub forward, edges accumulate through the selected timestamp. | ✓ |
+| 6.3 | **Current only mode** | Select *current only*. Only edges at the selected timestamp remain visible. | ✓ |
+| 6.4 | **Visible edge count** | Timeline section and top *edges* stat update as the visible edge subset changes. | ✓ |
+| 6.5 | **No timestamp fallback** | Load a graph without edge timestamps. Timeline disables and all edges remain visible. | |
 
 ---
 
-## 7. Visual encoding
+## 7. Edge display control
 
 | # | Feature | How to verify | Example |
 |---|---------|---------------|---------|
-| 7.1 | **Edge width** | Thicker edges correspond to higher `value_eth`. | ✓ |
-| 7.2 | **Node size** | Larger nodes have more `in_tx` + `out_tx`. | ✓ |
-| 7.3 | **Cut vertex ring** | Node 1 (`is_bridge`) shows a gold ring. | ✓ |
-| 7.4 | **Cabal bridge ring** | If `cabal_bridge` is set, node shows a white ring. | |
+| 7.1 | **Color by ETH** | In *Edge Display*, choose *color by ETH*. Edges switch to fixed width and use a blue→gold ETH-value ramp. | ✓ |
+| 7.2 | **Width by ETH** | Choose *width by ETH*. Edges switch back to component color and width scales with `value_eth`. | ✓ |
+| 7.3 | **0 ETH legend** | In *color by ETH* mode, legend shows a magenta swatch labeled `0 ETH transaction`. | ✓ |
+| 7.4 | **0 ETH distinct color** | Example edge 3 (`value_eth: 0.0`) renders in magenta in *color by ETH* mode. | ✓ |
 
 ---
 
-## 8. Features panel
+## 8. Interaction
 
 | # | Feature | How to verify | Example |
 |---|---------|---------------|---------|
-| 8.1 | **Toggle** | Click *Features* (top right). Panel slides in; click again to hide. | ✓ |
-| 8.2 | **Live status** | Green dots = confirmed active. Grey = not yet applicable. Yellow = loaded but optional data absent. | ✓ |
-| 8.3 | **Doc link** | Panel links to this checklist (`netview_features.md`). | ✓ |
+| 8.1 | **Pan** | Click-drag the canvas. View moves. | |
+| 8.2 | **Zoom** | Scroll wheel zooms in/out. | |
+| 8.3 | **Node tooltip** | Hover a node — address, group, tx counts, optional attributes (`ens_name`, bridge flags). | ✓ |
+| 8.4 | **Edge tooltip** | Hover an edge — source, target, value, optional fields (`collection`, `is_seed`). | ✓ |
 
 ---
 
-## 9. Example graph spot-check
+## 9. Visual encoding
+
+| # | Feature | How to verify | Example |
+|---|---------|---------------|---------|
+| 9.1 | **Edge width** | In *width by ETH* mode, thicker edges correspond to higher `value_eth`. | ✓ |
+| 9.2 | **Fixed-width edges** | In *color by ETH* mode, all edges use the same thicker fixed width. | ✓ |
+| 9.3 | **Node size** | Larger nodes have more `in_tx` + `out_tx`. | ✓ |
+| 9.4 | **Cut vertex ring** | Node 1 (`is_bridge`) shows a gold ring. | ✓ |
+| 9.5 | **Cabal bridge ring** | If `cabal_bridge` is set, node shows a white ring. | |
+
+---
+
+## 10. Panel toggles
+
+| # | Feature | How to verify | Example |
+|---|---------|---------------|---------|
+| 10.1 | **Netview panel toggle** | Click *Netview* (top left). The left control panel slides closed; click again to reopen. | ✓ |
+| 10.2 | **Netview close button** | Click `×` in the Netview panel header. Panel closes and leaves the top-left toggle visible. | ✓ |
+| 10.3 | **Features toggle** | Click *Features* (top right). Panel slides in; click again to hide. | ✓ |
+| 10.4 | **Features close button** | Click `×` in the Features panel header. Panel closes and leaves the top-right toggle visible. | ✓ |
+| 10.5 | **Features live status** | Green dots = confirmed active. Grey = not yet applicable. Yellow = loaded but optional data absent. | ✓ |
+| 10.6 | **Doc link** | Features panel links to this checklist (`netview_features.md`). | ✓ |
+
+---
+
+## 11. Example graph spot-check
 
 After **Load Example**, confirm these specifics from `example_graph.json`:
 
@@ -110,6 +137,7 @@ After **Load Example**, confirm these specifics from `example_graph.json`:
 - [ ] Node 0 has `ens_name: moonwhale.eth` in tooltip
 - [ ] Node 1 shows cut-vertex ring (`is_bridge`)
 - [ ] Edge 3 (`is_seed: true`, zero value) is visible with seed note in tooltip
+- [ ] Edge 3 turns magenta in *color by ETH* mode and matches the `0 ETH transaction` legend
 - [ ] Three parallel edges between nodes 0 and 1 render as separate curves
 
 ---
