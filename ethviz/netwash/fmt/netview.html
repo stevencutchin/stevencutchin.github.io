@@ -91,6 +91,26 @@
   }
   .feat-toggle:hover,.feat-toggle.on{border-color:var(--accent);color:var(--ink)}
   .feat-toggle.on{background:var(--line)}
+  .select-toggle{
+    position:fixed;top:14px;right:96px;z-index:13;
+    border:1px solid var(--line);background:var(--panel);color:var(--accent);
+    border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:.08em;
+    cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  .select-toggle:hover,.select-toggle.on{border-color:var(--accent);color:var(--ink)}
+  .select-toggle.on{background:var(--line)}
+  .select-panel{
+    position:fixed;top:50px;right:96px;z-index:12;width:min(340px,calc(100vw - 28px));
+    max-height:calc(100vh - 64px);overflow:auto;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.4);
+    transform:translateX(calc(100% + 20px));opacity:0;pointer-events:none;
+    transition:transform .2s ease,opacity .2s ease;
+  }
+  .select-panel.open{transform:none;opacity:1;pointer-events:auto}
+  .select-panel h2{margin:0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .sel-meta{color:var(--dim);font-size:10.5px;margin:6px 0 0}
+  .sel-meta b{color:var(--ink)}
   .feat-panel{
     position:fixed;top:50px;right:14px;z-index:12;width:min(360px,calc(100vw - 28px));
     max-height:calc(100vh - 64px);overflow:auto;
@@ -214,9 +234,48 @@
     <div class="k" id="zeroEthLegend" hidden><span class="sw" style="background:#ff4aa3"></span>0 ETH transaction</div>
     <div class="k" id="tokenLegend" hidden><span class="sw" style="background:#5dffc8"></span>token-tagged edge</div>
     <div class="k" id="nftLegend" hidden><span class="dot" style="border-color:#ff4ad8;background:#ffe14a;box-shadow:0 0 6px #ff4ad8"></span>NFT node</div>
+    <div class="k" id="selectLegend" hidden><span class="sw" style="background:#5dffc8;box-shadow:0 0 8px #5dffc8"></span>selected · dimmed = filtered out</div>
     <div class="k"><span class="dot" style="border-color:#ffd24f;background:transparent"></span>cut vertex</div>
     <div class="k"><span class="dot" style="border-color:#fff;background:transparent"></span>cabal bridge</div>
     <div class="k"><span class="dot" style="background:hsl(137deg,62%,58%);border:none"></span>color = component (group)</div>
+  </div>
+</aside>
+
+<button class="select-toggle" type="button" id="selectToggle" aria-expanded="false" aria-controls="selectPanel">Select</button>
+
+<aside class="select-panel" id="selectPanel" aria-hidden="true">
+  <div class="feat-head">
+    <h2>Select</h2>
+    <button class="feat-close" type="button" id="selectClose" aria-label="Close select panel">×</button>
+  </div>
+  <p class="lead" style="margin:0 0 12px;color:var(--dim);font-size:11px">Pick a token, node, or edge to highlight it on the graph. Other items dim while a selection is active.</p>
+
+  <div class="section" style="margin-top:0;padding-top:0;border-top:none">
+    <h2>Token</h2>
+    <select class="pick" id="tokenPick" disabled aria-label="Select token">
+      <option value="">tokens…</option>
+    </select>
+    <div class="sel-meta" id="tokenPickMeta">highlight edges exchanging the chosen token</div>
+  </div>
+
+  <div class="section">
+    <h2>Node</h2>
+    <select class="pick" id="nodePick" disabled aria-label="Select node">
+      <option value="">nodes…</option>
+    </select>
+    <div class="sel-meta" id="nodePickMeta">highlight node and incident edges</div>
+  </div>
+
+  <div class="section">
+    <h2>Edge</h2>
+    <select class="pick" id="edgePick" disabled aria-label="Select edge">
+      <option value="">edges…</option>
+    </select>
+    <div class="sel-meta" id="edgePickMeta">highlight one transaction edge</div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" type="button" id="clearSelection" disabled>Clear selection</button>
   </div>
 </aside>
 
@@ -261,9 +320,11 @@ const FEATURES = [
   {id:'panZoom', label:'Pan and zoom', detail:'orthographic deck.gl controller'},
   {id:'edgeDisplay', label:'Edge display control', detail:'color by ETH or width by ETH'},
   {id:'zeroEthLegend', label:'0 ETH legend', detail:'magenta legend entry appears in color-by-ETH mode'},
-  {id:'tokenEdges', label:'Token edge tags', detail:'token label shown on hover for tagged edges'},
+  {id:'tokenEdges', label:'Token edge tags', detail:'token or token_id label shown on hover for tagged edges'},
   {id:'nftNodes', label:'NFT node highlight', detail:'nft-tagged nodes render with bright halo and ring'},
   {id:'nftOnlyFilter', label:'NFT only filter', detail:'hide non-NFT nodes and unrelated edges'},
+  {id:'selectPanel', label:'Select panel', detail:'choose tokens, nodes, or edges to highlight'},
+  {id:'tokenSelect', label:'Token selection', detail:'highlight edges exchanging the chosen token'},
   {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
   {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
   {id:'featPanel', label:'Features panel', detail:'this checklist, toggled from the button'},
@@ -282,7 +343,9 @@ let tick = 0;
 let autoFit = true;
 let viewState = null;
 let featOpen = false;
+let selectOpen = false;
 let panelOpen = true;
+let selection = null;
 let status = Object.fromEntries(FEATURES.map(f => [f.id, false]));
 let graphCatalog = [];
 let currentCatalogFile = '';
@@ -374,8 +437,26 @@ function edgeWidthFactor(e){
   return Math.sqrt((e.value_eth||0)+0.1);
 }
 
+function edgeTokenTag(e){
+  if(typeof e.token === 'string' && e.token.trim()) return e.token.trim();
+  if(typeof e.token_id === 'string' && e.token_id.trim()){
+    const id = e.token_id.trim();
+    return e.collection ? `${e.collection} #${id}` : id;
+  }
+  return '';
+}
+
+function edgeTokenValues(e){
+  const tags = [];
+  if(typeof e.token === 'string' && e.token.trim()) tags.push(e.token.trim());
+  if(typeof e.token_id === 'string' && e.token_id.trim()) tags.push(e.token_id.trim());
+  const display = edgeTokenTag(e);
+  if(display && !tags.includes(display)) tags.push(display);
+  return tags;
+}
+
 function hasToken(e){
-  return typeof e.token === 'string' && e.token.trim().length > 0;
+  return edgeTokenValues(e).length > 0;
 }
 
 function isNftNode(n){
@@ -388,6 +469,155 @@ function graphHasTokens(edges){
 
 function graphHasNft(nodes){
   return nodes.some(isNftNode);
+}
+
+function shortAddr(a){
+  if(!a || a.length < 12) return a || '';
+  return a.slice(0, 8) + '…' + a.slice(-4);
+}
+
+function deriveTokens(edges, metadata){
+  const fromEdges = [...new Set(edges.flatMap(e => edgeTokenValues(e)))];
+  const pool = metadata?.nft_token_marking?.token_pool;
+  const merged = pool && pool.length ? [...new Set([...pool, ...fromEdges])] : fromEdges;
+  return merged.filter(Boolean).sort();
+}
+
+function edgeMatchesToken(e, token){
+  return edgeTokenValues(e).includes(token);
+}
+
+function isEdgeHighlighted(e){
+  if(!selection) return true;
+  if(selection.kind === 'token') return edgeMatchesToken(e, selection.token);
+  if(selection.kind === 'node'){
+    return e.source_index === selection.index || e.target_index === selection.index;
+  }
+  if(selection.kind === 'edge') return e.index === selection.index;
+  return false;
+}
+
+function isNodeHighlighted(n, edges){
+  if(!selection) return true;
+  if(selection.kind === 'node') return n.index === selection.index;
+  if(selection.kind === 'edge'){
+    const e = graph.edges[selection.index];
+    return e && (n.index === e.source_index || n.index === e.target_index);
+  }
+  if(selection.kind === 'token'){
+    return edges.some(e => edgeMatchesToken(e, selection.token)
+      && (e.source_index === n.index || e.target_index === n.index));
+  }
+  return false;
+}
+
+function baseEdgeColor(e, allNodes, min, max){
+  if(hasToken(e)) return [93, 255, 200, 230];
+  if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
+  const g = e.group ?? allNodes[e.source_index]?.group ?? 0;
+  const c = groupColor(g);
+  return [c[0], c[1], c[2], 150];
+}
+
+function resetSelection(){
+  selection = null;
+  ['tokenPick', 'nodePick', 'edgePick'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  updateSelectUI();
+  draw();
+  updateFeatureStatus();
+}
+
+function setSelection(next){
+  selection = next;
+  updateSelectUI();
+  draw();
+  updateFeatureStatus();
+}
+
+function populateSelectPanel(){
+  const tokenPick = document.getElementById('tokenPick');
+  const nodePick = document.getElementById('nodePick');
+  const edgePick = document.getElementById('edgePick');
+  const clearBtn = document.getElementById('clearSelection');
+  if(!graph){
+    tokenPick.disabled = nodePick.disabled = edgePick.disabled = true;
+    clearBtn.disabled = true;
+    tokenPick.innerHTML = '<option value="">tokens…</option>';
+    nodePick.innerHTML = '<option value="">nodes…</option>';
+    edgePick.innerHTML = '<option value="">edges…</option>';
+    return;
+  }
+  const tokens = deriveTokens(graph.edges, graph.metadata);
+  tokenPick.innerHTML = '<option value="">tokens…</option>' +
+    tokens.map(t => `<option value="${t}">${t}</option>`).join('');
+  tokenPick.disabled = tokens.length === 0;
+
+  nodePick.innerHTML = '<option value="">nodes…</option>' +
+    graph.nodes.map(n => {
+      const label = `[${n.index}] ${shortAddr(n.address)}${isNftNode(n) ? ' · NFT' : ''}`;
+      return `<option value="${n.index}">${label}</option>`;
+    }).join('');
+  nodePick.disabled = false;
+
+  edgePick.innerHTML = '<option value="">edges…</option>' +
+    graph.edges.map(e => {
+      const tok = hasToken(e) ? ` · ${edgeTokenTag(e)}` : '';
+      const label = `[${e.index}] ${shortAddr(e.source)} → ${shortAddr(e.target)} · ${(e.value_eth ?? 0)} ETH${tok}`;
+      return `<option value="${e.index}">${label}</option>`;
+    }).join('');
+  edgePick.disabled = false;
+  clearBtn.disabled = !selection;
+
+  if(selection?.kind === 'token') tokenPick.value = selection.token;
+  if(selection?.kind === 'node') nodePick.value = String(selection.index);
+  if(selection?.kind === 'edge') edgePick.value = String(selection.index);
+}
+
+function updateSelectUI(){
+  const hasSel = !!selection;
+  document.getElementById('clearSelection').disabled = !hasSel;
+  document.getElementById('selectLegend').hidden = !hasSel;
+  document.getElementById('selectToggle').classList.toggle('on', selectOpen || hasSel);
+  if(!graph){
+    document.getElementById('tokenPickMeta').innerHTML = 'load a graph to browse tokens';
+    document.getElementById('nodePickMeta').textContent = 'highlight node and incident edges';
+    document.getElementById('edgePickMeta').textContent = 'highlight one transaction edge';
+    return;
+  }
+  if(selection?.kind === 'token'){
+    const n = graph.edges.filter(e => edgeMatchesToken(e, selection.token)).length;
+    document.getElementById('tokenPickMeta').innerHTML =
+      `<b>${selection.token}</b> · ${n} edge${n === 1 ? '' : 's'} highlighted`;
+  } else {
+    document.getElementById('tokenPickMeta').textContent = 'highlight edges exchanging the chosen token';
+  }
+  if(selection?.kind === 'node'){
+    const n = graph.nodes[selection.index];
+    document.getElementById('nodePickMeta').innerHTML =
+      n ? `<b>${shortAddr(n.address)}</b> · node ${selection.index}` : 'highlight node and incident edges';
+  } else {
+    document.getElementById('nodePickMeta').textContent = 'highlight node and incident edges';
+  }
+  if(selection?.kind === 'edge'){
+    const e = graph.edges[selection.index];
+    document.getElementById('edgePickMeta').innerHTML =
+      e ? `<b>edge ${selection.index}</b> · ${(e.value_eth ?? 0)} ETH` : 'highlight one transaction edge';
+  } else {
+    document.getElementById('edgePickMeta').textContent = 'highlight one transaction edge';
+  }
+}
+
+function setSelectPanel(open){
+  selectOpen = open;
+  document.getElementById('selectPanel').classList.toggle('open', open);
+  document.getElementById('selectToggle').setAttribute('aria-expanded', open);
+  document.getElementById('selectToggle').textContent = open ? 'Select ▾' : 'Select';
+  document.getElementById('selectPanel').setAttribute('aria-hidden', !open);
+  updateSelectUI();
+  updateFeatureStatus();
 }
 
 function edgeTimestamp(e){
@@ -668,18 +898,20 @@ function buildEdgeGeometry(nodes, edges){
 
 function layers(allNodes, renderNodes, edges){
   const {min, max} = ethRange(edges);
+  const selKey = selection ? `${selection.kind}:${selection.token ?? selection.index}` : '';
   const edgeColor = e => {
-    if(hasToken(e)) return [93, 255, 200, 230];
-    if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
-    const g = e.group ?? allNodes[e.source_index]?.group ?? 0;
-    const c = groupColor(g);
-    return [c[0], c[1], c[2], 150];
+    if(selection){
+      if(isEdgeHighlighted(e)) return [93, 255, 200, 255];
+      return [45, 48, 58, 35];
+    }
+    return baseEdgeColor(e, allNodes, min, max);
   };
   const edgeWidth = e => {
+    if(selection && isEdgeHighlighted(e)) return FIXED_EDGE_WIDTH * 1.35;
     if(hasToken(e) && edgeDisplayMode === 'width') return edgeWidthFactor(e) * 1.25;
     return edgeDisplayMode === 'width' ? edgeWidthFactor(e) : FIXED_EDGE_WIDTH;
   };
-  const edgeTriggers = {getPath:tick, getColor:edgeDisplayMode, getWidth:edgeDisplayMode};
+  const edgeTriggers = {getPath:tick, getColor:edgeDisplayMode + selKey, getWidth:edgeDisplayMode + selKey};
   const nftNodes = renderNodes.filter(isNftNode);
   return [
     new PathLayer({
@@ -696,7 +928,7 @@ function layers(allNodes, renderNodes, edges){
       id:'arrows', data:edges.filter(e=>e._arrow),
       getPolygon:e=>e._arrow,
       getFillColor:edgeColor,
-      updateTriggers:{getPolygon:tick, getFillColor:edgeDisplayMode},
+      updateTriggers:{getPolygon:tick, getFillColor:edgeDisplayMode + selKey},
       pickable:false
     }),
     new ScatterplotLayer({
@@ -714,13 +946,26 @@ function layers(allNodes, renderNodes, edges){
     new ScatterplotLayer({
       id:'nodes', data:renderNodes,
       getPosition:n=>[n.x,n.y],
-      getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1)*(isNftNode(n)?1.35:1),
+      getRadius:n=>{
+        const base = Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1);
+        if(selection && isNodeHighlighted(n, graph.edges)) return base * (isNftNode(n) ? 1.5 : 1.3);
+        return base * (isNftNode(n) ? 1.35 : 1);
+      },
       radiusUnits:'common', radiusScale:0.09, radiusMinPixels:3, radiusMaxPixels:22,
-      getFillColor:n=>isNftNode(n)?[255,225,74]:groupColor(n.group??0),
+      getFillColor:n=>{
+        if(selection && !isNodeHighlighted(n, graph.edges)) return [70, 72, 80, 90];
+        return isNftNode(n) ? [255, 225, 74] : groupColor(n.group ?? 0);
+      },
       stroked:true, lineWidthUnits:'pixels',
-      getLineWidth:n=>isNftNode(n)?4:(n.is_bridge?2:0),
-      getLineColor:n=>isNftNode(n)?[255,74,216]:(n.cabal_bridge?[255,255,255]:(n.is_bridge?[255,210,79]:[0,0,0,0])),
-      updateTriggers:{getPosition:tick},
+      getLineWidth:n=>{
+        if(selection && isNodeHighlighted(n, graph.edges)) return isNftNode(n) ? 5 : 3;
+        return isNftNode(n) ? 4 : (n.is_bridge ? 2 : 0);
+      },
+      getLineColor:n=>{
+        if(selection && isNodeHighlighted(n, graph.edges)) return [93, 255, 200, 255];
+        return isNftNode(n) ? [255, 74, 216] : (n.cabal_bridge ? [255, 255, 255] : (n.is_bridge ? [255, 210, 79] : [0, 0, 0, 0]));
+      },
+      updateTriggers:{getPosition:tick, getRadius:selKey, getFillColor:selKey, getLineWidth:selKey},
       pickable:true
     })
   ];
@@ -745,9 +990,9 @@ function edgeTooltip(e){
   if(e.timestamp != null && Number.isFinite(Number(e.timestamp))){
     meta.push(`<span class="time">${formatTimestamp(e.timestamp)}</span>`);
   }
-  if(e.collection) meta.push(`${e.collection} #${e.token_id ?? '?'}`);
+  if(e.collection && !hasToken(e)) meta.push(`${e.collection} #${e.token_id ?? '?'}`);
   if(e.is_seed) meta.push('seed');
-  const tokenLine = hasToken(e) ? `<div class="tok">${e.token}</div>` : '';
+  const tokenLine = hasToken(e) ? `<div class="tok">${edgeTokenTag(e)}</div>` : '';
   return {html:`<div class="tip">${dir}${tokenLine}<div class="m">${meta.join(' · ')}</div></div>`,
     style:{background:'transparent'}};
 }
@@ -766,6 +1011,7 @@ function draw(){
   buildEdgeGeometry(nodes, edges);
   updateTimelineUI();
   updateNftFilterUI();
+  updateSelectUI();
   if(autoFit) viewState = fitView(renderNodes.length ? renderNodes : nodes);
   const props = {
     views: new OrthographicView({flipY:false}),
@@ -816,6 +1062,7 @@ function updatePanel(){
   updateLayoutUI();
   updateTimelineUI();
   updateNftFilterUI();
+  updateSelectUI();
 }
 
 function updateFeatureStatus(){
@@ -841,6 +1088,8 @@ function updateFeatureStatus(){
   status.tokenEdges = loaded && graphHasTokens(graph.edges);
   status.nftNodes = loaded && graphHasNft(graph.nodes);
   status.nftOnlyFilter = loaded && nftOnlyFilter && graphHasNft(graph.nodes);
+  status.selectPanel = selectOpen;
+  status.tokenSelect = loaded && selection?.kind === 'token';
   status.nodeSize = loaded && graph.nodes.some(n => n.in_tx != null || n.out_tx != null);
   status.bridges = loaded && graph.nodes.some(n => n.is_bridge || n.cabal_bridge);
   status.featPanel = featOpen;
@@ -872,6 +1121,10 @@ function resetTimeline(edges){
 
 function resetNftFilter(nodes){
   if(nftOnlyFilter && !graphHasNft(nodes)) nftOnlyFilter = false;
+}
+
+function resetSelectionOnLoad(){
+  selection = null;
 }
 
 function populateGraphPick(graphs){
@@ -912,6 +1165,8 @@ function ingest(data, label){
     bakedPos = data.nodes.map(n => [n.x, n.y]);
     resetTimeline(data.edges);
     resetNftFilter(data.nodes);
+    resetSelectionOnLoad();
+    populateSelectPanel();
     if(!hasBakedLayout(data.nodes) && layoutMode === 'baked') layoutMode = 'force';
     const fromCatalog = graphCatalog.some(g => g.file === label);
     if(!fromCatalog) setGraphPick('');
@@ -960,6 +1215,31 @@ function setFeatPanel(open){
   updateFeatureStatus();
 }
 
+document.getElementById('selectToggle').addEventListener('click', () => setSelectPanel(!selectOpen));
+document.getElementById('selectClose').addEventListener('click', () => setSelectPanel(false));
+document.getElementById('clearSelection').addEventListener('click', resetSelection);
+document.getElementById('tokenPick').addEventListener('change', e => {
+  const v = e.target.value;
+  if(!v){ resetSelection(); return; }
+  document.getElementById('nodePick').value = '';
+  document.getElementById('edgePick').value = '';
+  setSelection({kind:'token', token:v});
+});
+document.getElementById('nodePick').addEventListener('change', e => {
+  const v = e.target.value;
+  if(v === ''){ resetSelection(); return; }
+  document.getElementById('tokenPick').value = '';
+  document.getElementById('edgePick').value = '';
+  setSelection({kind:'node', index:Number(v)});
+});
+document.getElementById('edgePick').addEventListener('change', e => {
+  const v = e.target.value;
+  if(v === ''){ resetSelection(); return; }
+  document.getElementById('tokenPick').value = '';
+  document.getElementById('nodePick').value = '';
+  setSelection({kind:'edge', index:Number(v)});
+});
+
 document.getElementById('panelToggle').addEventListener('click', () => setMainPanel(!panelOpen));
 document.getElementById('panelClose').addEventListener('click', () => setMainPanel(false));
 document.getElementById('featToggle').addEventListener('click', () => setFeatPanel(!featOpen));
@@ -1003,6 +1283,8 @@ renderFeatureList();
 updateFeatureStatus();
 updateEdgeDisplayUI();
 updateNftFilterUI();
+updateSelectUI();
+populateSelectPanel();
 
 loadCatalog().then(() => {
   const src = new URLSearchParams(location.search).get('src');
