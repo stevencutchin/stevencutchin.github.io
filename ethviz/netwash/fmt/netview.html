@@ -248,9 +248,17 @@
     <h2>Select</h2>
     <button class="feat-close" type="button" id="selectClose" aria-label="Close select panel">×</button>
   </div>
-  <p class="lead" style="margin:0 0 12px;color:var(--dim);font-size:11px">Pick a token, node, or edge to highlight it on the graph. Other items dim while a selection is active.</p>
+  <p class="lead" style="margin:0 0 12px;color:var(--dim);font-size:11px">Filter by component (group), or pick a token, node, or edge to highlight. Other items dim while a highlight is active.</p>
 
   <div class="section" style="margin-top:0;padding-top:0;border-top:none">
+    <h2>Component</h2>
+    <select class="pick" id="groupPick" disabled aria-label="Filter by component">
+      <option value="">all components…</option>
+    </select>
+    <div class="sel-meta" id="groupPickMeta">show one component (group id) at a time</div>
+  </div>
+
+  <div class="section">
     <h2>Token</h2>
     <select class="pick" id="tokenPick" disabled aria-label="Select token">
       <option value="">tokens…</option>
@@ -323,7 +331,8 @@ const FEATURES = [
   {id:'tokenEdges', label:'Token edge tags', detail:'token or token_id label shown on hover for tagged edges'},
   {id:'nftNodes', label:'NFT node highlight', detail:'nft-tagged nodes render with bright halo and ring'},
   {id:'nftOnlyFilter', label:'NFT only filter', detail:'hide non-NFT nodes and unrelated edges'},
-  {id:'selectPanel', label:'Select panel', detail:'choose tokens, nodes, or edges to highlight'},
+  {id:'selectPanel', label:'Select panel', detail:'filter by component; choose tokens, nodes, or edges to highlight'},
+  {id:'componentFilter', label:'Component filter', detail:'restrict the view to one group id'},
   {id:'tokenSelect', label:'Token selection', detail:'highlight edges exchanging the chosen token'},
   {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
   {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
@@ -338,6 +347,7 @@ let layoutMode = 'baked';
 let edgeDisplayMode = 'width';
 let timeDisplayMode = 'upto';
 let nftOnlyFilter = false;
+let componentFilter = null;
 const FIXED_EDGE_WIDTH = 2;
 let tick = 0;
 let autoFit = true;
@@ -409,6 +419,38 @@ function hslToRgb(h,s,l){
   return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
 }
 const groupColor = g => hslToRgb((g*137.508)%360,0.62,0.58);
+
+function nodeGroup(n){
+  return n?.group ?? 0;
+}
+
+function deriveComponents(nodes){
+  const counts = new Map();
+  for(const n of nodes){
+    const g = nodeGroup(n);
+    counts.set(g, (counts.get(g) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([id, count]) => ({id, count}));
+}
+
+function edgeTouchesComponent(e, nodes, groupId){
+  return nodeGroup(nodes[e.source_index]) === groupId
+    || nodeGroup(nodes[e.target_index]) === groupId;
+}
+
+function nodeVisible(n){
+  if(nftOnlyFilter && !isNftNode(n)) return false;
+  if(componentFilter !== null && nodeGroup(n) !== componentFilter) return false;
+  return true;
+}
+
+function edgeVisible(e, nodes){
+  if(nftOnlyFilter && !edgeTouchesNft(e, nodes)) return false;
+  if(componentFilter !== null && !edgeTouchesComponent(e, nodes, componentFilter)) return false;
+  return true;
+}
 
 function ethRange(edges){
   let min=Infinity, max=-Infinity;
@@ -538,37 +580,50 @@ function setSelection(next){
 }
 
 function populateSelectPanel(){
+  const groupPick = document.getElementById('groupPick');
   const tokenPick = document.getElementById('tokenPick');
   const nodePick = document.getElementById('nodePick');
   const edgePick = document.getElementById('edgePick');
   const clearBtn = document.getElementById('clearSelection');
   if(!graph){
-    tokenPick.disabled = nodePick.disabled = edgePick.disabled = true;
+    groupPick.disabled = tokenPick.disabled = nodePick.disabled = edgePick.disabled = true;
     clearBtn.disabled = true;
+    groupPick.innerHTML = '<option value="">all components…</option>';
     tokenPick.innerHTML = '<option value="">tokens…</option>';
     nodePick.innerHTML = '<option value="">nodes…</option>';
     edgePick.innerHTML = '<option value="">edges…</option>';
     return;
   }
-  const tokens = deriveTokens(graph.edges, graph.metadata);
+  const components = deriveComponents(graph.nodes);
+  groupPick.innerHTML = '<option value="">all components…</option>' +
+    components.map(({id, count}) =>
+      `<option value="${id}">group ${id} · ${count} node${count === 1 ? '' : 's'}</option>`
+    ).join('');
+  groupPick.disabled = components.length <= 1;
+  groupPick.value = componentFilter !== null ? String(componentFilter) : '';
+
+  const viewNodes = graph.nodes.filter(nodeVisible);
+  const viewEdges = graph.edges.filter(e => edgeVisible(e, graph.nodes));
+
+  const tokens = deriveTokens(viewEdges, graph.metadata);
   tokenPick.innerHTML = '<option value="">tokens…</option>' +
     tokens.map(t => `<option value="${t}">${t}</option>`).join('');
   tokenPick.disabled = tokens.length === 0;
 
   nodePick.innerHTML = '<option value="">nodes…</option>' +
-    graph.nodes.map(n => {
-      const label = `[${n.index}] ${shortAddr(n.address)}${isNftNode(n) ? ' · NFT' : ''}`;
+    viewNodes.map(n => {
+      const label = `[${n.index}] ${shortAddr(n.address)} · group ${nodeGroup(n)}${isNftNode(n) ? ' · NFT' : ''}`;
       return `<option value="${n.index}">${label}</option>`;
     }).join('');
-  nodePick.disabled = false;
+  nodePick.disabled = viewNodes.length === 0;
 
   edgePick.innerHTML = '<option value="">edges…</option>' +
-    graph.edges.map(e => {
+    viewEdges.map(e => {
       const tok = hasToken(e) ? ` · ${edgeTokenTag(e)}` : '';
-      const label = `[${e.index}] ${shortAddr(e.source)} → ${shortAddr(e.target)} · ${(e.value_eth ?? 0)} ETH${tok}`;
+      const label = `[${e.index}] ${shortAddr(e.source)} → ${shortAddr(e.target)} · ${(e.value_eth ?? 0)} ETH · g${e.group ?? nodeGroup(graph.nodes[e.source_index])}${tok}`;
       return `<option value="${e.index}">${label}</option>`;
     }).join('');
-  edgePick.disabled = false;
+  edgePick.disabled = viewEdges.length === 0;
   clearBtn.disabled = !selection;
 
   if(selection?.kind === 'token') tokenPick.value = selection.token;
@@ -576,16 +631,44 @@ function populateSelectPanel(){
   if(selection?.kind === 'edge') edgePick.value = String(selection.index);
 }
 
+function setComponentFilter(groupId){
+  componentFilter = groupId;
+  if(selection?.kind === 'node'){
+    const n = graph?.nodes[selection.index];
+    if(!n || !nodeVisible(n)) selection = null;
+  }
+  if(selection?.kind === 'edge'){
+    const e = graph?.edges[selection.index];
+    if(!e || !edgeVisible(e, graph.nodes)) selection = null;
+  }
+  populateSelectPanel();
+  updateSelectUI();
+  autoFit = true;
+  updatePanel();
+  draw();
+  updateFeatureStatus();
+}
+
 function updateSelectUI(){
   const hasSel = !!selection;
+  const hasFilter = componentFilter !== null;
   document.getElementById('clearSelection').disabled = !hasSel;
   document.getElementById('selectLegend').hidden = !hasSel;
-  document.getElementById('selectToggle').classList.toggle('on', selectOpen || hasSel);
+  document.getElementById('selectToggle').classList.toggle('on', selectOpen || hasSel || hasFilter);
   if(!graph){
+    document.getElementById('groupPickMeta').textContent = 'show one component (group id) at a time';
     document.getElementById('tokenPickMeta').innerHTML = 'load a graph to browse tokens';
     document.getElementById('nodePickMeta').textContent = 'highlight node and incident edges';
     document.getElementById('edgePickMeta').textContent = 'highlight one transaction edge';
     return;
+  }
+  if(hasFilter){
+    const nn = filteredNodes(graph.nodes).length;
+    const ee = filteredEdges(graph.edges, graph.nodes).length;
+    document.getElementById('groupPickMeta').innerHTML =
+      `<b>group ${componentFilter}</b> · ${nn} node${nn === 1 ? '' : 's'} · ${ee} edge${ee === 1 ? '' : 's'} visible`;
+  } else {
+    document.getElementById('groupPickMeta').textContent = 'show one component (group id) at a time';
   }
   if(selection?.kind === 'token'){
     const n = graph.edges.filter(e => edgeMatchesToken(e, selection.token)).length;
@@ -809,14 +892,12 @@ function filteredEdges(edges, nodes){
       return timeDisplayMode === 'upto' ? ts <= current : ts === current;
     });
   }
-  if(nftOnlyFilter){
-    result = result.filter(e => edgeTouchesNft(e, nodes));
-  }
+  result = result.filter(e => edgeVisible(e, nodes));
   return result;
 }
 
 function filteredNodes(nodes){
-  return nftOnlyFilter ? nodes.filter(isNftNode) : nodes;
+  return nodes.filter(nodeVisible);
 }
 
 function updateNftFilterUI(){
@@ -837,7 +918,16 @@ function updateNftFilterUI(){
 function setNftOnlyFilter(on){
   if(!graph || !graphHasNft(graph.nodes)) return;
   nftOnlyFilter = on;
+  if(selection?.kind === 'node'){
+    const n = graph.nodes[selection.index];
+    if(!n || !nodeVisible(n)) selection = null;
+  }
+  if(selection?.kind === 'edge'){
+    const e = graph.edges[selection.index];
+    if(!e || !edgeVisible(e, graph.nodes)) selection = null;
+  }
   updateNftFilterUI();
+  populateSelectPanel();
   autoFit = true;
   updatePanel();
   draw();
@@ -1054,11 +1144,13 @@ function updatePanel(){
     document.getElementById('nL').textContent = '—';
     return;
   }
-  document.getElementById('nN').textContent = nftOnlyFilter
+  document.getElementById('nN').textContent = (nftOnlyFilter || componentFilter !== null)
     ? filteredNodes(graph.nodes).length + '/' + graph.nodes.length
     : graph.nodes.length;
   document.getElementById('nE').textContent = filteredEdges(graph.edges, graph.nodes).length + '/' + graph.edges.length;
-  document.getElementById('nC').textContent = componentCount(graph);
+  document.getElementById('nC').textContent = componentFilter !== null
+    ? `1 / ${componentCount(graph)}`
+    : componentCount(graph);
   updateLayoutUI();
   updateTimelineUI();
   updateNftFilterUI();
@@ -1089,6 +1181,7 @@ function updateFeatureStatus(){
   status.nftNodes = loaded && graphHasNft(graph.nodes);
   status.nftOnlyFilter = loaded && nftOnlyFilter && graphHasNft(graph.nodes);
   status.selectPanel = selectOpen;
+  status.componentFilter = loaded && componentFilter !== null;
   status.tokenSelect = loaded && selection?.kind === 'token';
   status.nodeSize = loaded && graph.nodes.some(n => n.in_tx != null || n.out_tx != null);
   status.bridges = loaded && graph.nodes.some(n => n.is_bridge || n.cabal_bridge);
@@ -1125,6 +1218,10 @@ function resetNftFilter(nodes){
 
 function resetSelectionOnLoad(){
   selection = null;
+}
+
+function resetComponentFilterOnLoad(){
+  componentFilter = null;
 }
 
 function populateGraphPick(graphs){
@@ -1166,6 +1263,7 @@ function ingest(data, label){
     resetTimeline(data.edges);
     resetNftFilter(data.nodes);
     resetSelectionOnLoad();
+    resetComponentFilterOnLoad();
     populateSelectPanel();
     if(!hasBakedLayout(data.nodes) && layoutMode === 'baked') layoutMode = 'force';
     const fromCatalog = graphCatalog.some(g => g.file === label);
@@ -1218,6 +1316,10 @@ function setFeatPanel(open){
 document.getElementById('selectToggle').addEventListener('click', () => setSelectPanel(!selectOpen));
 document.getElementById('selectClose').addEventListener('click', () => setSelectPanel(false));
 document.getElementById('clearSelection').addEventListener('click', resetSelection);
+document.getElementById('groupPick').addEventListener('change', e => {
+  const v = e.target.value;
+  setComponentFilter(v === '' ? null : Number(v));
+});
 document.getElementById('tokenPick').addEventListener('change', e => {
   const v = e.target.value;
   if(!v){ resetSelection(); return; }
