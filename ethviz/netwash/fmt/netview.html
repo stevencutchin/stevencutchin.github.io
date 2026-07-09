@@ -73,6 +73,17 @@
   }
   .pick:focus{outline:none;border-color:var(--accent)}
   .pick option{background:var(--panel)}
+  .pick-wrap{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+  .pick-wrap .pick{margin-bottom:0}
+  .pick-search{
+    width:100%;padding:6px 8px;
+    border:1px solid var(--line);border-radius:4px;
+    background:var(--ground);color:var(--ink);
+    font:inherit;font-size:11px;
+  }
+  .pick-search:focus{outline:none;border-color:var(--accent)}
+  .pick-search:disabled{opacity:.4;cursor:not-allowed}
+  .pick-search::-webkit-search-cancel-button{cursor:pointer}
   .time-range{width:100%;margin:8px 0 4px}
   .time-meta{display:flex;justify-content:space-between;gap:10px;color:var(--dim);font-size:10.5px}
   .time-meta b{color:var(--ink);font-weight:600}
@@ -260,9 +271,12 @@
 
   <div class="section">
     <h2>Token</h2>
-    <select class="pick" id="tokenPick" disabled aria-label="Select token">
-      <option value="">tokens…</option>
-    </select>
+    <div class="pick-wrap">
+      <input class="pick-search" id="tokenSearch" type="search" placeholder="search tokens…" disabled autocomplete="off" spellcheck="false" aria-label="Search tokens">
+      <select class="pick" id="tokenPick" disabled aria-label="Select token">
+        <option value="">tokens…</option>
+      </select>
+    </div>
     <div class="sel-meta" id="tokenPickMeta">highlight edges exchanging the chosen token</div>
   </div>
 
@@ -333,7 +347,7 @@ const FEATURES = [
   {id:'nftOnlyFilter', label:'NFT only filter', detail:'hide non-NFT nodes and unrelated edges'},
   {id:'selectPanel', label:'Select panel', detail:'filter by component; choose tokens, nodes, or edges to highlight'},
   {id:'componentFilter', label:'Component filter', detail:'restrict the view to one group id'},
-  {id:'tokenSelect', label:'Token selection', detail:'highlight edges exchanging the chosen token'},
+  {id:'tokenSelect', label:'Token selection', detail:'search and highlight edges exchanging the chosen token'},
   {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
   {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
   {id:'featPanel', label:'Features panel', detail:'this checklist, toggled from the button'},
@@ -356,6 +370,7 @@ let featOpen = false;
 let selectOpen = false;
 let panelOpen = true;
 let selection = null;
+let tokenCatalog = [];
 let status = Object.fromEntries(FEATURES.map(f => [f.id, false]));
 let graphCatalog = [];
 let currentCatalogFile = '';
@@ -563,17 +578,40 @@ function baseEdgeColor(e, allNodes, min, max){
 
 function resetSelection(){
   selection = null;
-  ['tokenPick', 'nodePick', 'edgePick'].forEach(id => {
+  ['nodePick', 'edgePick'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
+  renderTokenPick();
   updateSelectUI();
   draw();
   updateFeatureStatus();
 }
 
+function renderTokenPick(){
+  const tokenPick = document.getElementById('tokenPick');
+  const tokenSearch = document.getElementById('tokenSearch');
+  const q = tokenSearch.value.trim().toLowerCase();
+  const selected = selection?.kind === 'token' ? selection.token : tokenPick.value;
+  let tokens = tokenCatalog;
+  if(q) tokens = tokens.filter(t => t.toLowerCase().includes(q));
+  if(selected && !tokens.includes(selected)) tokens = [selected, ...tokens];
+  tokenPick.innerHTML = '<option value="">tokens…</option>' +
+    tokens.map(t => `<option value="${t}">${t}</option>`).join('');
+  const enabled = tokenCatalog.length > 0;
+  tokenPick.disabled = !enabled;
+  tokenSearch.disabled = !enabled;
+  tokenPick.value = selected || '';
+}
+
+function setTokenCatalog(tokens){
+  tokenCatalog = tokens;
+  renderTokenPick();
+}
+
 function setSelection(next){
   selection = next;
+  renderTokenPick();
   updateSelectUI();
   draw();
   updateFeatureStatus();
@@ -581,15 +619,17 @@ function setSelection(next){
 
 function populateSelectPanel(){
   const groupPick = document.getElementById('groupPick');
-  const tokenPick = document.getElementById('tokenPick');
+  const tokenSearch = document.getElementById('tokenSearch');
   const nodePick = document.getElementById('nodePick');
   const edgePick = document.getElementById('edgePick');
   const clearBtn = document.getElementById('clearSelection');
   if(!graph){
-    groupPick.disabled = tokenPick.disabled = nodePick.disabled = edgePick.disabled = true;
+    groupPick.disabled = tokenSearch.disabled = nodePick.disabled = edgePick.disabled = true;
     clearBtn.disabled = true;
     groupPick.innerHTML = '<option value="">all components…</option>';
-    tokenPick.innerHTML = '<option value="">tokens…</option>';
+    tokenSearch.value = '';
+    tokenCatalog = [];
+    renderTokenPick();
     nodePick.innerHTML = '<option value="">nodes…</option>';
     edgePick.innerHTML = '<option value="">edges…</option>';
     return;
@@ -606,9 +646,7 @@ function populateSelectPanel(){
   const viewEdges = graph.edges.filter(e => edgeVisible(e, graph.nodes));
 
   const tokens = deriveTokens(viewEdges, graph.metadata);
-  tokenPick.innerHTML = '<option value="">tokens…</option>' +
-    tokens.map(t => `<option value="${t}">${t}</option>`).join('');
-  tokenPick.disabled = tokens.length === 0;
+  setTokenCatalog(tokens);
 
   nodePick.innerHTML = '<option value="">nodes…</option>' +
     viewNodes.map(n => {
@@ -626,7 +664,6 @@ function populateSelectPanel(){
   edgePick.disabled = viewEdges.length === 0;
   clearBtn.disabled = !selection;
 
-  if(selection?.kind === 'token') tokenPick.value = selection.token;
   if(selection?.kind === 'node') nodePick.value = String(selection.index);
   if(selection?.kind === 'edge') edgePick.value = String(selection.index);
 }
@@ -672,8 +709,18 @@ function updateSelectUI(){
   }
   if(selection?.kind === 'token'){
     const n = graph.edges.filter(e => edgeMatchesToken(e, selection.token)).length;
+    const q = document.getElementById('tokenSearch').value.trim();
+    const matchCount = q
+      ? tokenCatalog.filter(t => t.toLowerCase().includes(q.toLowerCase())).length
+      : tokenCatalog.length;
+    const searchNote = q ? ` · ${matchCount} match${matchCount === 1 ? '' : 'es'}` : '';
     document.getElementById('tokenPickMeta').innerHTML =
-      `<b>${selection.token}</b> · ${n} edge${n === 1 ? '' : 's'} highlighted`;
+      `<b>${selection.token}</b> · ${n} edge${n === 1 ? '' : 's'} highlighted${searchNote}`;
+  } else if(document.getElementById('tokenSearch').value.trim()){
+    const q = document.getElementById('tokenSearch').value.trim().toLowerCase();
+    const matchCount = tokenCatalog.filter(t => t.toLowerCase().includes(q)).length;
+    document.getElementById('tokenPickMeta').textContent =
+      `${matchCount} token${matchCount === 1 ? '' : 's'} match “${document.getElementById('tokenSearch').value.trim()}”`;
   } else {
     document.getElementById('tokenPickMeta').textContent = 'highlight edges exchanging the chosen token';
   }
@@ -1320,6 +1367,10 @@ document.getElementById('groupPick').addEventListener('change', e => {
   const v = e.target.value;
   setComponentFilter(v === '' ? null : Number(v));
 });
+document.getElementById('tokenSearch').addEventListener('input', () => {
+  renderTokenPick();
+  updateSelectUI();
+});
 document.getElementById('tokenPick').addEventListener('change', e => {
   const v = e.target.value;
   if(!v){ resetSelection(); return; }
@@ -1330,14 +1381,12 @@ document.getElementById('tokenPick').addEventListener('change', e => {
 document.getElementById('nodePick').addEventListener('change', e => {
   const v = e.target.value;
   if(v === ''){ resetSelection(); return; }
-  document.getElementById('tokenPick').value = '';
   document.getElementById('edgePick').value = '';
   setSelection({kind:'node', index:Number(v)});
 });
 document.getElementById('edgePick').addEventListener('change', e => {
   const v = e.target.value;
   if(v === ''){ resetSelection(); return; }
-  document.getElementById('tokenPick').value = '';
   document.getElementById('nodePick').value = '';
   setSelection({kind:'edge', index:Number(v)});
 });
