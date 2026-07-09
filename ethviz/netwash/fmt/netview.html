@@ -61,7 +61,9 @@
     padding:5px 10px;font-size:11px;letter-spacing:.05em;background:transparent;
     font-family:inherit;transition:border-color .15s,color .15s;
   }
-  .btn:hover,.actions label:hover{border-color:var(--accent);color:var(--ink)}
+  .btn.on,.btn:hover,.actions label:hover{border-color:var(--accent);color:var(--ink)}
+  .btn.on{background:var(--line)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
   .actions input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
   .pick{
     width:100%;margin-bottom:8px;padding:6px 8px;
@@ -131,6 +133,9 @@
     border:1px solid #313438;border-radius:5px;padding:7px 9px;max-width:320px}
   .tip .a{color:#9fd0ff;word-break:break-all}
   .tip .m{color:#8b8a83}
+  .tip .tok{color:#5dffc8;font-weight:600}
+  .tip .nft{color:#ff4ad8;font-weight:700;letter-spacing:.08em;margin-bottom:4px}
+  .tip .time{color:#c9b8ff}
   .err{color:#f87171;font-size:11px;margin-top:6px}
 </style>
 </head>
@@ -184,6 +189,14 @@
   </div>
 
   <div class="section">
+    <h2>NFT Filter</h2>
+    <div class="actions">
+      <button class="btn" type="button" id="btnNftOnly" disabled>NFT only</button>
+    </div>
+    <div class="hint" id="nftFilterHint">hide non-NFT nodes and edges not touching an NFT node</div>
+  </div>
+
+  <div class="section">
     <h2>Load</h2>
     <select class="pick" id="graphPick" aria-label="Sample graphs in fmt directory">
       <option value="">sample graphs…</option>
@@ -199,6 +212,8 @@
     <h2>Legend</h2>
     <div class="k" id="edgeLegend"><span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value</div>
     <div class="k" id="zeroEthLegend" hidden><span class="sw" style="background:#ff4aa3"></span>0 ETH transaction</div>
+    <div class="k" id="tokenLegend" hidden><span class="sw" style="background:#5dffc8"></span>token-tagged edge</div>
+    <div class="k" id="nftLegend" hidden><span class="dot" style="border-color:#ff4ad8;background:#ffe14a;box-shadow:0 0 6px #ff4ad8"></span>NFT node</div>
     <div class="k"><span class="dot" style="border-color:#ffd24f;background:transparent"></span>cut vertex</div>
     <div class="k"><span class="dot" style="border-color:#fff;background:transparent"></span>cabal bridge</div>
     <div class="k"><span class="dot" style="background:hsl(137deg,62%,58%);border:none"></span>color = component (group)</div>
@@ -224,6 +239,7 @@ const CATALOG_URL = 'graphs.json';
 const FALLBACK_GRAPHS = [
   {file:'example_graph.json', label:'example_graph.json', description:'6 nodes · 2 components'},
   {file:'synthetic_8comp.json', label:'synthetic_8comp.json', description:'54 nodes · 8 components'},
+  {file:'../data/eth_graph_comp_marked.json', label:'eth_graph_comp_marked.json', description:'99 nodes · NFT + token tags'},
 ];
 
 const FEATURES = [
@@ -245,6 +261,9 @@ const FEATURES = [
   {id:'panZoom', label:'Pan and zoom', detail:'orthographic deck.gl controller'},
   {id:'edgeDisplay', label:'Edge display control', detail:'color by ETH or width by ETH'},
   {id:'zeroEthLegend', label:'0 ETH legend', detail:'magenta legend entry appears in color-by-ETH mode'},
+  {id:'tokenEdges', label:'Token edge tags', detail:'token label shown on hover for tagged edges'},
+  {id:'nftNodes', label:'NFT node highlight', detail:'nft-tagged nodes render with bright halo and ring'},
+  {id:'nftOnlyFilter', label:'NFT only filter', detail:'hide non-NFT nodes and unrelated edges'},
   {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
   {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
   {id:'featPanel', label:'Features panel', detail:'this checklist, toggled from the button'},
@@ -257,6 +276,7 @@ let bakedPos = null;
 let layoutMode = 'baked';
 let edgeDisplayMode = 'width';
 let timeDisplayMode = 'upto';
+let nftOnlyFilter = false;
 const FIXED_EDGE_WIDTH = 2;
 let tick = 0;
 let autoFit = true;
@@ -352,6 +372,22 @@ function ethColor(value, min, max){
 
 function edgeWidthFactor(e){
   return Math.sqrt((e.value_eth||0)+0.1);
+}
+
+function hasToken(e){
+  return typeof e.token === 'string' && e.token.trim().length > 0;
+}
+
+function isNftNode(n){
+  return n.nft === true;
+}
+
+function graphHasTokens(edges){
+  return edges.some(hasToken);
+}
+
+function graphHasNft(nodes){
+  return nodes.some(isNftNode);
 }
 
 function edgeTimestamp(e){
@@ -517,6 +553,8 @@ function updateEdgeDisplayUI(){
   document.getElementById('btnEdgeColor').classList.toggle('on', edgeDisplayMode === 'color');
   document.getElementById('btnEdgeWidth').classList.toggle('on', edgeDisplayMode === 'width');
   document.getElementById('zeroEthLegend').hidden = edgeDisplayMode !== 'color';
+  document.getElementById('tokenLegend').hidden = !graph || !graphHasTokens(graph.edges);
+  document.getElementById('nftLegend').hidden = !graph || !graphHasNft(graph.nodes);
   document.getElementById('edgeDisplayHint').textContent =
     edgeDisplayMode === 'color'
       ? 'fixed width · color = ETH value'
@@ -527,14 +565,57 @@ function updateEdgeDisplayUI(){
       : '<span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value';
 }
 
-function visibleEdges(edges){
-  if(!timeValues.length) return edges;
-  const current = timeValues[timeIndex] ?? timeValues[timeValues.length - 1];
-  return edges.filter(e => {
-    const ts = edgeTimestamp(e);
-    if(ts === null) return timeDisplayMode === 'upto';
-    return timeDisplayMode === 'upto' ? ts <= current : ts === current;
-  });
+function edgeTouchesNft(e, nodes){
+  return isNftNode(nodes[e.source_index]) || isNftNode(nodes[e.target_index]);
+}
+
+function filteredEdges(edges, nodes){
+  let result = edges;
+  if(timeValues.length){
+    const current = timeValues[timeIndex] ?? timeValues[timeValues.length - 1];
+    result = result.filter(e => {
+      const ts = edgeTimestamp(e);
+      if(ts === null) return timeDisplayMode === 'upto';
+      return timeDisplayMode === 'upto' ? ts <= current : ts === current;
+    });
+  }
+  if(nftOnlyFilter){
+    result = result.filter(e => edgeTouchesNft(e, nodes));
+  }
+  return result;
+}
+
+function filteredNodes(nodes){
+  return nftOnlyFilter ? nodes.filter(isNftNode) : nodes;
+}
+
+function updateNftFilterUI(){
+  const btn = document.getElementById('btnNftOnly');
+  const hasNft = graph && graphHasNft(graph.nodes);
+  btn.disabled = !hasNft;
+  btn.classList.toggle('on', nftOnlyFilter && hasNft);
+  if(!hasNft){
+    document.getElementById('nftFilterHint').textContent =
+      'requires a graph with nft-tagged nodes';
+    return;
+  }
+  document.getElementById('nftFilterHint').textContent = nftOnlyFilter
+    ? 'showing NFT nodes and edges touching an NFT node'
+    : 'hide non-NFT nodes and edges not touching an NFT node';
+}
+
+function setNftOnlyFilter(on){
+  if(!graph || !graphHasNft(graph.nodes)) return;
+  nftOnlyFilter = on;
+  updateNftFilterUI();
+  autoFit = true;
+  updatePanel();
+  draw();
+  updateFeatureStatus();
+}
+
+function toggleNftOnlyFilter(){
+  setNftOnlyFilter(!nftOnlyFilter);
 }
 
 function updateTimelineUI(){
@@ -555,7 +636,7 @@ function updateTimelineUI(){
   }
   const current = timeValues[timeIndex];
   document.getElementById('timeCurrent').textContent = formatTimestamp(current);
-  document.getElementById('timeCount').textContent = visibleEdges(graph.edges).length + '/' + graph.edges.length;
+  document.getElementById('timeCount').textContent = filteredEdges(graph.edges, graph.nodes).length + '/' + graph.edges.length;
   document.getElementById('timeHint').textContent = timeDisplayMode === 'upto'
     ? 'shows all edges up to the selected time'
     : 'shows only edges at the selected timestamp';
@@ -585,16 +666,21 @@ function buildEdgeGeometry(nodes, edges){
   }
 }
 
-function layers(nodes, edges){
+function layers(allNodes, renderNodes, edges){
   const {min, max} = ethRange(edges);
   const edgeColor = e => {
+    if(hasToken(e)) return [93, 255, 200, 230];
     if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
-    const g = e.group ?? nodes[e.source_index]?.group ?? 0;
+    const g = e.group ?? allNodes[e.source_index]?.group ?? 0;
     const c = groupColor(g);
     return [c[0], c[1], c[2], 150];
   };
-  const edgeWidth = e => edgeDisplayMode === 'width' ? edgeWidthFactor(e) : FIXED_EDGE_WIDTH;
+  const edgeWidth = e => {
+    if(hasToken(e) && edgeDisplayMode === 'width') return edgeWidthFactor(e) * 1.25;
+    return edgeDisplayMode === 'width' ? edgeWidthFactor(e) : FIXED_EDGE_WIDTH;
+  };
   const edgeTriggers = {getPath:tick, getColor:edgeDisplayMode, getWidth:edgeDisplayMode};
+  const nftNodes = renderNodes.filter(isNftNode);
   return [
     new PathLayer({
       id:'edges', data:edges,
@@ -614,27 +700,73 @@ function layers(nodes, edges){
       pickable:false
     }),
     new ScatterplotLayer({
-      id:'nodes', data:nodes,
+      id:'nft-halo', data:nftNodes,
       getPosition:n=>[n.x,n.y],
-      getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1),
-      radiusUnits:'common', radiusScale:0.09, radiusMinPixels:3, radiusMaxPixels:22,
-      getFillColor:n=>groupColor(n.group??0),
+      getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1)*1.9,
+      radiusUnits:'common', radiusScale:0.09, radiusMinPixels:10, radiusMaxPixels:34,
+      getFillColor:[255,74,216,70],
       stroked:true, lineWidthUnits:'pixels',
-      getLineWidth:n=>n.is_bridge?2:0,
-      getLineColor:n=>n.cabal_bridge?[255,255,255]:(n.is_bridge?[255,210,79]:[0,0,0,0]),
+      getLineWidth:3,
+      getLineColor:[255,225,74,180],
+      updateTriggers:{getPosition:tick},
+      pickable:false
+    }),
+    new ScatterplotLayer({
+      id:'nodes', data:renderNodes,
+      getPosition:n=>[n.x,n.y],
+      getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1)*(isNftNode(n)?1.35:1),
+      radiusUnits:'common', radiusScale:0.09, radiusMinPixels:3, radiusMaxPixels:22,
+      getFillColor:n=>isNftNode(n)?[255,225,74]:groupColor(n.group??0),
+      stroked:true, lineWidthUnits:'pixels',
+      getLineWidth:n=>isNftNode(n)?4:(n.is_bridge?2:0),
+      getLineColor:n=>isNftNode(n)?[255,74,216]:(n.cabal_bridge?[255,255,255]:(n.is_bridge?[255,210,79]:[0,0,0,0])),
       updateTriggers:{getPosition:tick},
       pickable:true
     })
   ];
 }
 
+function nodeTooltip(o){
+  return {html:`<div class="tip">`+
+    (isNftNode(o)?`<div class="nft">NFT NODE</div>`:'')+
+    `<div class="a">${o.address}</div>`+
+    `<div class="m">group ${o.group ?? 0}`+
+    (o.in_tx != null ? ` · in ${o.in_tx} / out ${o.out_tx}` : '')+
+    (o.ens_name ? ` · ${o.ens_name}` : '')+
+    (o.cabal_bridge ? ` · <span style="color:#fff">CABAL BRIDGE</span>` :
+      o.is_bridge ? ` · <span style="color:#ffd24f">cut vertex</span>` : '')+
+    `</div></div>`, style:{background:'transparent'}};
+}
+
+function edgeTooltip(e){
+  const dir = (e.source && e.target)
+    ? `<div class="a">${e.source}</div><div class="m">→ ${e.target}</div>` : '';
+  const meta = [`${(e.value_eth ?? 0)} ETH`];
+  if(e.timestamp != null && Number.isFinite(Number(e.timestamp))){
+    meta.push(`<span class="time">${formatTimestamp(e.timestamp)}</span>`);
+  }
+  if(e.collection) meta.push(`${e.collection} #${e.token_id ?? '?'}`);
+  if(e.is_seed) meta.push('seed');
+  const tokenLine = hasToken(e) ? `<div class="tok">${e.token}</div>` : '';
+  return {html:`<div class="tip">${dir}${tokenLine}<div class="m">${meta.join(' · ')}</div></div>`,
+    style:{background:'transparent'}};
+}
+
+function buildTooltip({object}){
+  if(!object) return null;
+  if('address' in object) return nodeTooltip(object);
+  return edgeTooltip(object);
+}
+
 function draw(){
   if(!graph) return;
   const {nodes} = graph;
-  const edges = visibleEdges(graph.edges);
+  const renderNodes = filteredNodes(nodes);
+  const edges = filteredEdges(graph.edges, nodes);
   buildEdgeGeometry(nodes, edges);
   updateTimelineUI();
-  if(autoFit) viewState = fitView(nodes);
+  updateNftFilterUI();
+  if(autoFit) viewState = fitView(renderNodes.length ? renderNodes : nodes);
   const props = {
     views: new OrthographicView({flipY:false}),
     controller: true,
@@ -644,33 +776,13 @@ function draw(){
       viewState = vs;
       deckgl.setProps({viewState});
     },
-    layers: layers(nodes, edges)
+    layers: layers(nodes, renderNodes, edges),
+    getTooltip: buildTooltip
   };
   if(deckgl) deckgl.setProps(props);
   else {
     deckgl = new Deck(Object.assign({
       parent: document.getElementById('deck'),
-      getTooltip: ({object}) => {
-        if(!object) return null;
-        if('address' in object){
-          const o = object;
-          return {html:`<div class="tip"><div class="a">${o.address}</div>`+
-            `<div class="m">group ${o.group ?? 0}`+
-            (o.in_tx != null ? ` · in ${o.in_tx} / out ${o.out_tx}` : '')+
-            (o.ens_name ? ` · ${o.ens_name}` : '')+
-            (o.cabal_bridge ? ` · <span style="color:#fff">CABAL BRIDGE</span>` :
-              o.is_bridge ? ` · <span style="color:#ffd24f">cut vertex</span>` : '')+
-            `</div></div>`, style:{background:'transparent'}};
-        }
-        const e = object;
-        const dir = (e.source && e.target)
-          ? `<div class="a">${e.source}</div><div class="m">→ ${e.target}</div>` : '';
-        return {html:`<div class="tip">${dir}<div class="m">`+
-          `${(e.value_eth ?? 0)} ETH`+
-          (e.collection ? ` · ${e.collection} #${e.token_id}` : '')+
-          (e.is_seed ? ` · seed` : '')+
-          `</div></div>`, style:{background:'transparent'}};
-      }
     }, props));
   }
 }
@@ -696,11 +808,14 @@ function updatePanel(){
     document.getElementById('nL').textContent = '—';
     return;
   }
-  document.getElementById('nN').textContent = graph.nodes.length;
-  document.getElementById('nE').textContent = visibleEdges(graph.edges).length + '/' + graph.edges.length;
+  document.getElementById('nN').textContent = nftOnlyFilter
+    ? filteredNodes(graph.nodes).length + '/' + graph.nodes.length
+    : graph.nodes.length;
+  document.getElementById('nE').textContent = filteredEdges(graph.edges, graph.nodes).length + '/' + graph.edges.length;
   document.getElementById('nC').textContent = componentCount(graph);
   updateLayoutUI();
   updateTimelineUI();
+  updateNftFilterUI();
 }
 
 function updateFeatureStatus(){
@@ -723,6 +838,9 @@ function updateFeatureStatus(){
   status.panZoom = true;
   status.edgeDisplay = loaded && graph.edges.some(e => e.value_eth != null);
   status.zeroEthLegend = loaded && edgeDisplayMode === 'color';
+  status.tokenEdges = loaded && graphHasTokens(graph.edges);
+  status.nftNodes = loaded && graphHasNft(graph.nodes);
+  status.nftOnlyFilter = loaded && nftOnlyFilter && graphHasNft(graph.nodes);
   status.nodeSize = loaded && graph.nodes.some(n => n.in_tx != null || n.out_tx != null);
   status.bridges = loaded && graph.nodes.some(n => n.is_bridge || n.cabal_bridge);
   status.featPanel = featOpen;
@@ -733,7 +851,8 @@ function renderFeatureList(){
   const ul = document.getElementById('featList');
   ul.innerHTML = FEATURES.map(f => {
     const on = status[f.id];
-    const optional = f.id === 'parallel' || f.id === 'bridges' || f.id === 'urlSrc' || f.id === 'zeroEthLegend';
+    const optional = f.id === 'parallel' || f.id === 'bridges' || f.id === 'urlSrc'
+      || f.id === 'zeroEthLegend' || f.id === 'tokenEdges' || f.id === 'nftNodes';
     const st = on ? 'ok' : (graph && optional ? 'warn' : '');
     return `<li><span class="st ${st}"></span><div>`+
       `<b>${f.label}</b>${f.detail}</div></li>`;
@@ -749,6 +868,10 @@ function setGraphPick(file){
 function resetTimeline(edges){
   timeValues = deriveTimeValues(edges);
   timeIndex = Math.max(0, timeValues.length - 1);
+}
+
+function resetNftFilter(nodes){
+  if(nftOnlyFilter && !graphHasNft(nodes)) nftOnlyFilter = false;
 }
 
 function populateGraphPick(graphs){
@@ -788,6 +911,7 @@ function ingest(data, label){
     graph = data;
     bakedPos = data.nodes.map(n => [n.x, n.y]);
     resetTimeline(data.edges);
+    resetNftFilter(data.nodes);
     if(!hasBakedLayout(data.nodes) && layoutMode === 'baked') layoutMode = 'force';
     const fromCatalog = graphCatalog.some(g => g.file === label);
     if(!fromCatalog) setGraphPick('');
@@ -795,6 +919,7 @@ function ingest(data, label){
       (data.metadata && data.metadata.source) || label || 'graph';
     clearError();
     updatePanel();
+    updateEdgeDisplayUI();
     if(layoutMode === 'baked' && hasBakedLayout(data.nodes)) applyBakedLayout();
     else { layoutMode = 'force'; updateLayoutUI(); runForceLayout(); }
     updateFeatureStatus();
@@ -857,6 +982,7 @@ document.getElementById('timeSlider').addEventListener('input', e => {
   draw();
   updateFeatureStatus();
 });
+document.getElementById('btnNftOnly').addEventListener('click', toggleNftOnlyFilter);
 document.getElementById('graphPick').addEventListener('change', e => {
   if(e.target.value) loadGraphFile(e.target.value);
 });
@@ -876,6 +1002,7 @@ addEventListener('drop', e => {
 renderFeatureList();
 updateFeatureStatus();
 updateEdgeDisplayUI();
+updateNftFilterUI();
 
 loadCatalog().then(() => {
   const src = new URLSearchParams(location.search).get('src');

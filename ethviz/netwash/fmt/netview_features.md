@@ -97,8 +97,10 @@ See [graph_format.html](graph_format.html) for the full specification.
 |---|---------|---------------|---------|
 | 8.1 | **Pan** | Click-drag the canvas. View moves. | |
 | 8.2 | **Zoom** | Scroll wheel zooms in/out. | |
-| 8.3 | **Node tooltip** | Hover a node — address, group, tx counts, optional attributes (`ens_name`, bridge flags). | ✓ |
-| 8.4 | **Edge tooltip** | Hover an edge — source, target, value, optional fields (`collection`, `is_seed`). | ✓ |
+| 8.3 | **Node tooltip** | Hover a node — address, group, tx counts, optional attributes (`ens_name`, bridge flags). NFT nodes show an **NFT NODE** badge. | ✓ |
+| 8.4 | **Edge tooltip** | Hover an edge — source, target, value, timestamp, optional fields (`collection`, `is_seed`). | ✓ |
+| 8.5 | **Token on hover** | Hover a token-tagged edge — token label (e.g. `#TokenZMF8`) appears prominently. | ✓ |
+| 8.6 | **Timestamp on hover** | Edge tooltip includes formatted transaction time from `timestamp`. | ✓ |
 
 ---
 
@@ -111,6 +113,8 @@ See [graph_format.html](graph_format.html) for the full specification.
 | 9.3 | **Node size** | Larger nodes have more `in_tx` + `out_tx`. | ✓ |
 | 9.4 | **Cut vertex ring** | Node 1 (`is_bridge`) shows a gold ring. | ✓ |
 | 9.5 | **Cabal bridge ring** | If `cabal_bridge` is set, node shows a white ring. | |
+| 9.6 | **NFT node highlight** | Nodes with `nft: true` show gold fill, magenta ring, and outer halo. | ✓ |
+| 9.7 | **Token edge color** | Edges with non-empty `token` render in bright cyan. | ✓ |
 
 ---
 
