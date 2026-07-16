@@ -270,6 +270,16 @@
   </div>
 
   <div class="section">
+    <h2>Edge Markets</h2>
+    <div class="actions">
+      <button class="btn on" type="button" id="btnShowToken" disabled>Token</button>
+      <button class="btn on" type="button" id="btnShowEthereum" disabled>Ethereum</button>
+      <button class="btn on" type="button" id="btnMarketColors" disabled>Strong colors</button>
+    </div>
+    <div class="hint" id="marketHint">show or hide token vs ethereum edges · strong colors split the two markets</div>
+  </div>
+
+  <div class="section">
     <h2>Timeline</h2>
     <div class="seg" id="timeModeSeg">
       <button type="button" data-mode="upto" id="btnTimeUpto">up to time</button>
@@ -327,6 +337,8 @@
     <h2>Legend</h2>
     <div class="k" id="edgeLegend"><span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value</div>
     <div class="k" id="zeroEthLegend" hidden><span class="sw" style="background:#ff4aa3"></span>0 ETH transaction</div>
+    <div class="k" id="tokenMarketLegend" hidden><span class="sw" style="background:#00ffea;box-shadow:0 0 6px #00ffea"></span>token market edge</div>
+    <div class="k" id="ethMarketLegend" hidden><span class="sw" style="background:#ff8200;box-shadow:0 0 6px #ff8200"></span>ethereum market edge</div>
     <div class="k" id="tokenLegend" hidden><span class="sw" style="background:#5dffc8"></span>token-tagged edge</div>
     <div class="k" id="nftLegend" hidden><span class="dot" style="border-color:#ff4ad8;background:#ffe14a;box-shadow:0 0 6px #ff4ad8"></span>NFT node</div>
     <div class="k" id="selectLegend" hidden><span class="sw" style="background:#5dffc8;box-shadow:0 0 8px #5dffc8"></span>selected · dimmed = filtered out</div>
@@ -450,6 +462,9 @@ const FEATURES = [
   {id:'tooltips', label:'Hover tooltips', detail:'node address and edge source → target'},
   {id:'panZoom', label:'Pan and zoom', detail:'orthographic deck.gl controller'},
   {id:'edgeDisplay', label:'Edge display control', detail:'color by ETH or width by ETH'},
+  {id:'marketColors', label:'Strong market colors', detail:'electric cyan token edges vs orange ethereum edges'},
+  {id:'tokenMarketFilter', label:'Token market filter', detail:'show or hide token-classified edges'},
+  {id:'ethereumMarketFilter', label:'Ethereum market filter', detail:'show or hide ethereum-classified edges'},
   {id:'zeroEthLegend', label:'0 ETH legend', detail:'magenta legend entry when the graph has zero-value edges'},
   {id:'tokenEdges', label:'Token edge tags', detail:'token or token_id label shown on hover for tagged edges'},
   {id:'nftNodes', label:'NFT node highlight', detail:'nft-tagged nodes render with bright halo and ring'},
@@ -471,6 +486,11 @@ let graph = null;
 let bakedPos = null;
 let layoutMode = 'baked';
 let edgeDisplayMode = 'width';
+let showTokenEdges = true;
+let showEthereumEdges = true;
+let marketColorMode = true;
+const MARKET_TOKEN_COLOR = [0, 255, 234, 255];
+const MARKET_ETH_COLOR = [255, 130, 0, 255];
 let timeDisplayMode = 'upto';
 let timePlaying = false;
 let timePlayTimer = null;
@@ -613,7 +633,31 @@ function edgeVisible(e, nodes){
     if(!nodePassesDegreeFilter(nodes[e.source_index]) || !nodePassesDegreeFilter(nodes[e.target_index]))
       return false;
   }
+  if(isTokenEdge(e) && !showTokenEdges) return false;
+  if(isEthereumEdge(e) && !showEthereumEdges) return false;
   return true;
+}
+
+function edgeMarket(e){
+  const m = typeof e.market === 'string' ? e.market.trim().toLowerCase() : '';
+  if(m === 'token' || m === 'ethereum' || m === 'etherium') return m === 'etherium' ? 'ethereum' : m;
+  return hasToken(e) ? 'token' : 'ethereum';
+}
+
+function isTokenEdge(e){
+  return edgeMarket(e) === 'token';
+}
+
+function isEthereumEdge(e){
+  return edgeMarket(e) === 'ethereum';
+}
+
+function graphHasTokenEdges(edges){
+  return edges.some(isTokenEdge);
+}
+
+function graphHasEthereumEdges(edges){
+  return edges.some(isEthereumEdge);
 }
 
 function ethRange(edges){
@@ -863,6 +907,9 @@ function isNodeFocus(n){
 
 function baseEdgeColor(e, allNodes, min, max){
   if(isZeroEth(e)) return zeroEthEdgeColor();
+  if(marketColorMode){
+    return isTokenEdge(e) ? MARKET_TOKEN_COLOR : MARKET_ETH_COLOR;
+  }
   if(hasToken(e)) return [93, 255, 200, 230];
   if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
   const g = e.group ?? allNodes[e.source_index]?.group ?? 0;
@@ -1693,16 +1740,97 @@ function updateEdgeDisplayUI(){
   document.getElementById('btnEdgeColor').classList.toggle('on', edgeDisplayMode === 'color');
   document.getElementById('btnEdgeWidth').classList.toggle('on', edgeDisplayMode === 'width');
   document.getElementById('zeroEthLegend').hidden = !graph || !graphHasZeroEth(graph.edges);
-  document.getElementById('tokenLegend').hidden = !graph || !graphHasTokens(graph.edges);
+  document.getElementById('tokenLegend').hidden =
+    !graph || marketColorMode || !graphHasTokens(graph.edges);
+  document.getElementById('tokenMarketLegend').hidden =
+    !graph || !marketColorMode || !graphHasTokenEdges(graph.edges);
+  document.getElementById('ethMarketLegend').hidden =
+    !graph || !marketColorMode || !graphHasEthereumEdges(graph.edges);
   document.getElementById('nftLegend').hidden = !graph || !graphHasNft(graph.nodes);
   document.getElementById('edgeDisplayHint').textContent =
-    edgeDisplayMode === 'color'
-      ? 'fixed width · color = ETH value'
-      : 'width = ETH value · color = component';
+    marketColorMode
+      ? 'strong cyan = token · strong orange = ethereum · 0 ETH stays magenta'
+      : (edgeDisplayMode === 'color'
+        ? 'fixed width · color = ETH value'
+        : 'width = ETH value · color = component');
   document.getElementById('edgeLegend').innerHTML =
-    edgeDisplayMode === 'color'
-      ? '<span class="sw" style="background:linear-gradient(90deg,#4670d2,#e8b43a)"></span>directed edge · fixed width · color = ETH'
-      : '<span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value';
+    marketColorMode
+      ? '<span class="sw" style="background:linear-gradient(90deg,#00ffea,#ff8200)"></span>directed edge · market colors'
+      : (edgeDisplayMode === 'color'
+        ? '<span class="sw" style="background:linear-gradient(90deg,#4670d2,#e8b43a)"></span>directed edge · fixed width · color = ETH'
+        : '<span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value');
+  updateMarketFilterUI();
+}
+
+function updateMarketFilterUI(){
+  const hasGraph = !!graph;
+  const btnToken = document.getElementById('btnShowToken');
+  const btnEth = document.getElementById('btnShowEthereum');
+  const btnColors = document.getElementById('btnMarketColors');
+  btnToken.disabled = btnEth.disabled = btnColors.disabled = !hasGraph;
+  btnToken.classList.toggle('on', showTokenEdges);
+  btnEth.classList.toggle('on', showEthereumEdges);
+  btnColors.classList.toggle('on', marketColorMode);
+  if(!hasGraph){
+    document.getElementById('marketHint').textContent =
+      'show or hide token vs ethereum edges · strong colors split the two markets';
+    return;
+  }
+  const edges = graph.edges;
+  const nToken = edges.filter(isTokenEdge).length;
+  const nEth = edges.filter(isEthereumEdge).length;
+  const vis = filteredEdges(edges, graph.nodes);
+  const vToken = vis.filter(isTokenEdge).length;
+  const vEth = vis.filter(isEthereumEdge).length;
+  document.getElementById('marketHint').textContent =
+    `token ${vToken}/${nToken} · ethereum ${vEth}/${nEth} visible` +
+    (marketColorMode ? ' · strong market colors on' : '');
+}
+
+function setShowTokenEdges(on){
+  showTokenEdges = on;
+  if(!showTokenEdges && !showEthereumEdges) showEthereumEdges = true;
+  applyMarketFilters();
+}
+
+function setShowEthereumEdges(on){
+  showEthereumEdges = on;
+  if(!showTokenEdges && !showEthereumEdges) showTokenEdges = true;
+  applyMarketFilters();
+}
+
+function toggleShowTokenEdges(){
+  setShowTokenEdges(!showTokenEdges);
+}
+
+function toggleShowEthereumEdges(){
+  setShowEthereumEdges(!showEthereumEdges);
+}
+
+function setMarketColorMode(on){
+  marketColorMode = on;
+  updateEdgeDisplayUI();
+  draw();
+  updateFeatureStatus();
+}
+
+function toggleMarketColors(){
+  setMarketColorMode(!marketColorMode);
+}
+
+function applyMarketFilters(){
+  pruneSelectionForVisibility();
+  populateSelectPanel();
+  updateEdgeDisplayUI();
+  updatePanel();
+  draw();
+  updateFeatureStatus();
+}
+
+function resetMarketFiltersOnLoad(){
+  showTokenEdges = true;
+  showEthereumEdges = true;
+  marketColorMode = true;
 }
 
 function edgeTouchesNft(e, nodes){
@@ -1960,12 +2088,13 @@ function layers(allNodes, renderNodes, edges){
       (selection.kind === 'token' ? `:${timeIndex}:${timeDisplayMode}` : '')
     : '';
   const edgeColor = e => {
-    if(isZeroEth(e)) return zeroEthEdgeColor(255);
     if(selection){
+      if(!isEdgeHighlighted(e) && !isEdgeFocus(e)) return [45, 48, 58, 35];
+      if(isZeroEth(e)) return zeroEthEdgeColor(255);
       if(isEdgeFocus(e)) return [255, 240, 100, 255];
       if(isEdgeHighlighted(e)) return [93, 255, 200, 160];
-      return [45, 48, 58, 35];
     }
+    if(isZeroEth(e)) return zeroEthEdgeColor(255);
     return baseEdgeColor(e, allNodes, min, max);
   };
   const edgeWidth = e => {
@@ -1974,7 +2103,11 @@ function layers(allNodes, renderNodes, edges){
     if(hasToken(e) && edgeDisplayMode === 'width') return edgeWidthFactor(e) * 1.25;
     return edgeDisplayMode === 'width' ? edgeWidthFactor(e) : FIXED_EDGE_WIDTH;
   };
-  const edgeTriggers = {getPath:tick, getColor:edgeDisplayMode + selKey, getWidth:edgeDisplayMode + selKey};
+  const edgeTriggers = {
+    getPath:tick,
+    getColor:edgeDisplayMode + selKey + marketColorMode + showTokenEdges + showEthereumEdges,
+    getWidth:edgeDisplayMode + selKey + marketColorMode,
+  };
   const nftNodes = renderNodes.filter(isNftNode);
   return [
     new PathLayer({
@@ -1991,7 +2124,7 @@ function layers(allNodes, renderNodes, edges){
       id:'arrows', data:edges.filter(e=>e._arrow),
       getPolygon:e=>e._arrow,
       getFillColor:edgeColor,
-      updateTriggers:{getPolygon:tick, getFillColor:edgeDisplayMode + selKey},
+      updateTriggers:{getPolygon:tick, getFillColor:edgeDisplayMode + selKey + marketColorMode + showTokenEdges + showEthereumEdges},
       pickable:false
     }),
     new ScatterplotLayer({
@@ -2158,6 +2291,9 @@ function updateFeatureStatus(){
   status.tooltips = loaded;
   status.panZoom = true;
   status.edgeDisplay = loaded && graph.edges.some(e => e.value_eth != null);
+  status.marketColors = loaded && marketColorMode;
+  status.tokenMarketFilter = loaded && showTokenEdges;
+  status.ethereumMarketFilter = loaded && showEthereumEdges;
   status.zeroEthLegend = loaded && graphHasZeroEth(graph.edges);
   status.tokenEdges = loaded && graphHasTokens(graph.edges);
   status.nftNodes = loaded && graphHasNft(graph.nodes);
@@ -2260,6 +2396,7 @@ function ingest(data, label){
     resetSelectionOnLoad();
     resetComponentFilterOnLoad();
     resetDegreeFiltersOnLoad();
+    resetMarketFiltersOnLoad();
     populateSelectPanel();
     if(!hasBakedLayout(data.nodes) && layoutMode === 'baked') layoutMode = 'force';
     const fromCatalog = graphCatalog.some(g => g.file === label);
@@ -2372,6 +2509,9 @@ document.getElementById('timeSlider').addEventListener('input', e => {
 document.getElementById('btnTimePlay').addEventListener('click', startTimePlayback);
 document.getElementById('btnTimePause').addEventListener('click', pauseTimePlayback);
 document.getElementById('btnNftOnly').addEventListener('click', toggleNftOnlyFilter);
+document.getElementById('btnShowToken').addEventListener('click', toggleShowTokenEdges);
+document.getElementById('btnShowEthereum').addEventListener('click', toggleShowEthereumEdges);
+document.getElementById('btnMarketColors').addEventListener('click', toggleMarketColors);
 document.getElementById('btnFilterDegBelow').addEventListener('click', applyDegreeHideBelow);
 document.getElementById('btnFilterDegAbove').addEventListener('click', applyDegreeHideAbove);
 document.getElementById('btnFilterDegClear').addEventListener('click', clearDegreeFilters);
