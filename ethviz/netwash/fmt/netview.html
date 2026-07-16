@@ -6,6 +6,7 @@
 <title>netview · graph viewer</title>
 <script src="https://unpkg.com/deck.gl@8.9.35/dist.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="cbin_loader.js"></script>
 <style>
   :root{
     --ink:#e8e6df; --dim:#8b8a83; --line:#2a2c31;
@@ -84,7 +85,35 @@
   .pick-search:focus{outline:none;border-color:var(--accent)}
   .pick-search:disabled{opacity:.4;cursor:not-allowed}
   .pick-search::-webkit-search-cancel-button{cursor:pointer}
+  .pick-num{
+    width:100%;margin-bottom:8px;padding:6px 8px;
+    border:1px solid var(--line);border-radius:4px;
+    background:var(--ground);color:var(--ink);
+    font:inherit;font-size:11px;
+  }
+  .pick-num:focus{outline:none;border-color:var(--accent)}
+  .pick-num:disabled{opacity:.4;cursor:not-allowed}
+  .pick-num-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .pick-num-row .pick-num{margin-bottom:0;flex:1}
+  .pick-num-row .btn{flex:none;white-space:nowrap}
+  .token-list{
+    max-height:168px;overflow:auto;
+    border:1px solid var(--line);border-radius:4px;
+    background:var(--ground);
+  }
+  .token-list.disabled{opacity:.4;pointer-events:none}
+  .token-item{
+    display:block;width:100%;text-align:left;
+    border:none;border-bottom:1px solid var(--line);
+    background:transparent;color:var(--ink);
+    padding:6px 8px;font:inherit;font-size:11px;cursor:pointer;
+  }
+  .token-item:last-child{border-bottom:none}
+  .token-item:hover,.token-item.on{background:var(--line);color:var(--accent)}
+  .token-hint{padding:8px;color:var(--dim);font-size:10.5px;line-height:1.35}
   .time-range{width:100%;margin:8px 0 4px}
+  .time-play{display:flex;gap:8px;margin:6px 0 4px}
+  .time-play .btn{flex:1;text-align:center}
   .time-meta{display:flex;justify-content:space-between;gap:10px;color:var(--dim);font-size:10.5px}
   .time-meta b{color:var(--ink);font-weight:600}
   .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px}
@@ -110,6 +139,41 @@
   }
   .select-toggle:hover,.select-toggle.on{border-color:var(--accent);color:var(--ink)}
   .select-toggle.on{background:var(--line)}
+  .track-toggle{
+    position:fixed;top:14px;right:178px;z-index:13;
+    border:1px solid var(--line);background:var(--panel);color:var(--accent);
+    border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:.08em;
+    cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  .track-toggle:hover,.track-toggle.on{border-color:var(--accent);color:var(--ink)}
+  .track-toggle.on{background:var(--line)}
+  .track-panel{
+    position:fixed;left:14px;right:14px;bottom:14px;z-index:12;
+    height:min(280px,38vh);max-height:calc(100vh - 80px);
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:12px 14px 10px;box-shadow:0 8px 30px rgba(0,0,0,.4);
+    display:flex;flex-direction:column;
+    transform:translateY(calc(100% + 24px));opacity:0;pointer-events:none;
+    transition:transform .2s ease,opacity .2s ease;
+  }
+  .track-panel.open{transform:none;opacity:1;pointer-events:auto}
+  .track-panel h2{margin:0;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .track-sub{color:var(--dim);font-size:10.5px;margin:4px 0 8px;word-break:break-all}
+  .track-sub b{color:var(--ink)}
+  .track-chart{flex:1;min-height:0;position:relative}
+  .track-chart svg{width:100%;height:100%;display:block}
+  .track-chart .axis text{fill:var(--dim);font-size:9px}
+  .track-chart .axis line,.track-chart .axis path{stroke:var(--line)}
+  .track-chart .grid line{stroke:var(--line);stroke-opacity:.55}
+  .track-chart .hop{fill:none;stroke:#5dffc8;stroke-width:1.5;opacity:.85}
+  .track-chart .hold{fill:none;stroke:#5dffc8;stroke-width:1.2;opacity:.35;stroke-dasharray:3 3}
+  .track-chart .pt{fill:#5dffc8;stroke:var(--panel);stroke-width:1}
+  .track-chart .pt.focus{fill:#fff064;stroke:#fff064}
+  .track-chart .cursor{stroke:#fff064;stroke-width:1.5;opacity:.9}
+  .track-chart .ylab{fill:var(--dim);font-size:9px}
+  .track-chart .zoom-rect{fill:transparent;cursor:ew-resize}
+  .track-chart .zoom-rect-y{fill:transparent;cursor:ns-resize}
+  .track-actions{display:flex;gap:8px;align-items:center;margin:0 0 6px}
   .select-panel{
     position:fixed;top:50px;right:96px;z-index:12;width:min(340px,calc(100vw - 28px));
     max-height:calc(100vh - 64px);overflow:auto;
@@ -212,6 +276,10 @@
       <button type="button" data-mode="current" id="btnTimeCurrent">current only</button>
     </div>
     <input class="time-range" id="timeSlider" type="range" min="0" max="0" step="1" value="0" disabled>
+    <div class="time-play actions">
+      <button class="btn" type="button" id="btnTimePlay" disabled>Play</button>
+      <button class="btn" type="button" id="btnTimePause" disabled>Pause</button>
+    </div>
     <div class="time-meta">
       <span>time <b id="timeCurrent">all edges</b></span>
       <span>visible <b id="timeCount">—</b></span>
@@ -228,14 +296,30 @@
   </div>
 
   <div class="section">
+    <h2>Degree Filter</h2>
+    <div class="pick-num-row">
+      <input class="pick-num" id="filterDegBelow" type="number" min="0" step="1" placeholder="hide degree &lt; …" disabled aria-label="Hide nodes below degree">
+      <button class="btn" type="button" id="btnFilterDegBelow" disabled>Apply</button>
+    </div>
+    <div class="pick-num-row">
+      <input class="pick-num" id="filterDegAbove" type="number" min="0" step="1" placeholder="hide degree &gt; …" disabled aria-label="Hide nodes above degree">
+      <button class="btn" type="button" id="btnFilterDegAbove" disabled>Apply</button>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="btnFilterDegClear" disabled>Clear degree filters</button>
+    </div>
+    <div class="hint" id="degreeFilterHint">hide low- or high-degree nodes and their incident edges</div>
+  </div>
+
+  <div class="section">
     <h2>Load</h2>
     <select class="pick" id="graphPick" aria-label="Sample graphs in fmt directory">
       <option value="">sample graphs…</option>
     </select>
     <div class="actions">
-      <label>Load JSON<input id="file" type="file" accept=".json,application/json"></label>
+      <label>Load graph<input id="file" type="file" accept=".json,.cbin,application/json,application/octet-stream"></label>
     </div>
-    <div class="hint">drop a file anywhere · ?src=path.json</div>
+    <div class="hint">drop JSON or .cbin anywhere · ?src=path.json or path.cbin</div>
     <div class="err" id="err" hidden></div>
   </div>
 
@@ -246,20 +330,35 @@
     <div class="k" id="tokenLegend" hidden><span class="sw" style="background:#5dffc8"></span>token-tagged edge</div>
     <div class="k" id="nftLegend" hidden><span class="dot" style="border-color:#ff4ad8;background:#ffe14a;box-shadow:0 0 6px #ff4ad8"></span>NFT node</div>
     <div class="k" id="selectLegend" hidden><span class="sw" style="background:#5dffc8;box-shadow:0 0 8px #5dffc8"></span>selected · dimmed = filtered out</div>
+    <div class="k" id="tokenFocusLegend" hidden><span class="sw" style="background:#fff064;box-shadow:0 0 8px #fff064"></span>current token transfer</div>
     <div class="k"><span class="dot" style="border-color:#ffd24f;background:transparent"></span>cut vertex</div>
     <div class="k"><span class="dot" style="border-color:#fff;background:transparent"></span>cabal bridge</div>
     <div class="k"><span class="dot" style="background:hsl(137deg,62%,58%);border:none"></span>color = component (group)</div>
   </div>
 </aside>
 
+<button class="track-toggle" type="button" id="trackToggle" aria-expanded="false" aria-controls="trackPanel">Token track</button>
 <button class="select-toggle" type="button" id="selectToggle" aria-expanded="false" aria-controls="selectPanel">Select</button>
+
+<aside class="track-panel" id="trackPanel" aria-hidden="true">
+  <div class="feat-head">
+    <h2>Token track</h2>
+    <button class="feat-close" type="button" id="trackClose" aria-label="Close token track panel">×</button>
+  </div>
+  <div class="track-sub" id="trackSub">select a token to plot addresses over timesteps</div>
+  <div class="track-actions">
+    <button class="btn" type="button" id="trackZoomReset" disabled>Reset zoom</button>
+    <span class="hint" style="margin:0">plot: zoom/pan time · address labels: zoom/pan addresses</span>
+  </div>
+  <div class="track-chart" id="trackChart"></div>
+</aside>
 
 <aside class="select-panel" id="selectPanel" aria-hidden="true">
   <div class="feat-head">
     <h2>Select</h2>
     <button class="feat-close" type="button" id="selectClose" aria-label="Close select panel">×</button>
   </div>
-  <p class="lead" style="margin:0 0 12px;color:var(--dim);font-size:11px">Filter by component (group), or pick a token, node, or edge to highlight. Other items dim while a highlight is active.</p>
+  <p class="lead" style="margin:0 0 12px;color:var(--dim);font-size:11px">Filter by component, highlight by degree threshold, or pick a token, node, or edge. Other items dim while a highlight is active.</p>
 
   <div class="section" style="margin-top:0;padding-top:0;border-top:none">
     <h2>Component</h2>
@@ -270,12 +369,19 @@
   </div>
 
   <div class="section">
+    <h2>Degree threshold</h2>
+    <div class="pick-num-row">
+      <input class="pick-num" id="degreeMin" type="number" min="0" step="1" placeholder="min degree…" disabled aria-label="Minimum node degree">
+      <button class="btn" type="button" id="degreeApply" disabled>Apply</button>
+    </div>
+    <div class="sel-meta" id="degreePickMeta">highlight components with any node above this degree</div>
+  </div>
+
+  <div class="section">
     <h2>Token</h2>
     <div class="pick-wrap">
       <input class="pick-search" id="tokenSearch" type="search" placeholder="search tokens…" disabled autocomplete="off" spellcheck="false" aria-label="Search tokens">
-      <select class="pick" id="tokenPick" disabled aria-label="Select token">
-        <option value="">tokens…</option>
-      </select>
+      <div class="token-list disabled" id="tokenList" role="listbox" aria-label="Token matches"></div>
     </div>
     <div class="sel-meta" id="tokenPickMeta">highlight edges exchanging the chosen token</div>
   </div>
@@ -312,13 +418,14 @@
   <ul class="feat-list" id="featList"></ul>
 </aside>
 
-<div id="drop">drop graph json to load</div>
+<div id="drop">drop JSON or .cbin to load</div>
 
 <script>
 const {Deck, OrthographicView, ScatterplotLayer, PathLayer, SolidPolygonLayer} = deck;
 const CATALOG_URL = 'graphs.json';
 const FALLBACK_GRAPHS = [
   {file:'example_graph.json', label:'example_graph.json', description:'6 nodes · 2 components'},
+  {file:'example_graph.cbin', label:'example_graph.cbin', description:'6 nodes · packed .cbin'},
   {file:'synthetic_8comp.json', label:'synthetic_8comp.json', description:'54 nodes · 8 components'},
   {file:'../data/eth_graph_comp_marked.json', label:'eth_graph_comp_marked.json', description:'99 nodes · NFT + token tags'},
 ];
@@ -326,7 +433,8 @@ const FALLBACK_GRAPHS = [
 const FEATURES = [
   {id:'format', label:'Graph JSON format', detail:'metadata, nodes, edges with required core fields'},
   {id:'validate', label:'Validation on load', detail:'rejects malformed files with a clear error'},
-  {id:'loadFile', label:'Load from file', detail:'file picker and drag-and-drop'},
+  {id:'loadFile', label:'Load from file', detail:'file picker and drag-and-drop for JSON or .cbin'},
+  {id:'loadCbin', label:'CBIN binary load', detail:'columnar .cbin files via cbin_loader.js'},
   {id:'loadCatalog', label:'Sample graph picker', detail:'dropdown of JSON graphs in fmt directory'},
   {id:'urlSrc', label:'?src= URL load', detail:'fetch graph from query parameter'},
   {id:'directed', label:'Directed edges', detail:'arrowheads at target, source → target'},
@@ -336,18 +444,22 @@ const FEATURES = [
   {id:'layoutForce', label:'Force layout', detail:'d3 force-directed simulation'},
   {id:'layoutSwitch', label:'Layout switch', detail:'toggle between baked and force modes'},
   {id:'timeline', label:'Timeline slider', detail:'scrub from earliest to latest edge timestamp'},
+  {id:'timelinePlay', label:'Timeline playback', detail:'play and pause advance through timestamps'},
   {id:'timelineMode', label:'Timeline modes', detail:'show cumulative edges or current timestamp only'},
   {id:'panelMain', label:'Netview panel toggle', detail:'left panel toggles open/closed from the button'},
   {id:'tooltips', label:'Hover tooltips', detail:'node address and edge source → target'},
   {id:'panZoom', label:'Pan and zoom', detail:'orthographic deck.gl controller'},
   {id:'edgeDisplay', label:'Edge display control', detail:'color by ETH or width by ETH'},
-  {id:'zeroEthLegend', label:'0 ETH legend', detail:'magenta legend entry appears in color-by-ETH mode'},
+  {id:'zeroEthLegend', label:'0 ETH legend', detail:'magenta legend entry when the graph has zero-value edges'},
   {id:'tokenEdges', label:'Token edge tags', detail:'token or token_id label shown on hover for tagged edges'},
   {id:'nftNodes', label:'NFT node highlight', detail:'nft-tagged nodes render with bright halo and ring'},
   {id:'nftOnlyFilter', label:'NFT only filter', detail:'hide non-NFT nodes and unrelated edges'},
+  {id:'degreeFilter', label:'Degree filters', detail:'hide nodes below and/or above a degree cutoff'},
   {id:'selectPanel', label:'Select panel', detail:'filter by component; choose tokens, nodes, or edges to highlight'},
   {id:'componentFilter', label:'Component filter', detail:'restrict the view to one group id'},
+  {id:'degreeSelect', label:'Degree threshold', detail:'highlight components with a node above a degree cutoff'},
   {id:'tokenSelect', label:'Token selection', detail:'search and highlight edges exchanging the chosen token'},
+  {id:'tokenTrack', label:'Token track panel', detail:'address × time plot for the selected token'},
   {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
   {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
   {id:'featPanel', label:'Features panel', detail:'this checklist, toggled from the button'},
@@ -360,17 +472,36 @@ let bakedPos = null;
 let layoutMode = 'baked';
 let edgeDisplayMode = 'width';
 let timeDisplayMode = 'upto';
+let timePlaying = false;
+let timePlayTimer = null;
+const TIME_PLAY_MS = 350;
 let nftOnlyFilter = false;
 let componentFilter = null;
+let degreeHideBelow = null;
+let degreeHideAbove = null;
 const FIXED_EDGE_WIDTH = 2;
+const ZERO_ETH_COLOR = [255, 74, 163, 230];
 let tick = 0;
 let autoFit = true;
 let viewState = null;
 let featOpen = false;
 let selectOpen = false;
+let trackOpen = false;
+let lastTrackKey = '';
+let trackZoomX = d3.zoomIdentity;
+let trackZoomY = d3.zoomIdentity;
+let trackZoomToken = null;
 let panelOpen = true;
 let selection = null;
+let selectionHighlight = null;
+let tokenEdgeIndex = null;
 let tokenCatalog = [];
+let tokenCatalogEntries = [];
+let lastTokenFilter = null;
+let tokenSearchTimer = null;
+const TOKEN_LIST_CAP = 100;
+const TOKEN_BROWSE_THRESHOLD = 40;
+let graphFormat = null;
 let status = Object.fromEntries(FEATURES.map(f => [f.id, false]));
 let graphCatalog = [];
 let currentCatalogFile = '';
@@ -439,6 +570,12 @@ function nodeGroup(n){
   return n?.group ?? 0;
 }
 
+function nodeDegree(n){
+  if(n == null) return 0;
+  if(Number.isFinite(n.degree)) return n.degree;
+  return (n.in_tx || 0) + (n.out_tx || 0);
+}
+
 function deriveComponents(nodes){
   const counts = new Map();
   for(const n of nodes){
@@ -455,15 +592,27 @@ function edgeTouchesComponent(e, nodes, groupId){
     || nodeGroup(nodes[e.target_index]) === groupId;
 }
 
+function nodePassesDegreeFilter(n){
+  const d = nodeDegree(n);
+  if(degreeHideBelow !== null && d < degreeHideBelow) return false;
+  if(degreeHideAbove !== null && d > degreeHideAbove) return false;
+  return true;
+}
+
 function nodeVisible(n){
   if(nftOnlyFilter && !isNftNode(n)) return false;
   if(componentFilter !== null && nodeGroup(n) !== componentFilter) return false;
+  if(!nodePassesDegreeFilter(n)) return false;
   return true;
 }
 
 function edgeVisible(e, nodes){
   if(nftOnlyFilter && !edgeTouchesNft(e, nodes)) return false;
   if(componentFilter !== null && !edgeTouchesComponent(e, nodes, componentFilter)) return false;
+  if(degreeHideBelow !== null || degreeHideAbove !== null){
+    if(!nodePassesDegreeFilter(nodes[e.source_index]) || !nodePassesDegreeFilter(nodes[e.target_index]))
+      return false;
+  }
   return true;
 }
 
@@ -478,9 +627,21 @@ function ethRange(edges){
   return {min,max};
 }
 
+function isZeroEth(e){
+  return (Number(e.value_eth) || 0) === 0;
+}
+
+function graphHasZeroEth(edges){
+  return edges.some(isZeroEth);
+}
+
+function zeroEthEdgeColor(alpha = ZERO_ETH_COLOR[3]){
+  return [ZERO_ETH_COLOR[0], ZERO_ETH_COLOR[1], ZERO_ETH_COLOR[2], alpha];
+}
+
 function ethColor(value, min, max){
   const v=Number(value)||0;
-  if(v === 0) return [255, 74, 163, 230];
+  if(v === 0) return zeroEthEdgeColor();
   const t=max>min ? Math.max(0,Math.min(1,(v-min)/(max-min))) : 0.5;
   return [
     Math.round(70+t*185),
@@ -534,41 +695,174 @@ function shortAddr(a){
 }
 
 function deriveTokens(edges, metadata){
-  const fromEdges = [...new Set(edges.flatMap(e => edgeTokenValues(e)))];
+  const found = new Set();
+  for(const e of edges){
+    for(const t of edgeTokenValues(e)) found.add(t);
+  }
   const pool = metadata?.nft_token_marking?.token_pool;
-  const merged = pool && pool.length ? [...new Set([...pool, ...fromEdges])] : fromEdges;
-  return merged.filter(Boolean).sort();
+  if(pool && pool.length){
+    for(const t of pool) if(t) found.add(t);
+  }
+  return [...found].filter(Boolean).sort();
 }
 
 function edgeMatchesToken(e, token){
-  return edgeTokenValues(e).includes(token);
+  if(!token) return false;
+  if(typeof e.token === 'string' && e.token.trim() === token) return true;
+  if(typeof e.token_id === 'string' && e.token_id.trim() === token) return true;
+  return edgeTokenTag(e) === token;
+}
+
+function buildTokenEdgeIndex(edges){
+  const index = new Map();
+  for(const e of edges){
+    for(const t of edgeTokenValues(e)){
+      let entry = index.get(t);
+      if(!entry){
+        entry = {edgeSet: new Set(), nodeSet: new Set(), edges: []};
+        index.set(t, entry);
+      }
+      if(!entry.edgeSet.has(e.index)){
+        entry.edgeSet.add(e.index);
+        entry.edges.push(e);
+      }
+      entry.nodeSet.add(e.source_index);
+      entry.nodeSet.add(e.target_index);
+    }
+  }
+  for(const entry of index.values()){
+    entry.edges.sort((a, b) => {
+      const ta = edgeTimestamp(a), tb = edgeTimestamp(b);
+      if(ta === null && tb === null) return a.index - b.index;
+      if(ta === null) return -1;
+      if(tb === null) return 1;
+      return ta - tb || a.index - b.index;
+    });
+  }
+  return index;
+}
+
+function tokenEdgeActiveAtTime(e){
+  if(!timeValues.length) return true;
+  const current = timeValues[timeIndex] ?? timeValues[timeValues.length - 1];
+  const ts = edgeTimestamp(e);
+  if(ts === null) return timeDisplayMode === 'upto';
+  return timeDisplayMode === 'upto' ? ts <= current : ts === current;
+}
+
+function findLatestActiveTokenEdge(token){
+  const cached = tokenEdgeIndex?.get(token);
+  const list = cached?.edges;
+  if(list && list.length){
+    for(let i = list.length - 1; i >= 0; i--){
+      const e = list[i];
+      if(tokenEdgeActiveAtTime(e) && edgeVisible(e, graph.nodes)) return e;
+    }
+    return null;
+  }
+  let best = null, bestTs = -Infinity;
+  for(const e of graph.edges){
+    if(!edgeMatchesToken(e, token)) continue;
+    if(!tokenEdgeActiveAtTime(e) || !edgeVisible(e, graph.nodes)) continue;
+    const ts = edgeTimestamp(e);
+    const key = ts === null ? -1 : ts;
+    if(!best || key > bestTs || (key === bestTs && e.index > best.index)){
+      best = e;
+      bestTs = key;
+    }
+  }
+  return best;
+}
+
+function rebuildSelectionHighlight(){
+  if(!selection || !graph){
+    selectionHighlight = null;
+    return;
+  }
+  const edgeSet = new Set();
+  const nodeSet = new Set();
+  if(selection.kind === 'token'){
+    const cached = tokenEdgeIndex?.get(selection.token);
+    const trailEdges = cached?.edges || graph.edges.filter(e => edgeMatchesToken(e, selection.token));
+    for(const e of trailEdges){
+      if(!tokenEdgeActiveAtTime(e) || !edgeVisible(e, graph.nodes)) continue;
+      edgeSet.add(e.index);
+      nodeSet.add(e.source_index);
+      nodeSet.add(e.target_index);
+    }
+    const focus = findLatestActiveTokenEdge(selection.token);
+    selectionHighlight = {
+      edgeSet,
+      nodeSet,
+      edgeCount: edgeSet.size,
+      focusEdgeIndex: focus ? focus.index : null,
+      focusNodeSet: focus
+        ? new Set([focus.source_index, focus.target_index])
+        : new Set(),
+    };
+    return;
+  }else if(selection.kind === 'node'){
+    nodeSet.add(selection.index);
+    for(const e of graph.edges){
+      if(e.source_index === selection.index || e.target_index === selection.index){
+        edgeSet.add(e.index);
+      }
+    }
+  }else if(selection.kind === 'edge'){
+    edgeSet.add(selection.index);
+    const e = graph.edges[selection.index];
+    if(e){
+      nodeSet.add(e.source_index);
+      nodeSet.add(e.target_index);
+    }
+  }else if(selection.kind === 'degree'){
+    const minDeg = selection.minDegree;
+    const groups = new Set();
+    let hubCount = 0;
+    for(const n of graph.nodes){
+      if(nodeDegree(n) > minDeg){
+        groups.add(nodeGroup(n));
+        hubCount++;
+      }
+    }
+    for(const n of graph.nodes){
+      if(groups.has(nodeGroup(n))) nodeSet.add(n.index);
+    }
+    for(const e of graph.edges){
+      if(nodeSet.has(e.source_index) || nodeSet.has(e.target_index)) edgeSet.add(e.index);
+    }
+    selectionHighlight = {
+      edgeSet,
+      nodeSet,
+      edgeCount: edgeSet.size,
+      groupCount: groups.size,
+      hubCount,
+    };
+    return;
+  }
+  selectionHighlight = {edgeSet, nodeSet, edgeCount: edgeSet.size};
 }
 
 function isEdgeHighlighted(e){
-  if(!selection) return true;
-  if(selection.kind === 'token') return edgeMatchesToken(e, selection.token);
-  if(selection.kind === 'node'){
-    return e.source_index === selection.index || e.target_index === selection.index;
-  }
-  if(selection.kind === 'edge') return e.index === selection.index;
-  return false;
+  if(!selectionHighlight) return true;
+  return selectionHighlight.edgeSet.has(e.index);
 }
 
-function isNodeHighlighted(n, edges){
-  if(!selection) return true;
-  if(selection.kind === 'node') return n.index === selection.index;
-  if(selection.kind === 'edge'){
-    const e = graph.edges[selection.index];
-    return e && (n.index === e.source_index || n.index === e.target_index);
-  }
-  if(selection.kind === 'token'){
-    return edges.some(e => edgeMatchesToken(e, selection.token)
-      && (e.source_index === n.index || e.target_index === n.index));
-  }
-  return false;
+function isEdgeFocus(e){
+  return selectionHighlight?.focusEdgeIndex === e.index;
+}
+
+function isNodeHighlighted(n){
+  if(!selectionHighlight) return true;
+  return selectionHighlight.nodeSet.has(n.index);
+}
+
+function isNodeFocus(n){
+  return !!selectionHighlight?.focusNodeSet?.has(n.index);
 }
 
 function baseEdgeColor(e, allNodes, min, max){
+  if(isZeroEth(e)) return zeroEthEdgeColor();
   if(hasToken(e)) return [93, 255, 200, 230];
   if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
   const g = e.group ?? allNodes[e.source_index]?.group ?? 0;
@@ -578,62 +872,149 @@ function baseEdgeColor(e, allNodes, min, max){
 
 function resetSelection(){
   selection = null;
+  selectionHighlight = null;
   ['nodePick', 'edgePick'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = '';
   });
-  renderTokenPick();
+  const deg = document.getElementById('degreeMin');
+  if(deg) deg.value = '';
+  renderTokenList();
   updateSelectUI();
+  updateTokenTrack(true);
   draw();
   updateFeatureStatus();
 }
 
-function renderTokenPick(){
-  const tokenPick = document.getElementById('tokenPick');
-  const tokenSearch = document.getElementById('tokenSearch');
-  const q = tokenSearch.value.trim().toLowerCase();
-  const selected = selection?.kind === 'token' ? selection.token : tokenPick.value;
-  let tokens = tokenCatalog;
-  if(q) tokens = tokens.filter(t => t.toLowerCase().includes(q));
-  if(selected && !tokens.includes(selected)) tokens = [selected, ...tokens];
-  tokenPick.innerHTML = '<option value="">tokens…</option>' +
-    tokens.map(t => `<option value="${t}">${t}</option>`).join('');
-  const enabled = tokenCatalog.length > 0;
-  tokenPick.disabled = !enabled;
-  tokenSearch.disabled = !enabled;
-  tokenPick.value = selected || '';
+function applyDegreeThreshold(){
+  const raw = document.getElementById('degreeMin').value.trim();
+  if(raw === ''){ resetSelection(); return; }
+  const minDegree = Number(raw);
+  if(!Number.isFinite(minDegree) || minDegree < 0){
+    showError('degree threshold must be a non-negative number');
+    return;
+  }
+  clearError();
+  document.getElementById('nodePick').value = '';
+  document.getElementById('edgePick').value = '';
+  setSelection({kind:'degree', minDegree});
+}
+
+function filterTokenEntries(query){
+  const q = query.trim().toLowerCase();
+  const selected = selection?.kind === 'token' ? selection.token : '';
+  if(!q && tokenCatalogEntries.length > TOKEN_BROWSE_THRESHOLD){
+    const matches = selected
+      ? tokenCatalogEntries.filter(e => e.v === selected)
+      : [];
+    return {matches, total: tokenCatalogEntries.length, needsSearch: true, capped: false};
+  }
+  const matches = [];
+  let capped = false;
+  for(const e of tokenCatalogEntries){
+    if(q && !e.l.includes(q)) continue;
+    if(matches.length < TOKEN_LIST_CAP) matches.push(e);
+    else { capped = true; break; }
+  }
+  if(selected && !matches.some(e => e.v === selected)){
+    const sel = tokenCatalogEntries.find(e => e.v === selected);
+    if(sel) matches.unshift(sel);
+  }
+  return {matches, total: tokenCatalogEntries.length, needsSearch: false, capped};
+}
+
+function renderTokenList(){
+  const list = document.getElementById('tokenList');
+  const search = document.getElementById('tokenSearch');
+  const enabled = tokenCatalogEntries.length > 0;
+  search.disabled = !enabled;
+  list.classList.toggle('disabled', !enabled);
+  if(!enabled){
+    list.replaceChildren();
+    lastTokenFilter = null;
+    return;
+  }
+  const result = filterTokenEntries(search.value);
+  lastTokenFilter = result;
+  const selected = selection?.kind === 'token' ? selection.token : '';
+  const frag = document.createDocumentFragment();
+  if(result.needsSearch){
+    const hint = document.createElement('div');
+    hint.className = 'token-hint';
+    hint.textContent = `${result.total.toLocaleString()} tokens — type to search`;
+    frag.appendChild(hint);
+    if(selected){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'token-item on';
+      btn.textContent = selected;
+      btn.dataset.token = selected;
+      frag.appendChild(btn);
+    }
+  }else if(result.matches.length === 0){
+    const hint = document.createElement('div');
+    hint.className = 'token-hint';
+    hint.textContent = search.value.trim() ? 'no matches' : 'no tokens in view';
+    frag.appendChild(hint);
+  }else{
+    for(const {v} of result.matches){
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'token-item' + (v === selected ? ' on' : '');
+      btn.textContent = v;
+      btn.dataset.token = v;
+      frag.appendChild(btn);
+    }
+    if(result.capped){
+      const hint = document.createElement('div');
+      hint.className = 'token-hint';
+      hint.textContent = `showing first ${TOKEN_LIST_CAP} — refine search`;
+      frag.appendChild(hint);
+    }
+  }
+  list.replaceChildren(frag);
+}
+
+function scheduleTokenListRender(){
+  clearTimeout(tokenSearchTimer);
+  tokenSearchTimer = setTimeout(() => {
+    renderTokenList();
+    updateSelectUI();
+  }, 120);
 }
 
 function setTokenCatalog(tokens){
   tokenCatalog = tokens;
-  renderTokenPick();
-}
-
-function setSelection(next){
-  selection = next;
-  renderTokenPick();
-  updateSelectUI();
-  draw();
-  updateFeatureStatus();
+  tokenCatalogEntries = tokens.map((v, i) => ({v, l: v.toLowerCase(), i}));
+  renderTokenList();
 }
 
 function populateSelectPanel(){
   const groupPick = document.getElementById('groupPick');
   const tokenSearch = document.getElementById('tokenSearch');
+  const degreeMin = document.getElementById('degreeMin');
+  const degreeApply = document.getElementById('degreeApply');
   const nodePick = document.getElementById('nodePick');
   const edgePick = document.getElementById('edgePick');
   const clearBtn = document.getElementById('clearSelection');
   if(!graph){
-    groupPick.disabled = tokenSearch.disabled = nodePick.disabled = edgePick.disabled = true;
+    groupPick.disabled = tokenSearch.disabled = degreeMin.disabled = degreeApply.disabled =
+      nodePick.disabled = edgePick.disabled = true;
     clearBtn.disabled = true;
     groupPick.innerHTML = '<option value="">all components…</option>';
     tokenSearch.value = '';
+    degreeMin.value = '';
     tokenCatalog = [];
-    renderTokenPick();
+    tokenCatalogEntries = [];
+    lastTokenFilter = null;
+    renderTokenList();
     nodePick.innerHTML = '<option value="">nodes…</option>';
     edgePick.innerHTML = '<option value="">edges…</option>';
     return;
   }
+  degreeMin.disabled = false;
+  degreeApply.disabled = false;
+  if(selection?.kind === 'degree') degreeMin.value = String(selection.minDegree);
   const components = deriveComponents(graph.nodes);
   groupPick.innerHTML = '<option value="">all components…</option>' +
     components.map(({id, count}) =>
@@ -678,6 +1059,7 @@ function setComponentFilter(groupId){
     const e = graph?.edges[selection.index];
     if(!e || !edgeVisible(e, graph.nodes)) selection = null;
   }
+  rebuildSelectionHighlight();
   populateSelectPanel();
   updateSelectUI();
   autoFit = true;
@@ -691,9 +1073,12 @@ function updateSelectUI(){
   const hasFilter = componentFilter !== null;
   document.getElementById('clearSelection').disabled = !hasSel;
   document.getElementById('selectLegend').hidden = !hasSel;
+  document.getElementById('tokenFocusLegend').hidden =
+    !(selection?.kind === 'token' && selectionHighlight?.focusEdgeIndex != null);
   document.getElementById('selectToggle').classList.toggle('on', selectOpen || hasSel || hasFilter);
   if(!graph){
     document.getElementById('groupPickMeta').textContent = 'show one component (group id) at a time';
+    document.getElementById('degreePickMeta').textContent = 'highlight components with any node above this degree';
     document.getElementById('tokenPickMeta').innerHTML = 'load a graph to browse tokens';
     document.getElementById('nodePickMeta').textContent = 'highlight node and incident edges';
     document.getElementById('edgePickMeta').textContent = 'highlight one transaction edge';
@@ -708,21 +1093,32 @@ function updateSelectUI(){
     document.getElementById('groupPickMeta').textContent = 'show one component (group id) at a time';
   }
   if(selection?.kind === 'token'){
-    const n = graph.edges.filter(e => edgeMatchesToken(e, selection.token)).length;
-    const q = document.getElementById('tokenSearch').value.trim();
-    const matchCount = q
-      ? tokenCatalog.filter(t => t.toLowerCase().includes(q.toLowerCase())).length
-      : tokenCatalog.length;
-    const searchNote = q ? ` · ${matchCount} match${matchCount === 1 ? '' : 'es'}` : '';
+    const n = selectionHighlight?.edgeCount ?? 0;
+    const focus = selectionHighlight?.focusEdgeIndex;
+    const focusNote = focus != null ? ` · current edge ${focus}` : '';
     document.getElementById('tokenPickMeta').innerHTML =
-      `<b>${selection.token}</b> · ${n} edge${n === 1 ? '' : 's'} highlighted${searchNote}`;
-  } else if(document.getElementById('tokenSearch').value.trim()){
-    const q = document.getElementById('tokenSearch').value.trim().toLowerCase();
-    const matchCount = tokenCatalog.filter(t => t.toLowerCase().includes(q)).length;
+      `<b>${selection.token}</b> · ${n} active edge${n === 1 ? '' : 's'}${focusNote}`;
+  } else if(lastTokenFilter?.needsSearch){
     document.getElementById('tokenPickMeta').textContent =
-      `${matchCount} token${matchCount === 1 ? '' : 's'} match “${document.getElementById('tokenSearch').value.trim()}”`;
+      `${lastTokenFilter.total.toLocaleString()} tokens — type to search`;
+  } else if(document.getElementById('tokenSearch').value.trim()){
+    const shown = lastTokenFilter?.matches.length ?? 0;
+    const capped = lastTokenFilter?.capped;
+    document.getElementById('tokenPickMeta').textContent = capped
+      ? `${shown}+ matches — refine search`
+      : `${shown} match${shown === 1 ? '' : 'es'}`;
   } else {
     document.getElementById('tokenPickMeta').textContent = 'highlight edges exchanging the chosen token';
+  }
+  if(selection?.kind === 'degree'){
+    const h = selectionHighlight;
+    document.getElementById('degreePickMeta').innerHTML =
+      `<b>degree &gt; ${selection.minDegree}</b> · ${h?.hubCount ?? 0} hub node${(h?.hubCount ?? 0) === 1 ? '' : 's'} · ` +
+      `${h?.groupCount ?? 0} component${(h?.groupCount ?? 0) === 1 ? '' : 's'} · ` +
+      `${h?.nodeSet.size ?? 0} nodes highlighted`;
+  } else {
+    document.getElementById('degreePickMeta').textContent =
+      'highlight components with any node above this degree';
   }
   if(selection?.kind === 'node'){
     const n = graph.nodes[selection.index];
@@ -750,6 +1146,297 @@ function setSelectPanel(open){
   updateFeatureStatus();
 }
 
+function setTrackPanel(open){
+  trackOpen = open;
+  document.getElementById('trackPanel').classList.toggle('open', open);
+  document.getElementById('trackToggle').classList.toggle('on', open || selection?.kind === 'token');
+  document.getElementById('trackToggle').setAttribute('aria-expanded', open);
+  document.getElementById('trackToggle').textContent = open ? 'Token track ▾' : 'Token track';
+  document.getElementById('trackPanel').setAttribute('aria-hidden', !open);
+  if(open){
+    requestAnimationFrame(() => updateTokenTrack(true));
+  }
+  updateFeatureStatus();
+}
+
+function collectTokenTrackData(token){
+  const cached = tokenEdgeIndex?.get(token);
+  const edges = (cached?.edges || graph.edges.filter(e => edgeMatchesToken(e, token)))
+    .filter(e => edgeTimestamp(e) !== null)
+    .slice()
+    .sort((a, b) => {
+      const ta = edgeTimestamp(a), tb = edgeTimestamp(b);
+      return ta - tb || a.index - b.index;
+    });
+  const addrOrder = [];
+  const addrIndex = new Map();
+  const ensure = (addr) => {
+    if(!addrIndex.has(addr)){
+      addrIndex.set(addr, addrOrder.length);
+      addrOrder.push(addr);
+    }
+    return addrIndex.get(addr);
+  };
+  const hops = [];
+  const holds = [];
+  let prev = null;
+  for(const e of edges){
+    const t = edgeTimestamp(e);
+    const ys = ensure(e.source);
+    const yt = ensure(e.target);
+    if(prev && prev.addr === e.source && prev.t < t){
+      holds.push({t0: prev.t, t1: t, y: ys, addr: e.source});
+    }
+    hops.push({
+      t, ys, yt, ySource: ys, yTarget: yt,
+      source: e.source, target: e.target,
+      edgeIndex: e.index,
+      focus: selectionHighlight?.focusEdgeIndex === e.index,
+    });
+    prev = {t, addr: e.target, y: yt};
+  }
+  return {edges, addrOrder, hops, holds};
+}
+
+function updateTokenTrack(force = false){
+  const host = document.getElementById('trackChart');
+  const sub = document.getElementById('trackSub');
+  const zoomReset = document.getElementById('trackZoomReset');
+  document.getElementById('trackToggle').classList.toggle('on', trackOpen || selection?.kind === 'token');
+  if(!trackOpen){
+    zoomReset.disabled = true;
+    return;
+  }
+  const key = selection?.kind === 'token'
+    ? `${selection.token}:${timeIndex}:${timeDisplayMode}:${selectionHighlight?.focusEdgeIndex ?? ''}`
+    : 'none';
+  if(!force && key === lastTrackKey && host.querySelector('svg')) return;
+  lastTrackKey = key;
+  host.replaceChildren();
+  if(!graph || selection?.kind !== 'token'){
+    sub.textContent = 'select a token to plot addresses over timesteps';
+    zoomReset.disabled = true;
+    trackZoomToken = null;
+    trackZoomX = d3.zoomIdentity;
+    trackZoomY = d3.zoomIdentity;
+    return;
+  }
+  const data = collectTokenTrackData(selection.token);
+  if(!data.hops.length){
+    sub.innerHTML = `<b>${selection.token}</b> · no timestamped transfers to plot`;
+    zoomReset.disabled = true;
+    return;
+  }
+  sub.innerHTML =
+    `<b>${selection.token}</b> · ${data.hops.length} transfer${data.hops.length === 1 ? '' : 's'} · ` +
+    `${data.addrOrder.length} address${data.addrOrder.length === 1 ? '' : 'es'}`;
+
+  if(trackZoomToken !== selection.token){
+    trackZoomToken = selection.token;
+    trackZoomX = d3.zoomIdentity;
+    trackZoomY = d3.zoomIdentity;
+  }
+
+  const rect = host.getBoundingClientRect();
+  const width = Math.max(320, rect.width || 640);
+  const height = Math.max(140, rect.height || 200);
+  const margin = {top: 10, right: 16, bottom: 28, left: 92};
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const tMin = data.hops[0].t;
+  const tMax = data.hops[data.hops.length - 1].t;
+  const nAddr = data.addrOrder.length;
+  const x0 = d3.scaleLinear()
+    .domain(tMin === tMax ? [tMin - 1, tMax + 1] : [tMin, tMax])
+    .range([0, innerW]);
+  const y0 = d3.scaleLinear()
+    .domain(nAddr <= 1 ? [-0.5, 0.5] : [-0.5, nAddr - 0.5])
+    .range([0, innerH]);
+
+  const svg = d3.select(host).append('svg')
+    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('preserveAspectRatio', 'none');
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const clipId = 'track-clip';
+  const labelClipId = 'track-label-clip';
+  const defs = svg.append('defs');
+  defs.append('clipPath')
+    .attr('id', clipId)
+    .append('rect')
+    .attr('width', innerW)
+    .attr('height', innerH);
+  defs.append('clipPath')
+    .attr('id', labelClipId)
+    .append('rect')
+    .attr('x', -margin.left)
+    .attr('width', margin.left - 4)
+    .attr('height', innerH);
+
+  const xAxisG = g.append('g').attr('class', 'axis')
+    .attr('transform', `translate(0,${innerH})`);
+
+  const yLabelG = g.append('g').attr('class', 'ylab')
+    .attr('clip-path', `url(#${labelClipId})`);
+
+  const plot = g.append('g').attr('class', 'plot').attr('clip-path', `url(#${clipId})`);
+  const gridSel = plot.append('g').attr('class', 'grid')
+    .selectAll('line')
+    .data(d3.range(nAddr))
+    .join('line')
+    .attr('x1', 0).attr('x2', innerW);
+  const holdSel = plot.append('g').attr('class', 'holds')
+    .selectAll('line')
+    .data(data.holds)
+    .join('line')
+    .attr('class', 'hold');
+  const hopSel = plot.append('g').attr('class', 'hops')
+    .selectAll('line')
+    .data(data.hops)
+    .join('line')
+    .attr('class', 'hop')
+    .attr('stroke', d => d.focus ? '#fff064' : '#5dffc8')
+    .attr('stroke-width', d => d.focus ? 2.4 : 1.5);
+  const pts = data.hops.flatMap(h => ([
+    {t: h.t, y: h.ys, focus: h.focus, edgeIndex: h.edgeIndex},
+    {t: h.t, y: h.yt, focus: h.focus, edgeIndex: h.edgeIndex},
+  ]));
+  const ptSel = plot.append('g').attr('class', 'pts')
+    .selectAll('circle')
+    .data(pts)
+    .join('circle')
+    .attr('class', d => d.focus ? 'pt focus' : 'pt')
+    .attr('r', d => d.focus ? 4.5 : 3);
+  const cursorSel = plot.append('line')
+    .attr('class', 'cursor')
+    .attr('visibility', 'hidden');
+
+  function formatTick(d){
+    const label = formatTimestamp(d);
+    return label.length > 16 ? label.slice(5, 16) : label;
+  }
+
+  function renderXY(){
+    const x = trackZoomX.rescaleX(x0);
+    const y = trackZoomY.rescaleY(y0);
+    gridSel
+      .attr('y1', d => y(d))
+      .attr('y2', d => y(d));
+    holdSel
+      .attr('x1', d => x(d.t0))
+      .attr('x2', d => x(d.t1))
+      .attr('y1', d => y(d.y))
+      .attr('y2', d => y(d.y));
+    hopSel
+      .attr('x1', d => x(d.t))
+      .attr('x2', d => x(d.t))
+      .attr('y1', d => y(d.ys))
+      .attr('y2', d => y(d.yt));
+    ptSel
+      .attr('cx', d => x(d.t))
+      .attr('cy', d => y(d.y));
+    xAxisG.call(d3.axisBottom(x).ticks(6).tickFormat(formatTick));
+    yLabelG.selectAll('text')
+      .data(data.addrOrder.map((addr, i) => ({addr, i})))
+      .join('text')
+      .attr('x', -8)
+      .attr('y', d => y(d.i))
+      .attr('dy', '0.32em')
+      .attr('text-anchor', 'end')
+      .attr('opacity', d => {
+        const yy = y(d.i);
+        return yy >= -2 && yy <= innerH + 2 ? 1 : 0;
+      })
+      .text(d => shortAddr(d.addr));
+    if(timeValues.length){
+      const current = timeValues[timeIndex] ?? timeValues[timeValues.length - 1];
+      if(current != null){
+        cursorSel
+          .attr('visibility', 'visible')
+          .attr('x1', x(current))
+          .attr('x2', x(current))
+          .attr('y1', 0)
+          .attr('y2', innerH);
+      } else {
+        cursorSel.attr('visibility', 'hidden');
+      }
+    }
+    const idle = trackZoomX.k === 1 && trackZoomX.x === 0
+      && trackZoomY.k === 1 && trackZoomY.y === 0;
+    zoomReset.disabled = idle;
+  }
+
+  const zoomX = d3.zoom()
+    .scaleExtent([1, 80])
+    .extent([[0, 0], [innerW, innerH]])
+    .translateExtent([[0, 0], [innerW, innerH]])
+    .filter(event => {
+      if(event.type === 'wheel') return true;
+      return !event.ctrlKey && !event.button;
+    })
+    .on('zoom', (event) => {
+      const t = event.transform;
+      trackZoomX = d3.zoomIdentity.translate(t.x, 0).scale(t.k);
+      renderXY();
+    });
+
+  const zoomY = d3.zoom()
+    .scaleExtent([1, 80])
+    .extent([[0, 0], [margin.left, innerH]])
+    .translateExtent([[0, 0], [margin.left, innerH]])
+    .filter(event => {
+      if(event.type === 'wheel') return true;
+      return !event.ctrlKey && !event.button;
+    })
+    .on('zoom', (event) => {
+      const t = event.transform;
+      trackZoomY = d3.zoomIdentity.translate(0, t.y).scale(t.k);
+      renderXY();
+    });
+
+  const zoomRectX = g.append('rect')
+    .attr('class', 'zoom-rect')
+    .attr('width', innerW)
+    .attr('height', innerH)
+    .attr('pointer-events', 'all');
+
+  const zoomRectY = g.append('rect')
+    .attr('class', 'zoom-rect-y')
+    .attr('x', -margin.left)
+    .attr('width', margin.left)
+    .attr('height', innerH)
+    .attr('pointer-events', 'all');
+
+  zoomRectX.call(zoomX);
+  zoomRectY.call(zoomY);
+  zoomRectX.call(zoomX.transform, trackZoomX);
+  zoomRectY.call(zoomY.transform, d3.zoomIdentity.translate(0, trackZoomY.y).scale(trackZoomY.k));
+  renderXY();
+
+  zoomReset.onclick = () => {
+    trackZoomX = d3.zoomIdentity;
+    trackZoomY = d3.zoomIdentity;
+    zoomRectX.call(zoomX.transform, trackZoomX);
+    zoomRectY.call(zoomY.transform, trackZoomY);
+  };
+}
+
+function setSelection(next){
+  selection = next;
+  rebuildSelectionHighlight();
+  renderTokenList();
+  updateSelectUI();
+  if(selection?.kind === 'token'){
+    if(!trackOpen) setTrackPanel(true);
+    else updateTokenTrack();
+  } else {
+    updateTokenTrack();
+  }
+  draw();
+  updateFeatureStatus();
+}
+
 function edgeTimestamp(e){
   const t = Number(e.timestamp);
   return Number.isFinite(t) ? t : null;
@@ -769,6 +1456,99 @@ function formatTimestamp(ts){
   const d = new Date(ts * 1000);
   if(Number.isNaN(d.getTime())) return String(ts);
   return d.toISOString().replace('T', ' ').replace('.000Z', ' UTC');
+}
+
+// ---- load: JSON + .cbin ----
+function isCbinBuffer(buf){
+  if(!buf || buf.byteLength < 8 || !window.CabalBin) return false;
+  return new TextDecoder('ascii').decode(new Uint8Array(buf, 0, 8)) === CabalBin.MAGIC;
+}
+
+function isJsonBuffer(buf){
+  const u8 = new Uint8Array(buf);
+  for(let i = 0; i < Math.min(u8.length, 64); i++){
+    const c = u8[i];
+    if(c === 0x7b) return true;
+    if(c > 0x20) break;
+  }
+  return false;
+}
+
+function cbinToGraph(bin, label){
+  const nodes = [];
+  for(let i = 0; i < bin.nodeCount; i++){
+    const x = bin.node.x[i], y = bin.node.y[i];
+    const node = {
+      index: i,
+      address: bin.address(i),
+      x: Number.isFinite(x) ? x : null,
+      y: Number.isFinite(y) ? y : null,
+      group: bin.node.group[i],
+      in_tx: bin.node.in_tx[i],
+      out_tx: bin.node.out_tx[i],
+      value_in: bin.node.value_in[i],
+      value_out: bin.node.value_out[i],
+    };
+    if(bin.node.degree) node.degree = bin.node.degree[i];
+    if(bin.isBridge(i)) node.is_bridge = true;
+    if(bin.cabalBridge(i)) node.cabal_bridge = true;
+    if(bin.hub(i)) node.hub = true;
+    nodes.push(node);
+  }
+  const edges = [];
+  for(let i = 0; i < bin.edgeCount; i++){
+    const si = bin.edge.source_index[i], ti = bin.edge.target_index[i];
+    const edge = {
+      index: i,
+      source: bin.address(si),
+      target: bin.address(ti),
+      source_index: si,
+      target_index: ti,
+      value_eth: bin.edge.value_eth[i],
+    };
+    if(bin.edge.timestamp && bin.edge.timestamp[i]) edge.timestamp = bin.edge.timestamp[i];
+    if(bin.edge.group) edge.group = bin.edge.group[i];
+    const coll = bin.collection(i);
+    if(coll) edge.collection = coll;
+    const tok = bin.tokenId(i);
+    if(tok) edge.token_id = tok;
+    const lab = bin.label(i);
+    if(lab) edge.cabal_label = lab;
+    edges.push(edge);
+  }
+  const groups = new Set(nodes.map(n => n.group ?? 0));
+  return {
+    metadata: {
+      source: label || 'cbin',
+      format: 'cbin',
+      version: bin.version,
+      grouping: { group_count: groups.size },
+    },
+    nodes,
+    edges,
+  };
+}
+
+function loadBuffer(buf, label){
+  try{
+    let data, format;
+    if(isCbinBuffer(buf)){
+      data = cbinToGraph(CabalBin.parse(buf), label);
+      format = 'cbin';
+    }else if(isJsonBuffer(buf)){
+      data = JSON.parse(new TextDecoder().decode(buf));
+      format = 'json';
+    }else{
+      throw new Error('unknown format — expected JSON or .cbin (CABALBN1)');
+    }
+    graphFormat = format;
+    ingest(data, label);
+  }catch(err){
+    graphFormat = null;
+    showError(err.message);
+    status.validate = false;
+    updateFeatureStatus();
+  }
 }
 
 // ---- validation (fmt spec core) ----
@@ -912,7 +1692,7 @@ function setEdgeDisplayMode(mode){
 function updateEdgeDisplayUI(){
   document.getElementById('btnEdgeColor').classList.toggle('on', edgeDisplayMode === 'color');
   document.getElementById('btnEdgeWidth').classList.toggle('on', edgeDisplayMode === 'width');
-  document.getElementById('zeroEthLegend').hidden = edgeDisplayMode !== 'color';
+  document.getElementById('zeroEthLegend').hidden = !graph || !graphHasZeroEth(graph.edges);
   document.getElementById('tokenLegend').hidden = !graph || !graphHasTokens(graph.edges);
   document.getElementById('nftLegend').hidden = !graph || !graphHasNft(graph.nodes);
   document.getElementById('edgeDisplayHint').textContent =
@@ -962,17 +1742,96 @@ function updateNftFilterUI(){
     : 'hide non-NFT nodes and edges not touching an NFT node';
 }
 
-function setNftOnlyFilter(on){
-  if(!graph || !graphHasNft(graph.nodes)) return;
-  nftOnlyFilter = on;
+function updateDegreeFilterUI(){
+  const below = document.getElementById('filterDegBelow');
+  const above = document.getElementById('filterDegAbove');
+  const enabled = !!graph;
+  below.disabled = above.disabled = !enabled;
+  document.getElementById('btnFilterDegBelow').disabled = !enabled;
+  document.getElementById('btnFilterDegAbove').disabled = !enabled;
+  document.getElementById('btnFilterDegClear').disabled =
+    !enabled || (degreeHideBelow === null && degreeHideAbove === null);
+  document.getElementById('btnFilterDegBelow').classList.toggle('on', degreeHideBelow !== null);
+  document.getElementById('btnFilterDegAbove').classList.toggle('on', degreeHideAbove !== null);
+  if(degreeHideBelow !== null) below.value = String(degreeHideBelow);
+  else if(document.activeElement !== below) below.value = '';
+  if(degreeHideAbove !== null) above.value = String(degreeHideAbove);
+  else if(document.activeElement !== above) above.value = '';
+  if(!enabled){
+    document.getElementById('degreeFilterHint').textContent =
+      'hide low- or high-degree nodes and their incident edges';
+    return;
+  }
+  const parts = [];
+  if(degreeHideBelow !== null) parts.push(`hiding degree &lt; ${degreeHideBelow}`);
+  if(degreeHideAbove !== null) parts.push(`hiding degree &gt; ${degreeHideAbove}`);
+  document.getElementById('degreeFilterHint').innerHTML = parts.length
+    ? parts.join(' · ')
+    : 'hide low- or high-degree nodes and their incident edges';
+}
+
+function pruneSelectionForVisibility(){
   if(selection?.kind === 'node'){
-    const n = graph.nodes[selection.index];
+    const n = graph?.nodes[selection.index];
     if(!n || !nodeVisible(n)) selection = null;
   }
   if(selection?.kind === 'edge'){
-    const e = graph.edges[selection.index];
+    const e = graph?.edges[selection.index];
     if(!e || !edgeVisible(e, graph.nodes)) selection = null;
   }
+  rebuildSelectionHighlight();
+}
+
+function applyVisibilityFilters(){
+  pruneSelectionForVisibility();
+  populateSelectPanel();
+  autoFit = true;
+  updatePanel();
+  draw();
+  updateFeatureStatus();
+}
+
+function parseDegreeFilterValue(raw){
+  if(raw === '') return null;
+  const n = Number(raw);
+  if(!Number.isFinite(n) || n < 0) throw new Error('degree filter must be a non-negative number');
+  return n;
+}
+
+function applyDegreeHideBelow(){
+  if(!graph) return;
+  try{
+    degreeHideBelow = parseDegreeFilterValue(document.getElementById('filterDegBelow').value.trim());
+    clearError();
+    applyVisibilityFilters();
+  }catch(err){
+    showError(err.message);
+  }
+}
+
+function applyDegreeHideAbove(){
+  if(!graph) return;
+  try{
+    degreeHideAbove = parseDegreeFilterValue(document.getElementById('filterDegAbove').value.trim());
+    clearError();
+    applyVisibilityFilters();
+  }catch(err){
+    showError(err.message);
+  }
+}
+
+function clearDegreeFilters(){
+  degreeHideBelow = null;
+  degreeHideAbove = null;
+  document.getElementById('filterDegBelow').value = '';
+  document.getElementById('filterDegAbove').value = '';
+  applyVisibilityFilters();
+}
+
+function setNftOnlyFilter(on){
+  if(!graph || !graphHasNft(graph.nodes)) return;
+  nftOnlyFilter = on;
+  pruneSelectionForVisibility();
   updateNftFilterUI();
   populateSelectPanel();
   autoFit = true;
@@ -988,11 +1847,16 @@ function toggleNftOnlyFilter(){
 function updateTimelineUI(){
   const slider = document.getElementById('timeSlider');
   const enabled = !!graph && timeValues.length > 0;
+  if(!enabled && timePlaying) stopTimePlayback();
   slider.disabled = !enabled;
   slider.max = Math.max(0, timeValues.length - 1);
   slider.value = Math.min(timeIndex, Math.max(0, timeValues.length - 1));
   document.getElementById('btnTimeUpto').classList.toggle('on', timeDisplayMode === 'upto');
   document.getElementById('btnTimeCurrent').classList.toggle('on', timeDisplayMode === 'current');
+  document.getElementById('btnTimePlay').disabled = !enabled;
+  document.getElementById('btnTimePause').disabled = !enabled;
+  document.getElementById('btnTimePlay').classList.toggle('on', timePlaying);
+  document.getElementById('btnTimePause').classList.toggle('on', enabled && !timePlaying);
   if(!enabled){
     document.getElementById('timeCurrent').textContent = graph ? 'no timestamps' : 'all edges';
     document.getElementById('timeCount').textContent = graph ? graph.edges.length : '—';
@@ -1004,15 +1868,71 @@ function updateTimelineUI(){
   const current = timeValues[timeIndex];
   document.getElementById('timeCurrent').textContent = formatTimestamp(current);
   document.getElementById('timeCount').textContent = filteredEdges(graph.edges, graph.nodes).length + '/' + graph.edges.length;
-  document.getElementById('timeHint').textContent = timeDisplayMode === 'upto'
-    ? 'shows all edges up to the selected time'
-    : 'shows only edges at the selected timestamp';
+  document.getElementById('timeHint').textContent = timePlaying
+    ? 'playing through timestamps'
+    : (timeDisplayMode === 'upto'
+      ? 'shows all edges up to the selected time'
+      : 'shows only edges at the selected timestamp');
+}
+
+function stopTimePlayback(){
+  timePlaying = false;
+  if(timePlayTimer != null){
+    clearInterval(timePlayTimer);
+    timePlayTimer = null;
+  }
+}
+
+function setTimeIndex(i, {fromPlay = false} = {}){
+  if(!timeValues.length) return;
+  timeIndex = Math.max(0, Math.min(i, timeValues.length - 1));
+  updatePanel();
+  draw();
+  updateTokenTrack();
+  updateFeatureStatus();
+  if(!fromPlay) updateTimelineUI();
+}
+
+function advanceTimePlayback(){
+  if(!timeValues.length){
+    stopTimePlayback();
+    updateTimelineUI();
+    return;
+  }
+  if(timeIndex >= timeValues.length - 1){
+    stopTimePlayback();
+    updateTimelineUI();
+    updateFeatureStatus();
+    return;
+  }
+  setTimeIndex(timeIndex + 1, {fromPlay:true});
+  updateTimelineUI();
+}
+
+function startTimePlayback(){
+  if(!graph || timeValues.length < 2) return;
+  if(timeIndex >= timeValues.length - 1) timeIndex = 0;
+  stopTimePlayback();
+  timePlaying = true;
+  updatePanel();
+  draw();
+  updateTokenTrack();
+  updateFeatureStatus();
+  timePlayTimer = setInterval(advanceTimePlayback, TIME_PLAY_MS);
+}
+
+function pauseTimePlayback(){
+  if(!timePlaying) return;
+  stopTimePlayback();
+  updateTimelineUI();
+  updateFeatureStatus();
 }
 
 function setTimeMode(mode){
   timeDisplayMode = mode;
   updateTimelineUI();
   draw();
+  updateTokenTrack();
   updateFeatureStatus();
 }
 
@@ -1035,16 +1955,22 @@ function buildEdgeGeometry(nodes, edges){
 
 function layers(allNodes, renderNodes, edges){
   const {min, max} = ethRange(edges);
-  const selKey = selection ? `${selection.kind}:${selection.token ?? selection.index}` : '';
+  const selKey = selection
+    ? `${selection.kind}:${selection.token ?? selection.index ?? selection.minDegree}` +
+      (selection.kind === 'token' ? `:${timeIndex}:${timeDisplayMode}` : '')
+    : '';
   const edgeColor = e => {
+    if(isZeroEth(e)) return zeroEthEdgeColor(255);
     if(selection){
-      if(isEdgeHighlighted(e)) return [93, 255, 200, 255];
+      if(isEdgeFocus(e)) return [255, 240, 100, 255];
+      if(isEdgeHighlighted(e)) return [93, 255, 200, 160];
       return [45, 48, 58, 35];
     }
     return baseEdgeColor(e, allNodes, min, max);
   };
   const edgeWidth = e => {
-    if(selection && isEdgeHighlighted(e)) return FIXED_EDGE_WIDTH * 1.35;
+    if(selection && isEdgeFocus(e)) return FIXED_EDGE_WIDTH * 2.2;
+    if(selection && isEdgeHighlighted(e)) return FIXED_EDGE_WIDTH * 1.15;
     if(hasToken(e) && edgeDisplayMode === 'width') return edgeWidthFactor(e) * 1.25;
     return edgeDisplayMode === 'width' ? edgeWidthFactor(e) : FIXED_EDGE_WIDTH;
   };
@@ -1085,24 +2011,28 @@ function layers(allNodes, renderNodes, edges){
       getPosition:n=>[n.x,n.y],
       getRadius:n=>{
         const base = Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1);
-        if(selection && isNodeHighlighted(n, graph.edges)) return base * (isNftNode(n) ? 1.5 : 1.3);
+        if(selection && isNodeFocus(n)) return base * (isNftNode(n) ? 1.85 : 1.7);
+        if(selection && isNodeHighlighted(n)) return base * (isNftNode(n) ? 1.35 : 1.15);
         return base * (isNftNode(n) ? 1.35 : 1);
       },
       radiusUnits:'common', radiusScale:0.09, radiusMinPixels:3, radiusMaxPixels:22,
       getFillColor:n=>{
-        if(selection && !isNodeHighlighted(n, graph.edges)) return [70, 72, 80, 90];
+        if(selection && isNodeFocus(n)) return [255, 240, 100];
+        if(selection && !isNodeHighlighted(n)) return [70, 72, 80, 90];
         return isNftNode(n) ? [255, 225, 74] : groupColor(n.group ?? 0);
       },
       stroked:true, lineWidthUnits:'pixels',
       getLineWidth:n=>{
-        if(selection && isNodeHighlighted(n, graph.edges)) return isNftNode(n) ? 5 : 3;
+        if(selection && isNodeFocus(n)) return isNftNode(n) ? 6 : 4;
+        if(selection && isNodeHighlighted(n)) return isNftNode(n) ? 4 : 2;
         return isNftNode(n) ? 4 : (n.is_bridge ? 2 : 0);
       },
       getLineColor:n=>{
-        if(selection && isNodeHighlighted(n, graph.edges)) return [93, 255, 200, 255];
+        if(selection && isNodeFocus(n)) return [255, 240, 100, 255];
+        if(selection && isNodeHighlighted(n)) return [93, 255, 200, 255];
         return isNftNode(n) ? [255, 74, 216] : (n.cabal_bridge ? [255, 255, 255] : (n.is_bridge ? [255, 210, 79] : [0, 0, 0, 0]));
       },
-      updateTriggers:{getPosition:tick, getRadius:selKey, getFillColor:selKey, getLineWidth:selKey},
+      updateTriggers:{getPosition:tick, getRadius:selKey, getFillColor:selKey, getLineWidth:selKey, getLineColor:selKey},
       pickable:true
     })
   ];
@@ -1142,6 +2072,7 @@ function buildTooltip({object}){
 
 function draw(){
   if(!graph) return;
+  if(selection?.kind === 'token') rebuildSelectionHighlight();
   const {nodes} = graph;
   const renderNodes = filteredNodes(nodes);
   const edges = filteredEdges(graph.edges, nodes);
@@ -1191,7 +2122,8 @@ function updatePanel(){
     document.getElementById('nL').textContent = '—';
     return;
   }
-  document.getElementById('nN').textContent = (nftOnlyFilter || componentFilter !== null)
+  document.getElementById('nN').textContent = (nftOnlyFilter || componentFilter !== null
+      || degreeHideBelow !== null || degreeHideAbove !== null)
     ? filteredNodes(graph.nodes).length + '/' + graph.nodes.length
     : graph.nodes.length;
   document.getElementById('nE').textContent = filteredEdges(graph.edges, graph.nodes).length + '/' + graph.edges.length;
@@ -1201,6 +2133,7 @@ function updatePanel(){
   updateLayoutUI();
   updateTimelineUI();
   updateNftFilterUI();
+  updateDegreeFilterUI();
   updateSelectUI();
 }
 
@@ -1209,6 +2142,7 @@ function updateFeatureStatus(){
   status.format = loaded;
   status.validate = loaded;
   status.loadFile = loaded;
+  status.loadCbin = loaded && graphFormat === 'cbin';
   status.loadCatalog = loaded && !!currentCatalogFile;
   status.urlSrc = !!new URLSearchParams(location.search).get('src') && loaded;
   status.directed = loaded && graph.edges.length > 0;
@@ -1218,18 +2152,22 @@ function updateFeatureStatus(){
   status.layoutForce = loaded && layoutMode === 'force';
   status.layoutSwitch = loaded;
   status.timeline = loaded && timeValues.length > 0;
+  status.timelinePlay = loaded && timePlaying;
   status.timelineMode = loaded && timeValues.length > 0;
   status.panelMain = panelOpen;
   status.tooltips = loaded;
   status.panZoom = true;
   status.edgeDisplay = loaded && graph.edges.some(e => e.value_eth != null);
-  status.zeroEthLegend = loaded && edgeDisplayMode === 'color';
+  status.zeroEthLegend = loaded && graphHasZeroEth(graph.edges);
   status.tokenEdges = loaded && graphHasTokens(graph.edges);
   status.nftNodes = loaded && graphHasNft(graph.nodes);
   status.nftOnlyFilter = loaded && nftOnlyFilter && graphHasNft(graph.nodes);
+  status.degreeFilter = loaded && (degreeHideBelow !== null || degreeHideAbove !== null);
   status.selectPanel = selectOpen;
   status.componentFilter = loaded && componentFilter !== null;
   status.tokenSelect = loaded && selection?.kind === 'token';
+  status.tokenTrack = trackOpen && selection?.kind === 'token';
+  status.degreeSelect = loaded && selection?.kind === 'degree';
   status.nodeSize = loaded && graph.nodes.some(n => n.in_tx != null || n.out_tx != null);
   status.bridges = loaded && graph.nodes.some(n => n.is_bridge || n.cabal_bridge);
   status.featPanel = featOpen;
@@ -1255,6 +2193,7 @@ function setGraphPick(file){
 }
 
 function resetTimeline(edges){
+  stopTimePlayback();
   timeValues = deriveTimeValues(edges);
   timeIndex = Math.max(0, timeValues.length - 1);
 }
@@ -1265,10 +2204,17 @@ function resetNftFilter(nodes){
 
 function resetSelectionOnLoad(){
   selection = null;
+  selectionHighlight = null;
+  tokenEdgeIndex = null;
 }
 
 function resetComponentFilterOnLoad(){
   componentFilter = null;
+}
+
+function resetDegreeFiltersOnLoad(){
+  degreeHideBelow = null;
+  degreeHideAbove = null;
 }
 
 function populateGraphPick(graphs){
@@ -1294,10 +2240,10 @@ function loadCatalog(){
 function loadGraphFile(file){
   if(!file) return;
   fetch(file)
-    .then(r => { if(!r.ok) throw new Error(r.statusText); return r.json(); })
-    .then(data => {
+    .then(r => { if(!r.ok) throw new Error(r.statusText); return r.arrayBuffer(); })
+    .then(buf => {
       setGraphPick(file);
-      ingest(data, file);
+      loadBuffer(buf, file);
     })
     .catch(err => showError('load failed: '+err.message));
 }
@@ -1306,11 +2252,14 @@ function ingest(data, label){
   try{
     validateGraph(data);
     graph = data;
+    tokenEdgeIndex = buildTokenEdgeIndex(data.edges);
+    if(!graphFormat) graphFormat = data.metadata?.format === 'cbin' ? 'cbin' : 'json';
     bakedPos = data.nodes.map(n => [n.x, n.y]);
     resetTimeline(data.edges);
     resetNftFilter(data.nodes);
     resetSelectionOnLoad();
     resetComponentFilterOnLoad();
+    resetDegreeFiltersOnLoad();
     populateSelectPanel();
     if(!hasBakedLayout(data.nodes) && layoutMode === 'baked') layoutMode = 'force';
     const fromCatalog = graphCatalog.some(g => g.file === label);
@@ -1324,19 +2273,18 @@ function ingest(data, label){
     else { layoutMode = 'force'; updateLayoutUI(); runForceLayout(); }
     updateFeatureStatus();
   }catch(err){
+    graphFormat = null;
     showError(err.message);
     status.validate = false;
     updateFeatureStatus();
   }
 }
 
-function loadText(text, label){ ingest(JSON.parse(text), label); }
-
 function loadFile(f){
   setGraphPick('');
   const r = new FileReader();
-  r.onload = () => { try { loadText(r.result, f.name); } catch(e) { showError('bad JSON: '+e.message); } };
-  r.readAsText(f);
+  r.onload = () => loadBuffer(r.result, f.name);
+  r.readAsArrayBuffer(f);
 }
 
 // ---- panels ----
@@ -1362,32 +2310,38 @@ function setFeatPanel(open){
 
 document.getElementById('selectToggle').addEventListener('click', () => setSelectPanel(!selectOpen));
 document.getElementById('selectClose').addEventListener('click', () => setSelectPanel(false));
+document.getElementById('trackToggle').addEventListener('click', () => setTrackPanel(!trackOpen));
+document.getElementById('trackClose').addEventListener('click', () => setTrackPanel(false));
 document.getElementById('clearSelection').addEventListener('click', resetSelection);
 document.getElementById('groupPick').addEventListener('change', e => {
   const v = e.target.value;
   setComponentFilter(v === '' ? null : Number(v));
 });
-document.getElementById('tokenSearch').addEventListener('input', () => {
-  renderTokenPick();
-  updateSelectUI();
+document.getElementById('degreeApply').addEventListener('click', applyDegreeThreshold);
+document.getElementById('degreeMin').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); applyDegreeThreshold(); }
 });
-document.getElementById('tokenPick').addEventListener('change', e => {
-  const v = e.target.value;
-  if(!v){ resetSelection(); return; }
+document.getElementById('tokenSearch').addEventListener('input', scheduleTokenListRender);
+document.getElementById('tokenList').addEventListener('click', e => {
+  const btn = e.target.closest('.token-item');
+  if(!btn) return;
   document.getElementById('nodePick').value = '';
   document.getElementById('edgePick').value = '';
-  setSelection({kind:'token', token:v});
+  document.getElementById('degreeMin').value = '';
+  setSelection({kind:'token', token:btn.dataset.token});
 });
 document.getElementById('nodePick').addEventListener('change', e => {
   const v = e.target.value;
   if(v === ''){ resetSelection(); return; }
   document.getElementById('edgePick').value = '';
+  document.getElementById('degreeMin').value = '';
   setSelection({kind:'node', index:Number(v)});
 });
 document.getElementById('edgePick').addEventListener('change', e => {
   const v = e.target.value;
   if(v === ''){ resetSelection(); return; }
   document.getElementById('nodePick').value = '';
+  document.getElementById('degreeMin').value = '';
   setSelection({kind:'edge', index:Number(v)});
 });
 
@@ -1408,12 +2362,25 @@ document.getElementById('timeModeSeg').addEventListener('click', e => {
   if(btn) setTimeMode(btn.dataset.mode);
 });
 document.getElementById('timeSlider').addEventListener('input', e => {
+  pauseTimePlayback();
   timeIndex = Number(e.target.value) || 0;
   updatePanel();
   draw();
+  updateTokenTrack();
   updateFeatureStatus();
 });
+document.getElementById('btnTimePlay').addEventListener('click', startTimePlayback);
+document.getElementById('btnTimePause').addEventListener('click', pauseTimePlayback);
 document.getElementById('btnNftOnly').addEventListener('click', toggleNftOnlyFilter);
+document.getElementById('btnFilterDegBelow').addEventListener('click', applyDegreeHideBelow);
+document.getElementById('btnFilterDegAbove').addEventListener('click', applyDegreeHideAbove);
+document.getElementById('btnFilterDegClear').addEventListener('click', clearDegreeFilters);
+document.getElementById('filterDegBelow').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); applyDegreeHideBelow(); }
+});
+document.getElementById('filterDegAbove').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ e.preventDefault(); applyDegreeHideAbove(); }
+});
 document.getElementById('graphPick').addEventListener('change', e => {
   if(e.target.value) loadGraphFile(e.target.value);
 });
@@ -1430,20 +2397,28 @@ addEventListener('drop', e => {
   if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
 });
 
+addEventListener('resize', () => {
+  if(trackOpen) updateTokenTrack(true);
+});
+
 renderFeatureList();
 updateFeatureStatus();
 updateEdgeDisplayUI();
 updateNftFilterUI();
+updateDegreeFilterUI();
 updateSelectUI();
 populateSelectPanel();
 
 loadCatalog().then(() => {
   const src = new URLSearchParams(location.search).get('src');
   if(src){
-    fetch(src).then(r => r.json()).then(data => {
-      if(graphCatalog.some(g => g.file === src)) setGraphPick(src);
-      ingest(data, src);
-    }).catch(err => showError('fetch failed: '+err.message));
+    fetch(src)
+      .then(r => { if(!r.ok) throw new Error(r.statusText); return r.arrayBuffer(); })
+      .then(buf => {
+        if(graphCatalog.some(g => g.file === src)) setGraphPick(src);
+        loadBuffer(buf, src);
+      })
+      .catch(err => showError('fetch failed: '+err.message));
   }
 });
 </script>
