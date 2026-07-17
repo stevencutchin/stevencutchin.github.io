@@ -360,6 +360,7 @@
   <div class="track-sub" id="trackSub">select a token to plot addresses over timesteps</div>
   <div class="track-actions">
     <button class="btn" type="button" id="trackZoomReset" disabled>Reset zoom</button>
+    <button class="btn" type="button" id="trackAddrOrder" title="Toggle address order (top → bottom)">Oldest top</button>
     <span class="hint" style="margin:0">plot: zoom/pan time · address labels: zoom/pan addresses</span>
   </div>
   <div class="track-chart" id="trackChart"></div>
@@ -511,6 +512,8 @@ let lastTrackKey = '';
 let trackZoomX = d3.zoomIdentity;
 let trackZoomY = d3.zoomIdentity;
 let trackZoomToken = null;
+/** false = oldest address on top (first appearance); true = newest on top */
+let trackAddrNewestTop = false;
 let panelOpen = true;
 let selection = null;
 let selectionHighlight = null;
@@ -1254,12 +1257,14 @@ function updateTokenTrack(force = false){
     zoomReset.disabled = true;
     return;
   }
+  const orderKey = trackAddrNewestTop ? 'newest' : 'oldest';
   const key = selection?.kind === 'token'
-    ? `${selection.token}:${timeIndex}:${timeDisplayMode}:${selectionHighlight?.focusEdgeIndex ?? ''}`
+    ? `${selection.token}:${timeIndex}:${timeDisplayMode}:${selectionHighlight?.focusEdgeIndex ?? ''}:${orderKey}`
     : 'none';
   if(!force && key === lastTrackKey && host.querySelector('svg')) return;
   lastTrackKey = key;
   host.replaceChildren();
+  updateTrackAddrOrderUI();
   if(!graph || selection?.kind !== 'token'){
     sub.textContent = 'select a token to plot addresses over timesteps';
     zoomReset.disabled = true;
@@ -1276,7 +1281,8 @@ function updateTokenTrack(force = false){
   }
   sub.innerHTML =
     `<b>${selection.token}</b> · ${data.hops.length} transfer${data.hops.length === 1 ? '' : 's'} · ` +
-    `${data.addrOrder.length} address${data.addrOrder.length === 1 ? '' : 'es'}`;
+    `${data.addrOrder.length} address${data.addrOrder.length === 1 ? '' : 'es'} · ` +
+    (trackAddrNewestTop ? 'newest on top' : 'oldest on top');
 
   if(trackZoomToken !== selection.token){
     trackZoomToken = selection.token;
@@ -1294,6 +1300,7 @@ function updateTokenTrack(force = false){
   const tMin = data.hops[0].t;
   const tMax = data.hops[data.hops.length - 1].t;
   const nAddr = data.addrOrder.length;
+  const mapY = i => trackAddrNewestTop ? (nAddr - 1 - i) : i;
   const x0 = d3.scaleLinear()
     .domain(tMin === tMax ? [tMin - 1, tMax + 1] : [tMin, tMax])
     .range([0, innerW]);
@@ -1368,31 +1375,31 @@ function updateTokenTrack(force = false){
     const x = trackZoomX.rescaleX(x0);
     const y = trackZoomY.rescaleY(y0);
     gridSel
-      .attr('y1', d => y(d))
-      .attr('y2', d => y(d));
+      .attr('y1', d => y(mapY(d)))
+      .attr('y2', d => y(mapY(d)));
     holdSel
       .attr('x1', d => x(d.t0))
       .attr('x2', d => x(d.t1))
-      .attr('y1', d => y(d.y))
-      .attr('y2', d => y(d.y));
+      .attr('y1', d => y(mapY(d.y)))
+      .attr('y2', d => y(mapY(d.y)));
     hopSel
       .attr('x1', d => x(d.t))
       .attr('x2', d => x(d.t))
-      .attr('y1', d => y(d.ys))
-      .attr('y2', d => y(d.yt));
+      .attr('y1', d => y(mapY(d.ys)))
+      .attr('y2', d => y(mapY(d.yt)));
     ptSel
       .attr('cx', d => x(d.t))
-      .attr('cy', d => y(d.y));
+      .attr('cy', d => y(mapY(d.y)));
     xAxisG.call(d3.axisBottom(x).ticks(6).tickFormat(formatTick));
     yLabelG.selectAll('text')
       .data(data.addrOrder.map((addr, i) => ({addr, i})))
       .join('text')
       .attr('x', -8)
-      .attr('y', d => y(d.i))
+      .attr('y', d => y(mapY(d.i)))
       .attr('dy', '0.32em')
       .attr('text-anchor', 'end')
       .attr('opacity', d => {
-        const yy = y(d.i);
+        const yy = y(mapY(d.i));
         return yy >= -2 && yy <= innerH + 2 ? 1 : 0;
       })
       .text(d => shortAddr(d.addr));
@@ -1467,6 +1474,22 @@ function updateTokenTrack(force = false){
     zoomRectX.call(zoomX.transform, trackZoomX);
     zoomRectY.call(zoomY.transform, trackZoomY);
   };
+}
+
+function updateTrackAddrOrderUI(){
+  const btn = document.getElementById('trackAddrOrder');
+  if(!btn) return;
+  btn.textContent = trackAddrNewestTop ? 'Newest top' : 'Oldest top';
+  btn.classList.toggle('on', trackAddrNewestTop);
+  btn.title = trackAddrNewestTop
+    ? 'Addresses: newest first appearance on top (click for oldest top)'
+    : 'Addresses: oldest first appearance on top (click for newest top)';
+}
+
+function toggleTrackAddrOrder(){
+  trackAddrNewestTop = !trackAddrNewestTop;
+  updateTrackAddrOrderUI();
+  updateTokenTrack(true);
 }
 
 function setSelection(next){
@@ -2449,6 +2472,7 @@ document.getElementById('selectToggle').addEventListener('click', () => setSelec
 document.getElementById('selectClose').addEventListener('click', () => setSelectPanel(false));
 document.getElementById('trackToggle').addEventListener('click', () => setTrackPanel(!trackOpen));
 document.getElementById('trackClose').addEventListener('click', () => setTrackPanel(false));
+document.getElementById('trackAddrOrder').addEventListener('click', toggleTrackAddrOrder);
 document.getElementById('clearSelection').addEventListener('click', resetSelection);
 document.getElementById('groupPick').addEventListener('change', e => {
   const v = e.target.value;
@@ -2546,6 +2570,7 @@ updateFeatureStatus();
 updateEdgeDisplayUI();
 updateNftFilterUI();
 updateDegreeFilterUI();
+updateTrackAddrOrderUI();
 updateSelectUI();
 populateSelectPanel();
 
