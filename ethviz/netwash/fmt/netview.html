@@ -26,6 +26,15 @@
   }
   .panel-toggle:hover,.panel-toggle.on{border-color:var(--accent);color:var(--ink)}
   .panel-toggle.on{background:var(--line)}
+  .palette-toggle{
+    position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:13;
+    border:1px solid var(--line);background:var(--panel);color:var(--accent);
+    border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:.08em;
+    cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4);
+    white-space:nowrap;
+  }
+  .palette-toggle:hover,.palette-toggle.on{border-color:var(--accent);color:var(--ink)}
+  .palette-toggle.on{background:var(--line)}
   .panel{
     position:fixed;top:50px;left:14px;z-index:12;background:var(--panel);
     border:1px solid var(--line);border-radius:6px;padding:13px 15px;min-width:230px;
@@ -139,6 +148,31 @@
   }
   .select-toggle:hover,.select-toggle.on{border-color:var(--accent);color:var(--ink)}
   .select-toggle.on{background:var(--line)}
+  .box-select-toggle{
+    position:fixed;top:14px;right:260px;z-index:13;
+    border:1px solid var(--line);background:var(--panel);color:var(--accent);
+    border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:.08em;
+    cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  .box-select-toggle:hover,.box-select-toggle.on{border-color:var(--accent);color:var(--ink)}
+  .box-select-toggle.on{background:var(--line)}
+  .move-select-toggle{
+    position:fixed;top:14px;right:358px;z-index:13;
+    border:1px solid var(--line);background:var(--panel);color:var(--accent);
+    border-radius:4px;padding:7px 12px;font:inherit;font-size:11px;letter-spacing:.08em;
+    cursor:pointer;box-shadow:0 8px 30px rgba(0,0,0,.4);
+  }
+  .move-select-toggle:hover,.move-select-toggle.on{border-color:var(--accent);color:var(--ink)}
+  .move-select-toggle.on{background:var(--line)}
+  body.move-select-mode #deck{cursor:move}
+  body.move-select-mode.moving-nodes #deck{cursor:grabbing}
+  .box-select-rect{
+    position:fixed;z-index:11;pointer-events:none;
+    border:1.5px solid var(--accent);background:rgba(217,213,200,.12);
+    display:none;
+  }
+  .box-select-rect.on{display:block}
+  body.box-select-mode #deck{cursor:crosshair}
   .track-toggle{
     position:fixed;top:14px;right:178px;z-index:13;
     border:1px solid var(--line);background:var(--panel);color:var(--accent);
@@ -165,11 +199,11 @@
   .track-chart .axis text{fill:var(--dim);font-size:9px}
   .track-chart .axis line,.track-chart .axis path{stroke:var(--line)}
   .track-chart .grid line{stroke:var(--line);stroke-opacity:.55}
-  .track-chart .hop{fill:none;stroke:#5dffc8;stroke-width:1.5;opacity:.85}
-  .track-chart .hold{fill:none;stroke:#5dffc8;stroke-width:1.2;opacity:.35;stroke-dasharray:3 3}
-  .track-chart .pt{fill:#5dffc8;stroke:var(--panel);stroke-width:1}
-  .track-chart .pt.focus{fill:#fff064;stroke:#fff064}
-  .track-chart .cursor{stroke:#fff064;stroke-width:1.5;opacity:.9}
+  .track-chart .hop{fill:none;stroke:var(--track-hop,#5dffc8);stroke-width:1.5;opacity:.85}
+  .track-chart .hold{fill:none;stroke:var(--track-hop,#5dffc8);stroke-width:1.2;opacity:.35;stroke-dasharray:3 3}
+  .track-chart .pt{fill:var(--track-hop,#5dffc8);stroke:var(--panel);stroke-width:1}
+  .track-chart .pt.focus{fill:var(--track-focus,#fff064);stroke:var(--track-focus,#fff064)}
+  .track-chart .cursor{stroke:var(--track-focus,#fff064);stroke-width:1.5;opacity:.9}
   .track-chart .ylab{fill:var(--dim);font-size:9px}
   .track-chart .zoom-rect{fill:transparent;cursor:ew-resize}
   .track-chart .zoom-rect-y{fill:transparent;cursor:ns-resize}
@@ -228,8 +262,8 @@
     border:1px solid #313438;border-radius:5px;padding:7px 9px;max-width:320px}
   .tip .a{color:#9fd0ff;word-break:break-all}
   .tip .m{color:#8b8a83}
-  .tip .tok{color:#5dffc8;font-weight:600}
-  .tip .nft{color:#ff4ad8;font-weight:700;letter-spacing:.08em;margin-bottom:4px}
+  .tip .tok{color:var(--tip-tok,#5dffc8);font-weight:600}
+  .tip .nft{color:var(--tip-nft,#ff4ad8);font-weight:700;letter-spacing:.08em;margin-bottom:4px}
   .tip .time{color:#c9b8ff}
   .err{color:#f87171;font-size:11px;margin-top:6px}
 </style>
@@ -238,6 +272,7 @@
 <div id="deck"></div>
 
 <button class="panel-toggle on" type="button" id="panelToggle" aria-expanded="true" aria-controls="mainPanel">Netview ▾</button>
+<button class="palette-toggle on" type="button" id="paletteToggle" aria-pressed="true" title="Switch between color-safe and classic palettes">Palette: Color safe</button>
 
 <aside class="panel open" id="mainPanel" aria-hidden="false">
   <div class="panel-head">
@@ -267,6 +302,15 @@
       <button type="button" data-mode="width" id="btnEdgeWidth">width by ETH</button>
     </div>
     <div class="hint" id="edgeDisplayHint">fixed width · color = ETH value</div>
+  </div>
+
+  <div class="section">
+    <h2>Node Size</h2>
+    <div class="seg" id="nodeSizeSeg">
+      <button type="button" data-mode="degree" id="btnNodeSizeDegree" class="on">by degree</button>
+      <button type="button" data-mode="fixed" id="btnNodeSizeFixed">fixed (deg 1)</button>
+    </div>
+    <div class="hint" id="nodeSizeHint">radius scales with in_tx + out_tx</div>
   </div>
 
   <div class="section">
@@ -335,22 +379,25 @@
 
   <div class="section legend">
     <h2>Legend</h2>
-    <div class="k" id="edgeLegend"><span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value</div>
-    <div class="k" id="zeroEthLegend" hidden><span class="sw" style="background:#ff4aa3"></span>0 ETH transaction</div>
-    <div class="k" id="tokenMarketLegend" hidden><span class="sw" style="background:#00ffea;box-shadow:0 0 6px #00ffea"></span>token market edge</div>
-    <div class="k" id="ethMarketLegend" hidden><span class="sw" style="background:#ff8200;box-shadow:0 0 6px #ff8200"></span>ethereum market edge</div>
-    <div class="k" id="tokenLegend" hidden><span class="sw" style="background:#5dffc8"></span>token-tagged edge</div>
-    <div class="k" id="nftLegend" hidden><span class="dot" style="border-color:#ff4ad8;background:#ffe14a;box-shadow:0 0 6px #ff4ad8"></span>NFT node</div>
-    <div class="k" id="selectLegend" hidden><span class="sw" style="background:#5dffc8;box-shadow:0 0 8px #5dffc8"></span>selected · dimmed = filtered out</div>
-    <div class="k" id="tokenFocusLegend" hidden><span class="sw" style="background:#fff064;box-shadow:0 0 8px #fff064"></span>current token transfer</div>
-    <div class="k"><span class="dot" style="border-color:#ffd24f;background:transparent"></span>cut vertex</div>
+    <div class="k" id="edgeLegend"><span class="sw" id="edgeLegendSw" style="background:#d9d5c8"></span>directed edge · width = ETH value</div>
+    <div class="k" id="zeroEthLegend" hidden><span class="sw" id="zeroEthLegendSw" style="background:#cc79a7"></span>0 ETH transaction</div>
+    <div class="k" id="tokenMarketLegend" hidden><span class="sw" id="tokenMarketLegendSw" style="background:#56b4e9;box-shadow:0 0 6px #56b4e9"></span>token market edge</div>
+    <div class="k" id="ethMarketLegend" hidden><span class="sw" id="ethMarketLegendSw" style="background:#e69f00;box-shadow:0 0 6px #e69f00"></span>ethereum market edge</div>
+    <div class="k" id="tokenLegend" hidden><span class="sw" id="tokenLegendSw" style="background:#009e73"></span>token-tagged edge</div>
+    <div class="k" id="nftLegend" hidden><span class="dot" id="nftLegendDot" style="border-color:#0072b2;background:#f0e442;box-shadow:0 0 6px #0072b2"></span>NFT node</div>
+    <div class="k" id="selectLegend" hidden><span class="sw" id="selectLegendSw" style="background:#56b4e9;box-shadow:0 0 8px #56b4e9"></span>selected · dimmed = filtered out</div>
+    <div class="k" id="tokenFocusLegend" hidden><span class="sw" id="tokenFocusLegendSw" style="background:#f0e442;box-shadow:0 0 8px #f0e442"></span>current token transfer</div>
+    <div class="k"><span class="dot" id="cutLegendDot" style="border-color:#e69f00;background:transparent"></span>cut vertex</div>
     <div class="k"><span class="dot" style="border-color:#fff;background:transparent"></span>cabal bridge</div>
-    <div class="k"><span class="dot" style="background:hsl(137deg,62%,58%);border:none"></span>color = component (group)</div>
+    <div class="k"><span class="dot" id="groupLegendDot" style="background:#e69f00;border:none"></span>color = component (group)</div>
   </div>
 </aside>
 
 <button class="track-toggle" type="button" id="trackToggle" aria-expanded="false" aria-controls="trackPanel">Token track</button>
+<button class="move-select-toggle" type="button" id="moveSelectToggle" aria-pressed="false" title="Drag selected nodes as a group">Move select</button>
+<button class="box-select-toggle" type="button" id="boxSelectToggle" aria-pressed="false" title="Click a node or drag a rectangle to select nodes and their edges">Box select</button>
 <button class="select-toggle" type="button" id="selectToggle" aria-expanded="false" aria-controls="selectPanel">Select</button>
+<div class="box-select-rect" id="boxSelectRect" aria-hidden="true"></div>
 
 <aside class="track-panel" id="trackPanel" aria-hidden="true">
   <div class="feat-head">
@@ -371,9 +418,21 @@
     <h2>Select</h2>
     <button class="feat-close" type="button" id="selectClose" aria-label="Close select panel">×</button>
   </div>
-  <p class="lead" style="margin:0 0 12px;color:var(--dim);font-size:11px">Filter by component, highlight by degree threshold, or pick a token, node, or edge. Other items dim while a highlight is active.</p>
+  <p class="lead" style="margin:0 0 12px;color:var(--dim);font-size:11px">Filter by component, highlight by degree threshold, or pick a token, node, or edge. Use <b>Box select</b> to click nodes or drag a rectangle on the canvas. Other items dim while a highlight is active.</p>
 
   <div class="section" style="margin-top:0;padding-top:0;border-top:none">
+    <h2>Canvas select</h2>
+    <div class="actions">
+      <button class="btn" type="button" id="btnBoxSelect" aria-pressed="false">Box select</button>
+      <button class="btn" type="button" id="btnMoveSelect" aria-pressed="false">Move select</button>
+      <button class="btn" type="button" id="btnForceSelection" disabled>Force layout selection</button>
+    </div>
+    <div class="sel-meta" id="boxSelectMeta">click a node · drag a rectangle · Shift adds to selection · Esc clears</div>
+    <div class="sel-meta" id="moveSelectMeta">drag any selected node to move the whole selection</div>
+    <div class="sel-meta" id="forceSelectMeta">run force layout on selected nodes only (others stay fixed)</div>
+  </div>
+
+  <div class="section">
     <h2>Component</h2>
     <select class="pick" id="groupPick" disabled aria-label="Filter by component">
       <option value="">all components…</option>
@@ -472,12 +531,15 @@ const FEATURES = [
   {id:'nftNodes', label:'NFT node highlight', detail:'nft-tagged nodes render with bright halo and ring'},
   {id:'nftOnlyFilter', label:'NFT only filter', detail:'hide non-NFT nodes and unrelated edges'},
   {id:'degreeFilter', label:'Degree filters', detail:'hide nodes below and/or above a degree cutoff'},
+  {id:'boxSelect', label:'Box select', detail:'click a node or drag a rectangle to select nodes and incident edges'},
+  {id:'moveSelect', label:'Move select', detail:'drag selected nodes together as a rigid group'},
+  {id:'forceSelect', label:'Force layout selection', detail:'run force layout on selected nodes only'},
   {id:'selectPanel', label:'Select panel', detail:'filter by component; choose tokens, nodes, or edges to highlight'},
   {id:'componentFilter', label:'Component filter', detail:'restrict the view to one group id'},
   {id:'degreeSelect', label:'Degree threshold', detail:'highlight components with a node above a degree cutoff'},
   {id:'tokenSelect', label:'Token selection', detail:'search and highlight edges exchanging the chosen token'},
   {id:'tokenTrack', label:'Token track panel', detail:'address × time plot for the selected token'},
-  {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx'},
+  {id:'nodeSize', label:'Node size', detail:'scales with in_tx + out_tx, or fixed to degree-1 size'},
   {id:'bridges', label:'Bridge markers', detail:'rings for is_bridge and cabal_bridge'},
   {id:'featPanel', label:'Features panel', detail:'this checklist, toggled from the button'},
 ];
@@ -488,11 +550,83 @@ let graph = null;
 let bakedPos = null;
 let layoutMode = 'baked';
 let edgeDisplayMode = 'width';
+/** 'degree' = scale by activity; 'fixed' = all nodes use degree-1 radius */
+let nodeSizeMode = 'degree';
+/** radius base for a node with degree 1: sqrt(in_tx+out_tx+1) when in+out = 1 */
+const FIXED_NODE_RADIUS = Math.sqrt(2);
 let showTokenEdges = true;
 let showEthereumEdges = true;
 let marketColorMode = true;
-const MARKET_TOKEN_COLOR = [0, 255, 234, 255];
-const MARKET_ETH_COLOR = [255, 130, 0, 255];
+/** 'safe' (default, CVD-friendly) or 'classic' (original vivid palette) */
+let colorPaletteMode = 'safe';
+const PALETTES = {
+  safe: {
+    id: 'safe',
+    label: 'Color safe',
+    marketToken: [86, 180, 233, 255],
+    marketEth: [230, 159, 0, 255],
+    zeroEth: [204, 121, 167, 230],
+    tokenTagged: [0, 158, 115, 230],
+    nftFill: [240, 228, 66],
+    nftHaloFill: [0, 114, 178, 70],
+    nftHaloLine: [240, 228, 66, 180],
+    nftLine: [0, 114, 178],
+    selectHighlight: [86, 180, 233, 160],
+    selectFocus: [240, 228, 66, 255],
+    cutVertex: [230, 159, 0],
+    cabalBridge: [255, 255, 255],
+    dimmed: [70, 72, 80, 90],
+    dimmedEdge: [45, 48, 58, 35],
+    // Okabe–Ito categorical cycle (CVD-safe)
+    groups: [
+      [230, 159, 0],
+      [86, 180, 233],
+      [0, 158, 115],
+      [0, 114, 178],
+      [213, 94, 0],
+      [204, 121, 167],
+      [240, 228, 66],
+      [153, 153, 153],
+    ],
+    ethRamp: {lo: [0, 114, 178], hi: [240, 228, 66]},
+    trackHop: '#56B4E9',
+    trackFocus: '#F0E442',
+    tipTok: '#56B4E9',
+    tipNft: '#0072B2',
+    marketHint: 'sky blue = token · orange = ethereum · 0 ETH uses purple (color-safe)',
+  },
+  classic: {
+    id: 'classic',
+    label: 'Classic',
+    marketToken: [0, 255, 234, 255],
+    marketEth: [255, 130, 0, 255],
+    zeroEth: [255, 74, 163, 230],
+    tokenTagged: [93, 255, 200, 230],
+    nftFill: [255, 225, 74],
+    nftHaloFill: [255, 74, 216, 70],
+    nftHaloLine: [255, 225, 74, 180],
+    nftLine: [255, 74, 216],
+    selectHighlight: [93, 255, 200, 160],
+    selectFocus: [255, 240, 100, 255],
+    cutVertex: [255, 210, 79],
+    cabalBridge: [255, 255, 255],
+    dimmed: [70, 72, 80, 90],
+    dimmedEdge: [45, 48, 58, 35],
+    groups: null,
+    ethRamp: null,
+    trackHop: '#5dffc8',
+    trackFocus: '#fff064',
+    tipTok: '#5dffc8',
+    tipNft: '#ff4ad8',
+    marketHint: 'strong cyan = token · strong orange = ethereum · 0 ETH stays magenta',
+  },
+};
+function palette(){ return PALETTES[colorPaletteMode] || PALETTES.safe; }
+function rgbCss(rgb){
+  if(!rgb) return '#888';
+  const [r,g,b] = rgb;
+  return `#${[r,g,b].map(v => Math.max(0, Math.min(255, v|0)).toString(16).padStart(2,'0')).join('')}`;
+}
 let timeDisplayMode = 'upto';
 let timePlaying = false;
 let timePlayTimer = null;
@@ -502,12 +636,15 @@ let componentFilter = null;
 let degreeHideBelow = null;
 let degreeHideAbove = null;
 const FIXED_EDGE_WIDTH = 2;
-const ZERO_ETH_COLOR = [255, 74, 163, 230];
 let tick = 0;
 let autoFit = true;
 let viewState = null;
 let featOpen = false;
 let selectOpen = false;
+let boxSelectMode = false;
+let boxDrag = null; // {x0,y0,x1,y1, pointerId, additive}
+let moveSelectMode = false;
+let nodeMoveDrag = null; // {pointerId, lastWorld:[x,y], indices:[...]}
 let trackOpen = false;
 let lastTrackKey = '';
 let trackZoomX = d3.zoomIdentity;
@@ -519,6 +656,8 @@ let panelOpen = true;
 let selection = null;
 let selectionHighlight = null;
 let tokenEdgeIndex = null;
+/** Per-node incident edge lists, built once on load. nodeEdgeIndex[i] = edges touching node i */
+let nodeEdgeIndex = null;
 let tokenCatalog = [];
 let tokenCatalogEntries = [];
 let lastTokenFilter = null;
@@ -588,7 +727,14 @@ function hslToRgb(h,s,l){
   const f=n=>{const k=(n+h*12)%12; return l-a*Math.max(-1,Math.min(k-3,9-k,1));};
   return [Math.round(f(0)*255),Math.round(f(8)*255),Math.round(f(4)*255)];
 }
-const groupColor = g => hslToRgb((g*137.508)%360,0.62,0.58);
+const groupColor = g => {
+  const p = palette();
+  if(p.groups && p.groups.length){
+    const i = ((Number(g) || 0) % p.groups.length + p.groups.length) % p.groups.length;
+    return p.groups[i];
+  }
+  return hslToRgb((g*137.508)%360,0.62,0.58);
+};
 
 function nodeGroup(n){
   return n?.group ?? 0;
@@ -630,12 +776,27 @@ function nodeVisible(n){
   return true;
 }
 
-function edgeVisible(e, nodes){
+function edgeVisibleExceptMarket(e, nodes){
   if(nftOnlyFilter && !edgeTouchesNft(e, nodes)) return false;
   if(componentFilter !== null && !edgeTouchesComponent(e, nodes, componentFilter)) return false;
   if(degreeHideBelow !== null || degreeHideAbove !== null){
     if(!nodePassesDegreeFilter(nodes[e.source_index]) || !nodePassesDegreeFilter(nodes[e.target_index]))
       return false;
+  }
+  return true;
+}
+
+function edgeVisible(e, nodes){
+  if(!edgeVisibleExceptMarket(e, nodes)) return false;
+  // With node or token selection, market toggles apply to the selection's
+  // highlighted edges. Other edges stay in the dimmed background.
+  if(selection?.kind === 'node' || selection?.kind === 'nodes' || selection?.kind === 'token'){
+    const incident = selectionHighlight?.edgeSet?.has(e.index);
+    if(incident){
+      if(isTokenEdge(e) && !showTokenEdges) return false;
+      if(isEthereumEdge(e) && !showEthereumEdges) return false;
+    }
+    return true;
   }
   if(isTokenEdge(e) && !showTokenEdges) return false;
   if(isEthereumEdge(e) && !showEthereumEdges) return false;
@@ -683,14 +844,25 @@ function graphHasZeroEth(edges){
   return edges.some(isZeroEth);
 }
 
-function zeroEthEdgeColor(alpha = ZERO_ETH_COLOR[3]){
-  return [ZERO_ETH_COLOR[0], ZERO_ETH_COLOR[1], ZERO_ETH_COLOR[2], alpha];
+function zeroEthEdgeColor(alpha){
+  const z = palette().zeroEth;
+  return [z[0], z[1], z[2], alpha == null ? z[3] : alpha];
 }
 
 function ethColor(value, min, max){
   const v=Number(value)||0;
   if(v === 0) return zeroEthEdgeColor();
   const t=max>min ? Math.max(0,Math.min(1,(v-min)/(max-min))) : 0.5;
+  const ramp = palette().ethRamp;
+  if(ramp){
+    const {lo, hi} = ramp;
+    return [
+      Math.round(lo[0] + t*(hi[0]-lo[0])),
+      Math.round(lo[1] + t*(hi[1]-lo[1])),
+      Math.round(lo[2] + t*(hi[2]-lo[2])),
+      195
+    ];
+  }
   return [
     Math.round(70+t*185),
     Math.round(110+t*70),
@@ -790,6 +962,38 @@ function buildTokenEdgeIndex(edges){
   return index;
 }
 
+function buildNodeEdgeIndex(nodes, edges){
+  const index = Array.from({length: nodes.length}, () => []);
+  for(const e of edges){
+    const s = e.source_index, t = e.target_index;
+    if(Number.isInteger(s) && s >= 0 && s < index.length) index[s].push(e);
+    if(Number.isInteger(t) && t >= 0 && t < index.length && t !== s) index[t].push(e);
+  }
+  return index;
+}
+
+function incidentEdgesForNodes(nodeIds){
+  const ids = nodeIds instanceof Set ? nodeIds : new Set(nodeIds);
+  if(!ids.size) return [];
+  if(nodeEdgeIndex){
+    const seen = new Set();
+    const out = [];
+    for(const ni of ids){
+      const list = nodeEdgeIndex[ni];
+      if(!list) continue;
+      for(const e of list){
+        if(seen.has(e.index)) continue;
+        seen.add(e.index);
+        out.push(e);
+      }
+    }
+    return out;
+  }
+  // Fallback if index missing: scan all edges once.
+  if(!graph) return [];
+  return graph.edges.filter(e => ids.has(e.source_index) || ids.has(e.target_index));
+}
+
 function tokenEdgeActiveAtTime(e){
   if(!timeValues.length) return true;
   const current = timeValues[timeIndex] ?? timeValues[timeValues.length - 1];
@@ -833,10 +1037,16 @@ function rebuildSelectionHighlight(){
     const cached = tokenEdgeIndex?.get(selection.token);
     const trailEdges = cached?.edges || graph.edges.filter(e => edgeMatchesToken(e, selection.token));
     for(const e of trailEdges){
-      if(!tokenEdgeActiveAtTime(e) || !edgeVisible(e, graph.nodes)) continue;
+      if(!tokenEdgeActiveAtTime(e) || !edgeVisibleExceptMarket(e, graph.nodes)) continue;
       edgeSet.add(e.index);
       nodeSet.add(e.source_index);
       nodeSet.add(e.target_index);
+    }
+    // Keep ethereum edges on the token-trail nodes highlighted too.
+    for(const e of incidentEdgesForNodes(nodeSet)){
+      if(!isEthereumEdge(e)) continue;
+      if(!tokenEdgeActiveAtTime(e) || !edgeVisibleExceptMarket(e, graph.nodes)) continue;
+      edgeSet.add(e.index);
     }
     const focus = findLatestActiveTokenEdge(selection.token);
     selectionHighlight = {
@@ -851,10 +1061,13 @@ function rebuildSelectionHighlight(){
     return;
   }else if(selection.kind === 'node'){
     nodeSet.add(selection.index);
-    for(const e of graph.edges){
-      if(e.source_index === selection.index || e.target_index === selection.index){
-        edgeSet.add(e.index);
-      }
+    for(const e of incidentEdgesForNodes(nodeSet)){
+      edgeSet.add(e.index);
+    }
+  }else if(selection.kind === 'nodes'){
+    for(const idx of selection.indices) nodeSet.add(idx);
+    for(const e of incidentEdgesForNodes(nodeSet)){
+      edgeSet.add(e.index);
     }
   }else if(selection.kind === 'edge'){
     edgeSet.add(selection.index);
@@ -910,11 +1123,12 @@ function isNodeFocus(n){
 }
 
 function baseEdgeColor(e, allNodes, min, max){
+  const p = palette();
   if(isZeroEth(e)) return zeroEthEdgeColor();
   if(marketColorMode){
-    return isTokenEdge(e) ? MARKET_TOKEN_COLOR : MARKET_ETH_COLOR;
+    return isTokenEdge(e) ? p.marketToken : p.marketEth;
   }
-  if(hasToken(e)) return [93, 255, 200, 230];
+  if(hasToken(e)) return p.tokenTagged;
   if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
   const g = e.group ?? allNodes[e.source_index]?.group ?? 0;
   const c = groupColor(g);
@@ -924,6 +1138,8 @@ function baseEdgeColor(e, allNodes, min, max){
 function resetSelection(){
   selection = null;
   selectionHighlight = null;
+  nodeMoveDrag = null;
+  document.body.classList.remove('moving-nodes');
   ['nodePick', 'edgePick'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = '';
@@ -1106,6 +1322,14 @@ function setComponentFilter(groupId){
     const n = graph?.nodes[selection.index];
     if(!n || !nodeVisible(n)) selection = null;
   }
+  if(selection?.kind === 'nodes'){
+    const kept = (selection.indices || []).filter(i => {
+      const n = graph?.nodes[i];
+      return n && nodeVisible(n);
+    });
+    if(kept.length === 0) selection = null;
+    else if(kept.length !== selection.indices.length) selection = {kind:'nodes', indices:kept};
+  }
   if(selection?.kind === 'edge'){
     const e = graph?.edges[selection.index];
     if(!e || !edgeVisible(e, graph.nodes)) selection = null;
@@ -1133,6 +1357,9 @@ function updateSelectUI(){
     document.getElementById('tokenPickMeta').innerHTML = 'load a graph to browse tokens';
     document.getElementById('nodePickMeta').textContent = 'highlight node and incident edges';
     document.getElementById('edgePickMeta').textContent = 'highlight one transaction edge';
+    document.getElementById('boxSelectMeta').textContent = 'load a graph, then enable Box select';
+    updateMoveSelectUI();
+    updateForceSelectUI();
     return;
   }
   if(hasFilter){
@@ -1171,12 +1398,38 @@ function updateSelectUI(){
     document.getElementById('degreePickMeta').textContent =
       'highlight components with any node above this degree';
   }
-  if(selection?.kind === 'node'){
-    const n = graph.nodes[selection.index];
-    document.getElementById('nodePickMeta').innerHTML =
-      n ? `<b>${shortAddr(n.address)}</b> · node ${selection.index}` : 'highlight node and incident edges';
+  if(selection?.kind === 'nodes' || selection?.kind === 'node'){
+    const idxs = selection.kind === 'node' ? [selection.index] : selection.indices;
+    if(selection.kind === 'node'){
+      const n = graph.nodes[selection.index];
+      document.getElementById('nodePickMeta').innerHTML =
+        n ? `<b>${shortAddr(n.address)}</b> · node ${selection.index}` : 'highlight node and incident edges';
+    } else {
+      const n = idxs.length;
+      document.getElementById('nodePickMeta').innerHTML =
+        `<b>${n} node${n === 1 ? '' : 's'}</b>`;
+    }
+    const allIncident = [...(selectionHighlight?.edgeSet || [])]
+      .map(i => graph.edges[i])
+      .filter(Boolean);
+    const nTok = allIncident.filter(isTokenEdge).length;
+    const nEth = allIncident.filter(isEthereumEdge).length;
+    const vTok = allIncident.filter(e => isTokenEdge(e) && showTokenEdges).length;
+    const vEth = allIncident.filter(e => isEthereumEdge(e) && showEthereumEdges).length;
+    const marketNote =
+      ` · token ${vTok}/${nTok} · ethereum ${vEth}/${nEth} visible`;
+    document.getElementById('nodePickMeta').innerHTML += marketNote;
+    document.getElementById('boxSelectMeta').innerHTML =
+      `<b>${idxs.length} selected</b>${marketNote} · Token/Ethereum toggles filter this selection`;
   } else {
     document.getElementById('nodePickMeta').textContent = 'highlight node and incident edges';
+    if(boxSelectMode){
+      document.getElementById('boxSelectMeta').textContent =
+        'click a node · drag a rectangle · Shift adds to selection · Esc clears';
+    } else {
+      document.getElementById('boxSelectMeta').textContent =
+        'enable Box select, then click a node or drag a rectangle on the canvas';
+    }
   }
   if(selection?.kind === 'edge'){
     const e = graph.edges[selection.index];
@@ -1185,6 +1438,8 @@ function updateSelectUI(){
   } else {
     document.getElementById('edgePickMeta').textContent = 'highlight one transaction edge';
   }
+  updateMoveSelectUI();
+  updateForceSelectUI();
 }
 
 function setSelectPanel(open){
@@ -1351,7 +1606,7 @@ function updateTokenTrack(force = false){
     .data(data.hops)
     .join('line')
     .attr('class', 'hop')
-    .attr('stroke', d => d.focus ? '#fff064' : '#5dffc8')
+    .attr('stroke', d => d.focus ? palette().trackFocus : palette().trackHop)
     .attr('stroke-width', d => d.focus ? 2.4 : 1.5);
   const pts = data.hops.flatMap(h => ([
     {t: h.t, y: h.ys, focus: h.focus, edgeIndex: h.edgeIndex},
@@ -1495,8 +1750,15 @@ function toggleTrackAddrOrder(){
 
 function setSelection(next){
   selection = next;
+  // Token and node selections default to showing both market edge types.
+  if(selection?.kind === 'node' || selection?.kind === 'nodes' || selection?.kind === 'token'){
+    showTokenEdges = true;
+    showEthereumEdges = true;
+  }
   rebuildSelectionHighlight();
   renderTokenList();
+  updateMarketFilterUI();
+  updateEdgeDisplayUI();
   updateSelectUI();
   if(selection?.kind === 'token'){
     if(!trackOpen) setTrackPanel(true);
@@ -1506,6 +1768,402 @@ function setSelection(next){
   }
   draw();
   updateFeatureStatus();
+}
+
+function selectedNodeIndices(){
+  if(selection?.kind === 'node') return [selection.index];
+  if(selection?.kind === 'nodes') return selection.indices.slice();
+  return [];
+}
+
+function setNodeCollectionSelection(indices, {additive = false} = {}){
+  const next = new Set(additive ? selectedNodeIndices() : []);
+  for(const i of indices){
+    if(Number.isInteger(i) && i >= 0) next.add(i);
+  }
+  const list = [...next].sort((a,b)=>a-b);
+  if(list.length === 0){
+    resetSelection();
+    return;
+  }
+  if(list.length === 1){
+    document.getElementById('edgePick').value = '';
+    document.getElementById('degreeMin').value = '';
+    setSelection({kind:'node', index:list[0]});
+    return;
+  }
+  document.getElementById('nodePick').value = '';
+  document.getElementById('edgePick').value = '';
+  document.getElementById('degreeMin').value = '';
+  setSelection({kind:'nodes', indices:list});
+}
+
+function toggleNodeInSelection(index){
+  const cur = new Set(selectedNodeIndices());
+  if(cur.has(index)) cur.delete(index);
+  else cur.add(index);
+  setNodeCollectionSelection([...cur], {additive:false});
+}
+
+function updateBoxSelectUI(){
+  const on = boxSelectMode;
+  document.body.classList.toggle('box-select-mode', on);
+  document.getElementById('boxSelectToggle').classList.toggle('on', on);
+  document.getElementById('boxSelectToggle').setAttribute('aria-pressed', on ? 'true' : 'false');
+  document.getElementById('btnBoxSelect').classList.toggle('on', on);
+  document.getElementById('btnBoxSelect').setAttribute('aria-pressed', on ? 'true' : 'false');
+  if(!on) hideBoxSelectRect();
+  if(!selection || (selection.kind !== 'nodes' && selection.kind !== 'node')){
+    document.getElementById('boxSelectMeta').textContent = on
+      ? 'click a node · drag a rectangle · Shift adds to selection · Esc clears'
+      : 'enable Box select, then click a node or drag a rectangle on the canvas';
+  }
+}
+
+function setBoxSelectMode(on){
+  boxSelectMode = !!on;
+  boxDrag = null;
+  hideBoxSelectRect();
+  if(boxSelectMode && moveSelectMode) setMoveSelectMode(false);
+  updateBoxSelectUI();
+  updateMoveSelectUI();
+  updateForceSelectUI();
+  if(deckgl || graph) draw();
+  updateFeatureStatus();
+}
+
+function toggleBoxSelectMode(){
+  setBoxSelectMode(!boxSelectMode);
+}
+
+function updateMoveSelectUI(){
+  const on = moveSelectMode;
+  document.body.classList.toggle('move-select-mode', on);
+  document.body.classList.toggle('moving-nodes', !!nodeMoveDrag);
+  const btnTop = document.getElementById('moveSelectToggle');
+  const btnPanel = document.getElementById('btnMoveSelect');
+  btnTop.classList.toggle('on', on);
+  btnTop.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btnPanel.classList.toggle('on', on);
+  btnPanel.setAttribute('aria-pressed', on ? 'true' : 'false');
+  const n = selectedNodeIndices().length;
+  document.getElementById('moveSelectMeta').textContent = on
+    ? (n
+      ? `drag any of the ${n} selected node${n === 1 ? '' : 's'} to move them together`
+      : 'select nodes first (Box select), then drag them as a group')
+    : 'enable Move select, then drag a selected node to move the whole group';
+}
+
+function setMoveSelectMode(on){
+  moveSelectMode = !!on;
+  nodeMoveDrag = null;
+  document.body.classList.remove('moving-nodes');
+  if(moveSelectMode && boxSelectMode){
+    boxSelectMode = false;
+    boxDrag = null;
+    hideBoxSelectRect();
+    updateBoxSelectUI();
+  }
+  updateMoveSelectUI();
+  updateForceSelectUI();
+  if(deckgl || graph) draw();
+  updateFeatureStatus();
+}
+
+function toggleMoveSelectMode(){
+  setMoveSelectMode(!moveSelectMode);
+}
+
+function updateForceSelectUI(){
+  const n = selectedNodeIndices().length;
+  const btn = document.getElementById('btnForceSelection');
+  btn.disabled = n < 2;
+  document.getElementById('forceSelectMeta').textContent = n < 2
+    ? 'select at least 2 nodes, then run force layout on them only'
+    : `force-layout ${n} selected nodes · others stay fixed · internal edges only`;
+}
+
+function runForceLayoutOnSelection(){
+  if(!graph) return;
+  const indices = selectedNodeIndices();
+  if(indices.length < 2){
+    showError('select at least 2 nodes for force layout');
+    return;
+  }
+  stopSim();
+  clearError();
+  const selected = new Set(indices);
+  const simNodes = indices.map(i => graph.nodes[i]);
+  const links = graph.edges
+    .filter(e => selected.has(e.source_index) && selected.has(e.target_index))
+    .map(e => ({
+      source: graph.nodes[e.source_index],
+      target: graph.nodes[e.target_index],
+    }));
+
+  let cx = 0, cy = 0;
+  for(const n of simNodes){
+    if(!Number.isFinite(n.x) || !Number.isFinite(n.y)){
+      n.x = 0;
+      n.y = 0;
+    }
+    cx += n.x;
+    cy += n.y;
+  }
+  cx /= simNodes.length;
+  cy /= simNodes.length;
+
+  const bar = document.getElementById('layoutBar');
+  const prog = document.getElementById('prog');
+  bar.hidden = false;
+  prog.style.width = '0%';
+  document.getElementById('layoutHint').textContent =
+    `force on ${simNodes.length} selected nodes`;
+  document.getElementById('nL').textContent = 'force (selection)';
+
+  sim = d3.forceSimulation(simNodes)
+    .force('charge', d3.forceManyBody().strength(-28).distanceMax(80))
+    .force('link', d3.forceLink(links).distance(10).strength(0.65))
+    .force('x', d3.forceX(cx).strength(0.05))
+    .force('y', d3.forceY(cy).strength(0.05))
+    .force('collide', d3.forceCollide(1.6))
+    .alphaDecay(0.025);
+  const alpha0 = sim.alpha();
+  sim.on('tick', () => {
+    tick++;
+    prog.style.width = Math.min(100, (1 - sim.alpha() / alpha0) * 100) + '%';
+    autoFit = false;
+    draw();
+  }).on('end', () => {
+    autoFit = false;
+    prog.style.width = '100%';
+    document.getElementById('layoutHint').textContent =
+      `force finished on ${simNodes.length} selected nodes`;
+    draw();
+    updateFeatureStatus();
+  });
+  autoFit = false;
+  draw();
+  updateFeatureStatus();
+}
+
+function hideBoxSelectRect(){
+  const rect = document.getElementById('boxSelectRect');
+  rect.classList.remove('on');
+  rect.setAttribute('aria-hidden', 'true');
+}
+
+function updateBoxSelectRect(x0, y0, x1, y1){
+  const rect = document.getElementById('boxSelectRect');
+  const left = Math.min(x0, x1);
+  const top = Math.min(y0, y1);
+  const w = Math.abs(x1 - x0);
+  const h = Math.abs(y1 - y0);
+  rect.style.left = left + 'px';
+  rect.style.top = top + 'px';
+  rect.style.width = w + 'px';
+  rect.style.height = h + 'px';
+  rect.classList.add('on');
+  rect.setAttribute('aria-hidden', 'false');
+}
+
+function deckLocalPoint(ev){
+  const host = document.getElementById('deck');
+  const r = host.getBoundingClientRect();
+  return {
+    x: ev.clientX - r.left,
+    y: ev.clientY - r.top,
+    clientX: ev.clientX,
+    clientY: ev.clientY,
+  };
+}
+
+function pickNodeAt(localX, localY){
+  if(!deckgl || !graph) return null;
+  const info = deckgl.pickObject({
+    x: localX,
+    y: localY,
+    radius: 8,
+    layerIds: ['nodes'],
+  });
+  if(info?.object && 'address' in info.object) return info.object;
+  return null;
+}
+
+function screenToWorld(localX, localY){
+  if(!deckgl) return null;
+  const vp = deckgl.getViewports?.()?.[0];
+  if(!vp) return null;
+  const p = vp.unproject([localX, localY]);
+  return [p[0], p[1]];
+}
+
+function nodesInsideScreenRect(x0, y0, x1, y1){
+  if(!graph || !deckgl) return [];
+  const a = screenToWorld(x0, y0);
+  const b = screenToWorld(x1, y1);
+  if(!a || !b) return [];
+  const minX = Math.min(a[0], b[0]);
+  const maxX = Math.max(a[0], b[0]);
+  const minY = Math.min(a[1], b[1]);
+  const maxY = Math.max(a[1], b[1]);
+  return filteredNodes(graph.nodes).filter(n =>
+    Number.isFinite(n.x) && Number.isFinite(n.y) &&
+    n.x >= minX && n.x <= maxX && n.y >= minY && n.y <= maxY
+  ).map(n => n.index);
+}
+
+function onBoxPointerDown(ev){
+  if(!boxSelectMode || moveSelectMode || !graph) return;
+  if(ev.button !== 0) return;
+  const t = ev.target;
+  if(t && t.closest && t.closest('button, .panel, .select-panel, .feat-panel, .track-panel, input, select, label, a')) return;
+  const host = document.getElementById('deck');
+  if(!host.contains(ev.target) && ev.target !== host) return;
+  const pt = deckLocalPoint(ev);
+  boxDrag = {
+    x0: pt.x, y0: pt.y, x1: pt.x, y1: pt.y,
+    clientX0: pt.clientX, clientY0: pt.clientY,
+    clientX1: pt.clientX, clientY1: pt.clientY,
+    pointerId: ev.pointerId,
+    additive: !!ev.shiftKey,
+    moved: false,
+  };
+  try { host.setPointerCapture(ev.pointerId); } catch (_) {}
+  ev.preventDefault();
+}
+
+function onBoxPointerMove(ev){
+  if(!boxDrag || ev.pointerId !== boxDrag.pointerId) return;
+  const pt = deckLocalPoint(ev);
+  boxDrag.x1 = pt.x;
+  boxDrag.y1 = pt.y;
+  boxDrag.clientX1 = pt.clientX;
+  boxDrag.clientY1 = pt.clientY;
+  const dx = boxDrag.x1 - boxDrag.x0;
+  const dy = boxDrag.y1 - boxDrag.y0;
+  if(Math.hypot(dx, dy) > 4){
+    boxDrag.moved = true;
+    updateBoxSelectRect(boxDrag.clientX0, boxDrag.clientY0, boxDrag.clientX1, boxDrag.clientY1);
+  }
+  ev.preventDefault();
+}
+
+function onBoxPointerUp(ev){
+  if(!boxDrag || ev.pointerId !== boxDrag.pointerId) return;
+  const drag = boxDrag;
+  boxDrag = null;
+  hideBoxSelectRect();
+  const host = document.getElementById('deck');
+  try { host.releasePointerCapture(ev.pointerId); } catch (_) {}
+
+  if(drag.moved){
+    const indices = nodesInsideScreenRect(drag.x0, drag.y0, drag.x1, drag.y1);
+    if(indices.length || drag.additive){
+      setNodeCollectionSelection(indices, {additive: drag.additive});
+    } else {
+      resetSelection();
+    }
+    return;
+  }
+
+  const node = pickNodeAt(drag.x0, drag.y0);
+  if(node){
+    if(drag.additive) toggleNodeInSelection(node.index);
+    else setNodeCollectionSelection([node.index], {additive:false});
+  } else if(!drag.additive){
+    resetSelection();
+  }
+}
+
+function onMovePointerDown(ev){
+  if(!moveSelectMode || boxSelectMode || !graph) return;
+  if(ev.button !== 0) return;
+  const t = ev.target;
+  if(t && t.closest && t.closest('button, .panel, .select-panel, .feat-panel, .track-panel, input, select, label, a')) return;
+  const host = document.getElementById('deck');
+  if(!host.contains(ev.target) && ev.target !== host) return;
+  const indices = selectedNodeIndices();
+  if(!indices.length) return;
+  const pt = deckLocalPoint(ev);
+  const node = pickNodeAt(pt.x, pt.y);
+  const selected = new Set(indices);
+  if(!node || !selected.has(node.index)) return;
+  const world = screenToWorld(pt.x, pt.y);
+  if(!world) return;
+  stopSim();
+  nodeMoveDrag = {
+    pointerId: ev.pointerId,
+    lastWorld: world,
+    indices: indices.slice(),
+  };
+  document.body.classList.add('moving-nodes');
+  try { host.setPointerCapture(ev.pointerId); } catch (_) {}
+  ev.preventDefault();
+}
+
+function onMovePointerMove(ev){
+  if(!nodeMoveDrag || ev.pointerId !== nodeMoveDrag.pointerId) return;
+  const pt = deckLocalPoint(ev);
+  const world = screenToWorld(pt.x, pt.y);
+  if(!world) return;
+  const dx = world[0] - nodeMoveDrag.lastWorld[0];
+  const dy = world[1] - nodeMoveDrag.lastWorld[1];
+  nodeMoveDrag.lastWorld = world;
+  if(dx === 0 && dy === 0) return;
+  for(const i of nodeMoveDrag.indices){
+    const n = graph.nodes[i];
+    if(!n) continue;
+    n.x = (Number.isFinite(n.x) ? n.x : 0) + dx;
+    n.y = (Number.isFinite(n.y) ? n.y : 0) + dy;
+  }
+  tick++;
+  autoFit = false;
+  draw();
+  ev.preventDefault();
+}
+
+function onMovePointerUp(ev){
+  if(!nodeMoveDrag || ev.pointerId !== nodeMoveDrag.pointerId) return;
+  nodeMoveDrag = null;
+  document.body.classList.remove('moving-nodes');
+  const host = document.getElementById('deck');
+  try { host.releasePointerCapture(ev.pointerId); } catch (_) {}
+  draw();
+}
+
+function onDeckPointerDown(ev){
+  if(moveSelectMode) onMovePointerDown(ev);
+  else if(boxSelectMode) onBoxPointerDown(ev);
+}
+
+function onDeckPointerMove(ev){
+  if(nodeMoveDrag) onMovePointerMove(ev);
+  else if(boxDrag) onBoxPointerMove(ev);
+}
+
+function onDeckPointerUp(ev){
+  if(nodeMoveDrag) onMovePointerUp(ev);
+  else if(boxDrag) onBoxPointerUp(ev);
+}
+
+function onBoxKeyDown(ev){
+  if(ev.key === 'Escape'){
+    if(boxDrag){
+      boxDrag = null;
+      hideBoxSelectRect();
+      return;
+    }
+    if(nodeMoveDrag){
+      nodeMoveDrag = null;
+      document.body.classList.remove('moving-nodes');
+      draw();
+      return;
+    }
+    if(selection) resetSelection();
+    else if(boxSelectMode) setBoxSelectMode(false);
+    else if(moveSelectMode) setMoveSelectMode(false);
+  }
 }
 
 function edgeTimestamp(e){
@@ -1760,7 +2418,28 @@ function setEdgeDisplayMode(mode){
   updateFeatureStatus();
 }
 
+function nodeRadiusBase(n){
+  if(nodeSizeMode === 'fixed') return FIXED_NODE_RADIUS;
+  return Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1);
+}
+
+function setNodeSizeMode(mode){
+  nodeSizeMode = mode === 'fixed' ? 'fixed' : 'degree';
+  updateNodeSizeUI();
+  draw();
+  updateFeatureStatus();
+}
+
+function updateNodeSizeUI(){
+  document.getElementById('btnNodeSizeDegree').classList.toggle('on', nodeSizeMode === 'degree');
+  document.getElementById('btnNodeSizeFixed').classList.toggle('on', nodeSizeMode === 'fixed');
+  document.getElementById('nodeSizeHint').textContent = nodeSizeMode === 'fixed'
+    ? 'all nodes use the degree-1 radius'
+    : 'radius scales with in_tx + out_tx';
+}
+
 function updateEdgeDisplayUI(){
+  const p = palette();
   document.getElementById('btnEdgeColor').classList.toggle('on', edgeDisplayMode === 'color');
   document.getElementById('btnEdgeWidth').classList.toggle('on', edgeDisplayMode === 'width');
   document.getElementById('zeroEthLegend').hidden = !graph || !graphHasZeroEth(graph.edges);
@@ -1773,17 +2452,75 @@ function updateEdgeDisplayUI(){
   document.getElementById('nftLegend').hidden = !graph || !graphHasNft(graph.nodes);
   document.getElementById('edgeDisplayHint').textContent =
     marketColorMode
-      ? 'strong cyan = token · strong orange = ethereum · 0 ETH stays magenta'
+      ? p.marketHint
       : (edgeDisplayMode === 'color'
         ? 'fixed width · color = ETH value'
         : 'width = ETH value · color = component');
+  const tokenCss = rgbCss(p.marketToken);
+  const ethCss = rgbCss(p.marketEth);
+  const ethLo = p.ethRamp ? rgbCss(p.ethRamp.lo) : '#4670d2';
+  const ethHi = p.ethRamp ? rgbCss(p.ethRamp.hi) : '#e8b43a';
   document.getElementById('edgeLegend').innerHTML =
     marketColorMode
-      ? '<span class="sw" style="background:linear-gradient(90deg,#00ffea,#ff8200)"></span>directed edge · market colors'
+      ? `<span class="sw" style="background:linear-gradient(90deg,${tokenCss},${ethCss})"></span>directed edge · market colors`
       : (edgeDisplayMode === 'color'
-        ? '<span class="sw" style="background:linear-gradient(90deg,#4670d2,#e8b43a)"></span>directed edge · fixed width · color = ETH'
+        ? `<span class="sw" style="background:linear-gradient(90deg,${ethLo},${ethHi})"></span>directed edge · fixed width · color = ETH`
         : '<span class="sw" style="background:#d9d5c8"></span>directed edge · width = ETH value');
   updateMarketFilterUI();
+  applyPaletteUI();
+}
+
+function applyPaletteUI(){
+  const p = palette();
+  const root = document.documentElement;
+  root.style.setProperty('--track-hop', p.trackHop);
+  root.style.setProperty('--track-focus', p.trackFocus);
+  root.style.setProperty('--tip-tok', p.tipTok);
+  root.style.setProperty('--tip-nft', p.tipNft);
+
+  const setBg = (id, color, glow) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.style.background = color;
+    if(glow) el.style.boxShadow = `0 0 6px ${color}`;
+  };
+  setBg('zeroEthLegendSw', rgbCss(p.zeroEth), false);
+  setBg('tokenMarketLegendSw', rgbCss(p.marketToken), true);
+  setBg('ethMarketLegendSw', rgbCss(p.marketEth), true);
+  setBg('tokenLegendSw', rgbCss(p.tokenTagged), false);
+  setBg('selectLegendSw', rgbCss(p.selectHighlight), true);
+  setBg('tokenFocusLegendSw', rgbCss(p.selectFocus), true);
+  setBg('groupLegendDot', rgbCss(p.groups ? p.groups[0] : hslToRgb(137.508,0.62,0.58)), false);
+
+  const nftDot = document.getElementById('nftLegendDot');
+  if(nftDot){
+    nftDot.style.background = rgbCss(p.nftFill);
+    nftDot.style.borderColor = rgbCss(p.nftLine);
+    nftDot.style.boxShadow = `0 0 6px ${rgbCss(p.nftLine)}`;
+  }
+  const cutDot = document.getElementById('cutLegendDot');
+  if(cutDot) cutDot.style.borderColor = rgbCss(p.cutVertex);
+
+  const btn = document.getElementById('paletteToggle');
+  if(btn){
+    const isSafe = colorPaletteMode === 'safe';
+    btn.classList.toggle('on', isSafe);
+    btn.setAttribute('aria-pressed', isSafe ? 'true' : 'false');
+    btn.textContent = `Palette: ${p.label}`;
+  }
+}
+
+function setColorPaletteMode(mode){
+  colorPaletteMode = mode === 'classic' ? 'classic' : 'safe';
+  applyPaletteUI();
+  updateEdgeDisplayUI();
+  updateTokenTrack(true);
+  draw();
+  updateFeatureStatus();
+}
+
+function toggleColorPalette(){
+  setColorPaletteMode(colorPaletteMode === 'safe' ? 'classic' : 'safe');
 }
 
 function updateMarketFilterUI(){
@@ -1800,6 +2537,20 @@ function updateMarketFilterUI(){
       'show or hide token vs ethereum edges · strong colors split the two markets';
     return;
   }
+  const nodeSel = selection?.kind === 'node' || selection?.kind === 'nodes' || selection?.kind === 'token';
+  if(nodeSel && selectionHighlight?.edgeSet){
+    const incident = [...selectionHighlight.edgeSet]
+      .map(i => graph.edges[i])
+      .filter(Boolean);
+    const nToken = incident.filter(isTokenEdge).length;
+    const nEth = incident.filter(isEthereumEdge).length;
+    const vToken = incident.filter(e => isTokenEdge(e) && showTokenEdges).length;
+    const vEth = incident.filter(e => isEthereumEdge(e) && showEthereumEdges).length;
+    document.getElementById('marketHint').textContent =
+      `selection edges · token ${vToken}/${nToken} · ethereum ${vEth}/${nEth}` +
+      (marketColorMode ? ' · strong market colors on' : '');
+    return;
+  }
   const edges = graph.edges;
   const nToken = edges.filter(isTokenEdge).length;
   const nEth = edges.filter(isEthereumEdge).length;
@@ -1813,13 +2564,24 @@ function updateMarketFilterUI(){
 
 function setShowTokenEdges(on){
   showTokenEdges = on;
-  if(!showTokenEdges && !showEthereumEdges) showEthereumEdges = true;
+  // Keep at least one market visible when there is no node selection.
+  // With a node selection, either or both may be toggled; if both are off,
+  // selected nodes remain visible with no incident edges shown.
+  if(!showTokenEdges && !showEthereumEdges &&
+      selection?.kind !== 'node' && selection?.kind !== 'nodes' &&
+      selection?.kind !== 'token'){
+    showEthereumEdges = true;
+  }
   applyMarketFilters();
 }
 
 function setShowEthereumEdges(on){
   showEthereumEdges = on;
-  if(!showTokenEdges && !showEthereumEdges) showTokenEdges = true;
+  if(!showTokenEdges && !showEthereumEdges &&
+      selection?.kind !== 'node' && selection?.kind !== 'nodes' &&
+      selection?.kind !== 'token'){
+    showTokenEdges = true;
+  }
   applyMarketFilters();
 }
 
@@ -1926,6 +2688,14 @@ function pruneSelectionForVisibility(){
   if(selection?.kind === 'node'){
     const n = graph?.nodes[selection.index];
     if(!n || !nodeVisible(n)) selection = null;
+  }
+  if(selection?.kind === 'nodes'){
+    const kept = selection.indices.filter(i => {
+      const n = graph?.nodes[i];
+      return n && nodeVisible(n);
+    });
+    if(kept.length === 0) selection = null;
+    else if(kept.length !== selection.indices.length) selection = {kind:'nodes', indices:kept};
   }
   if(selection?.kind === 'edge'){
     const e = graph?.edges[selection.index];
@@ -2107,16 +2877,31 @@ function buildEdgeGeometry(nodes, edges){
 
 function layers(allNodes, renderNodes, edges){
   const {min, max} = ethRange(edges);
+  const p = palette();
   const selKey = selection
-    ? `${selection.kind}:${selection.token ?? selection.index ?? selection.minDegree}` +
+    ? `${selection.kind}:${selection.token ?? selection.index ?? selection.minDegree ?? (selection.indices || []).slice().sort((a,b)=>a-b).join(',')}` +
       (selection.kind === 'token' ? `:${timeIndex}:${timeDisplayMode}` : '')
     : '';
+  const paletteKey = colorPaletteMode;
   const edgeColor = e => {
     if(selection){
-      if(!isEdgeHighlighted(e) && !isEdgeFocus(e)) return [45, 48, 58, 35];
+      if(!isEdgeHighlighted(e) && !isEdgeFocus(e)) return p.dimmedEdge;
       if(isZeroEth(e)) return zeroEthEdgeColor(255);
-      if(isEdgeFocus(e)) return [255, 240, 100, 255];
-      if(isEdgeHighlighted(e)) return [93, 255, 200, 160];
+      if(isEdgeFocus(e)) return p.selectFocus;
+      if(isEdgeHighlighted(e)){
+        // Keep token vs ethereum colors so both markets stay distinct.
+        if(selection.kind === 'node' || selection.kind === 'nodes' || selection.kind === 'token'){
+          if(marketColorMode){
+            return isTokenEdge(e) ? p.marketToken : p.marketEth;
+          }
+          if(hasToken(e)) return p.tokenTagged;
+          if(edgeDisplayMode === 'color') return ethColor(e.value_eth, min, max);
+          const g = e.group ?? allNodes[e.source_index]?.group ?? 0;
+          const c = groupColor(g);
+          return [c[0], c[1], c[2], 220];
+        }
+        return p.selectHighlight;
+      }
     }
     if(isZeroEth(e)) return zeroEthEdgeColor(255);
     return baseEdgeColor(e, allNodes, min, max);
@@ -2129,8 +2914,8 @@ function layers(allNodes, renderNodes, edges){
   };
   const edgeTriggers = {
     getPath:tick,
-    getColor:edgeDisplayMode + selKey + marketColorMode + showTokenEdges + showEthereumEdges,
-    getWidth:edgeDisplayMode + selKey + marketColorMode,
+    getColor:edgeDisplayMode + selKey + marketColorMode + showTokenEdges + showEthereumEdges + paletteKey,
+    getWidth:edgeDisplayMode + selKey + marketColorMode + paletteKey,
   };
   const nftNodes = renderNodes.filter(isNftNode);
   return [
@@ -2148,35 +2933,35 @@ function layers(allNodes, renderNodes, edges){
       id:'arrows', data:edges.filter(e=>e._arrow),
       getPolygon:e=>e._arrow,
       getFillColor:edgeColor,
-      updateTriggers:{getPolygon:tick, getFillColor:edgeDisplayMode + selKey + marketColorMode + showTokenEdges + showEthereumEdges},
+      updateTriggers:{getPolygon:tick, getFillColor:edgeDisplayMode + selKey + marketColorMode + showTokenEdges + showEthereumEdges + paletteKey},
       pickable:false
     }),
     new ScatterplotLayer({
       id:'nft-halo', data:nftNodes,
       getPosition:n=>[n.x,n.y],
-      getRadius:n=>Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1)*1.9,
+      getRadius:n=>nodeRadiusBase(n)*1.9,
       radiusUnits:'common', radiusScale:0.09, radiusMinPixels:10, radiusMaxPixels:34,
-      getFillColor:[255,74,216,70],
+      getFillColor:p.nftHaloFill,
       stroked:true, lineWidthUnits:'pixels',
       getLineWidth:3,
-      getLineColor:[255,225,74,180],
-      updateTriggers:{getPosition:tick},
+      getLineColor:p.nftHaloLine,
+      updateTriggers:{getPosition:tick, getFillColor:paletteKey, getLineColor:paletteKey, getRadius:nodeSizeMode},
       pickable:false
     }),
     new ScatterplotLayer({
       id:'nodes', data:renderNodes,
       getPosition:n=>[n.x,n.y],
       getRadius:n=>{
-        const base = Math.sqrt((n.in_tx||0)+(n.out_tx||0)+1);
+        const base = nodeRadiusBase(n);
         if(selection && isNodeFocus(n)) return base * (isNftNode(n) ? 1.85 : 1.7);
         if(selection && isNodeHighlighted(n)) return base * (isNftNode(n) ? 1.35 : 1.15);
         return base * (isNftNode(n) ? 1.35 : 1);
       },
       radiusUnits:'common', radiusScale:0.09, radiusMinPixels:3, radiusMaxPixels:22,
       getFillColor:n=>{
-        if(selection && isNodeFocus(n)) return [255, 240, 100];
-        if(selection && !isNodeHighlighted(n)) return [70, 72, 80, 90];
-        return isNftNode(n) ? [255, 225, 74] : groupColor(n.group ?? 0);
+        if(selection && isNodeFocus(n)) return p.selectFocus.slice(0, 3);
+        if(selection && !isNodeHighlighted(n)) return p.dimmed;
+        return isNftNode(n) ? p.nftFill : groupColor(n.group ?? 0);
       },
       stroked:true, lineWidthUnits:'pixels',
       getLineWidth:n=>{
@@ -2185,17 +2970,18 @@ function layers(allNodes, renderNodes, edges){
         return isNftNode(n) ? 4 : (n.is_bridge ? 2 : 0);
       },
       getLineColor:n=>{
-        if(selection && isNodeFocus(n)) return [255, 240, 100, 255];
-        if(selection && isNodeHighlighted(n)) return [93, 255, 200, 255];
-        return isNftNode(n) ? [255, 74, 216] : (n.cabal_bridge ? [255, 255, 255] : (n.is_bridge ? [255, 210, 79] : [0, 0, 0, 0]));
+        if(selection && isNodeFocus(n)) return p.selectFocus;
+        if(selection && isNodeHighlighted(n)) return [...p.selectHighlight.slice(0, 3), 255];
+        return isNftNode(n) ? [...p.nftLine, 255] : (n.cabal_bridge ? [...p.cabalBridge, 255] : (n.is_bridge ? [...p.cutVertex, 255] : [0, 0, 0, 0]));
       },
-      updateTriggers:{getPosition:tick, getRadius:selKey, getFillColor:selKey, getLineWidth:selKey, getLineColor:selKey},
+      updateTriggers:{getPosition:tick, getRadius:selKey + nodeSizeMode, getFillColor:selKey + paletteKey, getLineWidth:selKey, getLineColor:selKey + paletteKey},
       pickable:true
     })
   ];
 }
 
 function nodeTooltip(o){
+  const p = palette();
   return {html:`<div class="tip">`+
     (isNftNode(o)?`<div class="nft">NFT NODE</div>`:'')+
     `<div class="a">${o.address}</div>`+
@@ -2203,7 +2989,7 @@ function nodeTooltip(o){
     (o.in_tx != null ? ` · in ${o.in_tx} / out ${o.out_tx}` : '')+
     (o.ens_name ? ` · ${o.ens_name}` : '')+
     (o.cabal_bridge ? ` · <span style="color:#fff">CABAL BRIDGE</span>` :
-      o.is_bridge ? ` · <span style="color:#ffd24f">cut vertex</span>` : '')+
+      o.is_bridge ? ` · <span style="color:${rgbCss(p.cutVertex)}">cut vertex</span>` : '')+
     `</div></div>`, style:{background:'transparent'}};
 }
 
@@ -2229,7 +3015,7 @@ function buildTooltip({object}){
 
 function draw(){
   if(!graph) return;
-  if(selection?.kind === 'token') rebuildSelectionHighlight();
+  if(selection) rebuildSelectionHighlight();
   const {nodes} = graph;
   const renderNodes = filteredNodes(nodes);
   const edges = filteredEdges(graph.edges, nodes);
@@ -2240,7 +3026,14 @@ function draw(){
   if(autoFit) viewState = fitView(renderNodes.length ? renderNodes : nodes);
   const props = {
     views: new OrthographicView({flipY:false}),
-    controller: true,
+    controller: {
+      dragPan: !boxSelectMode && !moveSelectMode,
+      dragRotate: false,
+      scrollZoom: true,
+      doubleClickZoom: true,
+      touchZoom: true,
+      keyboard: !boxSelectMode && !moveSelectMode,
+    },
     viewState,
     onViewStateChange: ({viewState: vs}) => {
       autoFit = false;
@@ -2248,7 +3041,13 @@ function draw(){
       deckgl.setProps({viewState});
     },
     layers: layers(nodes, renderNodes, edges),
-    getTooltip: buildTooltip
+    getTooltip: buildTooltip,
+    getCursor: () => {
+      if(nodeMoveDrag) return 'grabbing';
+      if(boxSelectMode) return 'crosshair';
+      if(moveSelectMode) return 'move';
+      return 'grab';
+    },
   };
   if(deckgl) deckgl.setProps(props);
   else {
@@ -2325,6 +3124,9 @@ function updateFeatureStatus(){
   status.degreeFilter = loaded && (degreeHideBelow !== null || degreeHideAbove !== null);
   status.selectPanel = selectOpen;
   status.componentFilter = loaded && componentFilter !== null;
+  status.boxSelect = boxSelectMode;
+  status.moveSelect = moveSelectMode;
+  status.forceSelect = loaded && selectedNodeIndices().length >= 2;
   status.tokenSelect = loaded && selection?.kind === 'token';
   status.tokenTrack = trackOpen && selection?.kind === 'token';
   status.degreeSelect = loaded && selection?.kind === 'degree';
@@ -2365,7 +3167,7 @@ function resetNftFilter(nodes){
 function resetSelectionOnLoad(){
   selection = null;
   selectionHighlight = null;
-  tokenEdgeIndex = null;
+  // Keep tokenEdgeIndex / nodeEdgeIndex — rebuilt explicitly in ingest().
 }
 
 function resetComponentFilterOnLoad(){
@@ -2413,6 +3215,7 @@ function ingest(data, label){
     validateGraph(data);
     graph = data;
     tokenEdgeIndex = buildTokenEdgeIndex(data.edges);
+    nodeEdgeIndex = buildNodeEdgeIndex(data.nodes, data.edges);
     if(!graphFormat) graphFormat = data.metadata?.format === 'cbin' ? 'cbin' : 'json';
     bakedPos = data.nodes.map(n => [n.x, n.y]);
     resetTimeline(data.edges);
@@ -2471,6 +3274,11 @@ function setFeatPanel(open){
 
 document.getElementById('selectToggle').addEventListener('click', () => setSelectPanel(!selectOpen));
 document.getElementById('selectClose').addEventListener('click', () => setSelectPanel(false));
+document.getElementById('boxSelectToggle').addEventListener('click', toggleBoxSelectMode);
+document.getElementById('btnBoxSelect').addEventListener('click', toggleBoxSelectMode);
+document.getElementById('moveSelectToggle').addEventListener('click', toggleMoveSelectMode);
+document.getElementById('btnMoveSelect').addEventListener('click', toggleMoveSelectMode);
+document.getElementById('btnForceSelection').addEventListener('click', runForceLayoutOnSelection);
 document.getElementById('trackToggle').addEventListener('click', () => setTrackPanel(!trackOpen));
 document.getElementById('trackClose').addEventListener('click', () => setTrackPanel(false));
 document.getElementById('trackAddrOrder').addEventListener('click', toggleTrackAddrOrder);
@@ -2509,6 +3317,7 @@ document.getElementById('edgePick').addEventListener('change', e => {
 
 document.getElementById('panelToggle').addEventListener('click', () => setMainPanel(!panelOpen));
 document.getElementById('panelClose').addEventListener('click', () => setMainPanel(false));
+document.getElementById('paletteToggle').addEventListener('click', toggleColorPalette);
 document.getElementById('featToggle').addEventListener('click', () => setFeatPanel(!featOpen));
 document.getElementById('featClose').addEventListener('click', () => setFeatPanel(false));
 document.getElementById('layoutSeg').addEventListener('click', e => {
@@ -2518,6 +3327,10 @@ document.getElementById('layoutSeg').addEventListener('click', e => {
 document.getElementById('edgeDisplaySeg').addEventListener('click', e => {
   const btn = e.target.closest('button[data-mode]');
   if(btn) setEdgeDisplayMode(btn.dataset.mode);
+});
+document.getElementById('nodeSizeSeg').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-mode]');
+  if(btn) setNodeSizeMode(btn.dataset.mode);
 });
 document.getElementById('timeModeSeg').addEventListener('click', e => {
   const btn = e.target.closest('button[data-mode]');
@@ -2569,11 +3382,22 @@ addEventListener('resize', () => {
 renderFeatureList();
 updateFeatureStatus();
 updateEdgeDisplayUI();
+updateNodeSizeUI();
+updateBoxSelectUI();
+updateMoveSelectUI();
+updateForceSelectUI();
 updateNftFilterUI();
 updateDegreeFilterUI();
 updateTrackAddrOrderUI();
 updateSelectUI();
 populateSelectPanel();
+
+const deckHost = document.getElementById('deck');
+deckHost.addEventListener('pointerdown', onDeckPointerDown);
+deckHost.addEventListener('pointermove', onDeckPointerMove);
+deckHost.addEventListener('pointerup', onDeckPointerUp);
+deckHost.addEventListener('pointercancel', onDeckPointerUp);
+addEventListener('keydown', onBoxKeyDown);
 
 loadCatalog().then(() => {
   const src = new URLSearchParams(location.search).get('src');
