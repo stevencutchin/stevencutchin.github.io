@@ -392,10 +392,12 @@
       <button class="btn" type="button" id="btnBoxSelect" aria-pressed="false">Box select</button>
       <button class="btn" type="button" id="btnMoveSelect" aria-pressed="false">Move select</button>
       <button class="btn" type="button" id="btnForceSelection" disabled>Force layout selection</button>
+      <button class="btn" type="button" id="btnRingSelection" disabled>Ring layout selection</button>
     </div>
     <div class="sel-meta" id="boxSelectMeta">click a node · drag a rectangle · Shift adds to selection · Esc clears</div>
     <div class="sel-meta" id="moveSelectMeta">drag any selected node to move the whole selection</div>
     <div class="sel-meta" id="forceSelectMeta">run force layout on selected nodes only (others stay fixed)</div>
+    <div class="sel-meta" id="ringSelectMeta">place selected nodes evenly on a circle around their center</div>
   </div>
 
   <div class="section">
@@ -498,6 +500,7 @@ const FEATURES = [
   {id:'boxSelect', label:'Box select', detail:'click a node or drag a rectangle to select nodes and incident edges'},
   {id:'moveSelect', label:'Move select', detail:'drag selected nodes together as a rigid group'},
   {id:'forceSelect', label:'Force layout selection', detail:'run force layout on selected nodes only'},
+  {id:'ringSelect', label:'Ring layout selection', detail:'place selected nodes evenly on a circle'},
   {id:'selectPanel', label:'Select panel', detail:'filter by component; choose tokens, nodes, or edges to highlight'},
   {id:'componentFilter', label:'Component filter', detail:'restrict the view to one group id'},
   {id:'degreeSelect', label:'Degree threshold', detail:'highlight components with a node above a degree cutoff'},
@@ -991,6 +994,7 @@ function findLatestActiveTokenEdge(token){
 }
 
 function rebuildSelectionHighlight(){
+  restoreNodeIndices();
   if(!selection || !graph){
     selectionHighlight = null;
     return;
@@ -1840,11 +1844,16 @@ function toggleMoveSelectMode(){
 
 function updateForceSelectUI(){
   const n = selectedNodeIndices().length;
-  const btn = document.getElementById('btnForceSelection');
-  btn.disabled = n < 2;
+  const forceBtn = document.getElementById('btnForceSelection');
+  const ringBtn = document.getElementById('btnRingSelection');
+  forceBtn.disabled = n < 2;
+  ringBtn.disabled = n < 2;
   document.getElementById('forceSelectMeta').textContent = n < 2
     ? 'select at least 2 nodes, then run force layout on them only'
     : `force-layout ${n} selected nodes · others stay fixed · internal edges only`;
+  document.getElementById('ringSelectMeta').textContent = n < 2
+    ? 'select at least 2 nodes, then place them on a ring'
+    : `ring-layout ${n} selected nodes · even spacing around their center`;
 }
 
 function runForceLayoutOnSelection(){
@@ -1855,27 +1864,43 @@ function runForceLayoutOnSelection(){
     return;
   }
   stopSim();
+  restoreNodeIndices();
   clearError();
   const selected = new Set(indices);
-  const simNodes = indices.map(i => graph.nodes[i]);
+
+  // Use proxy nodes so d3.forceSimulation does not overwrite graph.nodes[i].index
+  // (that corruption made later box-select / highlight resolve the wrong edges).
+  const byGraphIndex = new Map();
+  const simNodes = indices.map(gi => {
+    const n = graph.nodes[gi];
+    if(!Number.isFinite(n.x)) n.x = 0;
+    if(!Number.isFinite(n.y)) n.y = 0;
+    const proxy = {x: n.x, y: n.y, graphIndex: gi};
+    byGraphIndex.set(gi, proxy);
+    return proxy;
+  });
   const links = graph.edges
     .filter(e => selected.has(e.source_index) && selected.has(e.target_index))
     .map(e => ({
-      source: graph.nodes[e.source_index],
-      target: graph.nodes[e.target_index],
+      source: byGraphIndex.get(e.source_index),
+      target: byGraphIndex.get(e.target_index),
     }));
 
   let cx = 0, cy = 0;
-  for(const n of simNodes){
-    if(!Number.isFinite(n.x) || !Number.isFinite(n.y)){
-      n.x = 0;
-      n.y = 0;
-    }
-    cx += n.x;
-    cy += n.y;
+  for(const p of simNodes){
+    cx += p.x;
+    cy += p.y;
   }
   cx /= simNodes.length;
   cy /= simNodes.length;
+
+  function commitProxyPositions(){
+    for(const p of simNodes){
+      const n = graph.nodes[p.graphIndex];
+      n.x = p.x;
+      n.y = p.y;
+    }
+  }
 
   const bar = document.getElementById('layoutBar');
   const prog = document.getElementById('prog');
@@ -1894,11 +1919,14 @@ function runForceLayoutOnSelection(){
     .alphaDecay(0.025);
   const alpha0 = sim.alpha();
   sim.on('tick', () => {
+    commitProxyPositions();
     tick++;
     prog.style.width = Math.min(100, (1 - sim.alpha() / alpha0) * 100) + '%';
     autoFit = false;
     draw();
   }).on('end', () => {
+    commitProxyPositions();
+    restoreNodeIndices();
     autoFit = false;
     prog.style.width = '100%';
     document.getElementById('layoutHint').textContent =
@@ -1906,6 +1934,60 @@ function runForceLayoutOnSelection(){
     draw();
     updateFeatureStatus();
   });
+  autoFit = false;
+  draw();
+  updateFeatureStatus();
+}
+
+function runRingLayoutOnSelection(){
+  if(!graph) return;
+  const indices = selectedNodeIndices();
+  if(indices.length < 2){
+    showError('select at least 2 nodes for ring layout');
+    return;
+  }
+  stopSim();
+  restoreNodeIndices();
+  clearError();
+
+  const nodes = indices.map(i => graph.nodes[i]);
+  let cx = 0, cy = 0;
+  for(const n of nodes){
+    if(!Number.isFinite(n.x)) n.x = 0;
+    if(!Number.isFinite(n.y)) n.y = 0;
+    cx += n.x;
+    cy += n.y;
+  }
+  cx /= nodes.length;
+  cy /= nodes.length;
+
+  let meanR = 0;
+  for(const n of nodes) meanR += Math.hypot(n.x - cx, n.y - cy);
+  meanR /= nodes.length;
+  // Floor radius so nodes stay spaced (~2.5 world units chord) even if currently stacked.
+  const minR = Math.max(4, (nodes.length * 2.5) / (2 * Math.PI));
+  const r = Math.max(meanR, minR);
+
+  // Preserve current angular order, then space evenly (start at top).
+  const ordered = indices
+    .map(i => {
+      const n = graph.nodes[i];
+      return {i, a: Math.atan2(n.y - cy, n.x - cx)};
+    })
+    .sort((a, b) => a.a - b.a || a.i - b.i);
+
+  const n = ordered.length;
+  for(let k = 0; k < n; k++){
+    const angle = -Math.PI / 2 + (2 * Math.PI * k) / n;
+    const node = graph.nodes[ordered[k].i];
+    node.x = cx + r * Math.cos(angle);
+    node.y = cy + r * Math.sin(angle);
+  }
+
+  document.getElementById('layoutHint').textContent =
+    `ring layout on ${n} selected nodes`;
+  document.getElementById('nL').textContent = 'ring (selection)';
+  document.getElementById('layoutBar').hidden = true;
   autoFit = false;
   draw();
   updateFeatureStatus();
@@ -2302,6 +2384,13 @@ function fitView(nodes){
 function stopSim(){
   if(sim){ sim.stop(); sim = null; }
   document.getElementById('layoutBar').hidden = true;
+  restoreNodeIndices();
+}
+
+/** d3-force assigns node.index = array position; restore graph identity after subset sims. */
+function restoreNodeIndices(){
+  if(!graph) return;
+  graph.nodes.forEach((n, i) => { n.index = i; });
 }
 
 function applyBakedLayout(){
@@ -3091,6 +3180,7 @@ function updateFeatureStatus(){
   status.boxSelect = boxSelectMode;
   status.moveSelect = moveSelectMode;
   status.forceSelect = loaded && selectedNodeIndices().length >= 2;
+  status.ringSelect = loaded && selectedNodeIndices().length >= 2;
   status.tokenSelect = loaded && selection?.kind === 'token';
   status.tokenTrack = trackOpen && selection?.kind === 'token';
   status.degreeSelect = loaded && selection?.kind === 'degree';
@@ -3243,6 +3333,7 @@ document.getElementById('btnBoxSelect').addEventListener('click', toggleBoxSelec
 document.getElementById('moveSelectToggle').addEventListener('click', toggleMoveSelectMode);
 document.getElementById('btnMoveSelect').addEventListener('click', toggleMoveSelectMode);
 document.getElementById('btnForceSelection').addEventListener('click', runForceLayoutOnSelection);
+document.getElementById('btnRingSelection').addEventListener('click', runRingLayoutOnSelection);
 document.getElementById('trackToggle').addEventListener('click', () => setTrackPanel(!trackOpen));
 document.getElementById('trackClose').addEventListener('click', () => setTrackPanel(false));
 document.getElementById('trackAddrOrder').addEventListener('click', toggleTrackAddrOrder);
