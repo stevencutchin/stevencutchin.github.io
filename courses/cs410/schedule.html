@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedule — CS 410/510 Databases, Fall 2026</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB;
+  --unit-a:#DCE4F5; --unit-b:#C7D4EE;         /* alternating unit tints  */
+  --unit-border:#0033A0; --unit-text:#00246B;
+  --review-fill:#EEF1F6; --review-border:#7A8699; --review-text:#2A3342;
+  --exam-fill:#F7DBCB; --exam-border:#D64309; --exam-text:#7A2708;
+  --serif:&#34;Charter&#34;,&#34;Bitstream Charter&#34;,&#34;Iowan Old Style&#34;,&#34;Palatino Linotype&#34;,Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,&#34;Segoe UI&#34;,Roboto,&#34;Helvetica Neue&#34;,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:17px; line-height:1.5;
+}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:20;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+/* ---- masthead ---- */
+.mast{border-top:6px solid var(--blue);background:var(--surface);
+  border-bottom:1px solid var(--line)}
+.mast .wrap{padding-top:22px;padding-bottom:22px}
+.eyebrow{font-family:var(--sans);color:var(--blue-ink);font-weight:600;
+  letter-spacing:.01em;margin:0 0 2px}
+h1{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:2.15rem;line-height:1.1;margin:.1rem 0 .5rem}
+.subtitle{color:var(--muted);margin:0 0 16px;font-size:1.02rem}
+.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px 32px;margin:0;padding:0}
+.meta div{display:flex;gap:8px;font-size:.96rem;padding:3px 0;
+  border-bottom:1px solid var(--line)}
+.meta dt{color:var(--muted);min-width:118px;margin:0;font-weight:600}
+.meta dd{margin:0;color:var(--ink)}
+
+/* ---- top nav between the two pages ---- */
+nav.pages{display:flex;gap:4px;margin-top:16px}
+nav.pages a{font-weight:600;text-decoration:none;color:var(--blue-ink);
+  padding:7px 14px;border:1.5px solid var(--line);border-radius:999px;
+  background:#fff;font-size:.94rem}
+nav.pages a[aria-current=&#34;page&#34;]{background:var(--blue);color:#fff;
+  border-color:var(--blue)}
+nav.pages a:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+
+main{padding:34px 0 60px}
+section{margin:0 0 40px}
+h2{font-family:var(--serif);font-size:1.42rem;color:var(--blue-ink);
+  margin:0 0 4px;line-height:1.15}
+.lede{color:var(--muted);max-width:66ch;margin:0 0 18px}
+
+/* ---- timeline ---- */
+.timeline{border:1px solid var(--line);border-radius:10px;background:#fff;
+  padding:14px 16px 8px}
+.timeline svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin:12px 2px 2px;
+  font-size:.86rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.sw{width:20px;height:13px;border-radius:2px;border:1px solid var(--line);flex:none}
+.sw.a{background:var(--unit-a);border-color:var(--unit-border)}
+.sw.b{background:var(--unit-b);border-color:var(--unit-border)}
+.sw.exam{background:var(--exam-fill);border-color:var(--exam-border)}
+.sw.review{background:var(--review-fill);border-color:var(--review-border)}
+.sw.brk{background:repeating-linear-gradient(45deg,#e6e9ef 0 4px,#cfd5df 4px 8px);
+  border-color:var(--line)}
+
+/* ---- key-dates strip ---- */
+.keydates{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 0;padding:0;list-style:none}
+.keydates li{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);
+  border-left-width:5px;border-radius:7px;padding:8px 12px;min-width:150px;background:#fff}
+.keydates .kd-when{font-weight:700;font-size:.95rem}
+.keydates .kd-what{color:var(--muted);font-size:.88rem}
+.kd-exam{border-left-color:var(--orange)}
+.kd-final{border-left-color:var(--blue)}
+.kd-project{border-left-color:#0b7a5b}
+.kd-hw-out{border-left-color:#6b76c9}
+.kd-hw-due{border-left-color:#3a3f8f}
+
+/* ---- schedule table ---- */
+.tablecard{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+caption{text-align:left;font-family:var(--serif);font-size:1.42rem;
+  color:var(--blue-ink);padding:0 0 8px}
+thead th{background:var(--blue);color:#fff;text-align:left;font-weight:600;
+  padding:10px 14px;font-size:.9rem;vertical-align:bottom}
+tbody th,tbody td{padding:11px 14px;border-top:1px solid var(--line);
+  vertical-align:top;text-align:left}
+tbody th{font-weight:600;white-space:nowrap;color:var(--ink)}
+tbody tr.wk-start td,tbody tr.wk-start th{border-top:2px solid #9fb0d6}
+.col-when{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
+.col-when .d{color:var(--ink);font-weight:600}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--unit-text);
+  background:var(--unit-a);border:1px solid var(--unit-border);border-radius:5px;
+  padding:1px 7px;white-space:nowrap}
+.unit-tag.odd{background:var(--unit-b)}
+.chap{color:var(--muted);font-size:.86rem;margin-top:2px}
+.note{color:var(--exam-text);font-size:.82rem;margin-top:4px;font-style:italic}
+tr.is-holiday td{background:repeating-linear-gradient(45deg,#f2f4f8 0 6px,#e8ebf1 6px 12px);
+  color:var(--muted)}
+tr.is-exam th,tr.is-exam td{background:#FCEEE6}
+tr.is-review th,tr.is-review td{background:#F7F9FC}
+
+/* badges in the assessments column: shape + text, never colour alone */
+.badge{display:inline-block;font-size:.8rem;font-weight:700;line-height:1.3;
+  padding:2px 9px;border-radius:999px;margin:2px 4px 2px 0;border:2px solid}
+.b-exam{background:var(--orange);color:#fff;border-color:var(--orange)}
+.b-final{background:var(--blue);color:#fff;border-color:var(--blue)}
+.b-project{background:#fff;color:#0a5c46;border-color:#0b7a5b;border-style:dashed}
+.b-hw-out{background:#fff;color:var(--blue-ink);border-color:var(--blue-ink)}
+.b-hw-due{background:var(--blue-ink);color:#fff;border-color:var(--blue-ink)}
+
+/* ---- topics ---- */
+.unit{border:1px solid var(--line);border-left:6px solid var(--unit-border);
+  border-radius:10px;padding:18px 22px;margin:0 0 18px;background:#fff}
+.unit.odd{border-left-color:#2b57c4}
+.unit-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px}
+.unit-num{font-family:var(--serif);font-weight:700;font-size:1.05rem;color:var(--blue);
+  border:2px solid var(--blue);border-radius:7px;padding:1px 9px;flex:none}
+.unit-title{font-family:var(--serif);font-size:1.28rem;color:var(--ink);margin:0}
+.unit-chap{color:var(--muted);font-size:.9rem;font-weight:600}
+.unit-lead{color:var(--muted);max-width:70ch;margin:10px 0 12px}
+.unit ul{margin:0;padding-left:1.15rem}
+.unit li{margin:5px 0;max-width:74ch}
+.assessed{margin-top:14px;font-size:.9rem;color:var(--muted)}
+.assessed strong{color:var(--ink)}
+.assessed .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;
+  padding:1px 10px;margin-left:4px;background:var(--surface);color:var(--blue-ink);
+  font-weight:600;font-size:.85rem}
+
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:.86rem;
+  padding:20px 0 40px}
+footer p{margin:4px 0;max-width:80ch}
+a{color:var(--blue)}
+a:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+
+/* ---- responsive ---- */
+@media (max-width:640px){
+  body{font-size:16px}
+  h1{font-size:1.7rem}
+  .meta{grid-template-columns:1fr}
+  table{font-size:.88rem}
+  thead{display:none}
+  tbody th,tbody td{display:block;border-top:none;padding:2px 14px}
+  tbody tr{display:block;border-top:2px solid #9fb0d6;padding:8px 0}
+  tbody th{padding-top:8px}
+}
+
+/* ---- higher contrast on request ---- */
+@media (prefers-contrast:more){
+  :root{--muted:#2b2f38;--line:#4a5160}
+  .unit-tag,.sw.a,.sw.b{background:#fff}
+  tr.is-holiday td{background:#fff}
+  thead th{background:#00204d}
+  .badge,.unit,.tablecard,.timeline,.keydates li{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- print / PDF ---- */
+@page{size:letter;margin:14mm 12mm}
+@media print{
+  body{font-size:10.5pt}
+  .skip,nav.pages{display:none!important}
+  .mast{background:#fff;border-top-width:5px}
+  .wrap{max-width:none;padding:0}
+  main{padding:10px 0 0}
+  section{margin-bottom:16px}
+  .timeline,.tablecard,.unit,.keydates li{break-inside:avoid}
+  thead{display:table-header-group}
+  tr{break-inside:avoid}
+  h2,caption{break-after:avoid}
+  a{color:var(--ink);text-decoration:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+<header class="mast"><div class="wrap">
+  <p class="eyebrow">CS 410/510 · Boise State University · Fall 2026</p>
+  <h1>Databases — Schedule</h1>
+  <p class="subtitle">Lecture sequence and assessment calendar, Fall 2026</p>
+  <dl class="meta">
+    <div><dt>Instructor</dt><dd>Dr. Steve Cutchin</dd></div>
+    <div><dt>Meets</dt><dd>Mon / Wed, 1:30–2:45 PM</dd></div>
+    <div><dt>Location</dt><dd>CCP-243</dd></div>
+    <div><dt>Textbook</dt><dd>Elmasri &amp; Navathe, Fundamentals of Database Systems, 7th ed.</dd></div>
+    <div><dt>Term</dt><dd>Mon Aug 24, 2026 – Fri Dec 11, 2026</dd></div>
+    <div><dt>Finals</dt><dd>Dec 14–18, 2026</dd></div>
+  </dl>
+  <nav class="pages" aria-label="Course pages">
+    <a href="index.html">Course home</a>
+    <a href="syllabus.html">Syllabus</a>
+    <a href="schedule.html" aria-current="page">Schedule</a>
+    <a href="lectures/topics.html">Topics</a>
+  </nav>
+</div></header>
+<main id="main"><div class="wrap">
+
+<section aria-labelledby="tl-h">
+  <h2 id="tl-h">Semester at a glance</h2>
+  <p class="lede">Nine teaching units in sequence, with both midterms and the two
+  breaks. The complete session list, with chapters and every deadline, is in the
+  table below.</p>
+  <div class="timeline"><svg viewBox="0 0 1000 176" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="tl-title tl-desc"><title id="tl-title">Semester timeline for CS 410/510, Fall 2026</title><desc id="tl-desc">A 16-week Gantt-style strip showing nine teaching units in sequence from Foundations through Transactions. Midterm 1 falls in week 8 and Midterm 2 in week 13. Labor Day (week 3) and Thanksgiving (week 14) are marked as breaks. The full schedule appears in the table below.</desc><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#e6e9ef"/><rect width="4" height="8" fill="#cfd5df"/></pattern></defs><line x1="20.0" y1="46" x2="20.0" y2="150" stroke="#E3E8F0" stroke-width="1"/><text x="50.0" y="26" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="13" font-weight="600" fill="#4A5160">Aug</text><line x1="80.0" y1="46" x2="80.0" y2="150" stroke="#E3E8F0" stroke-width="1"/><text x="230.0" y="26" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="13" font-weight="600" fill="#4A5160">Sep</text><line x1="380.0" y1="46" x2="380.0" y2="150" stroke="#E3E8F0" stroke-width="1"/><text x="500.0" y="26" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="13" font-weight="600" fill="#4A5160">Oct</text><line x1="620.0" y1="46" x2="620.0" y2="150" stroke="#E3E8F0" stroke-width="1"/><text x="740.0" y="26" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="13" font-weight="600" fill="#4A5160">Nov</text><line x1="860.0" y1="46" x2="860.0" y2="150" stroke="#E3E8F0" stroke-width="1"/><text x="920.0" y="26" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="13" font-weight="600" fill="#4A5160">Dec</text><rect x="27.2" y="84" width="51.0" height="44" rx="4" fill="#DCE4F5" stroke="#0033A0" stroke-width="1.4"/><rect x="27.2" y="84" width="51.0" height="4" rx="2" fill="#0033A0"/><text x="52.7" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U0</text><rect x="87.2" y="84" width="111.0" height="44" rx="4" fill="#C7D4EE" stroke="#0033A0" stroke-width="1.4"/><rect x="87.2" y="84" width="111.0" height="4" rx="2" fill="#0033A0"/><text x="142.7" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U1 ER/EER</text><rect x="207.2" y="84" width="51.0" height="44" rx="4" fill="#DCE4F5" stroke="#0033A0" stroke-width="1.4"/><rect x="207.2" y="84" width="51.0" height="4" rx="2" fill="#0033A0"/><text x="232.7" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U2</text><rect x="267.2" y="84" width="51.0" height="44" rx="4" fill="#C7D4EE" stroke="#0033A0" stroke-width="1.4"/><rect x="267.2" y="84" width="51.0" height="4" rx="2" fill="#0033A0"/><text x="292.7" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U3</text><rect x="327.2" y="84" width="85.2" height="44" rx="4" fill="#DCE4F5" stroke="#0033A0" stroke-width="1.4"/><rect x="327.2" y="84" width="85.2" height="4" rx="2" fill="#0033A0"/><text x="369.8" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U4 SQL</text><rect x="413.0" y="84" width="25.2" height="44" rx="4" fill="#EEF1F6" stroke="#7A8699" stroke-width="1.4"/><rect x="413.0" y="84" width="25.2" height="4" rx="2" fill="#7A8699"/><text x="425.6" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#2A3342">Rev</text><rect x="447.2" y="84" width="25.2" height="44" rx="4" fill="#F7DBCB" stroke="#D64309" stroke-width="1.4"/><rect x="447.2" y="84" width="25.2" height="4" rx="2" fill="#D64309"/><text x="459.8" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#7A2708">M1</text><path d="M459.8 65.0 L466.8 72.0 L459.8 79.0 L452.8 72.0 Z" fill="#D64309" stroke="#fff" stroke-width="1"/><rect x="473.0" y="84" width="59.4" height="44" rx="4" fill="#C7D4EE" stroke="#0033A0" stroke-width="1.4"/><rect x="473.0" y="84" width="59.4" height="4" rx="2" fill="#0033A0"/><text x="502.7" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U5</text><rect x="533.0" y="84" width="119.4" height="44" rx="4" fill="#DCE4F5" stroke="#0033A0" stroke-width="1.4"/><rect x="533.0" y="84" width="119.4" height="4" rx="2" fill="#0033A0"/><text x="592.7" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U6</text><rect x="653.0" y="84" width="85.2" height="44" rx="4" fill="#C7D4EE" stroke="#0033A0" stroke-width="1.4"/><rect x="653.0" y="84" width="85.2" height="4" rx="2" fill="#0033A0"/><text x="695.6" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U7</text><rect x="747.2" y="84" width="25.2" height="44" rx="4" fill="#EEF1F6" stroke="#7A8699" stroke-width="1.4"/><rect x="747.2" y="84" width="25.2" height="4" rx="2" fill="#7A8699"/><text x="759.8" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#2A3342">Rev</text><rect x="773.0" y="84" width="25.2" height="44" rx="4" fill="#F7DBCB" stroke="#D64309" stroke-width="1.4"/><rect x="773.0" y="84" width="25.2" height="4" rx="2" fill="#D64309"/><text x="785.6" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#7A2708">M2</text><path d="M785.6 65.0 L792.6 72.0 L785.6 79.0 L778.6 72.0 Z" fill="#D64309" stroke="#fff" stroke-width="1"/><rect x="867.2" y="84" width="85.2" height="44" rx="4" fill="#DCE4F5" stroke="#0033A0" stroke-width="1.4"/><rect x="867.2" y="84" width="85.2" height="4" rx="2" fill="#0033A0"/><text x="909.8" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#00246B">U8</text><rect x="953.0" y="84" width="25.2" height="44" rx="4" fill="#EEF1F6" stroke="#7A8699" stroke-width="1.4"/><rect x="953.0" y="84" width="25.2" height="4" rx="2" fill="#7A8699"/><text x="965.6" y="110.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#2A3342">Rev</text><line x1="147.2" y1="80.0" x2="147.2" y2="64.0" stroke="#8A93A3" stroke-width="1.3" stroke-dasharray="2 2"/><text x="147.2" y="59.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" font-weight="600" fill="#4A5160">Labor Day</text><rect x="800.0" y="84" width="60.0" height="44" rx="3" fill="url(#hatch)" stroke="#B8C0CE" stroke-width="1"/><text x="830.0" y="59.0" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" font-weight="600" fill="#4A5160">Thanksgiving break</text><line x1="20" y1="140" x2="980" y2="140" stroke="#C9D2E0" stroke-width="1"/><text x="50.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">1</text><text x="110.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">2</text><text x="170.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">3</text><text x="230.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">4</text><text x="290.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">5</text><text x="350.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">6</text><text x="410.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">7</text><text x="470.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">8</text><text x="530.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">9</text><text x="590.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">10</text><text x="650.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">11</text><text x="710.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">12</text><text x="770.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">13</text><text x="830.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">14</text><text x="890.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">15</text><text x="950.0" y="154" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="11" fill="#6b7280">16</text><text x="20" y="154" font-family="system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif" font-size="10.5" fill="#9aa2b1">wk</text></svg>
+    <div class="legend" aria-hidden="true">
+      <span><span class="sw a"></span><span class="sw b"></span> Teaching unit</span>
+      <span><span class="sw exam"></span> Midterm</span>
+      <span><span class="sw review"></span> Review</span>
+      <span><span class="sw brk"></span> No class</span>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="kd-h">
+  <h2 id="kd-h">Key dates</h2>
+  <ul class="keydates">
+    
+    <li class="kd-hw-out">
+      <span class="kd-when">Mon Aug 31</span>
+      <span class="kd-what">HW1 released</span>
+    </li>
+    
+    <li class="kd-hw-due">
+      <span class="kd-when">Mon Sep 14</span>
+      <span class="kd-what">HW1 due</span>
+    </li>
+    
+    <li class="kd-hw-out">
+      <span class="kd-when">Mon Sep 21</span>
+      <span class="kd-what">HW2 released</span>
+    </li>
+    
+    <li class="kd-project">
+      <span class="kd-when">Mon Sep 28</span>
+      <span class="kd-what">Final Project released</span>
+    </li>
+    
+    <li class="kd-hw-due">
+      <span class="kd-when">Wed Oct 7</span>
+      <span class="kd-what">HW2 due</span>
+    </li>
+    
+    <li class="kd-exam">
+      <span class="kd-when">Mon Oct 12</span>
+      <span class="kd-what">Midterm 1</span>
+    </li>
+    
+    <li class="kd-project">
+      <span class="kd-when">Wed Oct 14</span>
+      <span class="kd-what">Project: proposal + schema due</span>
+    </li>
+    
+    <li class="kd-hw-out">
+      <span class="kd-when">Wed Oct 21</span>
+      <span class="kd-what">HW3 released</span>
+    </li>
+    
+    <li class="kd-hw-due">
+      <span class="kd-when">Mon Nov 9</span>
+      <span class="kd-what">HW3 due</span>
+    </li>
+    
+    <li class="kd-project">
+      <span class="kd-when">Mon Nov 16</span>
+      <span class="kd-what">Project checkpoint due</span>
+    </li>
+    
+    <li class="kd-exam">
+      <span class="kd-when">Wed Nov 18</span>
+      <span class="kd-what">Midterm 2</span>
+    </li>
+    
+    <li class="kd-project">
+      <span class="kd-when">Wed Dec 9</span>
+      <span class="kd-what">Final Project due</span>
+    </li>
+    
+    <li class="kd-final">
+      <span class="kd-when">Dec 14–18</span>
+      <span class="kd-what">Final Exam</span>
+    </li>
+    
+  </ul>
+</section>
+
+<section aria-labelledby="sc-h">
+  <div class="tablecard">
+  <table>
+    <caption id="sc-h">Lecture schedule</caption>
+    <thead><tr>
+      <th scope="col">Wk</th>
+      <th scope="col">Date</th>
+      <th scope="col">Unit</th>
+      <th scope="col">Session focus</th>
+      <th scope="col">Assessments &amp; milestones</th>
+    </tr></thead>
+    <tbody>
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">1</th>
+        <td class="col-when"><span class="d">Mon</span> Aug 24</td>
+        <td><span class="unit-tag">U0 Foundations</span></td>
+        <td>Course intro and logistics; what a DBMS is<div class="chap">Ch 1</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">1</th>
+        <td class="col-when"><span class="d">Wed</span> Aug 26</td>
+        <td><span class="unit-tag">U0 Foundations</span></td>
+        <td>DB system concepts and architecture; three-schema, data independence<div class="chap">Ch 2</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">2</th>
+        <td class="col-when"><span class="d">Mon</span> Aug 31</td>
+        <td><span class="unit-tag odd">U1 ER/EER</span></td>
+        <td>ER I — entities, attributes, keys<div class="chap">Ch 3</div></td>
+        <td><span class="badge b-hw-out">HW1 released</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">2</th>
+        <td class="col-when"><span class="d">Wed</span> Sep 2</td>
+        <td><span class="unit-tag odd">U1 ER/EER</span></td>
+        <td>ER II — relationships, cardinality, participation, weak entities<div class="chap">Ch 3</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-holiday wk-start">
+        <th scope="row">3</th>
+        <td class="col-when"><span class="d">Mon</span> Sep 7</td>
+        <td colspan="3">Labor Day — no class</td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">3</th>
+        <td class="col-when"><span class="d">Wed</span> Sep 9</td>
+        <td><span class="unit-tag odd">U1 ER/EER</span></td>
+        <td>EER — specialization/generalization, inheritance, categories<div class="chap">Ch 4</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">4</th>
+        <td class="col-when"><span class="d">Mon</span> Sep 14</td>
+        <td><span class="unit-tag">U2 Relational model</span></td>
+        <td>Relational model — relations, constraints, integrity<div class="chap">Ch 5</div></td>
+        <td><span class="badge b-hw-due">HW1 due</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">4</th>
+        <td class="col-when"><span class="d">Wed</span> Sep 16</td>
+        <td><span class="unit-tag">U2 Relational model</span></td>
+        <td>ER/EER → relational mapping<div class="chap">Ch 9</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">5</th>
+        <td class="col-when"><span class="d">Mon</span> Sep 21</td>
+        <td><span class="unit-tag odd">U3 Relational algebra</span></td>
+        <td>Relational algebra I — select, project, rename, set operations<div class="chap">Ch 8</div></td>
+        <td><span class="badge b-hw-out">HW2 released</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">5</th>
+        <td class="col-when"><span class="d">Wed</span> Sep 23</td>
+        <td><span class="unit-tag odd">U3 Relational algebra</span></td>
+        <td>Relational algebra II — joins, division, aggregation, outer joins<div class="chap">Ch 8</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">6</th>
+        <td class="col-when"><span class="d">Mon</span> Sep 28</td>
+        <td><span class="unit-tag">U4 SQL</span></td>
+        <td>SQL I — DDL, constraints, basic SELECT-FROM-WHERE<div class="chap">Ch 6</div></td>
+        <td><span class="badge b-project">Final Project released</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">6</th>
+        <td class="col-when"><span class="d">Wed</span> Sep 30</td>
+        <td><span class="unit-tag">U4 SQL</span></td>
+        <td>SQL II — nested queries, joins, INSERT/UPDATE/DELETE<div class="chap">Ch 6</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">7</th>
+        <td class="col-when"><span class="d">Mon</span> Oct 5</td>
+        <td><span class="unit-tag">U4 SQL</span></td>
+        <td>SQL III — GROUP BY/HAVING, views, triggers, assertions<div class="chap">Ch 7</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-review">
+        <th scope="row">7</th>
+        <td class="col-when"><span class="d">Wed</span> Oct 7</td>
+        <td><span class="unit-tag" style="background:var(--review-fill);border-color:var(--review-border);color:var(--review-text)">Review</span></td>
+        <td>Review and catch-up (Units 0–4)</td>
+        <td><span class="badge b-hw-due">HW2 due</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-exam wk-start">
+        <th scope="row">8</th>
+        <td class="col-when"><span class="d">Mon</span> Oct 12</td>
+        <td><span class="unit-tag odd" style="background:var(--exam-fill);border-color:var(--exam-border);color:var(--exam-text)">Exam</span></td>
+        <td>Midterm 1 — Units 0–4 (foundations, ER/EER, relational model, algebra, SQL)</td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">8</th>
+        <td class="col-when"><span class="d">Wed</span> Oct 14</td>
+        <td><span class="unit-tag odd">U5 App access</span></td>
+        <td>App access I — embedded/dynamic SQL, cursors, JDBC/ODBC<div class="chap">Ch 10</div></td>
+        <td><span class="badge b-project">Proposal + schema due</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">9</th>
+        <td class="col-when"><span class="d">Mon</span> Oct 19</td>
+        <td><span class="unit-tag odd">U5 App access</span></td>
+        <td>App access II — stored procedures, parameterized queries, SQL injection<div class="chap">Ch 10–11</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">9</th>
+        <td class="col-when"><span class="d">Wed</span> Oct 21</td>
+        <td><span class="unit-tag">U6 Normalization</span></td>
+        <td>Normalization I — FDs, Armstrong&#39;s axioms, closure<div class="chap">Ch 14</div></td>
+        <td><span class="badge b-hw-out">HW3 released</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">10</th>
+        <td class="col-when"><span class="d">Mon</span> Oct 26</td>
+        <td><span class="unit-tag">U6 Normalization</span></td>
+        <td>Normalization II — 1NF, 2NF, 3NF<div class="chap">Ch 14</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">10</th>
+        <td class="col-when"><span class="d">Wed</span> Oct 28</td>
+        <td><span class="unit-tag">U6 Normalization</span></td>
+        <td>Normalization III — BCNF, minimal cover<div class="chap">Ch 14–15</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">11</th>
+        <td class="col-when"><span class="d">Mon</span> Nov 2</td>
+        <td><span class="unit-tag">U6 Normalization</span></td>
+        <td>Normalization IV — lossless join, dependency preservation, decomposition; MVD/4NF<div class="chap">Ch 15</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">11</th>
+        <td class="col-when"><span class="d">Wed</span> Nov 4</td>
+        <td><span class="unit-tag odd">U7 Storage &amp; indexing</span></td>
+        <td>Storage and files — disk, records, hashing, the I/O cost model<div class="chap">Ch 16</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">12</th>
+        <td class="col-when"><span class="d">Mon</span> Nov 9</td>
+        <td><span class="unit-tag odd">U7 Storage &amp; indexing</span></td>
+        <td>Indexing I — primary/clustering/secondary, multilevel indexes<div class="chap">Ch 17</div></td>
+        <td><span class="badge b-hw-due">HW3 due</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">12</th>
+        <td class="col-when"><span class="d">Wed</span> Nov 11</td>
+        <td><span class="unit-tag odd">U7 Storage &amp; indexing</span></td>
+        <td>Indexing II — B-trees and B+-trees, physical design<div class="chap">Ch 17</div><div class="note">Veterans Day — classes are held at Boise State</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-review wk-start">
+        <th scope="row">13</th>
+        <td class="col-when"><span class="d">Mon</span> Nov 16</td>
+        <td><span class="unit-tag" style="background:var(--review-fill);border-color:var(--review-border);color:var(--review-text)">Review</span></td>
+        <td>Review and catch-up (Units 5–7)</td>
+        <td><span class="badge b-project">Project checkpoint due</span></td>
+      </tr>
+      
+    
+      
+      <tr class="is-exam">
+        <th scope="row">13</th>
+        <td class="col-when"><span class="d">Wed</span> Nov 18</td>
+        <td><span class="unit-tag odd" style="background:var(--exam-fill);border-color:var(--exam-border);color:var(--exam-text)">Exam</span></td>
+        <td>Midterm 2 — Units 5–7 (app access, normalization, storage &amp; indexing)</td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-holiday wk-start">
+        <th scope="row">14</th>
+        <td class="col-when"><span class="d">Mon</span> Nov 23</td>
+        <td colspan="3">Thanksgiving break — no class</td>
+      </tr>
+      
+    
+      
+      <tr class="is-holiday">
+        <th scope="row">14</th>
+        <td class="col-when"><span class="d">Wed</span> Nov 25</td>
+        <td colspan="3">Thanksgiving break — no class</td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">15</th>
+        <td class="col-when"><span class="d">Mon</span> Nov 30</td>
+        <td><span class="unit-tag">U8 Transactions</span></td>
+        <td>Transactions I — ACID, schedules, serializability<div class="chap">Ch 20</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit">
+        <th scope="row">15</th>
+        <td class="col-when"><span class="d">Wed</span> Dec 2</td>
+        <td><span class="unit-tag">U8 Transactions</span></td>
+        <td>Transactions II — two-phase locking, locks, deadlock<div class="chap">Ch 21</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-unit wk-start">
+        <th scope="row">16</th>
+        <td class="col-when"><span class="d">Mon</span> Dec 7</td>
+        <td><span class="unit-tag">U8 Transactions</span></td>
+        <td>Transactions III — timestamp/MVCC; recovery, WAL, ARIES<div class="chap">Ch 21–22</div></td>
+        <td></td>
+      </tr>
+      
+    
+      
+      <tr class="is-review">
+        <th scope="row">16</th>
+        <td class="col-when"><span class="d">Wed</span> Dec 9</td>
+        <td><span class="unit-tag" style="background:var(--review-fill);border-color:var(--review-border);color:var(--review-text)">Review</span></td>
+        <td>Wrap-up and final review; graduate presentations</td>
+        <td><span class="badge b-project">Final Project due</span></td>
+      </tr>
+      
+    
+    </tbody>
+  </table>
+  </div>
+</section>
+
+</div></main>
+<footer><div class="wrap">
+&lt;p&gt;&lt;strong&gt;Final exam:&lt;/strong&gt; Comprehensive, with emphasis on transactions and other material taught after Midterm 2. The exact day and time come from the registrar&amp;#x27;s final-exam matrix for MW 1:30 PM classes.&lt;/p&gt;&lt;p&gt;Assessment placement is tuned to the teaching sequence and is easy to shift: each homework maps to a block of units, and each midterm follows a review day. Transactions are taught after Midterm 2 and assessed on the final. Regenerated from &lt;code&gt;course.yaml&lt;/code&gt;.&lt;/p&gt;
+</div></footer>
+</body></html>

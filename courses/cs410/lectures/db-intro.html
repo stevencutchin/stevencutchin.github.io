@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction to Database Systems · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.objlist li::marker{color:var(--blue);font-weight:700}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.schemaline{display:inline-block;font-weight:700;color:var(--blue-ink);background:var(--tint);
+  border:1px solid var(--blue);border-radius:8px;padding:8px 14px;margin:2px 0 10px}
+.factlist{list-style:none;margin:0;padding:0}
+.factlist li{display:flex;gap:10px;padding:5px 0;border-bottom:1px solid var(--line);
+  max-width:none}
+.factlist b{color:var(--muted);min-width:104px;font-weight:600}
+
+/* ---- notation legend grid ---- */
+.legendgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.gl{border:1px solid var(--line);border-radius:9px;padding:12px;text-align:center;background:#fff}
+.gl svg{display:block;margin:0 auto 8px;height:64px;width:auto}
+.gl b{display:block;color:var(--blue-ink);font-size:.98rem}
+.gl span{color:var(--muted);font-size:.84rem}
+
+/* ---- interactive highlighter ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+.hl-figure g[data-cat]{transition:opacity .18s}
+.hl-figure g.dim{opacity:.24}
+.hl-figure g.hl rect,.hl-figure g.hl ellipse,.hl-figure g.hl polygon,.hl-figure g.hl path{
+  stroke:var(--orange);stroke-width:3.2}
+.hl-figure g.hl text{fill:#7A2708}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .legendgrid{grid-template-columns:1fr 1fr}
+  .factlist b{min-width:88px}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.gl{break-inside:avoid}
+  .fig.wide svg{width:46%;display:block;margin:0 auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 0 · Foundations</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 1 of 2 in the foundations unit · Elmasri &amp; Navathe, Ch. 1</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Introduction to Database Systems — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Introduction to Database Systems"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Welcome to CS 410/510</p>
+    <h2 class="slide-h" tabindex="-1">Introduction to database systems</h2>
+    <div class="two">
+      <div>
+        <p class="lead">You already know how to organise data in memory. This
+        course is about what changes when the data is large, permanent, and
+        shared — and about the software built to manage it.</p>
+        <p style="color:var(--muted)">Today: what this course is, how it runs, and
+        the question underneath all of it — what a database management system
+        actually is, and why we don't just use files.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 320 200" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A database</title>
+          <desc id="d1">A cylinder representing a stored database, with three
+          application boxes above it feeding into it.</desc>
+          <rect x="40" y="18" width="66" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="73" y="38" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">app</text>
+          <rect x="127" y="18" width="66" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="160" y="38" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">app</text>
+          <rect x="214" y="18" width="66" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="247" y="38" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">app</text>
+          <line x1="73" y1="48" x2="150" y2="96" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="160" y1="48" x2="160" y2="96" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="247" y1="48" x2="170" y2="96" stroke="#8A93A3" stroke-width="1.5"/>
+          <path d="M92,104 a68,17 0 0 0 136,0 v56 a68,17 0 0 1 -136,0 z" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <ellipse cx="160" cy="104" rx="68" ry="17" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="160" y="150" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">database</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · ROADMAP -->
+  <section class="slide" data-title="What you'll learn" aria-roledescription="slide" aria-label="What you'll learn">
+    <p class="kicker">The arc of the course</p>
+    <h2 class="slide-h" tabindex="-1">What you'll be able to do</h2>
+    <div class="two">
+      <div>
+        <p>By December you'll design a database, reason about whether the design is
+        good, and query it in SQL — then understand what the system does underneath
+        to answer you quickly and correctly.</p>
+        <div class="callout">
+          <h3>The one-sentence version</h3>
+          <p style="margin:0">Take a description of the world, turn it into a
+          well-designed schema, and get correct, fast answers out of it — even with
+          many users and the occasional crash.</p>
+        </div>
+      </div>
+      <div>
+        <ol class="objlist">
+          <li><strong>Design</strong> — ER/EER models, then the relational model.</li>
+          <li><strong>Query</strong> — relational algebra, then SQL in depth.</li>
+          <li><strong>Connect</strong> — reach the database from application code.</li>
+          <li><strong>Judge</strong> — functional dependencies and normalization.</li>
+          <li><strong>Speed</strong> — storage, files, and indexing.</li>
+          <li><strong>Protect</strong> — transactions, concurrency, and recovery.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · LOGISTICS -->
+  <section class="slide" data-title="How the course runs" aria-roledescription="slide" aria-label="How the course runs">
+    <p class="kicker">Logistics</p>
+    <h2 class="slide-h" tabindex="-1">How the course runs</h2>
+    <div class="two">
+      <div>
+        <ul class="factlist">
+          <li><b>Meets</b><span>Mon / Wed, 1:30–2:45 PM · CCP-243</span></li>
+          <li><b>Instructor</b><span>Dr. Steve Cutchin</span></li>
+          <li><b>Office hours</b><span>Mon / Wed 12:30–1:30 · CS 356 &amp; Zoom</span></li>
+          <li><b>Textbook</b><span>Elmasri &amp; Navathe, 7th ed.</span></li>
+          <li><b>Everything</b><span>lives on Canvas</span></li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>What counts</h3>
+          <p style="margin:0">Homework 30% · Final project 15% · Midterm 1 15% ·
+          Midterm 2 15% · Final 20% · Participation 5%. Graduate students (510) do
+          ~10% more and give a short presentation; the project is in pairs for
+          undergraduates, solo for graduate students.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Using AI in this course</h3>
+          <p style="margin:0">Closed on exams; on homework, for explaining and
+          debugging — not generating answers; on the project, for scaffolding you
+          can fully explain. The syllabus has the details.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · CS 321 BRIDGE -->
+  <section class="slide" data-title="From CS 321 to databases" aria-roledescription="slide" aria-label="From CS 321 to databases">
+    <p class="kicker">Why this course exists</p>
+    <h2 class="slide-h" tabindex="-1">From data structures to databases</h2>
+    <p class="lead">In CS 321 you built beautiful structures — in memory, for one
+    program, for one run. Databases begin exactly where those three assumptions
+    break.</p>
+    <div class="callout">
+      <h3>It all fits in memory</h3>
+      <p style="margin:0">Real data outgrows RAM. A database keeps it on disk and
+      makes the cost of reading it the thing to optimise — Unit&nbsp;7.</p>
+    </div>
+    <div class="callout">
+      <h3>It lasts only while the program runs</h3>
+      <p style="margin:0">Data must <span class="term">persist</span> — outlive any program,
+      and survive a crash mid-write. That's recovery — Unit&nbsp;8.</p>
+    </div>
+    <div class="callout">
+      <h3>One program owns it</h3>
+      <p style="margin:0">Many users and programs hit the same data at once, and it
+      must stay correct. That's concurrency and transactions — Unit&nbsp;8.</p>
+    </div>
+  </section>
+
+  <!-- 5 · DEFINITIONS -->
+  <section class="slide" data-title="Database, DBMS, database system" aria-roledescription="slide" aria-label="Database, DBMS, database system">
+    <p class="kicker">Say it precisely</p>
+    <h2 class="slide-h" tabindex="-1">Three words, defined</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">database</span> is a structured, persistent collection of
+        related data that models some slice of the real world — a
+        <span class="term">mini-world</span> — kept for a purpose.</p>
+        <p>A <span class="term">DBMS</span> (database management system) is the general-purpose
+        software for defining, building, querying, and protecting databases —
+        PostgreSQL, Oracle, SQL Server.</p>
+        <p>Together, the database plus the DBMS plus the applications make up a
+        <span class="term">database system</span>.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>What a database is not</h3>
+          <p style="margin:0">Not just "a lot of data," and not a single
+          spreadsheet. The defining features are <em>structure</em>, <em>relationships</em>,
+          <em>persistence</em>, and being <em>shared</em> and managed by software.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Careful with words</h3>
+          <p style="margin:0">People say "database" for the DBMS, and vice versa.
+          In this course we'll keep them distinct — the data vs. the software that
+          manages it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · DBMS IN ONE PICTURE (interactive) -->
+  <section class="slide" data-title="A DBMS in one picture" aria-roledescription="slide" aria-label="A DBMS in one picture">
+    <p class="kicker">The whole system at a glance</p>
+    <h2 class="slide-h" tabindex="-1">A DBMS in one picture</h2>
+    <p>The DBMS is software that stands between people and stored bytes. Highlight
+    each part to see its job.</p>
+    <div class="hl-controls" role="group" aria-label="Highlight a part of the system">
+      <button class="chip" data-hl="users" aria-pressed="false"
+        data-desc="Users and their application programs sit outside the DBMS. They issue queries and run programs; they never open the stored files themselves.">Users &amp; programs</button>
+      <button class="chip" data-hl="dbms" aria-pressed="false"
+        data-desc="The DBMS is the software in the middle. It processes queries and programs, then turns them into operations on the stored data — checking rules and permissions as it goes.">DBMS software</button>
+      <button class="chip" data-hl="catalog" aria-pressed="false"
+        data-desc="The catalog stores metadata: the schema itself — table and field definitions, data types, and constraints. Because the description lives with the data, the system is self-describing.">Catalog (metadata)</button>
+      <button class="chip" data-hl="data" aria-pressed="false"
+        data-desc="The stored database is the real data on disk. Only the DBMS's access layer reads and writes it, which is how storage details stay hidden from everyone above.">Stored data</button>
+    </div>
+    <p id="hl-desc" class="live-desc"
+       data-default="Users and programs on top, the DBMS software in the middle, and — below it — the stored data together with the catalog that describes it. Highlight a part to focus on it.">Users and programs on top, the DBMS software in the middle, and — below it — the stored data together with the catalog that describes it. Highlight a part to focus on it.</p>
+    <div class="fig wide">
+      <svg id="dbms-figure" class="hl-figure" viewBox="0 0 560 470" role="img" aria-labelledby="t6 d6">
+        <title id="t6">The database system environment</title>
+        <desc id="d6">From top to bottom: users and programmers, then their
+        application programs and queries, feeding into the DBMS software (which
+        processes queries and accesses stored data), which in turn connects to two
+        stores at the bottom — the catalog of metadata and the stored database.</desc>
+
+        <!-- neutral connectors -->
+        <g stroke="#8A93A3" stroke-width="1.6" fill="none">
+          <line x1="280" y1="60" x2="280" y2="78"/>
+          <line x1="280" y1="120" x2="280" y2="150"/>
+          <line x1="280" y1="300" x2="175" y2="344"/>
+          <line x1="280" y1="300" x2="385" y2="344"/>
+        </g>
+
+        <!-- users & programs -->
+        <g data-cat="users">
+          <rect x="150" y="20" width="260" height="40" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="280" y="45" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">Users / programmers</text>
+          <rect x="120" y="78" width="320" height="42" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="280" y="104" text-anchor="middle" font-family="system-ui" font-size="12.5" fill="#14181F">Application programs &amp; queries</text>
+        </g>
+
+        <!-- dbms software -->
+        <g data-cat="dbms">
+          <rect x="80" y="150" width="400" height="150" rx="8" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+          <text x="280" y="172" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DBMS software</text>
+          <rect x="110" y="184" width="340" height="44" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="280" y="211" text-anchor="middle" font-family="system-ui" font-size="12.5" fill="#14181F">Process queries &amp; programs</text>
+          <rect x="110" y="240" width="340" height="44" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="280" y="267" text-anchor="middle" font-family="system-ui" font-size="12.5" fill="#14181F">Access stored data</text>
+        </g>
+
+        <!-- catalog -->
+        <g data-cat="catalog">
+          <path d="M111,344 v60 a64,13 0 0 0 128,0 v-60" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <ellipse cx="175" cy="344" rx="64" ry="13" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="175" y="384" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">Catalog</text>
+          <text x="175" y="400" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">(metadata)</text>
+        </g>
+
+        <!-- stored data -->
+        <g data-cat="data">
+          <path d="M321,344 v60 a64,13 0 0 0 128,0 v-60" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <ellipse cx="385" cy="344" rx="64" ry="13" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="385" y="384" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">Stored</text>
+          <text x="385" y="400" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">database</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 7 · EXAMPLE -->
+  <section class="slide" data-title="Example: the UNIVERSITY database" aria-roledescription="slide" aria-label="Example, the university database">
+    <p class="kicker">Something concrete</p>
+    <h2 class="slide-h" tabindex="-1">A running example: UNIVERSITY</h2>
+    <div class="two">
+      <div>
+        <p>We'll come back to one small mini-world all term. It stores a few kinds
+        of things and — crucially — the <em>facts that connect them</em>:</p>
+        <ul>
+          <li>STUDENTs, COURSEs, and the SECTIONs a course is offered in;</li>
+          <li>which students are enrolled in which sections, and their grades;</li>
+          <li>which instructor teaches each section.</li>
+        </ul>
+        <p>Simple to say in English — the work is turning it into a structure a
+        machine can store, protect, and answer questions about.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 340 170" role="img" aria-labelledby="t7 d7">
+          <title id="t7">Related things in the university database</title>
+          <desc id="d7">Four boxes — STUDENT, SECTION, COURSE, and INSTRUCTOR —
+          connected by lines to show they are related.</desc>
+          <line x1="92" y1="40" x2="132" y2="70" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="180" y1="82" x2="180" y2="40" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="228" y1="82" x2="268" y2="40" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="180" y1="112" x2="180" y2="140" stroke="#8A93A3" stroke-width="1.5"/>
+          <rect x="30" y="18" width="86" height="34" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="73" y="39" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">STUDENT</text>
+          <rect x="136" y="82" width="88" height="34" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="180" y="103" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">SECTION</text>
+          <rect x="248" y="18" width="86" height="34" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="291" y="39" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">COURSE</text>
+          <rect x="126" y="140" width="108" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="180" y="160" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#00246B">INSTRUCTOR</text>
+        </svg>
+        <p class="figcap">Things — and the relationships between them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · FILE PROCESSING -->
+  <section class="slide" data-title="The old way: file processing" aria-roledescription="slide" aria-label="The old way, file processing">
+    <p class="kicker">The alternative, and why it hurts</p>
+    <h2 class="slide-h" tabindex="-1">Why not just use files?</h2>
+    <div class="two">
+      <div>
+        <p>Before databases, each program kept its own files in its own format. It
+        works — until the data is shared.</p>
+        <ul>
+          <li><span class="term">Redundancy:</span> the same student is stored in several
+          files, wasting space and drifting out of sync.</li>
+          <li><span class="term">Inconsistency:</span> update one copy, forget another, and
+          now the data contradicts itself.</li>
+          <li><span class="term">Brittle programs:</span> change a file's layout and every
+          program that reads it breaks.</li>
+          <li><span class="term">No sharing or safety:</span> concurrent access, access
+          control, and crash recovery are left to each programmer.</li>
+        </ul>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 340 200" role="img" aria-labelledby="t8 d8">
+          <title id="t8">Redundant files</title>
+          <desc id="d8">Two programs each own a separate file, and both files
+          contain student data — the same data stored twice.</desc>
+          <rect x="20" y="24" width="120" height="34" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/>
+          <text x="80" y="45" text-anchor="middle" font-family="system-ui" font-size="11" fill="#00246B">Enrolment app</text>
+          <rect x="20" y="150" width="120" height="34" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/>
+          <text x="80" y="171" text-anchor="middle" font-family="system-ui" font-size="11" fill="#00246B">Billing app</text>
+          <line x1="140" y1="41" x2="196" y2="66" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="140" y1="167" x2="196" y2="142" stroke="#8A93A3" stroke-width="1.5"/>
+          <rect x="196" y="52" width="128" height="32" rx="4" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="260" y="72" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">file: students…</text>
+          <rect x="196" y="124" width="128" height="32" rx="4" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="260" y="144" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">file: students…</text>
+          <text x="260" y="104" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">same data, stored twice</text>
+        </svg>
+        <p class="figcap">Redundancy is the root of the trouble.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · DATABASE APPROACH OVERVIEW -->
+  <section class="slide" data-title="The database approach" aria-roledescription="slide" aria-label="The database approach">
+    <p class="kicker">What makes it different</p>
+    <h2 class="slide-h" tabindex="-1">The database approach: four traits</h2>
+    <p class="lead">The DBMS approach replaces private files with one shared,
+    self-managing store. Four characteristics set it apart.</p>
+    <ol class="objlist">
+      <li><span class="term">Self-describing.</span> The database carries its own schema in a
+      catalog, so the data explains itself.</li>
+      <li><span class="term">Program–data independence.</span> Programs are insulated from how
+      the data is stored, so storage can change without rewrites.</li>
+      <li><span class="term">Multiple views.</span> Different users see different tailored
+      slices of the same data.</li>
+      <li><span class="term">Shared, controlled access.</span> Many users at once, kept correct
+      by transactions and protected by access control.</li>
+    </ol>
+    <p style="color:var(--muted)">The next two slides take these in pairs.</p>
+  </section>
+
+  <!-- 10 · SELF-DESCRIBING + INDEPENDENCE -->
+  <section class="slide" data-title="Self-describing and independent" aria-roledescription="slide" aria-label="Self-describing and independent">
+    <p class="kicker">Traits 1 &amp; 2</p>
+    <h2 class="slide-h" tabindex="-1">Self-describing, and insulated from storage</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Self-describing</h3>
+          <p style="margin:0">Alongside the data, the DBMS keeps a
+          <span class="term">catalog</span> of metadata — the definition of every table,
+          field, type, and constraint. A tool can understand a database it has
+          never seen by reading its catalog.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Program–data independence</h3>
+          <p style="margin:0">Because programs go through the DBMS, not the raw
+          files, the storage can change — add an index, reorganise a file — without
+          touching the programs. We'll make this precise next class as the
+          <span class="term">three-schema architecture</span>.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout warn">
+      <h3>Contrast with files</h3>
+      <p style="margin:0">In file processing the structure is baked into each
+      program's code. In a database it lives once, in the catalog — described, not
+      hard-coded.</p>
+    </div>
+  </section>
+
+  <!-- 11 · VIEWS + TRANSACTIONS -->
+  <section class="slide" data-title="Shared by many, safely" aria-roledescription="slide" aria-label="Shared by many, safely">
+    <p class="kicker">Traits 3 &amp; 4</p>
+    <h2 class="slide-h" tabindex="-1">Many views, many users, kept correct</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Multiple views</h3>
+          <p style="margin:0">One database can present a different
+          <span class="term">view</span> to each audience — a registrar sees enrolments; a
+          student sees only their own record — all derived from the same shared
+          data.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Concurrency &amp; transactions</h3>
+          <p style="margin:0">Many users read and write at once. The DBMS wraps work
+          in <span class="term">transactions</span> that are all-or-nothing and isolated, so
+          two people registering at the same moment can't corrupt the data.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout warn">
+      <h3>The promise (ACID, in one line)</h3>
+      <p style="margin:0">A transaction either fully happens or not at all, never
+      leaves the data in a broken state, doesn't get tangled with others, and
+      survives a crash once committed. The full story is Unit&nbsp;8.</p>
+    </div>
+  </section>
+
+  <!-- 12 · ACTORS -->
+  <section class="slide" data-title="Actors on the scene" aria-roledescription="slide" aria-label="Actors on the scene">
+    <p class="kicker">Who does what</p>
+    <h2 class="slide-h" tabindex="-1">Actors on the scene</h2>
+    <p>A working database has several roles around it — you'll play most of them
+    this term.</p>
+    <ul>
+      <li><span class="term">Database administrator (DBA):</span> owns the system — access,
+      performance, backups, availability.</li>
+      <li><span class="term">Database designer:</span> decides what to store and how it's
+      structured — the ER and relational design.</li>
+      <li><span class="term">Application programmer:</span> builds the programs that read and
+      write the database.</li>
+      <li><span class="term">End user:</span> queries and updates the data to get work done —
+      from casual to sophisticated.</li>
+    </ul>
+    <div class="callout">
+      <h3>In this course</h3>
+      <p style="margin:0">You'll be designer and programmer on the project, end
+      user every time you write SQL, and you'll meet the DBA's concerns in the
+      storage, indexing, and transactions units.</p>
+    </div>
+  </section>
+
+  <!-- 13 · ADVANTAGES / WHEN NOT -->
+  <section class="slide" data-title="Why it's worth it — and when it isn't" aria-roledescription="slide" aria-label="Why it is worth it and when it is not">
+    <p class="kicker">A balanced view</p>
+    <h2 class="slide-h" tabindex="-1">Worth it — and when it isn't</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">What a DBMS buys you</h3>
+        <ul>
+          <li>Controlled <span class="term">redundancy</span> and enforced
+          <span class="term">integrity</span>.</li>
+          <li>Access control and security.</li>
+          <li>Efficient querying via indexes and a query optimiser.</li>
+          <li>Backup and <span class="term">recovery</span> from failures.</li>
+          <li>Shared access with concurrency control.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>When a DBMS is overkill</h3>
+          <p style="margin:0">It isn't free — money, expertise, and overhead. For a
+          small, single-user, rarely-changing dataset, or a simple embedded or
+          hard real-time system, plain files can be the right call. Engineering is
+          trade-offs, not reflexes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>What a <span class="term">database</span> and a <span class="term">DBMS</span> are.</li>
+          <li>Why shared, persistent data breaks the file-processing habit.</li>
+          <li>The four traits: self-describing, program–data independence, multiple
+          views, shared and safe access.</li>
+          <li>The actors, the advantages, and when files are enough.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Give two problems file processing has that a DBMS solves.</li>
+            <li>What lives in the catalog, and why does it make a database
+            self-describing?</li>
+            <li>Name a case where you'd <em>not</em> reach for a DBMS.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — concepts &amp; architecture</h3>
+          <p style="margin:0">Schemas vs. instances, and the three-schema
+          architecture that delivers data independence.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 14</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- highlighter (any slide with .chip[data-hl] + .hl-figure + .live-desc) ---
+  var hlChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-hl]'));
+  var hlFig   = document.querySelector('.hl-figure');
+  var hlDesc  = document.querySelector('.live-desc');
+  if (hlChips.length && hlFig){
+    var groups = Array.prototype.slice.call(hlFig.querySelectorAll('g[data-cat]'));
+    function clearHl(){
+      hlChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+      groups.forEach(function(g){ g.classList.remove('hl'); g.classList.remove('dim'); });
+      if (hlDesc) hlDesc.textContent = hlDesc.getAttribute('data-default');
+    }
+    hlChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        if (chip.getAttribute('aria-pressed') === 'true'){ clearHl(); return; }
+        hlChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        var key = chip.getAttribute('data-hl');
+        groups.forEach(function(g){
+          var m = (g.getAttribute('data-cat') === key);
+          g.classList.toggle('hl', m); g.classList.toggle('dim', !m);
+        });
+        if (hlDesc) hlDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

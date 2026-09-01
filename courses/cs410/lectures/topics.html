@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Topics — CS 410/510 Databases, Fall 2026</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB;
+  --unit-a:#DCE4F5; --unit-b:#C7D4EE;         /* alternating unit tints  */
+  --unit-border:#0033A0; --unit-text:#00246B;
+  --review-fill:#EEF1F6; --review-border:#7A8699; --review-text:#2A3342;
+  --exam-fill:#F7DBCB; --exam-border:#D64309; --exam-text:#7A2708;
+  --serif:&#34;Charter&#34;,&#34;Bitstream Charter&#34;,&#34;Iowan Old Style&#34;,&#34;Palatino Linotype&#34;,Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,&#34;Segoe UI&#34;,Roboto,&#34;Helvetica Neue&#34;,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:17px; line-height:1.5;
+}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:20;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+/* ---- masthead ---- */
+.mast{border-top:6px solid var(--blue);background:var(--surface);
+  border-bottom:1px solid var(--line)}
+.mast .wrap{padding-top:22px;padding-bottom:22px}
+.eyebrow{font-family:var(--sans);color:var(--blue-ink);font-weight:600;
+  letter-spacing:.01em;margin:0 0 2px}
+h1{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:2.15rem;line-height:1.1;margin:.1rem 0 .5rem}
+.subtitle{color:var(--muted);margin:0 0 16px;font-size:1.02rem}
+.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:6px 32px;margin:0;padding:0}
+.meta div{display:flex;gap:8px;font-size:.96rem;padding:3px 0;
+  border-bottom:1px solid var(--line)}
+.meta dt{color:var(--muted);min-width:118px;margin:0;font-weight:600}
+.meta dd{margin:0;color:var(--ink)}
+
+/* ---- top nav between the two pages ---- */
+nav.pages{display:flex;gap:4px;margin-top:16px}
+nav.pages a{font-weight:600;text-decoration:none;color:var(--blue-ink);
+  padding:7px 14px;border:1.5px solid var(--line);border-radius:999px;
+  background:#fff;font-size:.94rem}
+nav.pages a[aria-current=&#34;page&#34;]{background:var(--blue);color:#fff;
+  border-color:var(--blue)}
+nav.pages a:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+
+main{padding:34px 0 60px}
+section{margin:0 0 40px}
+h2{font-family:var(--serif);font-size:1.42rem;color:var(--blue-ink);
+  margin:0 0 4px;line-height:1.15}
+.lede{color:var(--muted);max-width:66ch;margin:0 0 18px}
+
+/* ---- timeline ---- */
+.timeline{border:1px solid var(--line);border-radius:10px;background:#fff;
+  padding:14px 16px 8px}
+.timeline svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin:12px 2px 2px;
+  font-size:.86rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.sw{width:20px;height:13px;border-radius:2px;border:1px solid var(--line);flex:none}
+.sw.a{background:var(--unit-a);border-color:var(--unit-border)}
+.sw.b{background:var(--unit-b);border-color:var(--unit-border)}
+.sw.exam{background:var(--exam-fill);border-color:var(--exam-border)}
+.sw.review{background:var(--review-fill);border-color:var(--review-border)}
+.sw.brk{background:repeating-linear-gradient(45deg,#e6e9ef 0 4px,#cfd5df 4px 8px);
+  border-color:var(--line)}
+
+/* ---- key-dates strip ---- */
+.keydates{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 0;padding:0;list-style:none}
+.keydates li{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);
+  border-left-width:5px;border-radius:7px;padding:8px 12px;min-width:150px;background:#fff}
+.keydates .kd-when{font-weight:700;font-size:.95rem}
+.keydates .kd-what{color:var(--muted);font-size:.88rem}
+.kd-exam{border-left-color:var(--orange)}
+.kd-final{border-left-color:var(--blue)}
+.kd-project{border-left-color:#0b7a5b}
+.kd-hw-out{border-left-color:#6b76c9}
+.kd-hw-due{border-left-color:#3a3f8f}
+
+/* ---- schedule table ---- */
+.tablecard{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+caption{text-align:left;font-family:var(--serif);font-size:1.42rem;
+  color:var(--blue-ink);padding:0 0 8px}
+thead th{background:var(--blue);color:#fff;text-align:left;font-weight:600;
+  padding:10px 14px;font-size:.9rem;vertical-align:bottom}
+tbody th,tbody td{padding:11px 14px;border-top:1px solid var(--line);
+  vertical-align:top;text-align:left}
+tbody th{font-weight:600;white-space:nowrap;color:var(--ink)}
+tbody tr.wk-start td,tbody tr.wk-start th{border-top:2px solid #9fb0d6}
+.col-when{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
+.col-when .d{color:var(--ink);font-weight:600}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--unit-text);
+  background:var(--unit-a);border:1px solid var(--unit-border);border-radius:5px;
+  padding:1px 7px;white-space:nowrap}
+.unit-tag.odd{background:var(--unit-b)}
+.chap{color:var(--muted);font-size:.86rem;margin-top:2px}
+.note{color:var(--exam-text);font-size:.82rem;margin-top:4px;font-style:italic}
+tr.is-holiday td{background:repeating-linear-gradient(45deg,#f2f4f8 0 6px,#e8ebf1 6px 12px);
+  color:var(--muted)}
+tr.is-exam th,tr.is-exam td{background:#FCEEE6}
+tr.is-review th,tr.is-review td{background:#F7F9FC}
+
+/* badges in the assessments column: shape + text, never colour alone */
+.badge{display:inline-block;font-size:.8rem;font-weight:700;line-height:1.3;
+  padding:2px 9px;border-radius:999px;margin:2px 4px 2px 0;border:2px solid}
+.b-exam{background:var(--orange);color:#fff;border-color:var(--orange)}
+.b-final{background:var(--blue);color:#fff;border-color:var(--blue)}
+.b-project{background:#fff;color:#0a5c46;border-color:#0b7a5b;border-style:dashed}
+.b-hw-out{background:#fff;color:var(--blue-ink);border-color:var(--blue-ink)}
+.b-hw-due{background:var(--blue-ink);color:#fff;border-color:var(--blue-ink)}
+
+/* ---- topics ---- */
+.unit{border:1px solid var(--line);border-left:6px solid var(--unit-border);
+  border-radius:10px;padding:18px 22px;margin:0 0 18px;background:#fff}
+.unit.odd{border-left-color:#2b57c4}
+.unit-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px}
+.unit-num{font-family:var(--serif);font-weight:700;font-size:1.05rem;color:var(--blue);
+  border:2px solid var(--blue);border-radius:7px;padding:1px 9px;flex:none}
+.unit-title{font-family:var(--serif);font-size:1.28rem;color:var(--ink);margin:0}
+.unit-chap{color:var(--muted);font-size:.9rem;font-weight:600}
+.unit-lead{color:var(--muted);max-width:70ch;margin:10px 0 12px}
+.unit ul{margin:0;padding-left:1.15rem}
+.unit li{margin:5px 0;max-width:74ch}
+.assessed{margin-top:14px;font-size:.9rem;color:var(--muted)}
+.assessed strong{color:var(--ink)}
+.assessed .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;
+  padding:1px 10px;margin-left:4px;background:var(--surface);color:var(--blue-ink);
+  font-weight:600;font-size:.85rem}
+
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:.86rem;
+  padding:20px 0 40px}
+footer p{margin:4px 0;max-width:80ch}
+a{color:var(--blue)}
+a:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+
+/* ---- responsive ---- */
+@media (max-width:640px){
+  body{font-size:16px}
+  h1{font-size:1.7rem}
+  .meta{grid-template-columns:1fr}
+  table{font-size:.88rem}
+  thead{display:none}
+  tbody th,tbody td{display:block;border-top:none;padding:2px 14px}
+  tbody tr{display:block;border-top:2px solid #9fb0d6;padding:8px 0}
+  tbody th{padding-top:8px}
+}
+
+/* ---- higher contrast on request ---- */
+@media (prefers-contrast:more){
+  :root{--muted:#2b2f38;--line:#4a5160}
+  .unit-tag,.sw.a,.sw.b{background:#fff}
+  tr.is-holiday td{background:#fff}
+  thead th{background:#00204d}
+  .badge,.unit,.tablecard,.timeline,.keydates li{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---- print / PDF ---- */
+@page{size:letter;margin:14mm 12mm}
+@media print{
+  body{font-size:10.5pt}
+  .skip,nav.pages{display:none!important}
+  .mast{background:#fff;border-top-width:5px}
+  .wrap{max-width:none;padding:0}
+  main{padding:10px 0 0}
+  section{margin-bottom:16px}
+  .timeline,.tablecard,.unit,.keydates li{break-inside:avoid}
+  thead{display:table-header-group}
+  tr{break-inside:avoid}
+  h2,caption{break-after:avoid}
+  a{color:var(--ink);text-decoration:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to main content</a>
+<header class="mast"><div class="wrap">
+  <p class="eyebrow">CS 410/510 · Boise State University · Fall 2026</p>
+  <h1>Databases — Topics</h1>
+  <p class="subtitle">Detailed topic breakdown by unit, Fall 2026</p>
+  <dl class="meta">
+    <div><dt>Instructor</dt><dd>Dr. Steve Cutchin</dd></div>
+    <div><dt>Meets</dt><dd>Mon / Wed, 1:30–2:45 PM</dd></div>
+    <div><dt>Location</dt><dd>CCP-243</dd></div>
+    <div><dt>Textbook</dt><dd>Elmasri &amp; Navathe, Fundamentals of Database Systems, 7th ed.</dd></div>
+    <div><dt>Term</dt><dd>Mon Aug 24, 2026 – Fri Dec 11, 2026</dd></div>
+    <div><dt>Finals</dt><dd>Dec 14–18, 2026</dd></div>
+  </dl>
+  <nav class="pages" aria-label="Course pages">
+    <a href="../index.html">Course home</a>
+    <a href="../syllabus.html">Syllabus</a>
+    <a href="../schedule.html">Schedule</a>
+    <a href="topics.html" aria-current="page">Topics</a>
+  </nav>
+</div></header>
+<main id="main"><div class="wrap">
+
+<section aria-labelledby="ov-h">
+  <h2 id="ov-h">Course topics in depth</h2>
+  <p class="lede">The seven catalog topics, expanded into nine teaching units and
+  keyed to the assigned Elmasri &amp; Navathe chapters. Each unit lists what it
+  covers and where it is graded, so you can trace any topic straight to its
+  homework or exam.</p>
+</section>
+
+
+<section class="unit" aria-labelledby="u0-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U0</span>
+    <h2 class="unit-title" id="u0-h">Foundations — what a DBMS is and why</h2>
+    <span class="unit-chap">Ch 1–2</span>
+  </div>
+  <p class="unit-lead">Why the file-at-a-time habits from CS 321 stop scaling, and what a database system adds on top of raw data structures.</p>
+  <ul>
+    <li>File-processing vs. the database approach; what a DBMS buys you</li><li>Data abstraction; the value of program–data independence</li><li>Data models, schemas vs. instances</li><li>The three-schema architecture and data independence</li><li>DDL and DML; client/server DBMS architecture; classifying DBMSs</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">Midterm 1</span>
+  </p>
+</section>
+
+<section class="unit odd" aria-labelledby="u1-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U1</span>
+    <h2 class="unit-title" id="u1-h">Conceptual design — the ER and EER models</h2>
+    <span class="unit-chap">Ch 3–4</span>
+  </div>
+  <p class="unit-lead">Turning a description of the world into a diagram before any tables exist.</p>
+  <ul>
+    <li>Entities; attribute types (simple/composite, single/multi-valued, derived, key)</li><li>Entity types vs. entity sets</li><li>Relationship types, degree, roles; cardinality ratios (1:1, 1:N, M:N)</li><li>Participation constraints (total vs. partial)</li><li>Weak entity types and identifying relationships</li><li>Chen and Elmasri–Navathe notation</li><li>EER: specialization/generalization, attribute inheritance</li><li>Disjoint vs. overlapping, total vs. partial; union types (categories)</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">HW1</span><span class="pill">Midterm 1</span>
+  </p>
+</section>
+
+<section class="unit" aria-labelledby="u2-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U2</span>
+    <h2 class="unit-title" id="u2-h">The relational model and ER-to-relational mapping</h2>
+    <span class="unit-chap">Ch 5, 9</span>
+  </div>
+  <p class="unit-lead">The formal model the rest of the course runs on, and the algorithm that gets you there from a diagram.</p>
+  <ul>
+    <li>Relations, tuples, attributes, domains; schema vs. instance</li><li>Key constraints; entity integrity; referential integrity</li><li>Primary, candidate, and foreign keys; NULLs</li><li>The 7-step ER→relational mapping algorithm</li><li>Mapping EER constructs (specialization options, union types)</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">HW1</span><span class="pill">Midterm 1</span>
+  </p>
+</section>
+
+<section class="unit odd" aria-labelledby="u3-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U3</span>
+    <h2 class="unit-title" id="u3-h">Relational algebra</h2>
+    <span class="unit-chap">Ch 8</span>
+  </div>
+  <p class="unit-lead">The procedural language underneath SQL — what a query actually computes, step by step.</p>
+  <ul>
+    <li>Unary operations: SELECT (σ), PROJECT (π), RENAME (ρ)</li><li>Set operations (∪, ∩, −, ×)</li><li>JOIN (theta, equijoin, natural) and DIVISION</li><li>Aggregation and grouping; outer joins</li><li>Building query trees; relational calculus as the declarative counterpart</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">HW2</span><span class="pill">Midterm 1</span>
+  </p>
+</section>
+
+<section class="unit" aria-labelledby="u4-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U4</span>
+    <h2 class="unit-title" id="u4-h">SQL</h2>
+    <span class="unit-chap">Ch 6–7</span>
+  </div>
+  <p class="unit-lead">The commercial language that implements the relational model, from table definitions to complex queries.</p>
+  <ul>
+    <li>DDL: CREATE TABLE, data types, constraints (PK, FK, CHECK, DEFAULT)</li><li>Retrieval: SELECT-FROM-WHERE, aliasing, DISTINCT, ordering</li><li>Set operations; INSERT / UPDATE / DELETE</li><li>Nested and correlated subqueries; EXISTS / ANY / ALL</li><li>Joined tables and outer joins in SQL</li><li>Aggregation with GROUP BY / HAVING</li><li>Views and updatability; assertions and triggers; ALTER</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">HW2</span><span class="pill">Midterm 1</span><span class="pill">Final Project</span>
+  </p>
+</section>
+
+<section class="unit odd" aria-labelledby="u5-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U5</span>
+    <h2 class="unit-title" id="u5-h">Database access from applications</h2>
+    <span class="unit-chap">Ch 10–11</span>
+  </div>
+  <p class="unit-lead">Getting a real program to talk to the database — and the security traps that come with it.</p>
+  <ul>
+    <li>The impedance mismatch; embedded vs. dynamic SQL; cursors</li><li>API-based access (JDBC / ODBC concepts)</li><li>Stored procedures; SQL/PSM</li><li>Connecting an application to a DB; transactions from application code</li><li>Parameterized queries and SQL injection</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">Midterm 2</span><span class="pill">Final Project</span>
+  </p>
+</section>
+
+<section class="unit" aria-labelledby="u6-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U6</span>
+    <h2 class="unit-title" id="u6-h">Functional dependencies and normalization</h2>
+    <span class="unit-chap">Ch 14–15</span>
+  </div>
+  <p class="unit-lead">The theory that tells you whether a schema is well-designed, and the algorithms that fix it when it isn&#39;t.</p>
+  <ul>
+    <li>Informal design guidelines; update anomalies</li><li>Functional dependencies; Armstrong&#39;s axioms; attribute closure; minimal cover</li><li>1NF, 2NF, 3NF (partial and transitive dependencies)</li><li>Boyce–Codd Normal Form (BCNF)</li><li>Lossless-join and dependency-preservation properties</li><li>3NF and BCNF decomposition algorithms</li><li>Multivalued dependencies and 4NF (brief 5NF)</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">HW3</span><span class="pill">Midterm 2</span>
+  </p>
+</section>
+
+<section class="unit odd" aria-labelledby="u7-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U7</span>
+    <h2 class="unit-title" id="u7-h">Storage and indexing</h2>
+    <span class="unit-chap">Ch 16–17</span>
+  </div>
+  <p class="unit-lead">Why disk I/O dominates cost, and the structures that make lookups fast — the B+-tree you met in CS 321, now doing real work.</p>
+  <ul>
+    <li>Disk, blocks, records; heap and sorted file organizations</li><li>Static and dynamic hashing (extendible, linear)</li><li>The disk-I/O cost model — why one structure beats another</li><li>Ordered indexes: primary, clustering, secondary; multilevel indexes</li><li>B-trees and B+-trees; why B+-trees for databases</li><li>Index selection and physical database design</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">HW3</span><span class="pill">Midterm 2</span>
+  </p>
+</section>
+
+<section class="unit" aria-labelledby="u8-h">
+  <div class="unit-head">
+    <span class="unit-num" aria-hidden="true">U8</span>
+    <h2 class="unit-title" id="u8-h">Transactions, concurrency, and recovery</h2>
+    <span class="unit-chap">Ch 20–22</span>
+  </div>
+  <p class="unit-lead">How a database stays correct when many users hit it at once and the power goes out mid-write.</p>
+  <ul>
+    <li>Transaction concept; ACID properties</li><li>Concurrency anomalies; schedules; conflict serializability; precedence graphs</li><li>Two-phase locking and variants; shared/exclusive locks; deadlock</li><li>Timestamp ordering; MVCC and isolation levels (brief)</li><li>Recovery: the system log; write-ahead logging; checkpoints</li><li>ARIES recovery (conceptual overview)</li>
+  </ul>
+  <p class="assessed"><strong>Assessed by:</strong>
+    <span class="pill">Final</span>
+  </p>
+</section>
+
+
+</div></main>
+<footer><div class="wrap">
+&lt;p&gt;Units expand the seven catalog topics using Elmasri &amp;amp; Navathe, 7th edition. See the &lt;a href=&#34;schedule.html&#34;&gt;Schedule&lt;/a&gt; for dates and deadlines. Regenerated from &lt;code&gt;course.yaml&lt;/code&gt;.&lt;/p&gt;
+</div></footer>
+</body></html>

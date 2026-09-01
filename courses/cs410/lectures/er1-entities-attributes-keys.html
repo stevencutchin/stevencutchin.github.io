@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ER Modeling I — Entities, Attributes, and Keys · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- instance table ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+
+/* ---- notation legend grid ---- */
+.legendgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.gl{border:1px solid var(--line);border-radius:9px;padding:12px;text-align:center;background:#fff}
+.gl svg{display:block;margin:0 auto 8px;height:64px;width:auto}
+.gl b{display:block;color:var(--blue-ink);font-size:.98rem}
+.gl span{color:var(--muted);font-size:.84rem}
+
+/* ---- highlight controls (interactive summary) ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+#hl-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+.figure g[data-cat]{transition:opacity .18s}
+.figure g.dim{opacity:.24}
+.figure g.hl ellipse,.figure g.hl rect{stroke:var(--orange);stroke-width:3.4}
+.figure g.hl text,.figure g.hl .keyline{fill:#7A2708;stroke:#7A2708}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .legendgrid{grid-template-columns:1fr 1fr}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.gl,table.inst{break-inside:avoid}
+  #student-figure{width:66%;display:block;margin:0 auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 1 · ER modeling</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 1 of 3 in the ER sequence · Elmasri &amp; Navathe, Ch. 3</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="ER Modeling I — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="ER Modeling I — Entities, Attributes, and Keys"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Conceptual database design</p>
+    <h2 class="slide-h" tabindex="-1">ER Modeling I<br>Entities, attributes, and keys</h2>
+    <div class="two">
+      <div>
+        <p class="lead">How to turn a description of the world into the first
+        picture of a database — before a single table exists.</p>
+        <p style="color:var(--muted)">We build the vocabulary of the
+        entity–relationship model one piece at a time, and read every symbol in
+        Chen notation as we go.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 320 190" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A small ER fragment</title>
+          <desc id="d1">An entity rectangle labelled STUDENT joined to three
+          attribute ovals: StudentID, Name, and GPA.</desc>
+          <line x1="160" y1="95" x2="70" y2="45" stroke="#8A93A3" stroke-width="1.6"/>
+          <line x1="160" y1="95" x2="160" y2="30" stroke="#8A93A3" stroke-width="1.6"/>
+          <line x1="160" y1="95" x2="250" y2="45" stroke="#8A93A3" stroke-width="1.6"/>
+          <rect x="112" y="78" width="96" height="40" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="160" y="103" text-anchor="middle" font-family="system-ui"
+                font-size="15" font-weight="700" fill="#00246B">STUDENT</text>
+          <g font-family="system-ui" font-size="12.5" fill="#14181F">
+            <ellipse cx="70" cy="45" rx="52" ry="22" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="70" y="49" text-anchor="middle">StudentID</text>
+            <line x1="44" y1="55" x2="96" y2="55" stroke="#00246B" stroke-width="1.4"/>
+            <ellipse cx="160" cy="30" rx="42" ry="20" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="160" y="34" text-anchor="middle">Name</text>
+            <ellipse cx="250" cy="45" rx="42" ry="20" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="250" y="49" text-anchor="middle">GPA</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · ROADMAP -->
+  <section class="slide" data-title="Today's roadmap" aria-roledescription="slide" aria-label="Today's roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Today's roadmap</h2>
+    <div class="two">
+      <div>
+        <p>The ER model spans three lectures. Today is the foundation: the
+        building blocks that describe a single kind of thing.</p>
+        <ol class="objlist">
+          <li><strong>ER I — today.</strong> Entities, attributes, and keys.</li>
+          <li><strong>ER II.</strong> Relationships, cardinality, participation, and weak entities.</li>
+          <li><strong>EER.</strong> Specialization, generalization, and inheritance.</li>
+        </ol>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Tell an <span class="term">entity type</span> from an <span class="term">entity set</span>.</li>
+            <li>Classify an attribute as simple or composite, single- or multivalued, stored or derived.</li>
+            <li>Identify candidate keys and choose a <span class="term">primary key</span>.</li>
+            <li>Read and draw these in Chen notation.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHY MODEL -->
+  <section class="slide" data-title="Why model before tables?" aria-roledescription="slide" aria-label="Why model before tables">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">Why model before tables?</h2>
+    <p class="lead">A schema you type straight into SQL bakes in decisions you
+    haven't examined yet. The ER model is a thinking tool that comes first.</p>
+    <ul>
+      <li>It captures the <span class="term">mini-world</span> — the slice of reality the
+      database is about — in a form you can discuss with non-programmers.</li>
+      <li>It is <span class="term">DBMS-independent</span>: no tables, types, or vendor
+      syntax, just the concepts and how they connect.</li>
+      <li>It is a diagram, so mistakes are cheap to spot and fix now, versus after
+      data is loaded.</li>
+    </ul>
+    <div class="callout">
+      <h3>The pipeline</h3>
+      <p style="margin:0">Requirements → <span class="term">ER diagram</span> (this unit) →
+      relational schema (Unit&nbsp;2, by a mechanical mapping) → SQL tables
+      (Unit&nbsp;4). Get the diagram right and the tables follow.</p>
+    </div>
+  </section>
+
+  <!-- 4 · ENTITIES -->
+  <section class="slide" data-title="Entities: types and sets" aria-roledescription="slide" aria-label="Entities, types and sets">
+    <p class="kicker">Building block 1</p>
+    <h2 class="slide-h" tabindex="-1">Entities: types and sets</h2>
+    <div class="two">
+      <div>
+        <p>An <span class="term">entity</span> is a thing in the mini-world we want to
+        store data about — a specific student, a specific course.</p>
+        <p>An <span class="term">entity type</span> is the template: the name and the list
+        of attributes every entity of that kind has. In Chen notation it is a
+        <strong>rectangle</strong>.</p>
+        <p>An <span class="term">entity set</span> is the collection of actual entities of
+        that type at a moment in time — the rows below.</p>
+        <div class="callout">
+          <h3>Type vs. set</h3>
+          <p style="margin:0">STUDENT (the rectangle) is the <em>type</em>. The three
+          students in the table are the <em>set</em>. The type is the design; the
+          set is the data.</p>
+        </div>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 300 90" role="img" aria-labelledby="t4 d4">
+            <title id="t4">STUDENT entity type</title>
+            <desc id="d4">A rectangle labelled STUDENT, the symbol for an entity type.</desc>
+            <rect x="90" y="26" width="120" height="46" rx="4" fill="#EAF0FB"
+                  stroke="#0033A0" stroke-width="2.4"/>
+            <text x="150" y="54" text-anchor="middle" font-family="system-ui"
+                  font-size="17" font-weight="700" fill="#00246B">STUDENT</text>
+          </svg>
+          <p class="figcap">Entity type: a rectangle.</p>
+        </div>
+        <table class="inst">
+          <caption>The STUDENT entity set — three entities of the STUDENT type.</caption>
+          <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th><th scope="col">Major</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">S1001</td><td>Ada Okafor</td><td>CS</td></tr>
+            <tr><td class="keycol">S1002</td><td>Liang Wei</td><td>Math</td></tr>
+            <tr><td class="keycol">S1003</td><td>Grace Bello</td><td>CS</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · ATTRIBUTES -->
+  <section class="slide" data-title="Attributes" aria-roledescription="slide" aria-label="Attributes">
+    <p class="kicker">Building block 2</p>
+    <h2 class="slide-h" tabindex="-1">Attributes</h2>
+    <div class="two">
+      <div>
+        <p>An <span class="term">attribute</span> is a property that describes an entity.
+        Every entity of the type has the same attributes, each drawn from a set
+        of allowed values called its <span class="term">domain</span>.</p>
+        <p>In Chen notation an attribute is an <strong>oval</strong> joined by a line to
+        its entity rectangle.</p>
+        <p>Attributes come in a few flavours — the next four slides work through
+        each pair of choices. They matter because each one maps to the relational
+        model differently later.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 320 150" role="img" aria-labelledby="t5 d5">
+          <title id="t5">STUDENT with two attributes</title>
+          <desc id="d5">STUDENT rectangle joined to two ovals, GPA and Major.</desc>
+          <line x1="160" y1="75" x2="70" y2="40" stroke="#8A93A3" stroke-width="1.6"/>
+          <line x1="160" y1="75" x2="250" y2="40" stroke="#8A93A3" stroke-width="1.6"/>
+          <rect x="112" y="58" width="96" height="40" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="160" y="83" text-anchor="middle" font-family="system-ui"
+                font-size="15" font-weight="700" fill="#00246B">STUDENT</text>
+          <g font-family="system-ui" font-size="13" fill="#14181F">
+            <ellipse cx="70" cy="40" rx="46" ry="22" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="70" y="44" text-anchor="middle">GPA</text>
+            <ellipse cx="250" cy="40" rx="46" ry="22" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="250" y="44" text-anchor="middle">Major</text>
+          </g>
+        </svg>
+        <p class="figcap">Attribute: an oval attached to its entity.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · SIMPLE VS COMPOSITE -->
+  <section class="slide" data-title="Simple vs. composite attributes" aria-roledescription="slide" aria-label="Simple versus composite attributes">
+    <p class="kicker">Attribute flavours · 1 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Simple vs. composite</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">simple</span> (atomic) attribute holds one indivisible
+        value — <em>GPA</em>, <em>Major</em>.</p>
+        <p>A <span class="term">composite</span> attribute is built from smaller
+        attributes. <em>Name</em> divides into First, Middle, and Last. You can refer
+        to the whole thing or to any part.</p>
+        <p>Draw a composite by hanging its component ovals off the parent oval.</p>
+        <div class="callout warn">
+          <h3>Design signal</h3>
+          <p style="margin:0">Model something as composite only if you sometimes
+          need the parts separately. If you always use the whole value, keep it
+          simple.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 320 190" role="img" aria-labelledby="t6 d6">
+          <title id="t6">Composite attribute Name</title>
+          <desc id="d6">An oval labelled Name connects down to three component
+          ovals: First, Middle, and Last.</desc>
+          <line x1="160" y1="52" x2="70" y2="120" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="160" y1="52" x2="160" y2="118" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="160" y1="52" x2="250" y2="120" stroke="#8A93A3" stroke-width="1.5"/>
+          <ellipse cx="160" cy="34" rx="52" ry="24" fill="#fff" stroke="#0033A0" stroke-width="2"/>
+          <text x="160" y="39" text-anchor="middle" font-family="system-ui"
+                font-size="14" font-weight="700" fill="#00246B">Name</text>
+          <g font-family="system-ui" font-size="12.5" fill="#14181F">
+            <ellipse cx="70" cy="130" rx="46" ry="21" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+            <text x="70" y="134" text-anchor="middle">First</text>
+            <ellipse cx="160" cy="140" rx="46" ry="21" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+            <text x="160" y="144" text-anchor="middle">Middle</text>
+            <ellipse cx="250" cy="130" rx="46" ry="21" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+            <text x="250" y="134" text-anchor="middle">Last</text>
+          </g>
+        </svg>
+        <p class="figcap">Composite: parent oval with component ovals.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · SINGLE VS MULTIVALUED -->
+  <section class="slide" data-title="Single- vs. multivalued attributes" aria-roledescription="slide" aria-label="Single versus multivalued attributes">
+    <p class="kicker">Attribute flavours · 2 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Single- vs. multivalued</h2>
+    <div class="two">
+      <div>
+        <p>Most attributes are <span class="term">single-valued</span>: one student has
+        one birth date.</p>
+        <p>A <span class="term">multivalued</span> attribute can hold a set of values for a
+        single entity — a student may list several phone numbers. Chen notation
+        marks it with a <strong>double oval</strong>.</p>
+        <div class="callout warn">
+          <h3>Foreshadowing</h3>
+          <p style="margin:0">Multivalued attributes don't fit directly in a table;
+          in Unit&nbsp;2 they become their own row set. Often that's a hint the
+          value should be a separate entity.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 320 150" role="img" aria-labelledby="t7 d7">
+          <title id="t7">Multivalued attribute Phone</title>
+          <desc id="d7">STUDENT joined to a double-outlined oval labelled Phone,
+          the symbol for a multivalued attribute.</desc>
+          <line x1="120" y1="75" x2="235" y2="52" stroke="#8A93A3" stroke-width="1.6"/>
+          <rect x="40" y="55" width="96" height="40" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="88" y="80" text-anchor="middle" font-family="system-ui"
+                font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <ellipse cx="248" cy="52" rx="60" ry="30" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <ellipse cx="248" cy="52" rx="52" ry="23" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="248" y="56" text-anchor="middle" font-family="system-ui"
+                font-size="13" fill="#14181F">Phone</text>
+          <text x="248" y="112" text-anchor="middle" font-family="system-ui"
+                font-size="11.5" fill="#4A5160">double oval = many values</text>
+        </svg>
+        <p class="figcap">Multivalued: a double oval.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · STORED VS DERIVED -->
+  <section class="slide" data-title="Stored vs. derived attributes" aria-roledescription="slide" aria-label="Stored versus derived attributes">
+    <p class="kicker">Attribute flavours · 3 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Stored vs. derived</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">stored</span> attribute is kept as-is — <em>BirthDate</em>.</p>
+        <p>A <span class="term">derived</span> attribute is computed from other data rather
+        than stored — <em>Age</em> follows from BirthDate and today's date. Chen
+        notation uses a <strong>dashed oval</strong>.</p>
+        <p>Deriving avoids storing a value that would otherwise go stale or fall
+        out of sync with what it depends on.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 320 150" role="img" aria-labelledby="t8 d8">
+          <title id="t8">Derived attribute Age</title>
+          <desc id="d8">STUDENT joined to a stored oval BirthDate and to a
+          dashed oval Age, the symbol for a derived attribute.</desc>
+          <line x1="160" y1="75" x2="72" y2="42" stroke="#8A93A3" stroke-width="1.6"/>
+          <line x1="160" y1="75" x2="248" y2="42" stroke="#8A93A3" stroke-width="1.6"/>
+          <rect x="112" y="58" width="96" height="40" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="160" y="83" text-anchor="middle" font-family="system-ui"
+                font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <ellipse cx="72" cy="42" rx="52" ry="23" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="72" y="46" text-anchor="middle" font-family="system-ui" font-size="12.5" fill="#14181F">BirthDate</text>
+          <ellipse cx="248" cy="42" rx="46" ry="22" fill="#fff" stroke="#0033A0"
+                   stroke-width="1.7" stroke-dasharray="5 4"/>
+          <text x="248" y="46" text-anchor="middle" font-family="system-ui" font-size="13" fill="#14181F">Age</text>
+        </svg>
+        <p class="figcap">Derived: a dashed oval (Age from BirthDate).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · NULL -->
+  <section class="slide" data-title="NULL values" aria-roledescription="slide" aria-label="NULL values">
+    <p class="kicker">Attribute flavours · 4 of 4</p>
+    <h2 class="slide-h" tabindex="-1">When a value is missing: NULL</h2>
+    <p class="lead">Sometimes an attribute has no value for a particular entity.
+    That absence is called <span class="term">NULL</span>, and it can mean different
+    things.</p>
+    <ul>
+      <li><span class="term">Not applicable</span> — the attribute doesn't apply here. A
+      student with no middle name has no MiddleName value.</li>
+      <li><span class="term">Unknown</span> — a value exists but we don't have it, or we're
+      unsure whether one exists.</li>
+    </ul>
+    <div class="callout warn">
+      <h3>Why it matters</h3>
+      <p style="margin:0">NULL is not zero and not the empty string. It behaves
+      unusually in comparisons and aggregates — a recurring theme once we reach SQL
+      in Unit&nbsp;4. Flag now which attributes may be NULL.</p>
+    </div>
+  </section>
+
+  <!-- 10 · KEYS -->
+  <section class="slide" data-title="Keys and uniqueness" aria-roledescription="slide" aria-label="Keys and uniqueness">
+    <p class="kicker">Building block 3</p>
+    <h2 class="slide-h" tabindex="-1">Keys: telling entities apart</h2>
+    <div class="two">
+      <div>
+        <p>If two students shared every attribute value, we couldn't tell them
+        apart. A <span class="term">key</span> is an attribute (or a set of them) whose
+        value is <strong>unique across the whole entity set</strong> — a uniqueness
+        constraint.</p>
+        <p>Chen notation marks a key by <strong>underlining</strong> its name.</p>
+        <p>StudentID is a natural key here: the registrar guarantees no two
+        students share one.</p>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 300 130" role="img" aria-labelledby="t10 d10">
+            <title id="t10">Key attribute StudentID</title>
+            <desc id="d10">STUDENT joined to an oval whose label, StudentID, is
+            underlined to mark it as the key.</desc>
+            <line x1="150" y1="98" x2="150" y2="60" stroke="#8A93A3" stroke-width="1.6"/>
+            <rect x="102" y="82" width="96" height="38" rx="4" fill="#EAF0FB"
+                  stroke="#0033A0" stroke-width="2.2"/>
+            <text x="150" y="106" text-anchor="middle" font-family="system-ui"
+                  font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+            <ellipse cx="150" cy="38" rx="60" ry="26" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="150" y="42" text-anchor="middle" font-family="system-ui"
+                  font-size="13.5" fill="#14181F">StudentID</text>
+            <line x1="112" y1="50" x2="188" y2="50" stroke="#00246B" stroke-width="1.6"/>
+          </svg>
+          <p class="figcap">Key: the underlined attribute.</p>
+        </div>
+        <table class="inst">
+          <caption>Every StudentID differs — the uniqueness the key promises.</caption>
+          <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">S1001</td><td>Ada Okafor</td></tr>
+            <tr><td class="keycol">S1002</td><td>Liang Wei</td></tr>
+            <tr><td class="keycol">S1003</td><td>Grace Bello</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · CANDIDATE / PRIMARY -->
+  <section class="slide" data-title="Candidate keys and the primary key" aria-roledescription="slide" aria-label="Candidate keys and the primary key">
+    <p class="kicker">Keys, continued</p>
+    <h2 class="slide-h" tabindex="-1">Candidate keys and the primary key</h2>
+    <div class="two">
+      <div>
+        <p>An entity type can have more than one key. Each minimal uniquely-identifying
+        attribute set is a <span class="term">candidate key</span> — for a student, both
+        StudentID and (say) their university email might qualify.</p>
+        <p>The designer picks one candidate to be the <span class="term">primary key</span>,
+        the official identifier; that's the one we underline.</p>
+        <p>A key can span several attributes together — a <span class="term">composite
+        key</span> — when no single attribute is unique on its own.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Choosing a primary key</h3>
+          <ul>
+            <li><strong>Unique &amp; never NULL</strong> — it must identify every entity.</li>
+            <li><strong>Stable</strong> — values shouldn't change over an entity's life.</li>
+            <li><strong>Minimal &amp; simple</strong> — prefer few attributes and simple types.</li>
+          </ul>
+        </div>
+        <div class="callout warn">
+          <h3>"Minimal" precisely</h3>
+          <p style="margin:0">No attribute can be dropped from a key and still keep
+          it unique. {StudentID, Name} is a superkey but not a candidate key —
+          StudentID alone already suffices.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · PUTTING IT TOGETHER (interactive) -->
+  <section class="slide" data-title="Putting it together: the STUDENT entity" aria-roledescription="slide" aria-label="Putting it together, the STUDENT entity">
+    <p class="kicker">Synthesis</p>
+    <h2 class="slide-h" tabindex="-1">Putting it together: STUDENT</h2>
+    <p>Every symbol from this lecture on one entity. Use the buttons to highlight
+    each kind of attribute.</p>
+    <div class="hl-controls" role="group" aria-label="Highlight an attribute type">
+      <button class="chip" data-hl="key" aria-pressed="false"
+        data-desc="The key attribute (StudentID) is underlined. Its value is unique for every STUDENT, so it identifies each one.">Key</button>
+      <button class="chip" data-hl="composite" aria-pressed="false"
+        data-desc="Name is composite: it breaks into First, Middle, and Last. You can use the whole name or any part.">Composite</button>
+      <button class="chip" data-hl="multivalued" aria-pressed="false"
+        data-desc="Phone is multivalued, drawn as a double oval: one student may have several phone numbers.">Multivalued</button>
+      <button class="chip" data-hl="derived" aria-pressed="false"
+        data-desc="Age is derived, drawn as a dashed oval: it is computed from BirthDate rather than stored.">Derived</button>
+      <button class="chip" data-hl="simple" aria-pressed="false"
+        data-desc="Major and GPA are simple, single-valued attributes: each holds one atomic value.">Simple</button>
+    </div>
+    <p id="hl-desc" data-default="STUDENT with a key (StudentID), a composite attribute (Name), a multivalued attribute (Phone), a derived attribute (Age), and simple attributes (Major, GPA).">STUDENT with a key (StudentID), a composite attribute (Name), a multivalued attribute (Phone), a derived attribute (Age), and simple attributes (Major, GPA).</p>
+    <div class="fig">
+      <svg id="student-figure" class="figure" viewBox="0 0 900 560" role="img" aria-labelledby="t12 d12">
+        <title id="t12">The STUDENT entity with every attribute type</title>
+        <desc id="d12">STUDENT rectangle at the centre. StudentID is an underlined
+        key. Name is a composite attribute with components First, Middle, and Last.
+        Phone is a multivalued attribute drawn as a double oval. Age is a derived
+        attribute drawn as a dashed oval. Major and GPA are simple attributes.</desc>
+
+        <!-- connectors (background so the rectangle covers the stubs) -->
+        <g stroke="#8A93A3" stroke-width="1.7" fill="none">
+          <line x1="150" y1="150" x2="450" y2="278"/>
+          <line x1="450" y1="138" x2="450" y2="250"/>
+          <line x1="770" y1="150" x2="450" y2="278"/>
+          <line x1="130" y1="360" x2="450" y2="278"/>
+          <line x1="300" y1="470" x2="450" y2="278"/>
+          <line x1="620" y1="470" x2="450" y2="278"/>
+          <line x1="420" y1="88" x2="300" y2="54" stroke-width="1.4"/>
+          <line x1="450" y1="86" x2="450" y2="52" stroke-width="1.4"/>
+          <line x1="480" y1="88" x2="600" y2="54" stroke-width="1.4"/>
+        </g>
+
+        <rect x="375" y="250" width="150" height="56" rx="4" fill="#EAF0FB"
+              stroke="#0033A0" stroke-width="2.6"/>
+        <text x="450" y="284" text-anchor="middle" font-family="system-ui"
+              font-size="18" font-weight="700" fill="#00246B">STUDENT</text>
+
+        <g font-family="system-ui" font-size="15" fill="#14181F">
+          <!-- key -->
+          <g data-cat="key">
+            <ellipse cx="150" cy="150" rx="66" ry="30" fill="#fff" stroke="#0033A0" stroke-width="1.9"/>
+            <text x="150" y="155" text-anchor="middle">StudentID</text>
+            <line class="keyline" x1="102" y1="166" x2="198" y2="166" stroke="#00246B" stroke-width="1.8"/>
+          </g>
+          <!-- composite -->
+          <g data-cat="composite">
+            <ellipse cx="450" cy="110" rx="58" ry="28" fill="#fff" stroke="#0033A0" stroke-width="1.9"/>
+            <text x="450" y="115" text-anchor="middle">Name</text>
+            <ellipse cx="300" cy="40" rx="46" ry="21" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+            <text x="300" y="45" text-anchor="middle" font-size="13">First</text>
+            <ellipse cx="450" cy="32" rx="46" ry="21" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+            <text x="450" y="37" text-anchor="middle" font-size="13">Middle</text>
+            <ellipse cx="600" cy="40" rx="46" ry="21" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+            <text x="600" y="45" text-anchor="middle" font-size="13">Last</text>
+          </g>
+          <!-- multivalued -->
+          <g data-cat="multivalued">
+            <ellipse cx="770" cy="150" rx="72" ry="34" fill="#fff" stroke="#0033A0" stroke-width="1.9"/>
+            <ellipse cx="770" cy="150" rx="63" ry="26" fill="#fff" stroke="#0033A0" stroke-width="1.9"/>
+            <text x="770" y="155" text-anchor="middle">Phone</text>
+          </g>
+          <!-- derived -->
+          <g data-cat="derived">
+            <ellipse cx="130" cy="360" rx="60" ry="28" fill="#fff" stroke="#0033A0"
+                     stroke-width="1.9" stroke-dasharray="6 4"/>
+            <text x="130" y="365" text-anchor="middle">Age</text>
+          </g>
+          <!-- simple -->
+          <g data-cat="simple">
+            <ellipse cx="300" cy="470" rx="58" ry="27" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="300" y="475" text-anchor="middle">Major</text>
+            <ellipse cx="620" cy="470" rx="58" ry="27" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="620" y="475" text-anchor="middle">GPA</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 13 · NOTATION LEGEND -->
+  <section class="slide" data-title="Chen notation at a glance" aria-roledescription="slide" aria-label="Chen notation at a glance">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">Chen notation at a glance</h2>
+    <div class="legendgrid">
+      <div class="gl">
+        <svg viewBox="0 0 120 70" role="img" aria-labelledby="g1t g1d"><title id="g1t">Rectangle</title><desc id="g1d">A rectangle.</desc>
+          <rect x="20" y="20" width="80" height="34" rx="3" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/></svg>
+        <b>Entity type</b><span>rectangle</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 70" role="img" aria-labelledby="g2t g2d"><title id="g2t">Oval</title><desc id="g2d">A single oval.</desc>
+          <ellipse cx="60" cy="35" rx="46" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.9"/></svg>
+        <b>Attribute</b><span>oval</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 70" role="img" aria-labelledby="g3t g3d"><title id="g3t">Underlined oval</title><desc id="g3d">An oval with an underline beneath its centre.</desc>
+          <ellipse cx="60" cy="32" rx="46" ry="22" fill="#fff" stroke="#0033A0" stroke-width="1.9"/>
+          <line x1="34" y1="46" x2="86" y2="46" stroke="#00246B" stroke-width="1.8"/></svg>
+        <b>Key attribute</b><span>underlined</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 70" role="img" aria-labelledby="g4t g4d"><title id="g4t">Double oval</title><desc id="g4d">Two nested ovals.</desc>
+          <ellipse cx="60" cy="35" rx="48" ry="26" fill="#fff" stroke="#0033A0" stroke-width="1.9"/>
+          <ellipse cx="60" cy="35" rx="40" ry="19" fill="#fff" stroke="#0033A0" stroke-width="1.9"/></svg>
+        <b>Multivalued</b><span>double oval</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 70" role="img" aria-labelledby="g5t g5d"><title id="g5t">Dashed oval</title><desc id="g5d">An oval with a dashed outline.</desc>
+          <ellipse cx="60" cy="35" rx="46" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.9" stroke-dasharray="6 4"/></svg>
+        <b>Derived</b><span>dashed oval</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 70" role="img" aria-labelledby="g6t g6d"><title id="g6t">Composite</title><desc id="g6d">An oval with two smaller ovals hanging below it.</desc>
+          <ellipse cx="60" cy="20" rx="30" ry="15" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <line x1="60" y1="35" x2="34" y2="50" stroke="#8A93A3" stroke-width="1.4"/>
+          <line x1="60" y1="35" x2="86" y2="50" stroke="#8A93A3" stroke-width="1.4"/>
+          <ellipse cx="34" cy="56" rx="24" ry="12" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <ellipse cx="86" cy="56" rx="24" ry="12" fill="#fff" stroke="#0033A0" stroke-width="1.6"/></svg>
+        <b>Composite</b><span>oval with parts</span>
+      </div>
+    </div>
+    <p class="figcap">Lines connect attributes to their entity. Relationships —
+    the diamonds — arrive in ER II.</p>
+  </section>
+
+  <!-- 14 · PITFALLS -->
+  <section class="slide" data-title="Design pitfalls and tips" aria-roledescription="slide" aria-label="Design pitfalls and tips">
+    <p class="kicker">Judgement</p>
+    <h2 class="slide-h" tabindex="-1">Design pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Attribute or entity?</strong> If a "value" has its own attributes or
+      needs to be shared, it wants to be an entity, not an attribute. <em>Department</em>
+      as a bare text attribute vs. a DEPARTMENT entity is the classic call — we
+      settle it in ER II.</li>
+      <li><strong>Don't over-decompose.</strong> Composite and multivalued attributes are
+      right sometimes, but reflexively splitting everything clutters the model.
+      Split only where the parts do real work.</li>
+      <li><strong>Name for the mini-world, not the code.</strong> <em>BirthDate</em>, not
+      <em>bd_field2</em>. The ER diagram is a shared language with domain experts.</li>
+      <li><strong>Pick the key deliberately.</strong> Reach for a stable identifier; be wary
+      of keys built from data that can change, like a phone number.</li>
+    </ul>
+  </section>
+
+  <!-- 15 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>Entity <span class="term">type</span> (rectangle) vs. entity <span class="term">set</span>.</li>
+          <li>Attributes: simple/composite, single/multivalued, stored/derived, and NULL.</li>
+          <li>Keys, candidate keys, and choosing a <span class="term">primary key</span>.</li>
+          <li>Reading all of it in Chen notation.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why underline a key rather than colour it?</li>
+            <li>Give an attribute that should be multivalued, and one that should
+            be derived.</li>
+            <li>When does a would-be attribute deserve to be its own entity?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — ER II</h3>
+          <p style="margin:0">Relationships, cardinality (1:1, 1:N, M:N),
+          participation, and weak entities — how entities connect.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 15</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // interactive highlight on the STUDENT summary figure
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-hl]'));
+  var desc  = document.getElementById('hl-desc');
+  var fig   = document.getElementById('student-figure');
+  if (chips.length && fig){
+    var groups = Array.prototype.slice.call(fig.querySelectorAll('g[data-cat]'));
+    function clearFig(){
+      chips.forEach(function(c){ c.setAttribute('aria-pressed', 'false'); });
+      groups.forEach(function(g){ g.classList.remove('hl'); g.classList.remove('dim'); });
+      if (desc) desc.textContent = desc.getAttribute('data-default');
+    }
+    chips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var on  = chip.getAttribute('aria-pressed') === 'true';
+        var key = chip.getAttribute('data-hl');
+        if (on){ clearFig(); return; }
+        chips.forEach(function(c){ c.setAttribute('aria-pressed', 'false'); });
+        chip.setAttribute('aria-pressed', 'true');
+        groups.forEach(function(g){
+          var match = (g.getAttribute('data-cat') === key);
+          g.classList.toggle('hl', match);
+          g.classList.toggle('dim', !match);
+        });
+        if (desc) desc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>
