@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Relational Model — Relations, Keys &amp; Integrity · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0; --card:#7A2708;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Code",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+code{font-family:var(--mono);font-size:.9em;background:var(--tint);border:1px solid var(--line);
+  border-radius:4px;padding:.5px 5px}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+.deg{color:var(--muted);font-size:.82rem;margin-top:6px}
+
+.legendgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.gl{border:1px solid var(--line);border-radius:9px;padding:12px;text-align:center;background:#fff}
+.gl svg{display:block;margin:0 auto 8px;height:74px;width:auto}
+.gl b{display:block;color:var(--blue-ink);font-size:.98rem}
+.gl span{color:var(--muted);font-size:.84rem}
+
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:3.2em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+.live-desc b{color:var(--card)}
+
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .legendgrid{grid-template-columns:1fr 1fr}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.gl,table.inst{break-inside:avoid}
+  .fig.wide svg{width:74%;display:block;margin:0 auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 2 · Relational model</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Elmasri &amp; Navathe, Ch. 5</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="The Relational Model — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="The Relational Model — Relations, Keys, and Integrity"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Logical database design</p>
+    <h2 class="slide-h" tabindex="-1">The Relational Model<br>Relations, keys &amp; integrity</h2>
+    <div class="two">
+      <div>
+        <p class="lead">We've been drawing pictures. Now we meet the formal model the
+        whole rest of the course is built on.</p>
+        <p style="color:var(--muted)">One idea — data as <em>relations</em>, plain tables
+        with a precise mathematical meaning — plus a handful of <em>integrity rules</em>
+        the DBMS guarantees on every change. Everything after this (SQL, algebra,
+        normalization, indexing) operates on relations.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 380 190" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A relation drawn as a table</title>
+          <desc id="d1">A STUDENT table with columns StudentID, Name, Major and three
+          rows; the StudentID column is highlighted as the key.</desc>
+          <rect x="20" y="20" width="340" height="30" fill="#0033A0"/>
+          <text x="70"  y="40" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#fff">StudentID</text>
+          <text x="185" y="40" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#fff">Name</text>
+          <text x="310" y="40" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#fff">Major</text>
+          <g font-family="system-ui" font-size="12.5" fill="#14181F">
+            <rect x="20" y="50"  width="100" height="46" fill="#EAF0FB" stroke="#C9D2E0"/>
+            <rect x="20" y="96"  width="100" height="46" fill="#EAF0FB" stroke="#C9D2E0"/>
+            <rect x="20" y="142" width="100" height="46" fill="#EAF0FB" stroke="#C9D2E0"/>
+            <rect x="120" y="50"  width="130" height="46" fill="#fff" stroke="#C9D2E0"/>
+            <rect x="120" y="96"  width="130" height="46" fill="#fff" stroke="#C9D2E0"/>
+            <rect x="120" y="142" width="130" height="46" fill="#fff" stroke="#C9D2E0"/>
+            <rect x="250" y="50"  width="110" height="46" fill="#fff" stroke="#C9D2E0"/>
+            <rect x="250" y="96"  width="110" height="46" fill="#fff" stroke="#C9D2E0"/>
+            <rect x="250" y="142" width="110" height="46" fill="#fff" stroke="#C9D2E0"/>
+            <text x="70"  y="78"  text-anchor="middle" font-weight="700" fill="#00246B">S1001</text>
+            <text x="70"  y="124" text-anchor="middle" font-weight="700" fill="#00246B">S1002</text>
+            <text x="70"  y="170" text-anchor="middle" font-weight="700" fill="#00246B">S1003</text>
+            <text x="185" y="78"  text-anchor="middle">Ada Okafor</text>
+            <text x="185" y="124" text-anchor="middle">Liang Wei</text>
+            <text x="185" y="170" text-anchor="middle">Grace Bello</text>
+            <text x="305" y="78"  text-anchor="middle">CS</text>
+            <text x="305" y="124" text-anchor="middle">Math</text>
+            <text x="305" y="170" text-anchor="middle">CS</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and today's roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; today's roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Unit 1 gave us diagrams</h3>
+          <p style="margin:0">ER and EER let us capture a mini-world conceptually —
+          entities, relationships, specialization — with no commitment to any DBMS.</p>
+        </div>
+        <p>Unit 2 turns those diagrams into a <em>logical</em> design. The pipeline:
+        requirements → ER/EER → <strong>relational schema (this unit)</strong> → SQL.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Define a <span class="term">relation</span> precisely — schema vs. state.</li>
+            <li>Use the vocabulary: tuple, attribute, <span class="term">domain</span>, degree, cardinality.</li>
+            <li>Distinguish superkey, candidate key, and <span class="term">primary key</span>.</li>
+            <li>State the four <span class="term">integrity constraints</span> and what each forbids.</li>
+            <li>Read a relational schema with <span class="term">foreign keys</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · MOTIVATION -->
+  <section class="slide" data-title="Why the relational model won" aria-roledescription="slide" aria-label="Motivation">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">Why this model won</h2>
+    <p class="lead">Before 1970, databases were navigational: to find data you followed
+    pointers through a structure that mirrored physical storage. Change the storage,
+    break every program.</p>
+    <div class="two">
+      <div>
+        <p>Codd's relational model made a radical bet: describe data as
+        <span class="term">relations</span> — sets of rows — with a foundation in set
+        theory and logic, and <em>nothing</em> about how it's stored.</p>
+        <ul>
+          <li><strong>Simple.</strong> One structure: the table. No pointers to chase.</li>
+          <li><strong>Formal.</strong> A precise math meaning enables provably-correct
+          query languages (algebra, SQL — coming up).</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The winning property: data independence</h3>
+          <p style="margin:0">Because the model says nothing about storage, the DBMS is
+          free to change indexes, file layout, and hardware without touching a single
+          query. That decoupling — logical design above, physical below — is exactly the
+          three-schema idea from Unit&nbsp;0, now paying off.</p>
+        </div>
+        <p style="color:var(--muted);font-size:.95rem">You state <em>what</em> you want,
+        not <em>how</em> to fetch it. The system figures out how.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · RELATIONS -->
+  <section class="slide" data-title="A relation is a table — precisely" aria-roledescription="slide" aria-label="Relations">
+    <p class="kicker">Building block 1</p>
+    <h2 class="slide-h" tabindex="-1">A relation, precisely</h2>
+    <div class="two">
+      <div>
+        <p>Informally a <span class="term">relation</span> is a table. Formally it's a
+        <em>set of tuples</em> over a fixed list of attributes.</p>
+        <p>Two levels, and the distinction matters all course long:</p>
+        <ul>
+          <li>The <span class="term">relation schema</span> — the name and attributes,
+          <code>STUDENT(StudentID, Name, Major)</code>. Fixed at design time.</li>
+          <li>The <span class="term">relation state</span> (instance) — the actual set of
+          rows right now. Changes with every insert and delete.</li>
+        </ul>
+        <p>Same schema, endlessly many possible states.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Schema vs. state — the parallel</h3>
+          <p style="margin:0">This is the entity <em>type</em> vs. entity <em>set</em>
+          distinction from ER I, now in the relational world. The schema is the design;
+          the state is the data.</p>
+        </div>
+        <p style="color:var(--muted);font-size:.95rem"><code>STUDENT(StudentID, Name,
+        Major)</code> has degree 3. Whether it holds 0 rows or a million, it's the same
+        relation schema.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · VOCABULARY -->
+  <section class="slide" data-title="The vocabulary" aria-roledescription="slide" aria-label="Vocabulary">
+    <p class="kicker">Terms that map to the picture</p>
+    <h2 class="slide-h" tabindex="-1">The vocabulary</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li>A <span class="term">tuple</span> is a row — one entity's worth of values.</li>
+          <li>An <span class="term">attribute</span> is a named column.</li>
+          <li>A <span class="term">domain</span> is the set of allowed values for an
+          attribute (e.g. GPA ∈ 0.0–4.0).</li>
+          <li><span class="term">Degree</span> = number of attributes (columns).</li>
+          <li><span class="term">Cardinality</span> = number of tuples (rows) in the
+          current state.</li>
+        </ul>
+        <p style="color:var(--muted);font-size:.95rem">Formal term on the left, the
+        table word you already know on the right.</p>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>STUDENT — degree 3; cardinality 3 in this state.</caption>
+          <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th><th scope="col">Major</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">S1001</td><td>Ada Okafor</td><td>CS</td></tr>
+            <tr><td class="keycol">S1002</td><td>Liang Wei</td><td>Math</td></tr>
+            <tr><td class="keycol">S1003</td><td>Grace Bello</td><td>CS</td></tr>
+          </tbody>
+        </table>
+        <p class="deg">Each row is a tuple · each column an attribute · the whole set is
+        the relation state.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · DOMAINS -->
+  <section class="slide" data-title="Domains and atomic values" aria-roledescription="slide" aria-label="Domains">
+    <p class="kicker">Building block 2</p>
+    <h2 class="slide-h" tabindex="-1">Domains &amp; atomic values</h2>
+    <div class="two">
+      <div>
+        <p>Every attribute draws its values from a <span class="term">domain</span>: a
+        named set of allowed, same-type values — <em>StudentID</em> is a 5-character code,
+        <em>GPA</em> is a number in [0, 4].</p>
+        <p>Relational domain values must be <span class="term">atomic</span>: indivisible,
+        with no internal structure the model looks inside. One cell, one value — no lists,
+        no nested tables.</p>
+        <div class="callout warn">
+          <h3>Why atomic matters</h3>
+          <p style="margin:0">Atomic values are what make a table a well-behaved relation
+          — this is the <span class="term">first normal form</span> we'll formalize in
+          normalization. A cell holding "Math, CS" already breaks the model.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Where the ER attribute flavours land</h3>
+          <ul style="margin:6px 0 0">
+            <li>Composite (Name → First, Last): store the atomic parts as separate columns.</li>
+            <li>Multivalued (Phone): can't live in one cell — it becomes its own relation.</li>
+          </ul>
+          <p style="margin:8px 0 0">The atomicity rule is exactly why those ER shapes need
+          special handling when we map to tables next session.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · CHARACTERISTICS -->
+  <section class="slide" data-title="What makes a relation a relation" aria-roledescription="slide" aria-label="Characteristics of relations">
+    <p class="kicker">Building block 3 · it's a set</p>
+    <h2 class="slide-h" tabindex="-1">What makes it a <em>relation</em></h2>
+    <p class="lead">Because a relation is a mathematical <em>set</em> of tuples, four
+    properties follow — each with a practical consequence.</p>
+    <ul>
+      <li><strong>Tuples are unordered.</strong> A set has no first or last row. "The row
+      order" is not information; never rely on it.</li>
+      <li><strong>No duplicate tuples.</strong> A set has no repeats, so every relation
+      needs a key to keep rows distinct — which is the next topic.</li>
+      <li><strong>Values are atomic.</strong> One indivisible value per cell (first normal form).</li>
+      <li><strong>Attributes are named, values from a domain.</strong> Column order is
+      irrelevant when you refer to columns by name.</li>
+    </ul>
+    <div class="callout">
+      <h3>And when a value is missing: NULL</h3>
+      <p style="margin:0">A tuple may hold <span class="term">NULL</span> for an attribute
+      — value unknown, or not applicable. NULL is not 0 and not the empty string; it will
+      behave unusually in SQL comparisons and aggregates later.</p>
+    </div>
+  </section>
+
+  <!-- 8 · KEYS I -->
+  <section class="slide" data-title="Superkeys and candidate keys" aria-roledescription="slide" aria-label="Superkeys and candidate keys">
+    <p class="kicker">Keys · 1</p>
+    <h2 class="slide-h" tabindex="-1">Superkeys &amp; candidate keys</h2>
+    <div class="two">
+      <div>
+        <p>Because rows must be distinct, we need attribute sets that guarantee
+        uniqueness.</p>
+        <p>A <span class="term">superkey</span> is any set of attributes whose values are
+        unique across every tuple — no two rows agree on all of them.
+        <code>{StudentID}</code> is one; so is <code>{StudentID, Name}</code>, and any
+        other set containing StudentID.</p>
+        <p>A <span class="term">candidate key</span> is a <em>minimal</em> superkey: remove
+        any attribute and it stops being unique. <code>{StudentID}</code> is a candidate
+        key; <code>{StudentID, Name}</code> is not — Name is redundant.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The chain</h3>
+          <p style="margin:0">Every candidate key is a superkey; not every superkey is
+          minimal. A relation can have several candidate keys — StudentID <em>and</em>, say,
+          a unique university email.</p>
+        </div>
+        <div class="callout warn">
+          <h3>"Minimal" ≠ "smallest"</h3>
+          <p style="margin:0">Minimal means no attribute is removable. A candidate key may
+          still span several attributes (a <span class="term">composite key</span>) when no
+          single one is unique.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · KEYS II + ENTITY INTEGRITY -->
+  <section class="slide" data-title="Primary key and entity integrity" aria-roledescription="slide" aria-label="Primary key and entity integrity">
+    <p class="kicker">Keys · 2</p>
+    <h2 class="slide-h" tabindex="-1">Primary key &amp; entity integrity</h2>
+    <div class="two">
+      <div>
+        <p>From the candidate keys, the designer picks one <span class="term">primary
+        key</span> — the official identifier for the relation, underlined in a schema.</p>
+        <p>The primary key carries a built-in rule, <span class="term">entity
+        integrity</span>: <strong>no part of a primary key may be NULL</strong>.</p>
+        <div class="callout">
+          <h3>Why the rule must hold</h3>
+          <p style="margin:0">The primary key is how every tuple is identified and
+          referenced. A NULL key value would mean "a row we can't identify" — it couldn't
+          be told apart or pointed to. So the DBMS refuses it outright.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Choosing among candidates</h3>
+          <ul style="margin:6px 0 0">
+            <li><strong>Stable</strong> — its value shouldn't change over a row's life.</li>
+            <li><strong>Simple &amp; short</strong> — prefer one attribute, simple type.</li>
+            <li><strong>Never NULL</strong> — guaranteed by entity integrity anyway.</li>
+          </ul>
+        </div>
+        <p style="color:var(--muted);font-size:.95rem">This is the ER I key decision, now
+        with a formal name and a constraint the system enforces.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · FOREIGN KEYS -->
+  <section class="slide" data-title="Foreign keys and referential integrity" aria-roledescription="slide" aria-label="Foreign keys">
+    <p class="kicker">Keys · 3 · the glue</p>
+    <h2 class="slide-h" tabindex="-1">Foreign keys &amp; referential integrity</h2>
+    <div class="two">
+      <div>
+        <p>Relations are linked not by pointers but by <em>values</em>. A
+        <span class="term">foreign key</span> is an attribute in one relation whose value
+        must match a primary-key value in another (or the same) relation.</p>
+        <p><span class="term">Referential integrity</span>: every foreign-key value must
+        either equal an existing primary key in the referenced relation, or be NULL. No
+        dangling references.</p>
+        <div class="callout">
+          <h3>This is where relationships live</h3>
+          <p style="margin:0">Every relationship you drew in ER becomes a foreign key (or a
+          bridge relation). "ENROLLED_IN.StudentID → STUDENT" is the M:N link from the ER
+          diagram, now enforced as a value-matching rule.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 400 210" role="img" aria-labelledby="t10 d10">
+          <title id="t10">A foreign key linking two relations by value</title>
+          <desc id="d10">An ENROLLED_IN table has a StudentID column whose value S1002
+          matches the StudentID primary key of a row in the STUDENT table; an arrow points
+          from the foreign key to the referenced key.</desc>
+          <text x="60" y="20" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">ENROLLED_IN</text>
+          <rect x="20" y="28" width="110" height="26" fill="#0033A0"/>
+          <text x="75" y="45" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#fff">StudentID (FK)</text>
+          <rect x="20" y="54" width="110" height="26" fill="#fff" stroke="#C9D2E0"/>
+          <text x="75" y="71" text-anchor="middle" font-family="system-ui" font-size="12" fill="#7A2708" font-weight="700">S1002</text>
+          <rect x="20" y="80" width="110" height="26" fill="#fff" stroke="#C9D2E0"/>
+          <text x="75" y="97" text-anchor="middle" font-family="system-ui" font-size="12" fill="#14181F">S1001</text>
+
+          <text x="250" y="120" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">STUDENT</text>
+          <rect x="250" y="128" width="120" height="26" fill="#0033A0"/>
+          <text x="310" y="145" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#fff">StudentID (PK)</text>
+          <rect x="250" y="154" width="120" height="26" fill="#EAF0FB" stroke="#C9D2E0"/>
+          <text x="310" y="171" text-anchor="middle" font-family="system-ui" font-size="12" fill="#7A2708" font-weight="700">S1002</text>
+          <rect x="250" y="180" width="120" height="26" fill="#EAF0FB" stroke="#C9D2E0"/>
+          <text x="310" y="197" text-anchor="middle" font-family="system-ui" font-size="12" fill="#00246B" font-weight="700">S1001</text>
+
+          <path d="M130 67 C 190 67, 200 167, 248 167" fill="none" stroke="#7A2708" stroke-width="1.8" marker-end="url(#ah)"/>
+          <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0 0 L9 4.5 L0 9 z" fill="#7A2708"/></marker></defs>
+        </svg>
+        <p class="figcap">The FK value S1002 must name a real STUDENT.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · CONSTRAINTS SUMMARY -->
+  <section class="slide" data-title="The integrity constraints" aria-roledescription="slide" aria-label="Integrity constraints summary">
+    <p class="kicker">The rules, together</p>
+    <h2 class="slide-h" tabindex="-1">The integrity constraints</h2>
+    <p class="lead">A relational schema isn't just tables — it's tables <em>plus</em> the
+    rules the DBMS promises to keep true after every change.</p>
+    <ul>
+      <li><span class="term">Domain constraint</span> — each value comes from its
+      attribute's domain (right type, allowed range).</li>
+      <li><span class="term">Key constraint</span> — no two tuples share the same value on
+      a candidate key (uniqueness).</li>
+      <li><span class="term">Entity integrity</span> — no primary-key attribute is NULL.</li>
+      <li><span class="term">Referential integrity</span> — every foreign key matches an
+      existing primary key, or is NULL.</li>
+    </ul>
+    <div class="callout">
+      <h3>Declared once, enforced always</h3>
+      <p style="margin:0">You state these when you define the schema; from then on the DBMS
+      rejects any insert, update, or delete that would break them. Correctness moves out of
+      application code and into the database itself — a large part of <em>why</em> we use one.</p>
+    </div>
+  </section>
+
+  <!-- 12 · VIOLATIONS (interactive) -->
+  <section class="slide" data-title="Which constraint does it break?" aria-roledescription="slide" aria-label="Constraint violations, interactive">
+    <p class="kicker">Interactive · the rules in action</p>
+    <h2 class="slide-h" tabindex="-1">Which constraint does it break?</h2>
+    <p>Working from STUDENT(<u>StudentID</u>, Name) and ENROLLED_IN(<u>StudentID</u>,
+    <u>CourseNo</u>) with StudentID a foreign key into STUDENT — pick an operation and see
+    what the DBMS does.</p>
+    <div class="hl-controls" role="group" aria-label="Choose an operation">
+      <button class="chip" data-op="duppk" aria-pressed="true">Insert STUDENT with an existing StudentID</button>
+      <button class="chip" data-op="nullpk" aria-pressed="false">Insert STUDENT with NULL StudentID</button>
+      <button class="chip" data-op="badfk" aria-pressed="false">Enroll a StudentID that isn't in STUDENT</button>
+      <button class="chip" data-op="delref" aria-pressed="false">Delete a STUDENT who is still enrolled</button>
+    </div>
+    <p id="viol-desc" class="live-desc"><b>Key constraint.</b> Rejected: two students would
+    share a primary-key value, so the rows couldn't be told apart. The insert fails.</p>
+    <div class="callout">
+      <h3>The point</h3>
+      <p style="margin:0">Three of the four are outright rejections. The fourth — deleting a
+      referenced row — has choices (block it, cascade the delete, or set the foreign key to
+      NULL); we'll set that policy in SQL.</p>
+    </div>
+  </section>
+
+  <!-- 13 · SCHEMA DIAGRAM -->
+  <section class="slide" data-title="A relational schema for the university" aria-roledescription="slide" aria-label="A relational schema">
+    <p class="kicker">Putting it together</p>
+    <h2 class="slide-h" tabindex="-1">A schema for the UNIVERSITY</h2>
+    <p>Our mini-world as four relations. Primary keys underlined; arrows follow each
+    foreign key to the key it references.</p>
+    <div class="fig wide">
+      <svg viewBox="0 0 820 470" role="img" aria-labelledby="t13 d13">
+        <title id="t13">The UNIVERSITY relational schema with foreign-key arrows</title>
+        <desc id="d13">Four relations. DEPARTMENT(DeptCode, DeptName) at the top. STUDENT
+        (StudentID, Name, Major_dept) on the left, its Major_dept a foreign key to
+        DEPARTMENT. COURSE(CourseNo, Title, Offering_dept) on the right, its Offering_dept
+        a foreign key to DEPARTMENT. ENROLLED_IN(StudentID, CourseNo, Grade) at the bottom,
+        with StudentID a foreign key to STUDENT and CourseNo a foreign key to COURSE, and
+        the pair as its primary key. Arrows run from STUDENT and COURSE up to DEPARTMENT,
+        and from ENROLLED_IN up to STUDENT and COURSE.</desc>
+        <defs><marker id="fk" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#7A2708"/></marker></defs>
+
+        <!-- DEPARTMENT -->
+        <g font-family="system-ui">
+          <rect x="320" y="24" width="190" height="76" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <rect x="320" y="24" width="190" height="26" rx="5" fill="#0033A0"/>
+          <rect x="320" y="44" width="190" height="6" fill="#0033A0"/>
+          <text x="415" y="42" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">DEPARTMENT</text>
+          <text x="334" y="70" font-size="12.5" fill="#00246B" font-weight="700" text-decoration="underline">DeptCode</text>
+          <text x="334" y="90" font-size="12.5" fill="#14181F">DeptName</text>
+        </g>
+
+        <!-- STUDENT -->
+        <g font-family="system-ui">
+          <rect x="40" y="190" width="230" height="98" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <rect x="40" y="190" width="230" height="26" rx="5" fill="#0033A0"/>
+          <rect x="40" y="210" width="230" height="6" fill="#0033A0"/>
+          <text x="155" y="208" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">STUDENT</text>
+          <text x="54" y="236" font-size="12.5" fill="#00246B" font-weight="700" text-decoration="underline">StudentID</text>
+          <text x="54" y="258" font-size="12.5" fill="#14181F">Name</text>
+          <text x="54" y="280" font-size="12.5" fill="#7A2708" font-weight="700">Major_dept (FK)</text>
+        </g>
+
+        <!-- COURSE -->
+        <g font-family="system-ui">
+          <rect x="560" y="190" width="230" height="98" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <rect x="560" y="190" width="230" height="26" rx="5" fill="#0033A0"/>
+          <rect x="560" y="210" width="230" height="6" fill="#0033A0"/>
+          <text x="675" y="208" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">COURSE</text>
+          <text x="574" y="236" font-size="12.5" fill="#00246B" font-weight="700" text-decoration="underline">CourseNo</text>
+          <text x="574" y="258" font-size="12.5" fill="#14181F">Title</text>
+          <text x="574" y="280" font-size="12.5" fill="#7A2708" font-weight="700">Offering_dept (FK)</text>
+        </g>
+
+        <!-- ENROLLED_IN -->
+        <g font-family="system-ui">
+          <rect x="300" y="366" width="230" height="98" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <rect x="300" y="366" width="230" height="26" rx="5" fill="#0033A0"/>
+          <rect x="300" y="386" width="230" height="6" fill="#0033A0"/>
+          <text x="415" y="384" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">ENROLLED_IN</text>
+          <text x="314" y="412" font-size="12.5" fill="#00246B" font-weight="700" text-decoration="underline">StudentID</text>
+          <text x="314" y="434" font-size="12.5" fill="#00246B" font-weight="700" text-decoration="underline">CourseNo</text>
+          <text x="314" y="456" font-size="12.5" fill="#14181F">Grade</text>
+          <text x="452" y="412" font-size="10.5" fill="#7A2708">(FK→STUDENT)</text>
+          <text x="452" y="434" font-size="10.5" fill="#7A2708">(FK→COURSE)</text>
+        </g>
+
+        <!-- explicit PK underlines (robust across renderers) -->
+        <g stroke="#00246B" stroke-width="1.3">
+          <line x1="334" y1="73" x2="393" y2="73"/>
+          <line x1="54"  y1="239" x2="120" y2="239"/>
+          <line x1="574" y1="239" x2="636" y2="239"/>
+          <line x1="314" y1="415" x2="381" y2="415"/>
+          <line x1="314" y1="437" x2="376" y2="437"/>
+        </g>
+
+        <!-- FK arrows -->
+        <g fill="none" stroke="#7A2708" stroke-width="1.7">
+          <path d="M225 276 C 300 240, 320 130, 360 100" marker-end="url(#fk)"/>
+          <path d="M605 276 C 530 240, 510 130, 470 100" marker-end="url(#fk)"/>
+          <path d="M340 405 C 250 380, 150 320, 150 292" marker-end="url(#fk)"/>
+          <path d="M490 405 C 590 380, 675 320, 675 292" marker-end="url(#fk)"/>
+        </g>
+      </svg>
+      <p class="figcap">Every arrow is a referential-integrity constraint. This schema is
+      exactly what next session's mapping algorithm produces from the ER diagram.</p>
+    </div>
+  </section>
+
+  <!-- 14 · NOTATION LEGEND -->
+  <section class="slide" data-title="Reading a relational schema" aria-roledescription="slide" aria-label="Schema notation">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">Reading a relational schema</h2>
+    <div class="legendgrid">
+      <div class="gl">
+        <svg viewBox="0 0 130 80" role="img" aria-labelledby="g1t g1d"><title id="g1t">Named box</title><desc id="g1d">A box with a coloured header naming the relation.</desc>
+          <rect x="20" y="16" width="90" height="48" rx="4" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <rect x="20" y="16" width="90" height="18" rx="4" fill="#0033A0"/><rect x="20" y="30" width="90" height="4" fill="#0033A0"/>
+          <text x="65" y="29" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#fff">RELATION</text></svg>
+        <b>Relation</b><span>named box of attributes</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 130 80" role="img" aria-labelledby="g2t g2d"><title id="g2t">Underlined attribute</title><desc id="g2d">An attribute name with an underline.</desc>
+          <text x="65" y="45" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B" text-decoration="underline">AttrID</text></svg>
+        <b>Primary key</b><span>underlined</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 130 80" role="img" aria-labelledby="g3t g3d"><title id="g3t">Arrow</title><desc id="g3d">An arrow pointing from one attribute to another relation.</desc>
+          <line x1="18" y1="40" x2="104" y2="40" stroke="#7A2708" stroke-width="1.8" marker-end="url(#lg)"/>
+          <defs><marker id="lg" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#7A2708"/></marker></defs></svg>
+        <b>Foreign key</b><span>arrow to referenced PK</span>
+      </div>
+    </div>
+    <p class="figcap">A relational schema diagram shows the relations, marks each primary
+    key, and draws every foreign key as an arrow to the primary key it must match. It is
+    DBMS-independent — no data types or storage yet.</p>
+  </section>
+
+  <!-- 15 · WHY IT MATTERS -->
+  <section class="slide" data-title="Why this model is the hinge" aria-roledescription="slide" aria-label="Design guidance">
+    <p class="kicker">Judgement</p>
+    <h2 class="slide-h" tabindex="-1">Why this model is the hinge of the course</h2>
+    <ul>
+      <li><strong>It's the target of design.</strong> Everything in Unit 1 exists to
+      produce a good relational schema; everything after operates on one.</li>
+      <li><strong>Keys are decisions, not formalities.</strong> A stable, minimal primary
+      key and honest foreign keys prevent whole classes of bugs the application would
+      otherwise have to police.</li>
+      <li><strong>Constraints are correctness you get for free.</strong> Declared in the
+      schema, enforced by the DBMS on every change — no application code required.</li>
+      <li><strong>It's still logical, not physical.</strong> No indexes, no file layout, no
+      types yet. That independence is the model's greatest strength; we add the physical
+      layer much later.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">This lecture</h3>
+        <ul>
+          <li>A <span class="term">relation</span> = a set of tuples; schema vs. state.</li>
+          <li>Domains, atomic values, and the set-based characteristics.</li>
+          <li>Superkey → candidate key → <span class="term">primary key</span>.</li>
+          <li>The four constraints, especially entity &amp; <span class="term">referential integrity</span>.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why does "row order" carry no information?</li>
+            <li>Superkey vs. candidate key — give an example of each.</li>
+            <li>Name the constraint each operation breaks: dup ID, NULL PK, dangling FK.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — ER/EER → relational mapping</h3>
+          <p style="margin:0">The 7-step algorithm that turns any ER or EER diagram —
+          entities, relationships, weak entities, specializations — into exactly this kind
+          of schema, mechanically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){ history.replaceState(null, '', '#s' + (idx + 1)); }
+    if (moveFocus){ var h = slides[idx].querySelector('.slide-h'); if (h) h.focus(); }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- constraint-violation demonstrator ---
+  var violChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-op]'));
+  var violDesc  = document.getElementById('viol-desc');
+  var MSG = {
+    duppk:  '<b>Key constraint.</b> Rejected: two students would share a primary-key value, so the rows couldn\u2019t be told apart. The insert fails.',
+    nullpk: '<b>Entity integrity.</b> Rejected: a primary key may not be NULL \u2014 an unidentifiable student can\u2019t be referenced. The insert fails.',
+    badfk:  '<b>Referential integrity.</b> Rejected: the enrollment\u2019s StudentID has no matching row in STUDENT, so it would be a dangling reference. The insert fails.',
+    delref: '<b>Referential integrity (on delete).</b> The student is still referenced by an enrollment. The DBMS applies the chosen policy \u2014 block the delete, cascade it, or set the foreign key to NULL.'
+  };
+  if (violChips.length && violDesc){
+    violChips.forEach(function(c){
+      c.addEventListener('click', function(){
+        violChips.forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+        c.setAttribute('aria-pressed','true');
+        violDesc.innerHTML = MSG[c.getAttribute('data-op')] || '';
+      });
+    });
+  }
+
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

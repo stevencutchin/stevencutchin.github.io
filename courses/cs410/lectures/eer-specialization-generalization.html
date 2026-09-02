@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EER Modeling — Specialization, Generalization &amp; Inheritance · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0; --card:#7A2708;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+.legendgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.gl{border:1px solid var(--line);border-radius:9px;padding:12px;text-align:center;background:#fff}
+.gl svg{display:block;margin:0 auto 8px;height:70px;width:auto}
+.gl b{display:block;color:var(--blue-ink);font-size:.98rem}
+.gl span{color:var(--muted);font-size:.84rem}
+
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.grouplbl{font-size:.82rem;font-weight:700;color:var(--muted);align-self:center;margin-right:2px}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .legendgrid{grid-template-columns:1fr 1fr}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.gl{break-inside:avoid}
+  .fig.wide svg{width:66%;display:block;margin:0 auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 1 · ER modeling</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 3 of 3 in the ER sequence · Elmasri &amp; Navathe, Ch. 4</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="EER Modeling — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="EER Modeling — Specialization, Generalization, and Inheritance"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Conceptual database design</p>
+    <h2 class="slide-h" tabindex="-1">EER Modeling<br>Specialization, generalization &amp; inheritance</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Plain ER treats every entity type as flat. The real world
+        has kinds within kinds — and rules about them.</p>
+        <p style="color:var(--muted)">The <em>enhanced</em> ER model adds three things:
+        a way to say "this kind of thing is a special case of that kind," a way to
+        share attributes without duplicating them, and a vocabulary for the
+        constraints that govern the split. Each one earns its place by solving a
+        concrete modelling problem.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A superclass specialized into two subclasses</title>
+          <desc id="d1">A PERSON rectangle connects down through a circle to two
+          subclass rectangles, STUDENT and EMPLOYEE.</desc>
+          <line x1="280" y1="62" x2="280" y2="86" stroke="#8A93A3" stroke-width="1.7"/>
+          <rect x="205" y="24" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="280" y="52" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">PERSON</text>
+          <circle cx="280" cy="108" r="20" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="280" y="113" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">d</text>
+          <line x1="266" y1="121" x2="160" y2="184" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="294" y1="121" x2="400" y2="184" stroke="#8A93A3" stroke-width="1.7"/>
+          <text x="205" y="156" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+          <text x="356" y="156" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+          <rect x="80" y="184" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="155" y="212" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <rect x="330" y="184" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="405" y="212" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">EMPLOYEE</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and today's roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; today's roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>So far in the ER sequence</h3>
+          <p style="margin:0">ER I gave us entities, attributes, and keys. ER II gave
+          us relationships, cardinality, participation, and weak entities. Between them
+          they describe <em>flat</em> kinds of things and how they connect.</p>
+        </div>
+        <p>Today closes the sequence: ER I → ER II → <strong>EER (today)</strong>. Then
+        we leave diagrams behind and turn all of this into tables.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Read a <span class="term">superclass/subclass</span> and explain attribute <span class="term">inheritance</span>.</li>
+            <li>Tell <span class="term">specialization</span> from <span class="term">generalization</span> — and say why you'd do each.</li>
+            <li>Set the two constraints: <span class="term">disjoint/overlapping</span> and <span class="term">total/partial</span>.</li>
+            <li>Recognize a shared subclass (a <span class="term">lattice</span>) and a <span class="term">union type</span> (category).</li>
+            <li>Decide when specializing actually pays off.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · MOTIVATION -->
+  <section class="slide" data-title="When one entity type isn't enough" aria-roledescription="slide" aria-label="Motivation">
+    <p class="kicker">Motivation · why EER exists</p>
+    <h2 class="slide-h" tabindex="-1">When one entity type isn't enough</h2>
+    <p class="lead">Suppose EMPLOYEE holds everyone — but salaried staff have a
+    <em>salary</em>, hourly staff have a <em>pay rate</em>, and only engineers have a
+    <em>PE license number</em>.</p>
+    <p>Plain ER leaves two bad options, and the whole point of EER is to escape them:</p>
+    <div class="two">
+      <div>
+        <div class="callout warn">
+          <h3>Option A — one bloated entity</h3>
+          <p style="margin:0">Cram every attribute into EMPLOYEE. Now most rows have
+          <span class="term">NULLs</span> in the columns that don't apply, and nothing
+          records <em>which</em> attributes go together.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Option B — separate entities</h3>
+          <p style="margin:0">Split into ENGINEER, SECRETARY, MANAGER. Now Name, SSN,
+          and Address are <span class="term">duplicated</span> in each, and "they're all
+          employees" is lost — every relationship to EMPLOYEE must be redrawn three times.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>The EER move</h3>
+      <p style="margin:0">Keep <em>one</em> EMPLOYEE with the shared attributes, and hang
+      specialized subclasses off it for the parts that differ. Shared data lives once;
+      specific data lives where it applies; no NULLs for inapplicable attributes. Every
+      feature in this lecture is a refinement of that one idea.</p>
+    </div>
+  </section>
+
+  <!-- 4 · SUBCLASS / SUPERCLASS -->
+  <section class="slide" data-title="Subclasses and superclasses" aria-roledescription="slide" aria-label="Subclasses and superclasses">
+    <p class="kicker">Building block 1</p>
+    <h2 class="slide-h" tabindex="-1">Subclasses &amp; superclasses</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">subclass</span> is a meaningful sub-grouping of a
+        <span class="term">superclass</span>: GRAD_STUDENT and UNDERGRAD_STUDENT are
+        subclasses of STUDENT.</p>
+        <p>The relationship is <span class="term">IS-A</span>: every grad student
+        <em>is a</em> student. A subclass member is always also a member of the
+        superclass — it's the same real-world entity, seen at a finer grain.</p>
+        <div class="callout">
+          <h3>Not a normal relationship</h3>
+          <p style="margin:0">IS-A isn't a diamond. It doesn't connect two different
+          entities; it says one entity type is a <em>role or type</em> of another. That's
+          why it gets its own notation.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-labelledby="t4 d4">
+          <title id="t4">STUDENT specialized into two subclasses</title>
+          <desc id="d4">STUDENT connects down through a circle to GRAD_STUDENT and
+          UNDERGRAD_STUDENT, each joined by a line marked with a subset symbol.</desc>
+          <line x1="280" y1="62" x2="280" y2="88" stroke="#8A93A3" stroke-width="1.7"/>
+          <rect x="205" y="24" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="280" y="52" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <circle cx="280" cy="110" r="20" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="280" y="115" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">d</text>
+          <line x1="264" y1="122" x2="150" y2="186" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="296" y1="122" x2="410" y2="186" stroke="#8A93A3" stroke-width="1.7"/>
+          <text x="198" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+          <text x="362" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+          <rect x="55" y="186" width="170" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="140" y="214" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">GRAD_STUDENT</text>
+          <rect x="335" y="186" width="200" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="435" y="214" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">UNDERGRAD_STUDENT</text>
+        </svg>
+        <p class="figcap">The circle and subset symbols mark an IS-A hierarchy.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · INHERITANCE -->
+  <section class="slide" data-title="Attribute inheritance" aria-roledescription="slide" aria-label="Attribute inheritance">
+    <p class="kicker">Building block 2 · the payoff</p>
+    <h2 class="slide-h" tabindex="-1">Attribute inheritance</h2>
+    <div class="two">
+      <div>
+        <p>A subclass <span class="term">inherits</span> every attribute of its
+        superclass, and participates in every relationship the superclass has.</p>
+        <p>So GRAD_STUDENT automatically has StudentID, Name, and Major — defined
+        <em>once</em> on STUDENT — plus its own extras like Advisor and Research_area.</p>
+        <div class="callout">
+          <h3>Why this is the whole point</h3>
+          <p style="margin:0">Inheritance is what makes Option A's NULLs and Option B's
+          duplication both go away. Shared structure is declared one time and flows down;
+          each subclass only adds what's genuinely special about it.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Reading the model</h3>
+          <p style="margin:0">A GRAD_STUDENT entity effectively carries:</p>
+          <ul style="margin:8px 0 0">
+            <li><em>Inherited:</em> StudentID (key), Name, Major</li>
+            <li><em>Own:</em> Advisor, Research_area</li>
+          </ul>
+        </div>
+        <p style="color:var(--muted);font-size:.95rem">The key always comes from the
+        superclass — subclass members are identified the same way as any member of the
+        superclass.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · SPECIALIZATION -->
+  <section class="slide" data-title="Specialization (top-down)" aria-roledescription="slide" aria-label="Specialization">
+    <p class="kicker">Two directions · 1</p>
+    <h2 class="slide-h" tabindex="-1">Specialization — top-down</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Specialization</span> starts from a superclass and defines
+        subclasses on it: "a STUDENT is either a GRAD_STUDENT or an UNDERGRAD_STUDENT."</p>
+        <p><strong>Why you'd specialize:</strong></p>
+        <ul>
+          <li>A sub-grouping has <em>attributes</em> the others don't (Advisor for grads).</li>
+          <li>A sub-grouping takes part in <em>relationships</em> the others don't
+          (only grads <em>assist</em> a COURSE as a TA).</li>
+          <li>A constraint applies to only part of the superclass.</li>
+        </ul>
+        <p>No such difference? Don't specialize — a flat entity is simpler.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 260" role="img" aria-labelledby="t6 d6">
+          <title id="t6">Specialization of STUDENT with subclass-specific attributes</title>
+          <desc id="d6">STUDENT, with inherited attributes, specializes into
+          GRAD_STUDENT, which has its own attribute Advisor shown as an oval, and
+          UNDERGRAD_STUDENT.</desc>
+          <line x1="280" y1="58" x2="280" y2="84" stroke="#8A93A3" stroke-width="1.7"/>
+          <rect x="205" y="22" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="280" y="49" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <circle cx="280" cy="104" r="19" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="280" y="109" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">d</text>
+          <line x1="265" y1="116" x2="150" y2="182" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="295" y1="116" x2="410" y2="182" stroke="#8A93A3" stroke-width="1.7"/>
+          <text x="196" y="152" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#00246B">&#8834;</text>
+          <text x="364" y="152" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#00246B">&#8834;</text>
+          <rect x="55" y="182" width="170" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="140" y="209" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">GRAD_STUDENT</text>
+          <rect x="335" y="182" width="200" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="435" y="209" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">UNDERGRAD_STUDENT</text>
+          <line x1="140" y1="226" x2="140" y2="232" stroke="#8A93A3" stroke-width="1.6"/>
+          <ellipse cx="140" cy="248" rx="44" ry="16" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <text x="140" y="252" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#14181F">Advisor</text>
+        </svg>
+        <p class="figcap">Advisor lives only on GRAD_STUDENT.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · GENERALIZATION -->
+  <section class="slide" data-title="Generalization (bottom-up)" aria-roledescription="slide" aria-label="Generalization">
+    <p class="kicker">Two directions · 2</p>
+    <h2 class="slide-h" tabindex="-1">Generalization — bottom-up</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Generalization</span> is the same picture read the other
+        way. You already have STUDENT and EMPLOYEE, notice they share Name, SSN, and
+        Address, and factor those up into a new superclass PERSON.</p>
+        <p><strong>Why you'd generalize:</strong> to capture commonality you discover
+        after the fact — remove duplicated attributes, and let a single relationship
+        (PERSON <em>lives_at</em> ADDRESS) stand in for what would otherwise be two.</p>
+        <div class="callout">
+          <h3>Same diagram, opposite thinking</h3>
+          <p style="margin:0">Specialization = top-down (split a whole). Generalization =
+          bottom-up (unify the parts). The finished EER diagram looks identical; only the
+          <em>design process</em> differs.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-labelledby="t7 d7">
+          <title id="t7">Generalizing STUDENT and EMPLOYEE into PERSON</title>
+          <desc id="d7">STUDENT and EMPLOYEE at the bottom connect up through a circle
+          to a shared superclass PERSON at the top.</desc>
+          <line x1="280" y1="86" x2="280" y2="62" stroke="#8A93A3" stroke-width="1.7"/>
+          <rect x="205" y="16" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="280" y="44" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">PERSON</text>
+          <circle cx="280" cy="108" r="20" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="280" y="113" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">o</text>
+          <line x1="264" y1="120" x2="150" y2="186" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="296" y1="120" x2="410" y2="186" stroke="#8A93A3" stroke-width="1.7"/>
+          <text x="198" y="156" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+          <text x="362" y="156" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+          <rect x="70" y="186" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="145" y="214" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <rect x="340" y="186" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="415" y="214" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">EMPLOYEE</text>
+        </svg>
+        <p class="figcap">The arrows of <em>thought</em> point up; the notation is the same.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · CONSTRAINTS (interactive) -->
+  <section class="slide" data-title="Two constraints on a specialization" aria-roledescription="slide" aria-label="Two constraints, interactive">
+    <p class="kicker">Constraining the split · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Two independent constraints</h2>
+    <p>Every specialization answers two <em>separate</em> yes/no questions. Toggle each
+    and watch the diagram and the meaning change. Example: PERSON → STUDENT, EMPLOYEE.</p>
+    <div class="hl-controls" role="group" aria-label="Disjointness">
+      <span class="grouplbl">Membership:</span>
+      <button class="chip" data-disj="d" aria-pressed="true">Disjoint (d)</button>
+      <button class="chip" data-disj="o" aria-pressed="false">Overlapping (o)</button>
+    </div>
+    <div class="hl-controls" role="group" aria-label="Completeness">
+      <span class="grouplbl">Completeness:</span>
+      <button class="chip" data-total="false" aria-pressed="true">Partial</button>
+      <button class="chip" data-total="true" aria-pressed="false">Total</button>
+    </div>
+    <p id="spec-desc" class="live-desc">Disjoint &amp; partial: each PERSON is at most one
+    of STUDENT or EMPLOYEE, and some may be neither.</p>
+    <div class="fig wide">
+      <svg viewBox="0 0 560 240" role="img" aria-labelledby="t8 d8">
+        <title id="t8">A specialization whose two constraints can be toggled</title>
+        <desc id="d8">PERSON connects down through a circle to STUDENT and EMPLOYEE.
+        The letter in the circle switches between d for disjoint and o for overlapping.
+        The line from PERSON to the circle is single for partial and doubled for total
+        participation.</desc>
+        <line x1="280" y1="60" x2="280" y2="86" stroke="#8A93A3" stroke-width="1.7"/>
+        <line id="spec-total-a" x1="276" y1="60" x2="276" y2="86" stroke="#0033A0" stroke-width="1.6" style="display:none"/>
+        <line id="spec-total-b" x1="284" y1="60" x2="284" y2="86" stroke="#0033A0" stroke-width="1.6" style="display:none"/>
+        <rect x="205" y="22" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+        <text x="280" y="49" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">PERSON</text>
+        <circle cx="280" cy="106" r="20" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+        <text id="spec-symbol" x="280" y="111" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">d</text>
+        <line x1="265" y1="118" x2="155" y2="182" stroke="#8A93A3" stroke-width="1.7"/>
+        <line x1="295" y1="118" x2="405" y2="182" stroke="#8A93A3" stroke-width="1.7"/>
+        <text x="200" y="154" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+        <text x="360" y="154" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+        <rect x="80" y="182" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+        <text x="155" y="209" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+        <rect x="330" y="182" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+        <text x="405" y="209" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">EMPLOYEE</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 9 · DISJOINT / OVERLAPPING -->
+  <section class="slide" data-title="Disjoint vs. overlapping" aria-roledescription="slide" aria-label="Disjoint versus overlapping">
+    <p class="kicker">Constraint 1</p>
+    <h2 class="slide-h" tabindex="-1">Disjoint (d) vs. overlapping (o)</h2>
+    <div class="two">
+      <div>
+        <p>This constraint asks: <em>can one entity belong to more than one subclass at
+        the same time?</em></p>
+        <p><span class="term">Disjoint (d)</span> — no. A STUDENT is a GRAD_STUDENT
+        <em>or</em> an UNDERGRAD_STUDENT, never both.</p>
+        <p><span class="term">Overlapping (o)</span> — yes. A PERSON might be both a
+        STUDENT and an EMPLOYEE at once (a grad who also works as a TA).</p>
+        <div class="callout">
+          <h3>Why declare it</h3>
+          <p style="margin:0">It's a real business rule. Marked disjoint, the schema can
+          forbid a person from being filed under two subclasses; marked overlapping, it
+          must allow it. Guessing wrong here corrupts data later.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>How to decide</h3>
+          <p style="margin:0">Find one real entity that plausibly sits in two subclasses.
+          If it can exist, you're overlapping. If it's nonsense, you're disjoint.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Watch for</h3>
+          <p style="margin:0">"Type" words often signal disjoint (a flight is national or
+          international). Roles often signal overlapping (a person's roles stack up).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · TOTAL / PARTIAL -->
+  <section class="slide" data-title="Total vs. partial specialization" aria-roledescription="slide" aria-label="Total versus partial">
+    <p class="kicker">Constraint 2</p>
+    <h2 class="slide-h" tabindex="-1">Total vs. partial</h2>
+    <div class="two">
+      <div>
+        <p>This constraint asks: <em>must every superclass member belong to some
+        subclass?</em></p>
+        <p><span class="term">Total</span> (a <strong>double line</strong> to the circle):
+        every STUDENT must be a grad or an undergrad — the subclasses are exhaustive.</p>
+        <p><span class="term">Partial</span> (a single line): a superclass member may
+        belong to none. Some EMPLOYEEs are neither SECRETARY, ENGINEER, nor MANAGER.</p>
+        <div class="callout">
+          <h3>Why it's separate from disjoint</h3>
+          <p style="margin:0">The two are independent — you can have any of the four
+          combinations. "Exactly one" is disjoint + total; "at most one" is disjoint +
+          partial; "any number" is overlapping; and so on.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 230" role="img" aria-labelledby="t10 d10">
+          <title id="t10">Total specialization shown with a double line</title>
+          <desc id="d10">STUDENT connects to the specialization circle by a double line,
+          marking total participation; two subclasses hang below.</desc>
+          <line x1="256" y1="60" x2="256" y2="86" stroke="#0033A0" stroke-width="1.6"/>
+          <line x1="264" y1="60" x2="264" y2="86" stroke="#0033A0" stroke-width="1.6"/>
+          <rect x="185" y="22" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="260" y="49" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <circle cx="260" cy="106" r="20" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="260" y="111" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">d</text>
+          <line x1="245" y1="118" x2="135" y2="182" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="275" y1="118" x2="385" y2="182" stroke="#8A93A3" stroke-width="1.7"/>
+          <text x="180" y="154" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#00246B">&#8834;</text>
+          <text x="340" y="154" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#00246B">&#8834;</text>
+          <rect x="60" y="182" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="135" y="209" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">GRAD</text>
+          <rect x="310" y="182" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="385" y="209" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">UNDERGRAD</text>
+        </svg>
+        <p class="figcap">Double line = total: no student outside the two subclasses.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · MEMBERSHIP RULES -->
+  <section class="slide" data-title="How membership is decided" aria-roledescription="slide" aria-label="Membership rules">
+    <p class="kicker">Refinement</p>
+    <h2 class="slide-h" tabindex="-1">How is membership decided?</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Predicate-defined</span> (attribute-defined): a condition on
+        an attribute decides the subclass. If STUDENT has a <em>Level</em> attribute, then
+        <code>Level = 'grad'</code> puts a student in GRAD_STUDENT automatically. The
+        defining predicate is written on the subclass line.</p>
+        <p><span class="term">User-defined</span>: no rule computes membership — someone
+        decides case by case, and the DBMS just records it. Which employees are MANAGERs
+        isn't derivable from a column.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Why the distinction earns its keep</h3>
+          <p style="margin:0">If membership is predicate-defined, the model already tells
+          you (and later the DBMS) how to place every entity — no separate bookkeeping.
+          User-defined membership must be stored and maintained by hand, which is a cost
+          worth seeing in the diagram.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Special case</h3>
+          <p style="margin:0">When one attribute defines <em>several</em> subclasses at
+          once (Level → grad/undergrad), that's an <span class="term">attribute-defined
+          specialization</span>; the attribute name is written next to the circle.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · LATTICE / SHARED SUBCLASS -->
+  <section class="slide" data-title="Hierarchies, lattices, and shared subclasses" aria-roledescription="slide" aria-label="Hierarchies and lattices">
+    <p class="kicker">Multiple inheritance</p>
+    <h2 class="slide-h" tabindex="-1">When a subclass has two parents</h2>
+    <div class="two">
+      <div>
+        <p>If every subclass has just one superclass, the diagram is a
+        <span class="term">hierarchy</span> (a tree). Allow a subclass with
+        <em>two or more</em> superclasses and it becomes a <span class="term">lattice</span>.</p>
+        <p>A <span class="term">shared subclass</span> inherits from all its parents. A
+        TEACHING_ASSISTANT <em>is a</em> STUDENT <strong>and</strong> <em>is an</em>
+        EMPLOYEE — it inherits StudentID and job attributes both. Membership requires
+        being in <em>both</em> (an AND / intersection).</p>
+        <div class="callout">
+          <h3>Why allow it</h3>
+          <p style="margin:0">Real classifications cut along several dimensions at once.
+          Forcing a tree would duplicate the TA's data under STUDENT and again under
+          EMPLOYEE — exactly the redundancy EER exists to remove.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-labelledby="t12 d12">
+          <title id="t12">A shared subclass inheriting from two superclasses</title>
+          <desc id="d12">STUDENT and EMPLOYEE at the top each connect down to a single
+          shared subclass, TEACHING_ASSISTANT, which therefore has two parents.</desc>
+          <rect x="40" y="20" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="115" y="48" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT</text>
+          <rect x="370" y="20" width="150" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="445" y="48" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">EMPLOYEE</text>
+          <circle cx="280" cy="120" r="20" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="280" y="125" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">d</text>
+          <line x1="115" y1="66" x2="266" y2="112" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="445" y1="66" x2="294" y2="112" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="280" y1="140" x2="280" y2="186" stroke="#8A93A3" stroke-width="1.7"/>
+          <text x="280" y="170" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#00246B">&#8834;</text>
+          <rect x="175" y="186" width="210" height="46" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="280" y="214" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">TEACHING_ASSISTANT</text>
+        </svg>
+        <p class="figcap">TA inherits from STUDENT <em>and</em> EMPLOYEE.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · CATEGORY / UNION -->
+  <section class="slide" data-title="Union types (categories)" aria-roledescription="slide" aria-label="Union types">
+    <p class="kicker">The subtle one</p>
+    <h2 class="slide-h" tabindex="-1">Union types — the "or" subclass</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">category</span> (union type) is a subclass whose members
+        come from a <em>union</em> of superclasses. A library BORROWER is a STUDENT
+        <em>or</em> an EMPLOYEE <em>or</em> a DEPARTMENT — any one of them can check out
+        a book.</p>
+        <p>Marked with a circle containing <strong>∪</strong>. Each member belongs to
+        <em>exactly one</em> of the superclasses, and inherits only that one's attributes.</p>
+        <div class="callout warn">
+          <h3>Category vs. shared subclass — the trap</h3>
+          <p style="margin:0">A shared subclass is an <strong>AND</strong> (a TA is a
+          student <em>and</em> an employee). A category is an <strong>OR</strong> (a
+          borrower is a student <em>or</em> an employee <em>or</em> a department). Same
+          circles, opposite meaning — read the ∪.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 270" role="img" aria-labelledby="t13 d13">
+          <title id="t13">A category formed from the union of three superclasses</title>
+          <desc id="d13">STUDENT, EMPLOYEE, and DEPARTMENT each connect down to a circle
+          containing a union symbol, which connects to the category BORROWER.</desc>
+          <rect x="20" y="20" width="140" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="90" y="47" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">STUDENT</text>
+          <rect x="210" y="20" width="140" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="280" y="47" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">EMPLOYEE</text>
+          <rect x="400" y="20" width="140" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="470" y="47" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">DEPARTMENT</text>
+          <line x1="90"  y1="64" x2="262" y2="140" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="280" y1="64" x2="280" y2="140" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="470" y1="64" x2="298" y2="140" stroke="#8A93A3" stroke-width="1.7"/>
+          <circle cx="280" cy="160" r="21" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="280" y="166" text-anchor="middle" font-family="Georgia,serif" font-size="17" font-weight="700" fill="#00246B">&#8746;</text>
+          <line x1="280" y1="181" x2="280" y2="212" stroke="#8A93A3" stroke-width="1.7"/>
+          <rect x="205" y="212" width="150" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="280" y="239" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">BORROWER</text>
+        </svg>
+        <p class="figcap">∪ in the circle: a borrower is any one of the three.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · NOTATION LEGEND -->
+  <section class="slide" data-title="EER notation at a glance" aria-roledescription="slide" aria-label="EER notation at a glance">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">EER notation at a glance</h2>
+    <div class="legendgrid">
+      <div class="gl">
+        <svg viewBox="0 0 120 80" role="img" aria-labelledby="g1t g1d"><title id="g1t">Circle with d</title><desc id="g1d">A small circle containing the letter d, on a line.</desc>
+          <line x1="60" y1="8" x2="60" y2="30" stroke="#8A93A3" stroke-width="1.6"/>
+          <circle cx="60" cy="46" r="17" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="60" y="51" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">d</text></svg>
+        <b>Disjoint</b><span>circle with d</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 80" role="img" aria-labelledby="g2t g2d"><title id="g2t">Circle with o</title><desc id="g2d">A small circle containing the letter o.</desc>
+          <line x1="60" y1="8" x2="60" y2="30" stroke="#8A93A3" stroke-width="1.6"/>
+          <circle cx="60" cy="46" r="17" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="60" y="51" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">o</text></svg>
+        <b>Overlapping</b><span>circle with o</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 80" role="img" aria-labelledby="g3t g3d"><title id="g3t">Union circle</title><desc id="g3d">A circle containing a union symbol.</desc>
+          <circle cx="60" cy="40" r="18" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="60" y="46" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="700" fill="#00246B">&#8746;</text></svg>
+        <b>Category</b><span>circle with ∪</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 80" role="img" aria-labelledby="g4t g4d"><title id="g4t">Subset symbol</title><desc id="g4d">A subset symbol on a line.</desc>
+          <line x1="20" y1="40" x2="100" y2="40" stroke="#8A93A3" stroke-width="1.6"/>
+          <text x="60" y="34" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="#00246B">&#8834;</text></svg>
+        <b>Subclass link</b><span>⊂ toward superclass</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 80" role="img" aria-labelledby="g5t g5d"><title id="g5t">Double line</title><desc id="g5d">Two parallel vertical lines.</desc>
+          <line x1="54" y1="14" x2="54" y2="66" stroke="#0033A0" stroke-width="2"/>
+          <line x1="66" y1="14" x2="66" y2="66" stroke="#0033A0" stroke-width="2"/></svg>
+        <b>Total</b><span>double line to circle</span>
+      </div>
+      <div class="gl">
+        <svg viewBox="0 0 120 80" role="img" aria-labelledby="g6t g6d"><title id="g6t">Nested rectangles</title><desc id="g6d">A rectangle above a smaller rectangle joined by a line — a superclass over a subclass.</desc>
+          <rect x="28" y="10" width="64" height="24" rx="3" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <line x1="60" y1="34" x2="60" y2="48" stroke="#8A93A3" stroke-width="1.5"/>
+          <rect x="34" y="48" width="52" height="22" rx="3" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/></svg>
+        <b>Super / sub</b><span>rectangles, IS-A</span>
+      </div>
+    </div>
+    <p class="figcap">These sit on top of the full ER I + ER II symbol set. The circle
+    carries the disjointness; the line to it carries totality.</p>
+  </section>
+
+  <!-- 15 · DESIGN GUIDANCE -->
+  <section class="slide" data-title="When to specialize" aria-roledescription="slide" aria-label="Design guidance">
+    <p class="kicker">Judgement</p>
+    <h2 class="slide-h" tabindex="-1">When to specialize — and when not to</h2>
+    <ul>
+      <li><strong>Specialize for a reason.</strong> Add a subclass only when it has its own
+      attributes, its own relationships, or a constraint the others don't share. A subclass
+      that adds nothing is just clutter — collapse it back.</li>
+      <li><strong>Name the two constraints explicitly.</strong> Every specialization is
+      disjoint-or-overlapping <em>and</em> total-or-partial. Leaving them unmarked hides a
+      decision the relational schema will force anyway.</li>
+      <li><strong>AND vs. OR.</strong> Two parents that must <em>both</em> hold → shared
+      subclass. Membership from any <em>one</em> of several types → category. Don't mix them up.</li>
+      <li><strong>Remember the payoff.</strong> The whole apparatus exists to avoid NULLs
+      for inapplicable attributes and duplication of shared ones. If a design reintroduces
+      either, reconsider it.</li>
+      <li><strong>It still has to become tables.</strong> Next unit we map all of this to
+      relations — and there's more than one way to map a specialization, each with tradeoffs.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">This lecture</h3>
+        <ul>
+          <li>Subclasses/superclasses and <span class="term">inheritance</span> — share once, specialize where it differs.</li>
+          <li><span class="term">Specialization</span> (top-down) vs. <span class="term">generalization</span> (bottom-up).</li>
+          <li>The two constraints: <span class="term">disjoint/overlapping</span>, <span class="term">total/partial</span>.</li>
+          <li>Shared subclasses (AND) and <span class="term">categories</span> (OR).</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>What two problems does inheritance solve at once?</li>
+            <li>Give a disjoint+total and an overlapping+partial example.</li>
+            <li>TA vs. BORROWER: which is AND, which is OR, and how is each drawn?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — the relational model</h3>
+          <p style="margin:0">We leave diagrams for the formal model the course runs on:
+          relations, keys, and the integrity rules a DBMS enforces. After that, the
+          algorithm that turns every ER and EER diagram into exactly those tables.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){ history.replaceState(null, '', '#s' + (idx + 1)); }
+    if (moveFocus){ var h = slides[idx].querySelector('.slide-h'); if (h) h.focus(); }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- EER specialization-constraints demonstrator ---
+  var symEl   = document.getElementById('spec-symbol');
+  var totalA  = document.getElementById('spec-total-a');
+  var totalB  = document.getElementById('spec-total-b');
+  var specDesc= document.getElementById('spec-desc');
+  var disjChips  = Array.prototype.slice.call(document.querySelectorAll('.chip[data-disj]'));
+  var totalChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-total]'));
+
+  if (symEl && specDesc){
+    var st = { disj: 'd', total: false };
+
+    function compose(){
+      var a = (st.disj === 'd')
+        ? 'Disjoint: each PERSON is at most one of STUDENT or EMPLOYEE'
+        : 'Overlapping: a PERSON may be both a STUDENT and an EMPLOYEE at once — e.g. a TA';
+      var b = st.total
+        ? ', and every PERSON must be at least one of them (total, double line).'
+        : ', and some PERSON may be neither (partial, single line).';
+      return a + b;
+    }
+    function apply(){
+      symEl.textContent = st.disj;
+      var show = st.total ? '' : 'none';
+      if (totalA) totalA.style.display = show;
+      if (totalB) totalB.style.display = show;
+      specDesc.textContent = compose();
+    }
+    disjChips.forEach(function(c){
+      c.addEventListener('click', function(){
+        disjChips.forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+        c.setAttribute('aria-pressed','true');
+        st.disj = c.getAttribute('data-disj'); apply();
+      });
+    });
+    totalChips.forEach(function(c){
+      c.addEventListener('click', function(){
+        totalChips.forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+        c.setAttribute('aria-pressed','true');
+        st.total = (c.getAttribute('data-total') === 'true'); apply();
+      });
+    });
+    apply();
+  }
+
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homework 1 — ER/EER and the Relational Model · CS 410/510</title>
+<style>
+/* =============================================================================
+   CS 410/510 Databases — homework stylesheet
+   Shared by every hw*.yaml build. build_hw.py inlines this into each output
+   HTML so the deliverable is a single self-contained file for Canvas.
+
+   House tokens match the lecture decks. Orange (--orange) is reserved for exam
+   accents and is deliberately NOT used on homework sheets.
+   ============================================================================= */
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+
+.wrap{max-width:820px;margin:0 auto;padding:18px 20px 56px}
+
+/* ---- masthead ---- */
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+.sheet{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px}
+
+h1{font-family:var(--serif);font-weight:700;font-size:2.05rem;line-height:1.1;
+  margin:0 0 6px;color:var(--ink)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;
+  color:var(--muted);font-size:.96rem;margin:0 0 18px;
+  padding-bottom:16px;border-bottom:2px solid var(--line)}
+.meta .pts{font-weight:700;color:var(--blue-ink)}
+.meta .due{font-weight:600;color:var(--ink)}
+
+h2{font-family:var(--serif);font-weight:700;font-size:1.5rem;line-height:1.15;
+  margin:34px 0 4px;color:var(--ink);
+  display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+h2 .badge{flex:none;font-family:var(--sans);font-weight:700;font-size:.8rem;
+  color:#fff;background:var(--blue);border-radius:999px;padding:3px 12px;
+  white-space:nowrap}
+h3{font-family:var(--sans);font-weight:700;font-size:1.06rem;margin:22px 0 6px;
+  color:var(--blue-ink)}
+h3 .sub-pts{font-weight:600;color:var(--muted);font-size:.9rem}
+
+p{max-width:66ch;margin:0 0 12px}
+ul,ol{max-width:66ch;margin:0 0 12px;padding-left:1.25rem}
+li{margin:7px 0}
+li ul,li ol{margin:6px 0}
+.lead{font-size:1.1rem;color:var(--muted);max-width:62ch}
+.term{color:var(--blue-ink);font-weight:700}
+code{font-family:ui-monospace,"SFMono-Regular","Cascadia Code",Consolas,monospace;
+  font-size:.92em;background:var(--tint);border:1px solid var(--line);
+  border-radius:4px;padding:.5px 5px}
+.scenario{border-left:5px solid var(--blue);background:var(--surface);
+  border-radius:0 9px 9px 0;padding:2px 18px;margin:12px 0;font-style:italic;
+  color:var(--ink)}
+.scenario p{max-width:60ch}
+
+.callout{background:var(--surface);border:1px solid var(--line);
+  border-left:5px solid var(--blue);border-radius:9px;padding:12px 16px;margin:16px 0}
+.callout h4{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout p:last-child,.callout ul:last-child,.callout ol:last-child{margin-bottom:0}
+
+.deliver{display:flex;gap:10px;align-items:flex-start;
+  background:var(--tint);border:1px solid var(--blue);border-radius:9px;
+  padding:11px 15px;margin:14px 0}
+.deliver .lbl{flex:none;font-weight:700;color:var(--blue-ink);font-size:.82rem;
+  border-right:1px solid var(--blue);padding-right:12px}
+.deliver p{margin:0;color:var(--ink);font-size:.96rem}
+
+/* ---- points summary ---- */
+table.pts-tbl{border-collapse:collapse;width:100%;font-size:.95rem;margin:6px 0 4px}
+table.pts-tbl caption{text-align:left}
+table.pts-tbl th,table.pts-tbl td{border:1px solid var(--line);padding:8px 12px;text-align:left}
+table.pts-tbl thead th{background:var(--blue);color:#fff;font-weight:600}
+table.pts-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.pts-tbl tfoot td{font-weight:700;background:var(--tint);color:var(--blue-ink)}
+
+.figcap{color:var(--muted);font-size:.86rem;margin:6px 2px 0}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .sheet{padding:22px 18px}
+  h2{flex-direction:column;gap:4px}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.callout,.deliver,table.pts-tbl th,table.pts-tbl td{border-color:#000}
+}
+
+@page{size:letter;margin:18mm}
+@media print{
+  body{background:#fff;font-size:11pt}
+  .skip{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .sheet{border:none;border-radius:0;padding:0}
+  h2{break-after:avoid}
+  .callout,.deliver,.scenario,table.pts-tbl{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the assignment</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 1–2 · ER/EER &amp; the relational model</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Fall 2026 · Elmasri &amp; Navathe, Ch. 3–5, 9</span>
+  </div>
+
+  <main id="main" class="sheet">
+    <h1>Homework 1</h1>
+    <p class="meta">
+      <span class="pts">90 points</span>
+      <span class="due">Due: Monday, September 14, 2026 · 11:59 PM</span>
+      <span>Submit via Canvas</span>
+    </p>
+
+    <p class="lead">Model a small mini-world two ways — as an ER diagram and as a set of relations — then repeat the exercise with an EER model that uses generalization.</p>
+
+    <p>Work through the four parts below. Parts 1–3 build one integrated design for an automobile repair shop; Part 4 is a separate, shorter EER problem. You may draw diagrams by hand and photograph them, or use any diagramming tool, as long as the notation matches what we used in lecture.</p>
+
+    <table class="pts-tbl">
+      <caption class="figcap">What each part is worth.</caption>
+      <thead>
+        <tr><th scope="col">Part</th><th scope="col">Task</th><th scope="col" class="num">Points</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Conceptual Model</td><td class="num">40</td></tr>
+        <tr><td>2</td><td>Relational Model</td><td class="num">20</td></tr>
+        <tr><td>3</td><td>Example Data</td><td class="num">10</td></tr>
+        <tr><td>4</td><td>Enhanced Entity–Relationship (EER) Model</td><td class="num">20</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td colspan="2">Total</td><td class="num">90</td></tr>
+      </tfoot>
+    </table>
+
+    <div class="callout"><h4>Notation</h4><p>Use the Chen / Elmasri–Navathe symbols from the ER lectures: rectangles for entity types, ovals for attributes, diamonds for relationships, underlines for keys, double outlines for weak entities and identifying relationships, and edge labels for cardinality and participation. Pick one notation and stay consistent within a diagram.</p></div>
+
+    <h2>Part 1 &nbsp;·&nbsp; Conceptual Model <span class="badge">40 points</span></h2>
+      <p>An automobile repair shop needs a database to manage its sales of parts and services (for example, oil changes, replacing brake pads, a tire rotation). Here are some of the things they need to track:</p>
+      <ul><li>Customers are billed and pay in terms of an <span class="term">invoice</span>, describing the parts (or items) sold and the service done for a particular transaction.</li><li>Each invoice is sold by a particular <span class="term">employee</span> — the one who rang up the final transaction.</li><li>On a given invoice, customers can buy various <span class="term">items</span> (parts, accessories, and so on). Service performed also appears as line items on the invoice.</li><li>Items sold have a description, a quantity, and a unit price. They also have an item ID / SKU to tie them into an inventory system.<ul><li>A <span class="term">service</span> is performed by a particular employee, and has a description and a cost.</li><li><em>Tip:</em> A service can also be modeled with a quantity and a unit price — an hourly billing rate for general labor, and a quantity of 1 for a service with a standardized billing rate (such as $40 for a tire rotation).</li></ul></li><li>Service is also performed on a specific <span class="term">vehicle</span>.</li><li>Customers can have more than one vehicle.</li><li>Invoices can be <span class="term">open</span> — still accumulating items — or <span class="term">closed</span>, meaning they are finished and ready to be paid.</li><li>Track basic information about customers (name, billing address, phone number, and so on).</li></ul>
+      <div class="callout"><h4>Simplifying assumptions</h4><ul><li>Each invoice is sold to a single customer.</li><li>Each vehicle is owned by a single customer.</li><li>You do not need to model an inventory or a payroll system.</li></ul></div>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Using ER syntax, draw a single integrated conceptual model for the mini-world described above.</p></div>
+
+      <h2>Part 2 &nbsp;·&nbsp; Relational Model <span class="badge">20 points</span></h2>
+      <p>Describe a set of relations that will store the data from your ER model in Part 1. For each relation, give:</p>
+      <ul><li>Its <span class="term">name</span>.</li><li>The <span class="term">entity or relationship type</span> it stores.</li><li>Its <span class="term">attributes</span>, with each one's approximate data type (number, string, date).</li><li>Its <span class="term">primary key</span>.</li><li>Its <span class="term">foreign key(s)</span>, and the relations they reference.</li></ul>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>A complete list of relations with the five items above spelled out for each.</p></div>
+
+      <h2>Part 3 &nbsp;·&nbsp; Example Data <span class="badge">10 points</span></h2>
+      <p>For each of your relations in Part 2, give 2–5 example rows.</p>
+      <p>All data must be <span class="term">referentially valid</span>: every foreign-key value in one table must refer to a valid primary-key value in the table it references.</p>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>A small, consistent set of sample rows for every relation, with foreign keys that point at real rows.</p></div>
+
+      <h2>Part 4 &nbsp;·&nbsp; Enhanced Entity–Relationship (EER) Model <span class="badge">20 points</span></h2>
+      <p>Consider the following scenario:</p>
+      <div class="scenario"><p>An international airline offers flights, each of which has a number that identifies the flight (for example, Paris–Boston), a date (25 March 2019), a departure time (8:00 AM) and an arrival time (12:00 PM), a departure airport and an arrival airport. There are national and international flights. International flights can have one or more stopovers.</p></div>
+      <h3>4.1 &nbsp; Conceptual model <span class="sub-pts">— 10 points</span></h3>
+      <p>Draw a conceptual model for the scenario above, using the <span class="term">generalization</span> construct of the Enhanced Entity–Relationship model where appropriate. In each case, indicate the attributes of the various entities and the type of generalization, resolving the cases of overlapping.</p>
+      <h3>4.2 &nbsp; Relational translation <span class="sub-pts">— 10 points</span></h3>
+      <p>Provide a translation into the relational model of the conceptual model you designed in 4.1.</p>
+  </main>
+</div>
+</body>
+</html>
