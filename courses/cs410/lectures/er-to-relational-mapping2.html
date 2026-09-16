@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ER/EER → Relational Mapping · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- step header badge ---- */
+.stepnum{display:inline-flex;align-items:center;justify-content:center;
+  min-width:1.9em;height:1.9em;padding:0 .4em;margin-right:.5em;border-radius:7px;
+  background:var(--blue);color:#fff;font-family:var(--sans);font-weight:700;
+  font-size:1.15rem;vertical-align:.06em}
+
+/* ---- relation-schema block ---- */
+.rel{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff;margin:10px 0}
+.rel-name{background:var(--blue);color:#fff;font-weight:700;font-family:var(--sans);
+  font-size:.92rem;padding:6px 12px}
+.rel-attrs{display:flex;flex-wrap:wrap}
+.rel-attrs .attr{padding:7px 12px 8px;border-right:1px solid var(--line);
+  border-top:1px solid var(--line);font-size:.9rem;font-family:var(--sans);color:var(--ink)}
+.rel-attrs .attr:first-child{border-top-color:transparent}
+.attr.pk .nm{color:var(--blue-ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.attr.fk .nm{color:var(--brown);font-weight:600}
+.attr .tag{display:block;font-size:.66rem;color:var(--muted);font-weight:700;
+  letter-spacing:.02em;margin-top:2px}
+.attr.fk .tag{color:var(--brown)}
+.attr.pkfk .nm{color:var(--brown);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.attr.pkfk .tag{color:var(--brown)}
+
+/* ---- correspondence table ---- */
+table.corr{border-collapse:collapse;width:100%;font-size:.92rem;margin-top:4px}
+table.corr caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.corr th,table.corr td{border:1px solid var(--line);padding:7px 12px;text-align:left;vertical-align:top}
+table.corr thead th{background:var(--blue);color:#fff;font-weight:600}
+table.corr tbody th{background:var(--tint);color:var(--blue-ink);font-weight:700;white-space:nowrap}
+
+/* ---- interactive step-mapper ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 12px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin:0 0 12px}
+.map-panel .plabel{font-family:var(--sans);font-weight:700;color:var(--blue-ink);
+  font-size:.95rem;margin:0 0 2px}
+html.js #map-panels .map-panel{display:none}
+html.js #map-panels .map-panel.is-active{display:block}
+
+/* ---- legend grid (correspondence at a glance) ---- */
+.legendgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.gl{border:1px solid var(--line);border-radius:9px;padding:12px 12px 14px;background:#fff}
+.gl b{display:block;color:var(--blue-ink);font-size:.96rem;margin-bottom:2px}
+.gl span{color:var(--muted);font-size:.85rem}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .legendgrid{grid-template-columns:1fr}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout,.rel,table.corr th,table.corr td{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.gl,.rel,table.corr{break-inside:avoid}
+  .fig.wide svg{width:72%;display:block;margin:0 auto}
+  #map-panels .map-panel{display:block!important;border-top:1px dashed var(--line);
+    padding-top:8px;margin-top:8px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 2 · Relational model</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 2 of 2 in the relational sequence · Elmasri &amp; Navathe, Ch. 9</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="ER to relational mapping — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="ER/EER → Relational Mapping"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Logical database design</p>
+    <h2 class="slide-h" tabindex="-1">ER/EER → relational mapping</h2>
+    <div class="two">
+      <div>
+        <p class="lead">The diagram was never the destination. Now we turn it into
+        tables — by a fixed procedure, not by taste.</p>
+        <p style="color:var(--muted)">Seven steps take any ER diagram to a relational
+        schema; four more options handle EER. Get the diagram right and the tables
+        fall out almost mechanically.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 190" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A diagram becoming a table</title>
+          <desc id="d1">A STUDENT entity rectangle with a diamond and an oval on the
+          left, an arrow pointing right to a relational table headed STUDENT with the
+          columns StudentID, Name, and Major.</desc>
+          <rect x="24" y="42" width="104" height="40" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="76" y="67" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">STUDENT</text>
+          <polygon points="40,120 92,96 144,120 92,144" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.9"/>
+          <text x="92" y="124" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">Enrolls_in</text>
+          <ellipse cx="150" cy="60" rx="30" ry="15" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <text x="150" y="64" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">Major</text>
+          <line x1="128" y1="62" x2="120" y2="60" stroke="#8A93A3" stroke-width="1.4"/>
+          <path d="M212 95 h56" stroke="#7A2708" stroke-width="2.4" fill="none" marker-end="url(#ar)"/>
+          <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M0,0 L9,4.5 L0,9 z" fill="#7A2708"/></marker></defs>
+          <rect x="300" y="58" width="236" height="74" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <rect x="300" y="58" width="236" height="22" rx="5" fill="#0033A0"/>
+          <text x="312" y="73" font-family="system-ui" font-size="12" font-weight="700" fill="#fff">STUDENT</text>
+          <line x1="300" y1="106" x2="536" y2="106" stroke="#C9D2E0" stroke-width="1"/>
+          <text x="312" y="96" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B" text-decoration="underline">StudentID</text>
+          <text x="392" y="96" font-family="system-ui" font-size="11.5" fill="#14181F">Name</text>
+          <text x="452" y="96" font-family="system-ui" font-size="11.5" fill="#14181F">Major</text>
+          <text x="312" y="124" font-family="system-ui" font-size="11" fill="#4A5160">rows = the entity set</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and today's roadmap" aria-roledescription="slide" aria-label="Recap and today's roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; today's roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>The pipeline, so far</h3>
+          <p style="margin:0">Requirements → <strong>ER/EER diagram</strong> (Unit&nbsp;1)
+          → <strong>relational model</strong> (last lecture: relations, keys,
+          integrity) → <strong>relational schema</strong> (today) → SQL (Unit&nbsp;4).</p>
+        </div>
+        <p>Last time we defined the target: relations, primary and foreign keys,
+        entity and referential integrity. Today we build the bridge that gets us
+        there from a diagram.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Run the <span class="term">7-step algorithm</span> from any ER diagram to a set of relations.</li>
+            <li>Place <span class="term">foreign keys</span> on the correct side of 1:1 and 1:N relationships.</li>
+            <li>Turn M:N and n-ary relationships into <span class="term">relationship relations</span>.</li>
+            <li>Map EER <span class="term">specialization</span> four ways, and know which is safe when.</li>
+            <li>Handle <span class="term">union types</span> with a surrogate key.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHY A MECHANICAL MAPPING -->
+  <section class="slide" data-title="Why a mechanical mapping?" aria-roledescription="slide" aria-label="Why a mechanical mapping">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">Why the mapping is mechanical</h2>
+    <p class="lead">The hard thinking happened in Unit&nbsp;1. This step is
+    deterministic: the same diagram always yields the same schema.</p>
+    <ul>
+      <li>Each ER construct has a <strong>fixed relational counterpart</strong> — an entity
+      becomes a relation, an M:N becomes a linking relation, and so on.</li>
+      <li>Because it's an algorithm, it's <strong>checkable</strong>: you can verify a schema
+      against its diagram, and a tool can generate one from the other.</li>
+      <li>The judgment that remains is small and named — which side gets a 1:1 foreign
+      key, which EER option to use — and we'll call out each choice as it arrives.</li>
+    </ul>
+    <div class="callout">
+      <h3>The running example</h3>
+      <p style="margin:0">We map the exact UNIVERSITY diagram from ER I and ER II —
+      STUDENT, COURSE, EMPLOYEE, DEPARTMENT, and the weak entity DEPENDENT — so every
+      step lands on a construct you've already drawn.</p>
+    </div>
+  </section>
+
+  <!-- 4 · THE DIAGRAM WE'LL MAP -->
+  <section class="slide" data-title="The diagram we'll map" aria-roledescription="slide" aria-label="The diagram we will map">
+    <p class="kicker">Inventory</p>
+    <h2 class="slide-h" tabindex="-1">The diagram we'll map</h2>
+    <div class="two">
+      <div>
+        <p>Here is the UNIVERSITY mini-world with every construct the algorithm has
+        to handle. Each row below is one step of the walk-through that follows.</p>
+        <table class="corr">
+          <caption>Construct → step, for this diagram.</caption>
+          <tbody>
+            <tr><th scope="row">STUDENT, COURSE, EMPLOYEE, DEPARTMENT</th><td>Step 1 — regular entities</td></tr>
+            <tr><th scope="row">DEPENDENT (weak)</th><td>Step 2 — weak entity</td></tr>
+            <tr><th scope="row">Manages (1:1)</th><td>Step 3 — 1:1 foreign key</td></tr>
+            <tr><th scope="row">Works_for, Supervises (1:N)</th><td>Step 4 — 1:N foreign key</td></tr>
+            <tr><th scope="row">Enrolls_in + Grade (M:N)</th><td>Step 5 — relationship relation</td></tr>
+            <tr><th scope="row">Dept. Locations (multivalued)</th><td>Step 6 — its own relation</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 470 360" role="img" aria-labelledby="t4 d4">
+          <title id="t4">The UNIVERSITY ER diagram to be mapped</title>
+          <desc id="d4">STUDENT connects through an M-to-N diamond Enrolls in,
+          carrying a Grade attribute, to COURSE. EMPLOYEE connects to DEPARTMENT
+          through Works for, one-to-many, and through Manages, one-to-one. EMPLOYEE
+          connects to itself through Supervises, one-to-many. EMPLOYEE connects
+          through a double-outlined identifying diamond Dependent of to DEPENDENT,
+          drawn as a double rectangle. DEPARTMENT has a multivalued attribute
+          Locations, drawn as a double oval.</desc>
+          <!-- STUDENT - COURSE (M:N + Grade) -->
+          <rect x="18" y="20" width="96" height="38" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="66" y="43" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">STUDENT</text>
+          <polygon points="150,39 200,18 250,39 200,60" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.9"/>
+          <text x="200" y="42" text-anchor="middle" font-family="system-ui" font-size="9.5" fill="#00246B">Enrolls_in</text>
+          <rect x="286" y="20" width="96" height="38" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="334" y="43" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">COURSE</text>
+          <line x1="114" y1="39" x2="150" y2="39" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="250" y1="39" x2="286" y2="39" stroke="#8A93A3" stroke-width="1.5"/>
+          <text x="132" y="31" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">M</text>
+          <text x="268" y="31" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">N</text>
+          <ellipse cx="200" cy="92" rx="34" ry="16" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <text x="200" y="96" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">Grade</text>
+          <line x1="200" y1="60" x2="200" y2="76" stroke="#8A93A3" stroke-width="1.4"/>
+
+          <!-- EMPLOYEE -->
+          <rect x="60" y="176" width="104" height="40" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="112" y="201" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">EMPLOYEE</text>
+          <!-- DEPARTMENT -->
+          <rect x="300" y="150" width="120" height="40" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="360" y="175" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">DEPARTMENT</text>
+          <!-- Dept Locations multivalued -->
+          <ellipse cx="360" cy="104" rx="46" ry="20" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <ellipse cx="360" cy="104" rx="39" ry="14" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <text x="360" y="108" text-anchor="middle" font-family="system-ui" font-size="10" fill="#14181F">Locations</text>
+          <line x1="360" y1="124" x2="360" y2="150" stroke="#8A93A3" stroke-width="1.4"/>
+          <!-- Works_for 1:N -->
+          <polygon points="176,150 224,132 272,150 224,168" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="224" y="153" text-anchor="middle" font-family="system-ui" font-size="9" fill="#00246B">Works_for</text>
+          <line x1="164" y1="188" x2="182" y2="158" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="266" y1="150" x2="304" y2="170" stroke="#8A93A3" stroke-width="1.5"/>
+          <text x="176" y="176" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">N</text>
+          <text x="292" y="160" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">1</text>
+          <!-- Manages 1:1 -->
+          <polygon points="176,232 224,214 272,232 224,250" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="224" y="235" text-anchor="middle" font-family="system-ui" font-size="9" fill="#00246B">Manages</text>
+          <line x1="164" y1="206" x2="182" y2="224" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="266" y1="232" x2="330" y2="190" stroke="#8A93A3" stroke-width="1.5"/>
+          <text x="176" y="222" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">1</text>
+          <text x="300" y="214" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">1</text>
+          <!-- Supervises recursive -->
+          <polygon points="34,238 74,222 114,238 74,254" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="74" y="241" text-anchor="middle" font-family="system-ui" font-size="8.5" fill="#00246B">Supervises</text>
+          <path d="M92 216 q-40 6 -18 22" stroke="#8A93A3" stroke-width="1.4" fill="none"/>
+          <path d="M100 216 q30 18 -10 30" stroke="#8A93A3" stroke-width="1.4" fill="none"/>
+          <text x="66" y="214" text-anchor="middle" font-family="system-ui" font-size="9.5" font-weight="700" fill="#7A2708">1</text>
+          <text x="104" y="252" text-anchor="middle" font-family="system-ui" font-size="9.5" font-weight="700" fill="#7A2708">N</text>
+          <!-- Dependent_of weak -->
+          <polygon points="150,300 208,278 266,300 208,322" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.9"/>
+          <polygon points="158,300 208,282 258,300 208,318" fill="none" stroke="#0033A0" stroke-width="1.4"/>
+          <text x="208" y="303" text-anchor="middle" font-family="system-ui" font-size="8.5" fill="#00246B">Dependent_of</text>
+          <line x1="112" y1="216" x2="160" y2="292" stroke="#0033A0" stroke-width="1.5"/>
+          <line x1="118" y1="216" x2="166" y2="292" stroke="#0033A0" stroke-width="1.5"/>
+          <rect x="300" y="292" width="130" height="44" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <rect x="306" y="298" width="118" height="32" rx="2" fill="none" stroke="#0033A0" stroke-width="1.3"/>
+          <text x="365" y="318" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">DEPENDENT</text>
+          <line x1="266" y1="300" x2="300" y2="308" stroke="#8A93A3" stroke-width="1.5"/>
+          <text x="150" y="270" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708">1</text>
+          <text x="284" y="296" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708">N</text>
+        </svg>
+        <p class="figcap">The full UNIVERSITY mini-world. Steps 1–6 process it in order.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · STEP 1 REGULAR ENTITIES -->
+  <section class="slide" data-title="Step 1 — Regular entity types" aria-roledescription="slide" aria-label="Step one, regular entity types">
+    <p class="kicker">The 7-step algorithm</p>
+    <h2 class="slide-h" tabindex="-1"><span class="stepnum">1</span>Regular entity types</h2>
+    <div class="two">
+      <div>
+        <p>For each <span class="term">strong (regular) entity type</span>, create a relation
+        that includes all its simple attributes. For a composite attribute, include
+        only its simple components (Name → Fname, Lname).</p>
+        <p>Choose one key attribute as the <span class="term">primary key</span>. Multivalued
+        and derived attributes are <em>not</em> included here — derived values aren't
+        stored, and multivalued ones wait for Step&nbsp;6.</p>
+        <div class="callout">
+          <h3>On this diagram</h3>
+          <p style="margin:0">Four strong entities → four relations. Foreign-key
+          columns are still blank; relationships fill them in Steps&nbsp;3–5.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">STUDENT</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">StudentID</span><span class="tag">primary key</span></span>
+            <span class="attr"><span class="nm">Fname</span></span>
+            <span class="attr"><span class="nm">Lname</span></span>
+            <span class="attr"><span class="nm">Major</span></span>
+            <span class="attr"><span class="nm">GPA</span></span>
+          </div>
+        </div>
+        <div class="rel">
+          <div class="rel-name">EMPLOYEE</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">Ssn</span><span class="tag">primary key</span></span>
+            <span class="attr"><span class="nm">Fname</span></span>
+            <span class="attr"><span class="nm">Lname</span></span>
+          </div>
+        </div>
+        <div class="rel">
+          <div class="rel-name">DEPARTMENT</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">Dnumber</span><span class="tag">primary key</span></span>
+            <span class="attr"><span class="nm">Dname</span></span>
+          </div>
+        </div>
+        <p class="figcap">COURSE(<u>CourseID</u>, Title, Credits) maps the same way.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · STEP 2 WEAK ENTITIES -->
+  <section class="slide" data-title="Step 2 — Weak entity types" aria-roledescription="slide" aria-label="Step two, weak entity types">
+    <p class="kicker">The 7-step algorithm</p>
+    <h2 class="slide-h" tabindex="-1"><span class="stepnum">2</span>Weak entity types</h2>
+    <div class="two">
+      <div>
+        <p>A weak entity has no key of its own, so its relation <strong>borrows the
+        owner's primary key as a foreign key</strong>. The primary key of the weak
+        relation is that foreign key <em>plus</em> the weak entity's partial key.</p>
+        <p>DEPENDENT is identified by its EMPLOYEE plus its own Name — so the relation
+        keys on both. Two employees can each have a "Sam" and stay distinct.</p>
+        <div class="callout warn">
+          <h3>Total participation shows up here</h3>
+          <p style="margin:0">Because a dependent can't exist without its employee,
+          the foreign key is <strong>NOT NULL</strong> and typically carries
+          <strong>ON DELETE CASCADE</strong>.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">DEPENDENT</div>
+          <div class="rel-attrs">
+            <span class="attr pkfk"><span class="nm">Essn</span><span class="tag">PK part · FK → EMPLOYEE</span></span>
+            <span class="attr pk"><span class="nm">Dep_name</span><span class="tag">PK part · partial key</span></span>
+            <span class="attr"><span class="nm">Relationship</span></span>
+            <span class="attr"><span class="nm">Bdate</span></span>
+          </div>
+        </div>
+        <div class="fig">
+          <svg viewBox="0 0 470 130" role="img" aria-labelledby="t6 d6">
+            <title id="t6">Weak entity mapping</title>
+            <desc id="d6">EMPLOYEE relation with primary key Ssn on the left; an arrow
+            labelled owner PK becomes FK points to the DEPENDENT relation on the right,
+            whose primary key is the pair Essn and Dep_name.</desc>
+            <rect x="14" y="40" width="150" height="48" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <rect x="14" y="40" width="150" height="20" rx="5" fill="#0033A0"/>
+            <text x="24" y="54" font-family="system-ui" font-size="11" font-weight="700" fill="#fff">EMPLOYEE</text>
+            <text x="24" y="78" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B" text-decoration="underline">Ssn</text>
+            <text x="70" y="78" font-family="system-ui" font-size="11" fill="#14181F">…</text>
+            <path d="M172 64 h44" stroke="#7A2708" stroke-width="2.2" fill="none" marker-end="url(#ar6)"/>
+            <defs><marker id="ar6" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#7A2708"/></marker></defs>
+            <text x="194" y="56" text-anchor="middle" font-family="system-ui" font-size="9" fill="#7A2708">owner PK</text>
+            <rect x="224" y="40" width="230" height="48" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <rect x="224" y="40" width="230" height="20" rx="5" fill="#0033A0"/>
+            <text x="234" y="54" font-family="system-ui" font-size="11" font-weight="700" fill="#fff">DEPENDENT</text>
+            <text x="234" y="78" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708" text-decoration="underline">Essn</text>
+            <text x="284" y="78" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B" text-decoration="underline">Dep_name</text>
+            <text x="384" y="78" font-family="system-ui" font-size="11" fill="#14181F">…</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · STEP 3 1:1 -->
+  <section class="slide" data-title="Step 3 — Binary 1:1 relationships" aria-roledescription="slide" aria-label="Step three, one to one relationships">
+    <p class="kicker">The 7-step algorithm</p>
+    <h2 class="slide-h" tabindex="-1"><span class="stepnum">3</span>Binary 1:1 relationships</h2>
+    <div class="two">
+      <div>
+        <p>The usual choice is the <span class="term">foreign key approach</span>: take one
+        of the two relations and add the other's primary key to it as a foreign key,
+        along with any relationship attributes.</p>
+        <p><strong>Which side?</strong> Put the foreign key in the relation with
+        <span class="term">total participation</span> — that keeps the column from filling
+        with NULLs. Every DEPARTMENT has a manager, but most employees manage nothing,
+        so <em>Mgr_ssn</em> lives in DEPARTMENT.</p>
+        <div class="callout">
+          <h3>Two other options</h3>
+          <p style="margin:0">If both sides are total, consider <em>merging</em> the two
+          entities into one relation. A separate <em>relationship relation</em> is also
+          legal but rarely worth it for 1:1.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">DEPARTMENT &nbsp;— after Manages</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">Dnumber</span><span class="tag">primary key</span></span>
+            <span class="attr"><span class="nm">Dname</span></span>
+            <span class="attr fk"><span class="nm">Mgr_ssn</span><span class="tag">FK → EMPLOYEE</span></span>
+            <span class="attr fk"><span class="nm">Mgr_start</span><span class="tag">rel. attribute</span></span>
+          </div>
+        </div>
+        <div class="callout warn">
+          <h3>Read the NULL test aloud</h3>
+          <p style="margin:0">Put Mgr_ssn in DEPARTMENT and every row has a value.
+          Put a Manages FK in EMPLOYEE instead and nearly every row is NULL — same
+          data, worse schema.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · STEP 4 1:N -->
+  <section class="slide" data-title="Step 4 — Binary 1:N relationships" aria-roledescription="slide" aria-label="Step four, one to many relationships">
+    <p class="kicker">The 7-step algorithm</p>
+    <h2 class="slide-h" tabindex="-1"><span class="stepnum">4</span>Binary 1:N relationships</h2>
+    <div class="two">
+      <div>
+        <p>No choice to make here: put the primary key of the <strong>"1" side</strong> into
+        the relation on the <strong>"N" side</strong> as a foreign key. Any relationship
+        attributes go on the N side too.</p>
+        <p>Each employee works for exactly one department, so DEPARTMENT's key becomes
+        <em>Dno</em> in EMPLOYEE. No extra table — this is why 1:N is the cheapest
+        relationship to store.</p>
+        <div class="callout">
+          <h3>Recursive 1:N is the same move</h3>
+          <p style="margin:0">Supervises relates EMPLOYEE to itself, so EMPLOYEE gets a
+          <em>Super_ssn</em> foreign key pointing back at its own Ssn. It's nullable —
+          the top of the hierarchy supervises but reports to no one.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">EMPLOYEE &nbsp;— after Works_for &amp; Supervises</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">Ssn</span><span class="tag">primary key</span></span>
+            <span class="attr"><span class="nm">Fname</span></span>
+            <span class="attr"><span class="nm">Lname</span></span>
+            <span class="attr fk"><span class="nm">Dno</span><span class="tag">FK → DEPARTMENT</span></span>
+            <span class="attr fk"><span class="nm">Super_ssn</span><span class="tag">FK → EMPLOYEE</span></span>
+          </div>
+        </div>
+        <p class="figcap">Two 1:N relationships, two foreign-key columns — both on the
+        many side, which for Supervises is EMPLOYEE itself.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · STEP 5 M:N -->
+  <section class="slide" data-title="Step 5 — Binary M:N relationships" aria-roledescription="slide" aria-label="Step five, many to many relationships">
+    <p class="kicker">The 7-step algorithm</p>
+    <h2 class="slide-h" tabindex="-1"><span class="stepnum">5</span>Binary M:N relationships</h2>
+    <div class="two">
+      <div>
+        <p>A many-to-many relationship can't be a foreign key on either side — so it
+        gets its <strong>own relation</strong>, called a relationship (or linking) relation.</p>
+        <p>Include the primary keys of <em>both</em> entities as foreign keys; together they
+        form the primary key of the new relation. This is the <strong>only</strong> place a
+        relationship attribute like <em>Grade</em> can live.</p>
+        <div class="callout warn">
+          <h3>The M:N test, paid off</h3>
+          <p style="margin:0">In ER II we said a grade belongs to the enrollment, not
+          to the student or the course. Here's why that mattered: ENROLLMENT is the
+          row that a grade finally has a home on.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">ENROLLMENT</div>
+          <div class="rel-attrs">
+            <span class="attr pkfk"><span class="nm">StudentID</span><span class="tag">PK part · FK → STUDENT</span></span>
+            <span class="attr pkfk"><span class="nm">CourseID</span><span class="tag">PK part · FK → COURSE</span></span>
+            <span class="attr"><span class="nm">Grade</span><span class="tag">rel. attribute</span></span>
+          </div>
+        </div>
+        <p class="figcap">Primary key = the pair of foreign keys. One row per
+        student-in-a-course; Grade rides along.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · STEP 6 MULTIVALUED -->
+  <section class="slide" data-title="Step 6 — Multivalued attributes" aria-roledescription="slide" aria-label="Step six, multivalued attributes">
+    <p class="kicker">The 7-step algorithm</p>
+    <h2 class="slide-h" tabindex="-1"><span class="stepnum">6</span>Multivalued attributes</h2>
+    <div class="two">
+      <div>
+        <p>A relation stores one value per cell, so a multivalued attribute needs its
+        <strong>own relation</strong>. It holds the value plus a foreign key to the owner;
+        the primary key is the two together.</p>
+        <p>DEPARTMENT's Locations become DEPT_LOCATIONS — one row per (department,
+        location) pair. A department in three buildings is three rows.</p>
+        <div class="callout">
+          <h3>Composite &amp; multivalued</h3>
+          <p style="margin:0">If the multivalued attribute is also composite, include
+          each simple component as its own column in the new relation.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">DEPT_LOCATIONS</div>
+          <div class="rel-attrs">
+            <span class="attr pkfk"><span class="nm">Dnumber</span><span class="tag">PK part · FK → DEPARTMENT</span></span>
+            <span class="attr pk"><span class="nm">Location</span><span class="tag">PK part</span></span>
+          </div>
+        </div>
+        <div class="fig">
+          <svg viewBox="0 0 470 96" role="img" aria-labelledby="t10 d10">
+            <title id="t10">One department, three location rows</title>
+            <desc id="d10">A small table with columns Dnumber and Location showing
+            department 5 paired with Boise, department 5 with Nampa, and department 5
+            with Meridian.</desc>
+            <rect x="120" y="14" width="230" height="70" rx="4" fill="#fff" stroke="#0033A0" stroke-width="1.5"/>
+            <rect x="120" y="14" width="230" height="20" fill="#0033A0"/>
+            <text x="150" y="28" font-family="system-ui" font-size="10.5" font-weight="700" fill="#fff">Dnumber</text>
+            <text x="250" y="28" font-family="system-ui" font-size="10.5" font-weight="700" fill="#fff">Location</text>
+            <line x1="235" y1="14" x2="235" y2="84" stroke="#C9D2E0"/>
+            <line x1="120" y1="50" x2="350" y2="50" stroke="#C9D2E0"/>
+            <line x1="120" y1="67" x2="350" y2="67" stroke="#C9D2E0"/>
+            <text x="150" y="46" font-family="system-ui" font-size="10.5" fill="#14181F">5</text>
+            <text x="250" y="46" font-family="system-ui" font-size="10.5" fill="#14181F">Boise</text>
+            <text x="150" y="63" font-family="system-ui" font-size="10.5" fill="#14181F">5</text>
+            <text x="250" y="63" font-family="system-ui" font-size="10.5" fill="#14181F">Nampa</text>
+            <text x="150" y="80" font-family="system-ui" font-size="10.5" fill="#14181F">5</text>
+            <text x="250" y="80" font-family="system-ui" font-size="10.5" fill="#14181F">Meridian</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · STEP 7 N-ARY -->
+  <section class="slide" data-title="Step 7 — n-ary relationships" aria-roledescription="slide" aria-label="Step seven, n-ary relationships">
+    <p class="kicker">The 7-step algorithm</p>
+    <h2 class="slide-h" tabindex="-1"><span class="stepnum">7</span>n-ary relationships</h2>
+    <div class="two">
+      <div>
+        <p>For a relationship of degree three or more, create a <strong>relationship
+        relation</strong> holding a foreign key to each participating entity, plus any
+        relationship attributes.</p>
+        <p>Suppose an INSTRUCTOR teaches a COURSE in a given TERM. That single fact ties
+        three entities together, so TEACHES carries three foreign keys. The primary key
+        is normally all of them together.</p>
+        <div class="callout warn">
+          <h3>Don't fake it</h3>
+          <p style="margin:0">Three binary relationships are not the same as one
+          ternary — they can't record which instructor taught which course in which
+          term as one linked fact. If the fact is genuinely three-way, model it that way.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">TEACHES</div>
+          <div class="rel-attrs">
+            <span class="attr pkfk"><span class="nm">Instr_id</span><span class="tag">PK part · FK → INSTRUCTOR</span></span>
+            <span class="attr pkfk"><span class="nm">CourseID</span><span class="tag">PK part · FK → COURSE</span></span>
+            <span class="attr pkfk"><span class="nm">Term_id</span><span class="tag">PK part · FK → TERM</span></span>
+            <span class="attr"><span class="nm">Room</span><span class="tag">rel. attribute</span></span>
+          </div>
+        </div>
+        <p class="figcap">A degree-3 relationship → one relation, three foreign keys.
+        A cardinality constraint on one side can shrink the primary key.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · INTERACTIVE STEP MAPPER -->
+  <section class="slide" data-title="Try it: construct to step" aria-roledescription="slide" aria-label="Interactive, construct to step">
+    <p class="kicker">Synthesis · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Which step maps this?</h2>
+    <p>Pick a construct to see the rule that handles it and the relation it produces.</p>
+    <div class="hl-controls" role="group" aria-label="Choose an ER construct">
+      <button class="chip" data-map="1" aria-pressed="true"
+        data-desc="Regular entity type → Step 1: one relation with all simple attributes; pick a primary key. EMPLOYEE(Ssn, Fname, Lname).">Regular entity</button>
+      <button class="chip" data-map="2" aria-pressed="false"
+        data-desc="Weak entity type → Step 2: one relation that borrows the owner's primary key as a foreign key; primary key is that FK plus the partial key. DEPENDENT(Essn, Dep_name, …).">Weak entity</button>
+      <button class="chip" data-map="3" aria-pressed="false"
+        data-desc="Binary 1:1 → Step 3: add the other relation's primary key as a foreign key, preferably on the total-participation side. DEPARTMENT gains Mgr_ssn.">1:1</button>
+      <button class="chip" data-map="4" aria-pressed="false"
+        data-desc="Binary 1:N → Step 4: put the primary key of the one side into the many-side relation as a foreign key. EMPLOYEE gains Dno.">1:N</button>
+      <button class="chip" data-map="5" aria-pressed="false"
+        data-desc="Binary M:N → Step 5: a new relationship relation with a foreign key to each entity; the pair is the primary key, and relationship attributes live here. ENROLLMENT(StudentID, CourseID, Grade).">M:N</button>
+      <button class="chip" data-map="6" aria-pressed="false"
+        data-desc="Multivalued attribute → Step 6: its own relation holding the value plus a foreign key to the owner; both together are the primary key. DEPT_LOCATIONS(Dnumber, Location).">Multivalued</button>
+      <button class="chip" data-map="7" aria-pressed="false"
+        data-desc="n-ary relationship → Step 7: a relationship relation with a foreign key to every participating entity, plus any relationship attributes. TEACHES(Instr_id, CourseID, Term_id, …).">n-ary</button>
+    </div>
+    <p id="map-desc" class="live-desc" aria-live="polite"
+       data-default="Regular entity type → Step 1: one relation with all simple attributes; pick a primary key. EMPLOYEE(Ssn, Fname, Lname).">Regular entity type → Step 1: one relation with all simple attributes; pick a primary key. EMPLOYEE(Ssn, Fname, Lname).</p>
+    <div id="map-panels">
+      <div class="map-panel is-active" data-panel="1">
+        <p class="plabel">Step 1 · regular entity type → entity relation</p>
+        <div class="rel"><div class="rel-name">EMPLOYEE</div><div class="rel-attrs">
+          <span class="attr pk"><span class="nm">Ssn</span><span class="tag">primary key</span></span>
+          <span class="attr"><span class="nm">Fname</span></span><span class="attr"><span class="nm">Lname</span></span></div></div>
+      </div>
+      <div class="map-panel" data-panel="2">
+        <p class="plabel">Step 2 · weak entity → relation with owner's key</p>
+        <div class="rel"><div class="rel-name">DEPENDENT</div><div class="rel-attrs">
+          <span class="attr pkfk"><span class="nm">Essn</span><span class="tag">PK part · FK → EMPLOYEE</span></span>
+          <span class="attr pk"><span class="nm">Dep_name</span><span class="tag">PK part · partial key</span></span>
+          <span class="attr"><span class="nm">Bdate</span></span></div></div>
+      </div>
+      <div class="map-panel" data-panel="3">
+        <p class="plabel">Step 3 · 1:1 → foreign key on the total side</p>
+        <div class="rel"><div class="rel-name">DEPARTMENT</div><div class="rel-attrs">
+          <span class="attr pk"><span class="nm">Dnumber</span><span class="tag">primary key</span></span>
+          <span class="attr"><span class="nm">Dname</span></span>
+          <span class="attr fk"><span class="nm">Mgr_ssn</span><span class="tag">FK → EMPLOYEE</span></span></div></div>
+      </div>
+      <div class="map-panel" data-panel="4">
+        <p class="plabel">Step 4 · 1:N → foreign key on the many side</p>
+        <div class="rel"><div class="rel-name">EMPLOYEE</div><div class="rel-attrs">
+          <span class="attr pk"><span class="nm">Ssn</span><span class="tag">primary key</span></span>
+          <span class="attr"><span class="nm">Fname</span></span>
+          <span class="attr fk"><span class="nm">Dno</span><span class="tag">FK → DEPARTMENT</span></span></div></div>
+      </div>
+      <div class="map-panel" data-panel="5">
+        <p class="plabel">Step 5 · M:N → relationship relation</p>
+        <div class="rel"><div class="rel-name">ENROLLMENT</div><div class="rel-attrs">
+          <span class="attr pkfk"><span class="nm">StudentID</span><span class="tag">PK part · FK → STUDENT</span></span>
+          <span class="attr pkfk"><span class="nm">CourseID</span><span class="tag">PK part · FK → COURSE</span></span>
+          <span class="attr"><span class="nm">Grade</span><span class="tag">rel. attribute</span></span></div></div>
+      </div>
+      <div class="map-panel" data-panel="6">
+        <p class="plabel">Step 6 · multivalued attribute → its own relation</p>
+        <div class="rel"><div class="rel-name">DEPT_LOCATIONS</div><div class="rel-attrs">
+          <span class="attr pkfk"><span class="nm">Dnumber</span><span class="tag">PK part · FK → DEPARTMENT</span></span>
+          <span class="attr pk"><span class="nm">Location</span><span class="tag">PK part</span></span></div></div>
+      </div>
+      <div class="map-panel" data-panel="7">
+        <p class="plabel">Step 7 · n-ary → relationship relation with n foreign keys</p>
+        <div class="rel"><div class="rel-name">TEACHES</div><div class="rel-attrs">
+          <span class="attr pkfk"><span class="nm">Instr_id</span><span class="tag">PK part · FK → INSTRUCTOR</span></span>
+          <span class="attr pkfk"><span class="nm">CourseID</span><span class="tag">PK part · FK → COURSE</span></span>
+          <span class="attr pkfk"><span class="nm">Term_id</span><span class="tag">PK part · FK → TERM</span></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · SCHEMA SO FAR + CORRESPONDENCE -->
+  <section class="slide" data-title="The schema so far, and the correspondence" aria-roledescription="slide" aria-label="The schema so far and the correspondence">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">ER construct → relational construct</h2>
+    <div class="two">
+      <div>
+        <p>Run the seven steps on the UNIVERSITY diagram and you get seven relations —
+        four entity relations and three that carry relationships or multivalued data:</p>
+        <ul style="font-size:.94rem">
+          <li>STUDENT, COURSE, DEPARTMENT (entities)</li>
+          <li>EMPLOYEE (+ Dno, Super_ssn foreign keys)</li>
+          <li>DEPARTMENT (+ Mgr_ssn foreign key)</li>
+          <li>DEPENDENT, ENROLLMENT, DEPT_LOCATIONS</li>
+        </ul>
+        <p style="font-size:.94rem;color:var(--muted)">Every foreign key traces back to
+        exactly one relationship or attribute in the diagram — that's the audit trail.</p>
+      </div>
+      <div>
+        <table class="corr">
+          <caption>The full correspondence — keep this handy.</caption>
+          <thead><tr><th scope="col">ER model</th><th scope="col">Relational model</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Entity type</th><td>Entity relation</td></tr>
+            <tr><th scope="row">1:1 or 1:N relationship</th><td>Foreign key</td></tr>
+            <tr><th scope="row">M:N relationship</th><td>Relationship relation + 2 FKs</td></tr>
+            <tr><th scope="row">n-ary relationship</th><td>Relationship relation + n FKs</td></tr>
+            <tr><th scope="row">Simple attribute</th><td>Attribute (column)</td></tr>
+            <tr><th scope="row">Composite attribute</th><td>Its simple components</td></tr>
+            <tr><th scope="row">Multivalued attribute</th><td>Relation + foreign key</td></tr>
+            <tr><th scope="row">Key attribute</th><td>Primary / candidate key</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · EER I — 8A / 8B -->
+  <section class="slide" data-title="Mapping EER — specialization options 8A and 8B" aria-roledescription="slide" aria-label="Mapping EER, options eight A and eight B">
+    <p class="kicker">Mapping EER · 1 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Specialization: multiple relations</h2>
+    <p>Say STUDENT specializes into GRAD and UNDERGRAD. There are four standard ways to
+    map it; the first two use several relations.</p>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>8A · superclass + subclass relations</h3>
+          <p style="margin:0">A relation for STUDENT with the shared attributes, then one
+          per subclass keyed on the same primary key (also a foreign key to STUDENT),
+          holding only that subclass's attributes. <strong>Always works</strong> — any
+          specialization, disjoint or overlapping, total or partial.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>8B · subclass relations only</h3>
+          <p style="margin:0">One relation per subclass, each carrying the shared
+          attributes <em>and</em> its own. No STUDENT relation. Only safe when the
+          specialization is <strong>total</strong> (no plain students) and
+          <strong>disjoint</strong> (no one in two subclasses) — otherwise you lose or
+          duplicate rows.</p>
+        </div>
+      </div>
+    </div>
+    <div class="rel">
+      <div class="rel-name">8A → STUDENT, then GRAD_STUDENT and UNDERGRAD</div>
+      <div class="rel-attrs">
+        <span class="attr pk"><span class="nm">StudentID</span><span class="tag">PK of all three</span></span>
+        <span class="attr"><span class="nm">Name, Major</span><span class="tag">in STUDENT</span></span>
+        <span class="attr fk"><span class="nm">Advisor, Thesis</span><span class="tag">in GRAD_STUDENT</span></span>
+        <span class="attr fk"><span class="nm">Class_year</span><span class="tag">in UNDERGRAD</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · EER II — 8C / 8D -->
+  <section class="slide" data-title="Mapping EER — specialization options 8C and 8D" aria-roledescription="slide" aria-label="Mapping EER, options eight C and eight D">
+    <p class="kicker">Mapping EER · 2 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Specialization: a single relation</h2>
+    <p>The other two options fold everything into <strong>one</strong> relation and use an
+    extra column to record type. They trade joins for NULLs.</p>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>8C · one type attribute</h3>
+          <p style="margin:0">A single relation with all shared and all subclass
+          attributes, plus one <span class="term">type</span> column naming the subclass.
+          For <strong>disjoint</strong> specializations. Attributes of the other subclass
+          sit NULL in each row.</p>
+        </div>
+        <div class="callout">
+          <h3>8D · several boolean flags</h3>
+          <p style="margin:0">One relation with a <strong>boolean flag per subclass</strong>
+          (Is_grad, Is_undergrad). Needed when subclasses <strong>overlap</strong> — an
+          entity can be in more than one — since a single type column can't say "both."</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">8C · STUDENT (disjoint)</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">StudentID</span><span class="tag">primary key</span></span>
+            <span class="attr"><span class="nm">Name</span></span>
+            <span class="attr"><span class="nm">S_type</span><span class="tag">grad / undergrad</span></span>
+            <span class="attr"><span class="nm">Thesis</span><span class="tag">NULL if undergrad</span></span>
+            <span class="attr"><span class="nm">Class_year</span><span class="tag">NULL if grad</span></span>
+          </div>
+        </div>
+        <div class="callout warn">
+          <h3>The trade-off, stated plainly</h3>
+          <p style="margin:0">Single-relation options avoid joins but invite NULLs;
+          multiple-relation options avoid NULLs but need joins. Pick by how the data is
+          queried.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 · EER III — UNION / CATEGORIES -->
+  <section class="slide" data-title="Mapping EER — union types" aria-roledescription="slide" aria-label="Mapping EER, union types">
+    <p class="kicker">Mapping EER · 3 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Union types need a surrogate key</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">union type</span> (category) has superclasses with
+        <em>different</em> keys. Imagine a SPONSOR that may be a STUDENT (keyed by
+        StudentID), an EMPLOYEE (keyed by Ssn), or an outside ORG (keyed by Tax_id).</p>
+        <p>There's no shared key to borrow, so create a new relation for the category and
+        give it a <span class="term">surrogate key</span> — a system-generated identifier.
+        Each superclass relation carries that surrogate as a foreign key to tie back.</p>
+        <div class="callout warn">
+          <h3>Why not reuse a key?</h3>
+          <p style="margin:0">StudentID, Ssn, and Tax_id have different domains and
+          formats. A surrogate is the one identifier all category members can share.</p>
+        </div>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">SPONSOR (category)</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">Sponsor_id</span><span class="tag">surrogate primary key</span></span>
+            <span class="attr"><span class="nm">Member_type</span><span class="tag">student / employee / org</span></span>
+          </div>
+        </div>
+        <div class="rel">
+          <div class="rel-name">STUDENT &nbsp;(one of the superclasses)</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">StudentID</span><span class="tag">primary key</span></span>
+            <span class="attr fk"><span class="nm">Sponsor_id</span><span class="tag">FK → SPONSOR</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 · PITFALLS -->
+  <section class="slide" data-title="Design decisions and pitfalls" aria-roledescription="slide" aria-label="Design decisions and pitfalls">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Where judgment actually enters</h2>
+    <ul>
+      <li><strong>1:1 side.</strong> Put the foreign key on the total-participation side to
+      dodge NULLs. When both are total, weigh merging the two relations into one.</li>
+      <li><strong>Choosing an EER option.</strong> 8B needs total <em>and</em> disjoint; 8C needs
+      disjoint; 8D covers overlapping. Reach for 8A when unsure — it always works.</li>
+      <li><strong>NULLs vs. joins.</strong> The single-relation EER options and the M:N-vs-1:N
+      call are all really the same trade-off. Decide from the expected workload, not habit.</li>
+      <li><strong>Keep the audit trail.</strong> Every foreign key should point back to one
+      relationship or one attribute in the diagram. A foreign key you can't explain is a
+      mapping error.</li>
+    </ul>
+    <div class="callout">
+      <h3>Sanity check the whole schema</h3>
+      <p style="margin:0">Count relations against the diagram: one per strong entity, one
+      per weak entity, one per M:N and n-ary relationship, one per multivalued attribute.
+      Anything left over — or missing — is a bug.</p>
+    </div>
+  </section>
+
+  <!-- 18 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what is next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>The <span class="term">7-step algorithm</span>: entities, weak entities, 1:1,
+          1:N, M:N, multivalued, n-ary.</li>
+          <li>Foreign keys on the right side; relationship relations for M:N and n-ary.</li>
+          <li>EER specialization four ways (<span class="term">8A–8D</span>) and when each is safe.</li>
+          <li>Union types via a <span class="term">surrogate key</span>.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Which side of a 1:1 gets the foreign key, and why?</li>
+            <li>What is the primary key of an M:N relationship relation?</li>
+            <li>When is EER option 8B unsafe?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — relational algebra</h3>
+          <p style="margin:0">Now that we have relations, we ask what we can compute from
+          them: select, project, join — the procedural language underneath SQL.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 18</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- construct → step demonstrator ---
+  var mapChips  = Array.prototype.slice.call(document.querySelectorAll('.chip[data-map]'));
+  var mapDesc   = document.getElementById('map-desc');
+  var mapPanels = Array.prototype.slice.call(document.querySelectorAll('#map-panels .map-panel'));
+  if (mapChips.length && mapPanels.length){
+    mapChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        mapChips.forEach(function(c){ c.setAttribute('aria-pressed', 'false'); });
+        chip.setAttribute('aria-pressed', 'true');
+        var key = chip.getAttribute('data-map');
+        mapPanels.forEach(function(p){
+          p.classList.toggle('is-active', p.getAttribute('data-panel') === key);
+        });
+        if (mapDesc) mapDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

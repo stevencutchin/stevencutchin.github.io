@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relational Algebra II — Joins, Division, Aggregation · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB; --brown:#7A2708;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SF Mono",ui-monospace,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+[hidden]{display:none!important}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- expression display ---- */
+.expr{font-family:var(--serif);font-size:1.22rem;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:8px;
+  padding:12px 16px;margin:10px 0;line-height:1.5}
+.expr sub{font-size:.62em;color:var(--brown);font-weight:600}
+.expr .op{color:var(--blue);font-weight:700}
+.inl{font-family:var(--serif);color:var(--blue-ink)}
+.inl sub{font-size:.7em;color:var(--brown)}
+/* outer-join + tree icons (font-independent: some fonts lack ⟕⟖⟗) */
+.oj{display:inline-block;width:1.5em;height:1em;vertical-align:-0.12em}
+.oj polygon{fill:currentColor}
+.sym .oj{margin:0 2px}
+.tree-ic{display:inline-block;width:1.35em;height:1em;vertical-align:-0.12em}
+.tree-ic circle{fill:currentColor}
+
+/* ---- instance tables ---- */
+.tablewrap{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+table.inst{border-collapse:collapse;font-size:.9rem;margin-top:4px}
+table.inst.full{width:100%}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px;font-weight:600}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 12px;text-align:left;white-space:nowrap}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst.res thead th{background:var(--brown)}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+td.isnull{color:var(--muted);font-style:italic}
+.resq{font-family:var(--serif);color:var(--brown);font-size:1.05rem;margin:2px 0 6px}
+
+/* ---- interactive demonstrator ---- */
+.op-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .op-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+
+/* ---- notation legend grid ---- */
+.legendgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.gl{border:1px solid var(--line);border-radius:9px;padding:12px;text-align:center;background:#fff}
+.gl .sym{font-family:var(--serif);font-size:1.9rem;font-weight:700;color:var(--blue);
+  line-height:1;margin-bottom:8px;min-height:34px;display:flex;align-items:center;justify-content:center}
+.gl b{display:block;color:var(--blue-ink);font-size:.98rem}
+.gl span{color:var(--muted);font-size:.84rem}
+
+/* ---- chrome ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .legendgrid{grid-template-columns:1fr 1fr}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout,.expr,table.inst th,table.inst td{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.op-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.expr,table.inst{break-inside:avoid}
+  .fig.wide svg{width:60%;display:block;margin:0 auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 3 · Relational algebra</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 2 of 2 · Elmasri &amp; Navathe, Ch. 8</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Relational Algebra II — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Relational Algebra II — Joins, Division, Aggregation"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Querying the relational model</p>
+    <h2 class="slide-h" tabindex="-1">Relational algebra II<br>Joins, division, and grouping</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Selecting and projecting act on one relation. The
+        interesting questions cross two.</p>
+        <p style="color:var(--muted)">Today: joins in their several forms,
+        division for "for all" questions, aggregation to summarize, outer joins
+        to keep unmatched rows, and how a whole query reads as a tree.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 150" role="img" aria-labelledby="t1 d1">
+          <title id="t1">Two relations joined</title>
+          <desc id="d1">An EMPLOYEE relation box and a DEPARTMENT relation box
+          connected through a join operator, drawn as a bowtie symbol, producing a
+          combined relation.</desc>
+          <rect x="20" y="55" width="140" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="90" y="80" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">EMPLOYEE</text>
+          <rect x="360" y="55" width="140" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="430" y="80" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">DEPARTMENT</text>
+          <line x1="160" y1="75" x2="232" y2="75" stroke="#8A93A3" stroke-width="1.8"/>
+          <line x1="288" y1="75" x2="360" y2="75" stroke="#8A93A3" stroke-width="1.8"/>
+          <text x="260" y="70" text-anchor="middle" font-family="'Charter',Georgia,serif" font-size="34" font-weight="700" fill="#0033A0">&#8904;</text>
+          <text x="260" y="112" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">natural join on Dnumber</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and today's roadmap" aria-roledescription="slide" aria-label="Recap and today's roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; today's roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last time (RA I)</h3>
+          <p style="margin:0">SELECT and PROJECT on one relation; RENAME; and the
+          set operations, including CARTESIAN PRODUCT.</p>
+        </div>
+        <p>We left off on a cliffhanger: product then select is clumsy but
+        powerful. Packaging that pattern gives us the <span class="term">join</span> — the
+        operation the rest of the query language leans on.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Write theta, equi-, and <span class="term">natural</span> joins.</li>
+            <li>Use <span class="term">division</span> for "for all" questions.</li>
+            <li>Summarize with <span class="term">aggregation and grouping</span>.</li>
+            <li>Keep unmatched rows with <span class="term">outer joins</span>.</li>
+            <li>Read a query as a <span class="term">query tree</span>, and relate RA to calculus.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · PRODUCT → JOIN -->
+  <section class="slide" data-title="From product to join" aria-roledescription="slide" aria-label="From product to join">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">From product to join</h2>
+    <p class="lead">A join is a Cartesian product with the nonsense pairings
+    filtered out — bundled into one operation.</p>
+    <p class="expr">EMPLOYEE <span class="op">&#8904;</span><sub>E.Dno = D.Dnumber</sub> DEPARTMENT
+      &nbsp;&equiv;&nbsp;
+      <span class="op">&sigma;</span><sub>E.Dno = D.Dnumber</sub>(EMPLOYEE <span class="op">&times;</span> DEPARTMENT)</p>
+    <p>Both compute the same relation. Writing it as a join says what we mean —
+    "line each employee up with their department" — and lets the system pick an
+    efficient way to compute it rather than literally building the full product.</p>
+    <div class="callout">
+      <h3>Three flavors ahead</h3>
+      <p style="margin:0">The condition can be any comparison (<span class="term">theta
+      join</span>), just equalities (<span class="term">equijoin</span>), or implied by
+      shared attribute names (<span class="term">natural join</span>).</p>
+    </div>
+  </section>
+
+  <!-- 4 · THETA JOIN -->
+  <section class="slide" data-title="Theta join (θ)" aria-roledescription="slide" aria-label="Theta join">
+    <p class="kicker">Joins · 1</p>
+    <h2 class="slide-h" tabindex="-1">Theta join (&theta;)</h2>
+    <div class="two">
+      <div>
+        <p>The general form. The join condition &theta; is any boolean test that
+        compares attributes across the two relations — not only equality.</p>
+        <p class="expr">R <span class="op">&#8904;</span><sub>&theta;</sub> S</p>
+        <p>Every combined tuple that satisfies &theta; is kept; all columns of both
+        relations appear in the result.</p>
+        <div class="callout">
+          <h3>When it earns its keep</h3>
+          <p style="margin:0">Ranges and inequalities: pair each employee with every
+          pay <span class="inl">GRADE</span> whose
+          <span class="inl">LowSalary &le; Salary &le; HighSalary</span>.</p>
+        </div>
+      </div>
+      <div>
+        <p class="expr">EMPLOYEE <span class="op">&#8904;</span><sub>Salary &ge; MinPay</sub> GRADE</p>
+        <p style="color:var(--muted)">Because the condition is a &ge; comparison,
+        this is a theta join that is <em>not</em> an equijoin. The result still holds
+        every column of EMPLOYEE and every column of GRADE.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · EQUIJOIN -->
+  <section class="slide" data-title="Equijoin" aria-roledescription="slide" aria-label="Equijoin">
+    <p class="kicker">Joins · 2</p>
+    <h2 class="slide-h" tabindex="-1">Equijoin</h2>
+    <div class="two">
+      <div>
+        <p>An <span class="term">equijoin</span> is a theta join whose condition uses only
+        equality (=). It's the everyday case — matching a foreign key to the key it
+        references.</p>
+        <p class="expr">EMPLOYEE <span class="op">&#8904;</span><sub>Dno = Dnumber</sub> DEPARTMENT</p>
+        <div class="callout warn">
+          <h3>The redundant column</h3>
+          <p style="margin:0">An equijoin keeps <em>both</em> matched columns, so Dno
+          and Dnumber both appear, holding identical values. Natural join fixes
+          exactly that.</p>
+        </div>
+      </div>
+      <div>
+        <p style="color:var(--muted)">Each result row carries the full employee and
+        the full department, with two equal department-number columns side by
+        side — harmless, but redundant. That redundancy motivates the next slide.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · NATURAL JOIN -->
+  <section class="slide" data-title="Natural join (*)" aria-roledescription="slide" aria-label="Natural join">
+    <p class="kicker">Joins · 3</p>
+    <h2 class="slide-h" tabindex="-1">Natural join (&lowast;)</h2>
+    <div class="two">
+      <div>
+        <p>The <span class="term">natural join</span> assumes the join condition: equate
+        every pair of attributes that <em>share a name</em> across the two relations,
+        and keep just one copy of each.</p>
+        <p class="expr">EMPLOYEE <span class="op">&lowast;</span> DEPARTMENT</p>
+        <p>Here both relations name the department <span class="inl">Dnumber</span>, so the
+        natural join matches on it and returns a single Dnumber column. It's the
+        most common join in practice.</p>
+        <div class="callout warn">
+          <h3>Names must line up</h3>
+          <p style="margin:0">If the columns were Dno and Dnumber, you'd RENAME one
+          first — otherwise there's nothing shared to match, and you'd get a full
+          product.</p>
+        </div>
+      </div>
+      <div>
+        <div class="tablewrap">
+          <table class="inst"><caption>EMPLOYEE</caption>
+            <thead><tr><th>Fname</th><th>Dnumber</th></tr></thead>
+            <tbody><tr><td>Ada</td><td>5</td></tr><tr><td>Ben</td><td>4</td></tr></tbody></table>
+          <table class="inst"><caption>DEPARTMENT</caption>
+            <thead><tr><th>Dnumber</th><th>Dname</th></tr></thead>
+            <tbody><tr><td class="keycol">5</td><td>Research</td></tr>
+            <tr><td class="keycol">4</td><td>Admin</td></tr></tbody></table>
+        </div>
+        <table class="inst res" style="margin-top:12px"><caption>EMPLOYEE &lowast; DEPARTMENT</caption>
+          <thead><tr><th>Fname</th><th>Dnumber</th><th>Dname</th></tr></thead>
+          <tbody><tr><td>Ada</td><td>5</td><td>Research</td></tr>
+          <tr><td>Ben</td><td>4</td><td>Admin</td></tr></tbody></table>
+        <p class="figcap">One Dnumber column, not two.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · INTERACTIVE JOIN TYPES -->
+  <section class="slide" data-title="Try it: inner and outer joins" aria-roledescription="slide" aria-label="Try it, inner and outer joins">
+    <p class="kicker">Demonstrator</p>
+    <h2 class="slide-h" tabindex="-1">Inner vs. outer joins</h2>
+    <div class="two">
+      <div>
+        <div class="tablewrap">
+          <table class="inst"><caption>EMPLOYEE</caption>
+            <thead><tr><th>Fname</th><th>Dnumber</th></tr></thead>
+            <tbody><tr><td>Ada</td><td>5</td></tr><tr><td>Ben</td><td>4</td></tr>
+            <tr><td>Cleo</td><td>9</td></tr></tbody></table>
+          <table class="inst"><caption>DEPARTMENT</caption>
+            <thead><tr><th>Dnumber</th><th>Dname</th></tr></thead>
+            <tbody><tr><td class="keycol">5</td><td>Research</td></tr>
+            <tr><td class="keycol">4</td><td>Admin</td></tr>
+            <tr><td class="keycol">7</td><td>Sales</td></tr></tbody></table>
+        </div>
+        <p style="color:var(--muted);font-size:.9rem;margin-top:10px">Cleo's
+        department (9) has no match; department 7 (Sales) has no employee. Watch
+        those two dangling rows.</p>
+      </div>
+      <div>
+        <div class="op-controls" role="group" aria-label="Choose a join type">
+          <button class="chip" data-op="inner" aria-pressed="true"
+            data-desc="Inner (natural) join: only matching rows. Ada and Ben join their departments; Cleo (dept 9) and Sales (dept 7) both drop out because they have no match.">Inner</button>
+          <button class="chip" data-op="left" aria-pressed="false"
+            data-desc="Left outer join: keep every EMPLOYEE row. Cleo stays, with Dname filled by NULL because department 9 does not exist. Sales still drops out.">Left <svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="5" y1="2.5" x2="5" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg></button>
+          <button class="chip" data-op="right" aria-pressed="false"
+            data-desc="Right outer join: keep every DEPARTMENT row. Sales stays, with Fname NULL because no employee is in department 7. Cleo drops out.">Right <svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="23" y1="2.5" x2="23" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg></button>
+          <button class="chip" data-op="full" aria-pressed="false"
+            data-desc="Full outer join: keep every row from both sides. Cleo appears with a NULL department name and Sales appears with a NULL employee name; the matched rows are unchanged.">Full <svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="5" y1="2.5" x2="5" y2="15.5" stroke="currentColor" stroke-width="1.8"/><line x1="23" y1="2.5" x2="23" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg></button>
+        </div>
+        <p id="op-desc" class="live-desc"
+           data-default="Inner (natural) join: only matching rows. Ada and Ben join their departments; Cleo (dept 9) and Sales (dept 7) both drop out because they have no match.">Inner (natural) join: only matching rows. Ada and Ben join their departments; Cleo (dept 9) and Sales (dept 7) both drop out because they have no match.</p>
+        <div class="op-results" aria-live="polite">
+          <div class="op-panel" data-op-panel="inner">
+            <table class="inst res"><caption>Inner join</caption>
+              <thead><tr><th>Fname</th><th>Dnumber</th><th>Dname</th></tr></thead>
+              <tbody><tr><td>Ada</td><td>5</td><td>Research</td></tr>
+              <tr><td>Ben</td><td>4</td><td>Admin</td></tr></tbody></table>
+          </div>
+          <div class="op-panel" data-op-panel="left" hidden>
+            <table class="inst res"><caption>Left outer join</caption>
+              <thead><tr><th>Fname</th><th>Dnumber</th><th>Dname</th></tr></thead>
+              <tbody><tr><td>Ada</td><td>5</td><td>Research</td></tr>
+              <tr><td>Ben</td><td>4</td><td>Admin</td></tr>
+              <tr><td>Cleo</td><td>9</td><td class="isnull">NULL</td></tr></tbody></table>
+          </div>
+          <div class="op-panel" data-op-panel="right" hidden>
+            <table class="inst res"><caption>Right outer join</caption>
+              <thead><tr><th>Fname</th><th>Dnumber</th><th>Dname</th></tr></thead>
+              <tbody><tr><td>Ada</td><td>5</td><td>Research</td></tr>
+              <tr><td>Ben</td><td>4</td><td>Admin</td></tr>
+              <tr><td class="isnull">NULL</td><td>7</td><td>Sales</td></tr></tbody></table>
+          </div>
+          <div class="op-panel" data-op-panel="full" hidden>
+            <table class="inst res"><caption>Full outer join</caption>
+              <thead><tr><th>Fname</th><th>Dnumber</th><th>Dname</th></tr></thead>
+              <tbody><tr><td>Ada</td><td>5</td><td>Research</td></tr>
+              <tr><td>Ben</td><td>4</td><td>Admin</td></tr>
+              <tr><td>Cleo</td><td>9</td><td class="isnull">NULL</td></tr>
+              <tr><td class="isnull">NULL</td><td>7</td><td>Sales</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · DIVISION -->
+  <section class="slide" data-title="Division (÷)" aria-roledescription="slide" aria-label="Division">
+    <p class="kicker">The "for all" operation</p>
+    <h2 class="slide-h" tabindex="-1">Division (&divide;)</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Division</span> answers "for all" questions. Given
+        <span class="inl">R(A, B)</span> and <span class="inl">S(B)</span>,
+        <span class="inl">R &divide; S</span> returns the A values that are paired with
+        <em>every</em> B in S.</p>
+        <p class="expr">TAKES <span class="op">&divide;</span> CS_CORE</p>
+        <p>"Which students have taken <em>all</em> of the CS core courses?" Only a
+        student whose rows cover every required course qualifies.</p>
+        <div class="callout warn">
+          <h3>The hard one</h3>
+          <p style="margin:0">Division has no direct SQL keyword — you'll rebuild it
+          from other operations. Recognizing "for all" phrasing is the trigger.</p>
+        </div>
+      </div>
+      <div>
+        <div class="tablewrap">
+          <table class="inst"><caption>TAKES</caption>
+            <thead><tr><th>StudentID</th><th>CourseID</th></tr></thead>
+            <tbody>
+              <tr><td>S1</td><td>C1</td></tr><tr><td>S1</td><td>C2</td></tr>
+              <tr><td>S1</td><td>C3</td></tr><tr><td>S2</td><td>C1</td></tr>
+              <tr><td>S2</td><td>C2</td></tr><tr><td>S3</td><td>C2</td></tr>
+            </tbody></table>
+          <table class="inst"><caption>CS_CORE</caption>
+            <thead><tr><th>CourseID</th></tr></thead>
+            <tbody><tr><td class="keycol">C1</td></tr><tr><td class="keycol">C2</td></tr></tbody></table>
+        </div>
+        <table class="inst res" style="margin-top:12px"><caption>TAKES &divide; CS_CORE</caption>
+          <thead><tr><th>StudentID</th></tr></thead>
+          <tbody><tr><td>S1</td></tr><tr><td>S2</td></tr></tbody></table>
+        <p class="figcap">S1 and S2 took both C1 and C2; S3 took only C2, so it's out.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · AGGREGATION -->
+  <section class="slide" data-title="Aggregation and grouping (ℱ)" aria-roledescription="slide" aria-label="Aggregation and grouping">
+    <p class="kicker">Summarizing</p>
+    <h2 class="slide-h" tabindex="-1">Aggregation &amp; grouping (&#8497;)</h2>
+    <div class="two">
+      <div>
+        <p>Aggregation collapses many tuples into summary values with functions
+        like <span class="inl">COUNT, SUM, AVG, MIN, MAX</span>.</p>
+        <p class="expr"><sub>grouping attrs</sub> <span class="op">&#8497;</span> <sub>function list</sub>(R)</p>
+        <p>Attributes on the left of <span class="inl">&#8497;</span> define the
+        <span class="term">groups</span>; the functions on the right are computed within
+        each group. With no grouping attributes, the whole relation is one group.</p>
+        <div class="callout">
+          <h3>Read it</h3>
+          <p style="margin:0"><span class="inl"><sub>Dno</sub>&#8497;<sub>COUNT(Ssn), AVG(Salary)</sub>(EMPLOYEE)</span>
+          — "per department, how many employees and what average salary."</p>
+        </div>
+      </div>
+      <div>
+        <table class="inst res"><caption><sub>Dno</sub>&#8497;<sub>COUNT, AVG(Salary)</sub>(EMPLOYEE)</caption>
+          <thead><tr><th>Dno</th><th>Count</th><th>AvgSalary</th></tr></thead>
+          <tbody>
+            <tr><td>5</td><td>2</td><td>41500</td></tr>
+            <tr><td>4</td><td>2</td><td>38000</td></tr>
+          </tbody></table>
+        <p class="figcap">One row per group. Grouping attribute Dno carries through;
+        the aggregates summarize each group.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · OUTER JOINS -->
+  <section class="slide" data-title="Outer joins" aria-roledescription="slide" aria-label="Outer joins">
+    <p class="kicker">Keeping unmatched rows</p>
+    <h2 class="slide-h" tabindex="-1">Outer joins, in notation</h2>
+    <div class="two">
+      <div>
+        <p>An inner join silently drops rows with no match. When those rows matter
+        — a department with no employees, an employee not yet assigned — an
+        <span class="term">outer join</span> keeps them and pads the missing side with
+        NULL.</p>
+        <ul>
+          <li><span class="inl">R <svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="5" y1="2.5" x2="5" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg> S</span> — <strong>left</strong>: all of R.</li>
+          <li><span class="inl">R <svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="23" y1="2.5" x2="23" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg> S</span> — <strong>right</strong>: all of S.</li>
+          <li><span class="inl">R <svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="5" y1="2.5" x2="5" y2="15.5" stroke="currentColor" stroke-width="1.8"/><line x1="23" y1="2.5" x2="23" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg> S</span> — <strong>full</strong>: all of both.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Why it's not optional</h3>
+          <p style="margin:0">"List every department and its head count, including
+          the empty ones" is impossible with an inner join — the zero-employee
+          departments would vanish. The outer join is the only way to keep them.</p>
+        </div>
+        <p style="margin:0;color:var(--muted)">The demonstrator two slides back showed
+        each of these three producing its NULLs; here is the notation to write them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · QUERY TREES -->
+  <section class="slide" data-title="Query trees" aria-roledescription="slide" aria-label="Query trees">
+    <p class="kicker">Reading a whole query</p>
+    <h2 class="slide-h" tabindex="-1">A query as a tree</h2>
+    <div class="two">
+      <div>
+        <p>Any RA expression is a tree: relations at the leaves, operators at the
+        internal nodes. Evaluation flows up from the leaves; each node hands its
+        result relation to its parent.</p>
+        <p class="expr"><span class="op">&pi;</span><sub>Fname</sub>(
+          <span class="op">&sigma;</span><sub>Dname='Research'</sub>(EMPLOYEE <span class="op">&lowast;</span> DEPARTMENT) )</p>
+        <div class="callout">
+          <h3>Why draw it</h3>
+          <p style="margin:0">The tree is what the optimizer rearranges in
+          Unit&nbsp;7 — pushing a selection below a join shrinks the intermediate
+          result without changing the answer.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 460 300" role="img" aria-labelledby="t11 d11">
+          <title id="t11">The query as a tree</title>
+          <desc id="d11">A tree with EMPLOYEE and DEPARTMENT as the two leaves at
+          the bottom. Above them a natural-join node combines them. Above that a
+          selection node for Dname equals Research. At the top a projection node
+          for Fname. Edges connect each node to the one above it, so results flow
+          upward from the leaves to the root.</desc>
+          <line x1="230" y1="52" x2="230" y2="98" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="230" y1="132" x2="230" y2="168" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="230" y1="202" x2="140" y2="238" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="230" y1="202" x2="330" y2="238" stroke="#8A93A3" stroke-width="1.7"/>
+          <!-- project -->
+          <circle cx="230" cy="34" r="22" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="230" y="41" text-anchor="middle" font-family="'Charter',Georgia,serif" font-size="20" font-weight="700" fill="#0033A0">&pi;</text>
+          <text x="266" y="39" font-family="system-ui" font-size="12" fill="#7A2708">Fname</text>
+          <!-- select -->
+          <circle cx="230" cy="115" r="22" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="230" y="122" text-anchor="middle" font-family="'Charter',Georgia,serif" font-size="20" font-weight="700" fill="#0033A0">&sigma;</text>
+          <text x="266" y="120" font-family="system-ui" font-size="12" fill="#7A2708">Dname='Research'</text>
+          <!-- join -->
+          <circle cx="230" cy="185" r="22" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="230" y="193" text-anchor="middle" font-family="'Charter',Georgia,serif" font-size="22" font-weight="700" fill="#0033A0">&#8904;</text>
+          <!-- leaves -->
+          <rect x="70" y="238" width="140" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="140" y="263" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">EMPLOYEE</text>
+          <rect x="260" y="238" width="140" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="330" y="263" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">DEPARTMENT</text>
+        </svg>
+        <p class="figcap">Leaves are relations; internal nodes are operators;
+        results flow up to the root.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · RELATIONAL CALCULUS -->
+  <section class="slide" data-title="Relational calculus" aria-roledescription="slide" aria-label="Relational calculus">
+    <p class="kicker">The declarative counterpart</p>
+    <h2 class="slide-h" tabindex="-1">Relational calculus, briefly</h2>
+    <div class="two">
+      <div>
+        <p>Relational algebra says <em>how</em> to compute an answer. Relational
+        <span class="term">calculus</span> says only <em>what</em> the answer is, and lets
+        the system find a way.</p>
+        <p class="expr">{ t.Fname | EMPLOYEE(t) <span class="op">&and;</span> t.Salary &gt; 40000 }</p>
+        <p>Read: "the Fname of every tuple t in EMPLOYEE whose salary exceeds
+        40,000." No operation order is specified.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>They're equivalent</h3>
+          <p style="margin:0">Codd's theorem: relational algebra and (safe) relational
+          calculus express exactly the same queries. Neither can ask something the
+          other can't.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Why it matters for SQL</h3>
+          <p style="margin:0">SQL is closer to calculus — you describe the result and
+          the engine plans the algebra. Both mental models pay off next unit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · WORKED EXAMPLE -->
+  <section class="slide" data-title="Worked example" aria-roledescription="slide" aria-label="Worked example">
+    <p class="kicker">Putting it together</p>
+    <h2 class="slide-h" tabindex="-1">Worked example</h2>
+    <div class="two">
+      <div>
+        <p><strong>Question.</strong> "Titles of the courses in which student S1
+        earned an A." Three relations are involved: STUDENT, ENROLLMENT, COURSE.</p>
+        <p>Build it step by step — filter first, join to reach the title, then
+        project:</p>
+        <p class="expr">GOOD &larr; <span class="op">&sigma;</span><sub>StudentID='S1' &and; Grade='A'</sub>(ENROLLMENT)<br>
+        WITH &larr; GOOD <span class="op">&lowast;</span> COURSE<br>
+        RESULT &larr; <span class="op">&pi;</span><sub>Title</sub>(WITH)</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Trace it</h3>
+          <ol style="margin:0">
+            <li>SELECT narrows ENROLLMENT to S1's A grades.</li>
+            <li>Natural join on CourseID brings in each matching COURSE row.</li>
+            <li>PROJECT keeps only the titles.</li>
+          </ol>
+        </div>
+        <p style="margin:0;color:var(--muted)">Selecting before joining is deliberate:
+        the join then works on a handful of rows, not the whole enrollment table.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · NOTATION -->
+  <section class="slide" data-title="RA II notation at a glance" aria-roledescription="slide" aria-label="Relational algebra two notation at a glance">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">RA II notation at a glance</h2>
+    <div class="legendgrid">
+      <div class="gl"><div class="sym">&#8904;</div><b>JOIN</b><span>theta / equi / natural</span></div>
+      <div class="gl"><div class="sym">&lowast;</div><b>NATURAL JOIN</b><span>match same-named attrs</span></div>
+      <div class="gl"><div class="sym">&divide;</div><b>DIVISION</b><span>"for all" questions</span></div>
+      <div class="gl"><div class="sym">&#8497;</div><b>AGGREGATION</b><span>group + COUNT/SUM/AVG…</span></div>
+      <div class="gl"><div class="sym"><svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="5" y1="2.5" x2="5" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg><svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="23" y1="2.5" x2="23" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg><svg class="oj" viewBox="0 0 28 18" aria-hidden="true"><polygon points="8,3 8,15 14,9"/><polygon points="20,3 20,15 14,9"/><line x1="5" y1="2.5" x2="5" y2="15.5" stroke="currentColor" stroke-width="1.8"/><line x1="23" y1="2.5" x2="23" y2="15.5" stroke="currentColor" stroke-width="1.8"/></svg></div><b>OUTER JOINS</b><span>left / right / full</span></div>
+      <div class="gl"><div class="sym"><svg class="tree-ic" viewBox="0 0 28 20" aria-hidden="true"><line x1="14" y1="6" x2="8" y2="15" stroke="currentColor" stroke-width="1.6"/><line x1="14" y1="6" x2="20" y2="15" stroke="currentColor" stroke-width="1.6"/><circle cx="14" cy="5" r="3"/><circle cx="8" cy="16" r="3"/><circle cx="20" cy="16" r="3"/></svg></div><b>QUERY TREE</b><span>leaves = relations, nodes = ops</span></div>
+    </div>
+    <p class="figcap">These join the RA&nbsp;I set (&sigma;, &pi;, &rho;, &cup;, &cap;,
+    &minus;, &times;). Together they express every query the relational calculus can.</p>
+  </section>
+
+  <!-- 15 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">Joins</span>: theta, equi-, and natural — product plus select, packaged.</li>
+          <li><span class="term">Division</span> for "for all"; <span class="term">aggregation</span> to summarize.</li>
+          <li><span class="term">Outer joins</span> keep unmatched rows with NULLs.</li>
+          <li>Queries read as <span class="term">trees</span>; algebra and calculus are equivalent.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Rewrite a natural join as a product, select, and project.</li>
+            <li>What phrasing signals that you need division?</li>
+            <li>When does a left outer join change the answer versus an inner join?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Unit 4, SQL</h3>
+          <p style="margin:0">The commercial language that implements all of this —
+          where the algebra you now read becomes queries you write and run.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 15</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- generic operation demonstrator ---
+  var opChips  = Array.prototype.slice.call(document.querySelectorAll('.chip[data-op]'));
+  var opDesc   = document.getElementById('op-desc');
+  var opPanels = Array.prototype.slice.call(document.querySelectorAll('[data-op-panel]'));
+  if (opChips.length && opPanels.length){
+    function showOp(key){
+      opChips.forEach(function(c){
+        c.setAttribute('aria-pressed', c.getAttribute('data-op') === key ? 'true' : 'false');
+      });
+      opPanels.forEach(function(p){
+        if (p.getAttribute('data-op-panel') === key){ p.removeAttribute('hidden'); }
+        else { p.setAttribute('hidden', ''); }
+      });
+      var active = opChips.filter(function(c){ return c.getAttribute('data-op') === key; })[0];
+      if (opDesc){
+        opDesc.textContent = (active && active.getAttribute('data-desc'))
+          || opDesc.getAttribute('data-default') || '';
+      }
+    }
+    opChips.forEach(function(chip){
+      chip.addEventListener('click', function(){ showOp(chip.getAttribute('data-op')); });
+    });
+    var pressed = opChips.filter(function(c){ return c.getAttribute('aria-pressed') === 'true'; })[0];
+    showOp(pressed ? pressed.getAttribute('data-op') : opChips[0].getAttribute('data-op'));
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

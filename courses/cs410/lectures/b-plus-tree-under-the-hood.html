@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Under the Hood — A Relation as a B+tree · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.ahead{border-left-color:var(--brown);background:#FBF6F2}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.ahead h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+kbd.io{font-family:var(--sans);font-weight:700;color:var(--brown);
+  background:#FBF1EC;border:1px solid #E4C4B4;border-radius:5px;padding:0 7px;font-size:.9em}
+
+/* ---- relation-schema block (shared with mapping deck) ---- */
+.rel{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff;margin:10px 0}
+.rel-name{background:var(--blue);color:#fff;font-weight:700;font-family:var(--sans);
+  font-size:.92rem;padding:6px 12px}
+.rel-attrs{display:flex;flex-wrap:wrap}
+.rel-attrs .attr{padding:7px 12px 8px;border-right:1px solid var(--line);
+  border-top:1px solid var(--line);font-size:.9rem;font-family:var(--sans);color:var(--ink)}
+.rel-attrs .attr:first-child{border-top-color:transparent}
+.attr.pk .nm{color:var(--blue-ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.attr .tag{display:block;font-size:.66rem;color:var(--muted);font-weight:700;margin-top:2px}
+
+/* ---- interactive B+tree demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 8px;align-items:center}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip.scan[aria-pressed="true"]{background:var(--orange);border-color:var(--orange)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.io-readout{margin-left:auto;font-size:.9rem;font-weight:600;color:var(--muted)}
+.io-readout b{color:var(--brown);font-variant-numeric:tabular-nums}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin:0 0 10px}
+.treefig .dimmable{transition:opacity .16s}
+.treefig .dim{opacity:.28}
+.treefig .lit rect,.treefig .lit polygon{stroke:var(--orange);stroke-width:3}
+.treefig .lit text{fill:#7A2708}
+.treefig line.lit,.treefig path.lit{stroke:var(--orange)!important;stroke-width:3}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .io-readout{margin-left:0;width:100%}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout,.rel{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls,.io-readout{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.rel{break-inside:avoid}
+  .fig.wide svg{width:88%;display:block;margin:0 auto}
+  .treefig .dim{opacity:1}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Look ahead · Under the hood</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Previews Unit 7 · Storage &amp; indexing · Elmasri &amp; Navathe, Ch. 17</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="A relation as a B+tree — look-ahead slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Under the hood — a relation as a B+tree"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Look ahead · what the engine actually does</p>
+    <h2 class="slide-h" tabindex="-1">Under the hood:<br>a relation as a B+tree</h2>
+    <div class="two">
+      <div>
+        <p class="lead">You've been treating a relation as a set of rows. The engine
+        has to <em>find</em> those rows on a slow disk — fast, and in order.</p>
+        <p style="color:var(--muted)">The structure that makes
+        <code>WHERE key = …</code> and <code>ORDER BY</code> cheap is the B+tree. This
+        is a preview: enough to see the machine under the table.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 200" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A table and a search tree side by side</title>
+          <desc id="d1">On the left, a relational table of rows. On the right, a
+          three-node tree with a root pointing to two leaves, suggesting the same
+          data organized for fast search.</desc>
+          <rect x="18" y="34" width="180" height="132" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <rect x="18" y="34" width="180" height="22" rx="6" fill="#0033A0"/>
+          <text x="30" y="49" font-family="system-ui" font-size="12" font-weight="700" fill="#fff">STUDENT</text>
+          <g font-family="system-ui" font-size="11" fill="#14181F">
+            <line x1="18" y1="90" x2="198" y2="90" stroke="#C9D2E0"/>
+            <line x1="18" y1="112" x2="198" y2="112" stroke="#C9D2E0"/>
+            <line x1="18" y1="134" x2="198" y2="134" stroke="#C9D2E0"/>
+            <text x="30" y="74" font-weight="700" fill="#00246B">S1002</text><text x="96" y="74">Ada</text>
+            <text x="30" y="105" font-weight="700" fill="#00246B">S1015</text><text x="96" y="105">Wei</text>
+            <text x="30" y="127" font-weight="700" fill="#00246B">S1027</text><text x="96" y="127">Grace</text>
+            <text x="30" y="150" font-weight="700" fill="#00246B">S1040</text><text x="96" y="150">Sam</text>
+          </g>
+          <path d="M210 100 h34" stroke="#7A2708" stroke-width="2.4" fill="none" marker-end="url(#a1)"/>
+          <defs><marker id="a1" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#7A2708"/></marker></defs>
+          <rect x="360" y="34" width="96" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="408" y="53" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">root</text>
+          <line x1="386" y1="64" x2="322" y2="120" stroke="#8A93A3" stroke-width="1.5"/>
+          <line x1="430" y1="64" x2="494" y2="120" stroke="#8A93A3" stroke-width="1.5"/>
+          <rect x="272" y="120" width="100" height="30" rx="4" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <text x="322" y="139" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">S1002 · S1015</text>
+          <rect x="444" y="120" width="100" height="30" rx="4" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+          <text x="494" y="139" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">S1027 · S1040</text>
+          <path d="M372 135 h72" stroke="#8A93A3" stroke-width="1.4" fill="none" marker-end="url(#a1)"/>
+          <text x="408" y="176" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">leaves in sorted order, linked</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · WHY LOOK NOW -->
+  <section class="slide" data-title="Why look now" aria-roledescription="slide" aria-label="Why look now">
+    <p class="kicker">Framing</p>
+    <h2 class="slide-h" tabindex="-1">A relation is logical; storage is physical</h2>
+    <div class="two">
+      <div>
+        <p>Everything so far has been logical: a relation is a set of rows, and
+        <code>WHERE</code> picks some out. The DBMS still has to answer that query
+        against bytes on a disk — and the disk is the slow part.</p>
+        <p>One structure makes the difference between reading a whole table and jumping
+        straight to a row: the <span class="term">B+tree index</span>. It's what
+        <code>PRIMARY KEY</code> quietly builds for you.</p>
+      </div>
+      <div>
+        <div class="callout ahead">
+          <h3>This is a look ahead</h3>
+          <p style="margin:0">The full treatment — cost models, node splitting,
+          clustering vs. secondary indexes — is Unit&nbsp;7. Today's goal is only to
+          see how the relation you just designed becomes a tree, and why that's fast.</p>
+        </div>
+        <div class="callout warn">
+          <h3>The one number that matters</h3>
+          <p style="margin:0">A disk block read is roughly
+          <strong>100,000× slower</strong> than a memory access. Query cost is counted
+          in <strong>block reads</strong>, not instructions. Fewer blocks touched = faster.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE RELATION ON DISK -->
+  <section class="slide" data-title="The relation on disk" aria-roledescription="slide" aria-label="The relation on disk">
+    <p class="kicker">Step 1 · where the rows live</p>
+    <h2 class="slide-h" tabindex="-1">The relation on disk</h2>
+    <div class="two">
+      <div>
+        <p>A row becomes a <span class="term">record</span>. Records are packed into
+        fixed-size <span class="term">blocks</span> (pages), typically 4–8&nbsp;KB — and
+        the block is the <strong>unit of disk I/O</strong>. You never read one row; you
+        read the block it sits in.</p>
+        <p>A plain table with no ordering is a <span class="term">heap file</span>: blocks
+        in no particular order, rows appended wherever there's room.</p>
+        <div class="callout">
+          <h3>Consequence</h3>
+          <p style="margin:0">To read 1 row you read 1 block. To be sure you've found
+          <em>every</em> matching row in a heap, you may have to read <em>all</em> of them.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 460 200" role="img" aria-labelledby="t3 d3">
+          <title id="t3">Rows packed into disk blocks</title>
+          <desc id="d3">Three disk blocks, each holding two or three STUDENT records.
+          The blocks are labelled the unit of disk I/O.</desc>
+          <g font-family="system-ui">
+            <rect x="20" y="30" width="130" height="120" rx="6" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="30" y="24" font-size="10.5" fill="#4A5160">Block 1</text>
+            <rect x="30" y="42" width="110" height="30" rx="3" fill="#fff" stroke="#C9D2E0"/><text x="40" y="61" font-size="10.5" fill="#14181F">S1002 Ada</text>
+            <rect x="30" y="78" width="110" height="30" rx="3" fill="#fff" stroke="#C9D2E0"/><text x="40" y="97" font-size="10.5" fill="#14181F">S1040 Sam</text>
+            <rect x="30" y="114" width="110" height="26" rx="3" fill="#fff" stroke="#C9D2E0"/><text x="40" y="131" font-size="10.5" fill="#14181F">S1015 Wei</text>
+
+            <rect x="165" y="30" width="130" height="120" rx="6" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="175" y="24" font-size="10.5" fill="#4A5160">Block 2</text>
+            <rect x="175" y="42" width="110" height="30" rx="3" fill="#fff" stroke="#C9D2E0"/><text x="185" y="61" font-size="10.5" fill="#14181F">S1027 Grace</text>
+            <rect x="175" y="78" width="110" height="30" rx="3" fill="#fff" stroke="#C9D2E0"/><text x="185" y="97" font-size="10.5" fill="#14181F">S1006 Ivan</text>
+
+            <rect x="310" y="30" width="130" height="120" rx="6" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="320" y="24" font-size="10.5" fill="#4A5160">Block 3</text>
+            <rect x="320" y="42" width="110" height="30" rx="3" fill="#fff" stroke="#C9D2E0"/><text x="330" y="61" font-size="10.5" fill="#14181F">S1031 Noor</text>
+            <rect x="320" y="78" width="110" height="30" rx="3" fill="#fff" stroke="#C9D2E0"/><text x="330" y="97" font-size="10.5" fill="#14181F">S1019 Leo</text>
+            <text x="230" y="178" text-anchor="middle" font-size="11" fill="#4A5160">a block is the unit of disk I/O — rows sit in no order</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE LOOKUP PROBLEM -->
+  <section class="slide" data-title="The lookup problem" aria-roledescription="slide" aria-label="The lookup problem">
+    <p class="kicker">Step 2 · the cost we want to kill</p>
+    <h2 class="slide-h" tabindex="-1">Finding one row is expensive</h2>
+    <div class="two">
+      <div>
+        <p>Ask a simple question of the heap:</p>
+        <p style="font-family:var(--serif);background:var(--tint);border:1px solid var(--line);
+          border-radius:8px;padding:10px 14px;max-width:none">
+          <code>SELECT * FROM STUDENT WHERE StudentID = 'S1027';</code></p>
+        <p>With no index, the engine does a <span class="term">full scan</span>: read a
+        block, check its rows, read the next, and so on. For a table of
+        <strong>B</strong> blocks that's up to <strong>B</strong> block reads for one row.</p>
+        <div class="callout warn">
+          <h3>At scale</h3>
+          <p style="margin:0">A million rows might be 50,000 blocks. One equality
+          lookup shouldn't cost 50,000 disk reads — and with an index, it costs about
+          <strong>four</strong>.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 460 180" role="img" aria-labelledby="t4 d4">
+          <title id="t4">A full scan reads every block</title>
+          <desc id="d4">A row of eight blocks, each marked as read, with a magnifier
+          moving across all of them to find one matching row.</desc>
+          <g font-family="system-ui">
+            <text x="230" y="24" text-anchor="middle" font-size="11.5" font-weight="700" fill="#7A2708">Full scan: read every block until sure</text>
+            <g>
+              <rect x="24"  y="60" width="44" height="54" rx="4" fill="#FBF1EC" stroke="#D64309" stroke-width="1.5"/>
+              <rect x="76"  y="60" width="44" height="54" rx="4" fill="#FBF1EC" stroke="#D64309" stroke-width="1.5"/>
+              <rect x="128" y="60" width="44" height="54" rx="4" fill="#FBF1EC" stroke="#D64309" stroke-width="1.5"/>
+              <rect x="180" y="60" width="44" height="54" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <rect x="232" y="60" width="44" height="54" rx="4" fill="#FBF1EC" stroke="#D64309" stroke-width="1.5"/>
+              <rect x="284" y="60" width="44" height="54" rx="4" fill="#FBF1EC" stroke="#D64309" stroke-width="1.5"/>
+              <rect x="336" y="60" width="44" height="54" rx="4" fill="#FBF1EC" stroke="#D64309" stroke-width="1.5"/>
+              <rect x="388" y="60" width="44" height="54" rx="4" fill="#FBF1EC" stroke="#D64309" stroke-width="1.5"/>
+            </g>
+            <text x="202" y="92" text-anchor="middle" font-size="10.5" font-weight="700" fill="#00246B">S1027</text>
+            <text x="202" y="132" text-anchor="middle" font-size="10" fill="#4A5160">the one you want</text>
+            <text x="230" y="160" text-anchor="middle" font-size="11" fill="#4A5160">every other block still had to be read to get here</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · THE IDEA OF AN INDEX -->
+  <section class="slide" data-title="The idea of an index" aria-roledescription="slide" aria-label="The idea of an index">
+    <p class="kicker">Step 3 · the fix, in principle</p>
+    <h2 class="slide-h" tabindex="-1">Keep a map: key → where the row lives</h2>
+    <div class="two">
+      <div>
+        <p>An <span class="term">index</span> is a second, ordered structure that maps
+        each key value to the <em>address</em> of its record — exactly like the index at
+        the back of a book maps a term to a page.</p>
+        <p>Because it's kept in <strong>sorted order</strong>, you can navigate it instead
+        of scanning: a search rules out half the remaining keys at each step.</p>
+        <div class="callout">
+          <h3>But a flat sorted list isn't enough</h3>
+          <p style="margin:0">Binary search over a sorted file is fast to read but brutal
+          to <em>keep</em> sorted — one insert shifts everything after it. We want a
+          structure that's cheap to search <strong>and</strong> cheap to update.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 440 190" role="img" aria-labelledby="t5 d5">
+          <title id="t5">An index maps sorted keys to record addresses</title>
+          <desc id="d5">A sorted list of keys on the left, each with an arrow pointing
+          to a block on the right, showing key to address mapping.</desc>
+          <g font-family="system-ui" font-size="11">
+            <rect x="24" y="26" width="150" height="140" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.6"/>
+            <rect x="24" y="26" width="150" height="20" rx="6" fill="#0033A0"/>
+            <text x="34" y="40" font-size="10.5" font-weight="700" fill="#fff">INDEX (sorted)</text>
+            <text x="34" y="66" font-weight="700" fill="#00246B">S1002</text><text x="120" y="66" fill="#7A2708">→ blk1</text>
+            <text x="34" y="88" font-weight="700" fill="#00246B">S1015</text><text x="120" y="88" fill="#7A2708">→ blk1</text>
+            <text x="34" y="110" font-weight="700" fill="#00246B">S1027</text><text x="120" y="110" fill="#7A2708">→ blk2</text>
+            <text x="34" y="132" font-weight="700" fill="#00246B">S1031</text><text x="120" y="132" fill="#7A2708">→ blk3</text>
+            <text x="34" y="154" font-weight="700" fill="#00246B">S1040</text><text x="120" y="154" fill="#7A2708">→ blk1</text>
+            <path d="M178 108 q40 -6 66 -30" stroke="#7A2708" stroke-width="1.7" fill="none" marker-end="url(#a5)"/>
+            <defs><marker id="a5" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#7A2708"/></marker></defs>
+            <rect x="300" y="30" width="110" height="36" rx="4" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.5"/><text x="355" y="52" text-anchor="middle" fill="#14181F">Block 1</text>
+            <rect x="300" y="78" width="110" height="36" rx="4" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.5"/><text x="355" y="100" text-anchor="middle" fill="#14181F">Block 2</text>
+            <rect x="300" y="126" width="110" height="36" rx="4" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.5"/><text x="355" y="148" text-anchor="middle" fill="#14181F">Block 3</text>
+          </g>
+        </svg>
+        <p class="figcap">The index is small and ordered; the data blocks stay put.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · WHY A B+TREE -->
+  <section class="slide" data-title="Why a B+tree" aria-roledescription="slide" aria-label="Why a B plus tree">
+    <p class="kicker">Step 4 · why this tree</p>
+    <h2 class="slide-h" tabindex="-1">Why a B+tree, not just any tree</h2>
+    <div class="two">
+      <div>
+        <p>The winning idea: make each tree node <strong>one disk block</strong>. Since a
+        block holds hundreds of keys, each node has hundreds of children — a huge
+        <span class="term">fanout</span>.</p>
+        <p>High fanout makes the tree <strong>shallow</strong>, and it's kept
+        <span class="term">balanced</span>, so every search touches the same small number
+        of levels — one block read per level.</p>
+        <div class="callout">
+          <h3>The height payoff</h3>
+          <p style="margin:0">A binary tree of a million keys is ~20 levels deep — up to
+          20 reads. A B+tree with fanout ~250 reaches a million keys in <strong>3
+          levels</strong>, and a billion in <strong>4–5</strong>.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 440 190" role="img" aria-labelledby="t6 d6">
+          <title id="t6">Binary tree versus B+tree fanout</title>
+          <desc id="d6">On the left a tall narrow binary tree with two children per node.
+          On the right a short wide tree where the root has many children, reaching the
+          same data in far fewer levels.</desc>
+          <g font-family="system-ui">
+            <text x="100" y="20" text-anchor="middle" font-size="10.5" fill="#4A5160">binary: fanout 2, deep</text>
+            <circle cx="100" cy="34" r="7" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+            <line x1="94" y1="40" x2="72" y2="58" stroke="#8A93A3"/><line x1="106" y1="40" x2="128" y2="58" stroke="#8A93A3"/>
+            <circle cx="70" cy="64" r="7" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.4"/><circle cx="130" cy="64" r="7" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.4"/>
+            <line x1="64" y1="70" x2="50" y2="88" stroke="#8A93A3"/><line x1="76" y1="70" x2="90" y2="88" stroke="#8A93A3"/>
+            <line x1="124" y1="70" x2="110" y2="88" stroke="#8A93A3"/><line x1="136" y1="70" x2="150" y2="88" stroke="#8A93A3"/>
+            <circle cx="48" cy="94" r="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><circle cx="92" cy="94" r="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/>
+            <circle cx="108" cy="94" r="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><circle cx="152" cy="94" r="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/>
+            <text x="100" y="128" text-anchor="middle" font-size="9.5" fill="#4A5160">… many more levels …</text>
+
+            <text x="330" y="20" text-anchor="middle" font-size="10.5" fill="#4A5160">B+tree: fanout ~250, shallow</text>
+            <rect x="270" y="28" width="120" height="20" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="330" y="42" text-anchor="middle" font-size="9.5" font-weight="700" fill="#00246B">root (one block)</text>
+            <line x1="285" y1="48" x2="255" y2="70" stroke="#8A93A3"/><line x1="305" y1="48" x2="300" y2="70" stroke="#8A93A3"/>
+            <line x1="330" y1="48" x2="345" y2="70" stroke="#8A93A3"/><line x1="375" y1="48" x2="405" y2="70" stroke="#8A93A3"/>
+            <rect x="238" y="72" width="34" height="18" rx="3" fill="#fff" stroke="#0033A0" stroke-width="1.4"/>
+            <rect x="286" y="72" width="34" height="18" rx="3" fill="#fff" stroke="#0033A0" stroke-width="1.4"/>
+            <rect x="334" y="72" width="34" height="18" rx="3" fill="#fff" stroke="#0033A0" stroke-width="1.4"/>
+            <rect x="392" y="72" width="34" height="18" rx="3" fill="#fff" stroke="#0033A0" stroke-width="1.4"/>
+            <text x="330" y="112" text-anchor="middle" font-size="9.5" fill="#4A5160">hundreds of children per node</text>
+          </g>
+        </svg>
+        <p class="figcap">Wide beats deep when every level costs a disk read.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · ANATOMY -->
+  <section class="slide" data-title="B+tree anatomy" aria-roledescription="slide" aria-label="B plus tree anatomy">
+    <p class="kicker">Step 5 · the parts</p>
+    <h2 class="slide-h" tabindex="-1">Two kinds of node</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Internal nodes</span> are pure signposts: keys and child
+        pointers, no data. Their only job is to route a search to the right leaf.</p>
+        <p><span class="term">Leaf nodes</span> hold <strong>every</strong> key value, each
+        paired with a <span class="term">record pointer</span> to the row's block. The
+        leaves are chained left-to-right in <strong>sorted order</strong>.</p>
+        <div class="callout">
+          <h3>The B+tree promise</h3>
+          <p style="margin:0">All data pointers live at the leaves, and all leaves sit at
+          the <strong>same depth</strong>. Balance is a guarantee, not luck — kept up as
+          rows are inserted and deleted (the how is Unit&nbsp;7).</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 460 200" role="img" aria-labelledby="t7 d7">
+          <title id="t7">Internal node routing to linked leaf nodes</title>
+          <desc id="d7">A root internal node holds routing keys and points down to two
+          leaf nodes. Each leaf holds keys with record pointers, and an arrow links the
+          left leaf to the right leaf in sorted order.</desc>
+          <g font-family="system-ui">
+            <rect x="150" y="24" width="160" height="34" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="230" y="45" text-anchor="middle" font-size="11" font-weight="700" fill="#00246B">internal · routes only</text>
+            <line x1="185" y1="58" x2="110" y2="104" stroke="#8A93A3" stroke-width="1.5"/>
+            <line x1="275" y1="58" x2="350" y2="104" stroke="#8A93A3" stroke-width="1.5"/>
+            <rect x="26" y="104" width="168" height="48" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="110" y="122" text-anchor="middle" font-size="10.5" font-weight="700" fill="#00246B">leaf</text>
+            <text x="110" y="140" text-anchor="middle" font-size="10" fill="#7A2708">S1002→· S1015→· S1027→</text>
+            <rect x="266" y="104" width="168" height="48" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+            <text x="350" y="122" text-anchor="middle" font-size="10.5" font-weight="700" fill="#00246B">leaf</text>
+            <text x="350" y="140" text-anchor="middle" font-size="10" fill="#7A2708">S1031→· S1040→· S1044→</text>
+            <path d="M194 128 h72" stroke="#0033A0" stroke-width="1.7" fill="none" marker-end="url(#a7)"/>
+            <defs><marker id="a7" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0033A0"/></marker></defs>
+            <text x="230" y="176" text-anchor="middle" font-size="10" fill="#4A5160">leaves chained in sorted order · → is a record pointer</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · MAPPING THE RELATION IN -->
+  <section class="slide" data-title="Mapping the relation in" aria-roledescription="slide" aria-label="Mapping the relation in">
+    <p class="kicker">Step 6 · the correspondence</p>
+    <h2 class="slide-h" tabindex="-1">Each row becomes one leaf entry</h2>
+    <div class="two">
+      <div>
+        <p>Here is the whole mapping in one sentence: <strong>every row of the relation
+        contributes exactly one leaf entry</strong> — the value of the indexed column,
+        paired with a pointer to that row's block.</p>
+        <ul>
+          <li>Indexed column value → the <span class="term">search key</span> in a leaf.</li>
+          <li>The row's location → the <span class="term">record pointer</span> beside it.</li>
+          <li>Internal nodes are a <em>sparse directory</em> the engine builds over the
+          sorted leaf keys — one routing key per child.</li>
+        </ul>
+        <p style="color:var(--muted);font-size:.95rem">The rows never move. The B+tree
+        sits beside the table as a fast way in.</p>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="rel-name">STUDENT &nbsp;(the relation)</div>
+          <div class="rel-attrs">
+            <span class="attr pk"><span class="nm">StudentID</span><span class="tag">indexed column</span></span>
+            <span class="attr"><span class="nm">Name</span></span>
+            <span class="attr"><span class="nm">Major</span></span>
+          </div>
+        </div>
+        <div class="fig" style="margin-top:10px">
+          <svg viewBox="0 0 440 120" role="img" aria-labelledby="t8 d8">
+            <title id="t8">Rows becoming leaf entries</title>
+            <desc id="d8">Three StudentID values on the left each map by an arrow to a
+            leaf entry pairing that key with a record pointer.</desc>
+            <g font-family="system-ui" font-size="11">
+              <text x="24" y="30" font-weight="700" fill="#00246B">S1002</text>
+              <text x="24" y="62" font-weight="700" fill="#00246B">S1015</text>
+              <text x="24" y="94" font-weight="700" fill="#00246B">S1027</text>
+              <path d="M78 26 h48" stroke="#7A2708" stroke-width="1.6" fill="none" marker-end="url(#a8)"/>
+              <path d="M78 58 h48" stroke="#7A2708" stroke-width="1.6" fill="none" marker-end="url(#a8)"/>
+              <path d="M78 90 h48" stroke="#7A2708" stroke-width="1.6" fill="none" marker-end="url(#a8)"/>
+              <defs><marker id="a8" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#7A2708"/></marker></defs>
+              <rect x="134" y="14" width="290" height="92" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+              <text x="146" y="12" font-size="9.5" fill="#4A5160"></text>
+              <rect x="146" y="24" width="266" height="20" rx="3" fill="#F4F6FB" stroke="#C9D2E0"/><text x="156" y="38">( S1002 , <tspan fill="#7A2708" font-weight="700">record ptr →</tspan> )</text>
+              <rect x="146" y="50" width="266" height="20" rx="3" fill="#F4F6FB" stroke="#C9D2E0"/><text x="156" y="64">( S1015 , <tspan fill="#7A2708" font-weight="700">record ptr →</tspan> )</text>
+              <rect x="146" y="76" width="266" height="20" rx="3" fill="#F4F6FB" stroke="#C9D2E0"/><text x="156" y="90">( S1027 , <tspan fill="#7A2708" font-weight="700">record ptr →</tspan> )</text>
+            </g>
+          </svg>
+          <p class="figcap">A leaf node: (search key, record pointer) pairs, in key order.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · A LOOKUP, TRACED -->
+  <section class="slide" data-title="A lookup, traced" aria-roledescription="slide" aria-label="A lookup, traced">
+    <p class="kicker">Step 7 · the search that pays off</p>
+    <h2 class="slide-h" tabindex="-1">One equality lookup, block by block</h2>
+    <div class="two">
+      <div>
+        <p>Back to <code>WHERE StudentID = 'S1027'</code>, now with the B+tree:</p>
+        <ol>
+          <li>Read the <strong>root</strong>. S1027 falls in its S1027–S1040 range → follow
+          that child pointer. <kbd class="io">read 1</kbd></li>
+          <li>Read that <strong>leaf</strong>. Find S1027; take its record pointer.
+          <kbd class="io">read 2</kbd></li>
+          <li>Read the <strong>data block</strong> the pointer names; return the row.
+          <kbd class="io">read 3</kbd></li>
+        </ol>
+        <div class="callout">
+          <h3>3–4 reads, not thousands</h3>
+          <p style="margin:0">And the upper levels are almost always cached in memory, so
+          the <em>real</em> disk cost is often a single read. That's the whole game.</p>
+        </div>
+      </div>
+      <div class="fig wide">
+        <svg viewBox="0 0 460 240" role="img" aria-labelledby="t9 d9">
+          <title id="t9">Traversal from root to leaf to data block</title>
+          <desc id="d9">The root node highlighted, a pointer down to the middle leaf
+          highlighted, and a pointer from that leaf down to a data block highlighted —
+          three block reads to reach the row for S1027.</desc>
+          <g font-family="system-ui">
+            <rect x="150" y="20" width="160" height="30" rx="5" fill="#FBF1EC" stroke="#D64309" stroke-width="2.4"/>
+            <text x="230" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="#7A2708">root · S1015 · S1027 · S1040</text>
+            <path d="M230 50 v40" stroke="#D64309" stroke-width="2.6" fill="none" marker-end="url(#a9)"/>
+            <defs><marker id="a9" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#D64309"/></marker></defs>
+            <text x="252" y="78" font-size="10" fill="#7A2708">read 1</text>
+            <rect x="150" y="92" width="160" height="30" rx="5" fill="#FBF1EC" stroke="#D64309" stroke-width="2.4"/>
+            <text x="230" y="112" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7A2708">leaf · S1027 → · S1031 →</text>
+            <path d="M230 122 v40" stroke="#D64309" stroke-width="2.6" fill="none" marker-end="url(#a9)"/>
+            <text x="252" y="150" font-size="10" fill="#7A2708">read 2 → follow record pointer</text>
+            <rect x="150" y="164" width="160" height="34" rx="5" fill="#EAF0FB" stroke="#D64309" stroke-width="2.4"/>
+            <text x="230" y="185" text-anchor="middle" font-size="10.5" font-weight="700" fill="#00246B">data block · row S1027</text>
+            <text x="230" y="222" text-anchor="middle" font-size="10.5" fill="#7A2708">read 3 — done</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · RANGE & ORDER -->
+  <section class="slide" data-title="Range and order for free" aria-roledescription="slide" aria-label="Range and order for free">
+    <p class="kicker">The B+tree's signature move</p>
+    <h2 class="slide-h" tabindex="-1">Ranges and ordering come for free</h2>
+    <div class="two">
+      <div>
+        <p>Because the leaves are a <strong>sorted linked list</strong>, a range query
+        doesn't restart the search for each value:</p>
+        <p style="font-family:var(--serif);background:var(--tint);border:1px solid var(--line);
+          border-radius:8px;padding:10px 14px;max-width:none">
+          <code>… WHERE GPA BETWEEN 3.0 AND 3.5</code></p>
+        <p>Descend once to the first leaf at 3.0, then <strong>walk the leaf chain</strong>
+        rightward, emitting rows, until you pass 3.5. <code>ORDER BY</code> on the indexed
+        column is the same walk — the data is already in order.</p>
+        <div class="callout warn">
+          <h3>Why not a hash index?</h3>
+          <p style="margin:0">A hash gives O(1) equality lookups but scatters keys with no
+          order — it can't do ranges or sorted scans at all. The B+tree does both, which
+          is why it's the database default.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 440 150" role="img" aria-labelledby="t10 d10">
+          <title id="t10">Walking the leaf chain for a range</title>
+          <desc id="d10">Four leaf nodes linked left to right. The search descends into
+          the second leaf, then follows the chain across the third, covering the range
+          before stopping.</desc>
+          <g font-family="system-ui">
+            <path d="M110 30 v22" stroke="#D64309" stroke-width="2.4" fill="none" marker-end="url(#a10)"/>
+            <defs><marker id="a10" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 z" fill="#D64309"/></marker></defs>
+            <text x="150" y="26" font-size="10" fill="#7A2708">descend to first qualifying leaf</text>
+            <rect x="20"  y="56" width="86" height="40" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.6"/><text x="63" y="80" text-anchor="middle" font-size="10">2.4 · 2.8</text>
+            <rect x="128" y="56" width="86" height="40" rx="5" fill="#FBF1EC" stroke="#D64309" stroke-width="2.2"/><text x="171" y="80" text-anchor="middle" font-size="10" fill="#7A2708">3.0 · 3.2</text>
+            <rect x="236" y="56" width="86" height="40" rx="5" fill="#FBF1EC" stroke="#D64309" stroke-width="2.2"/><text x="279" y="80" text-anchor="middle" font-size="10" fill="#7A2708">3.4 · 3.5</text>
+            <rect x="344" y="56" width="86" height="40" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.6"/><text x="387" y="80" text-anchor="middle" font-size="10">3.8 · 4.0</text>
+            <path d="M106 76 h22" stroke="#0033A0" stroke-width="1.5" marker-end="url(#a10b)"/>
+            <path d="M214 76 h22" stroke="#D64309" stroke-width="2.4" marker-end="url(#a10)"/>
+            <path d="M322 76 h22" stroke="#0033A0" stroke-width="1.5" marker-end="url(#a10b)"/>
+            <defs><marker id="a10b" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0033A0"/></marker></defs>
+            <text x="220" y="126" text-anchor="middle" font-size="10" fill="#7A2708">then walk the chain until past 3.5</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · INTERACTIVE -->
+  <section class="slide" data-title="Try it: search the B+tree" aria-roledescription="slide" aria-label="Interactive, search the B plus tree">
+    <p class="kicker">Try it · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Search the tree, count the reads</h2>
+    <p>Pick a lookup and watch the path from root to leaf to data block — then compare it
+    with a full table scan.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a query">
+      <button class="chip" data-lit="n-root p-a lf-a pd-a blk-a" data-io="3 block reads"
+        data-desc="Find S1006. At the root, S1006 < S1015, so we follow the first pointer to leaf A. We find S1006 and follow its record pointer down to data block 1. Three block reads.">Find S1006</button>
+      <button class="chip" data-lit="n-root p-b lf-b pd-b blk-b" data-io="3 block reads"
+        data-desc="Find S1019. At the root, S1015 ≤ S1019 < S1027, so we follow the second pointer to leaf B. We find S1019 and follow its record pointer down to data block 2. Three block reads.">Find S1019</button>
+      <button class="chip" data-lit="n-root p-c lf-c pd-c blk-c" data-io="3 block reads"
+        data-desc="Find S1031. At the root, S1027 ≤ S1031 < S1040, so we follow the third pointer to leaf C. We find S1031 and follow its record pointer down to data block 3. Three block reads.">Find S1031</button>
+      <button class="chip" data-lit="n-root p-d lf-d pd-d blk-d" data-io="3 block reads"
+        data-desc="Find S1044. At the root, S1044 ≥ S1040, so we follow the last pointer to leaf D. We find S1044 and follow its record pointer down to data block 4. Three block reads.">Find S1044</button>
+      <button class="chip scan" data-lit="blk-a blk-b blk-c blk-d" data-io="4 block reads (all of them)"
+        data-desc="Full scan, no index used: the engine reads every data block and checks each row. Here that is 4 blocks; in a real table it would be thousands. This is the cost the B+tree removes.">Full table scan</button>
+      <span class="io-readout" aria-hidden="true">Reads: <b id="io-count">—</b></span>
+    </div>
+    <p id="tree-desc" class="live-desc" aria-live="polite"
+       data-default="Pick a query above. Equality lookups take a fixed, small number of reads no matter how big the table gets; a full scan grows with the table.">Pick a query above. Equality lookups take a fixed, small number of reads no matter how big the table gets; a full scan grows with the table.</p>
+    <div class="fig">
+      <svg id="tree-figure" class="treefig" viewBox="0 0 720 350" role="img" aria-labelledby="t11 d11">
+        <title id="t11">A two-level B+tree over the STUDENT relation</title>
+        <desc id="d11">A root routing node with keys S1015, S1027, and S1040 points to four
+        leaf nodes, each holding two keys. The leaves are chained in order, and each leaf
+        points down to one of four data blocks. Selecting a query highlights the path from
+        the root through one leaf to one data block.</desc>
+
+        <!-- root -->
+        <g id="n-root" class="dimmable">
+          <rect x="210" y="16" width="300" height="46" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="360" y="38" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">root · internal node</text>
+          <text x="360" y="54" text-anchor="middle" font-family="system-ui" font-size="11" fill="#00246B">S1015 &nbsp; S1027 &nbsp; S1040</text>
+        </g>
+
+        <!-- root -> leaf pointers -->
+        <line id="p-a" class="dimmable" x1="250" y1="62" x2="99"  y2="150" stroke="#8A93A3" stroke-width="1.6"/>
+        <line id="p-b" class="dimmable" x1="320" y1="62" x2="267" y2="150" stroke="#8A93A3" stroke-width="1.6"/>
+        <line id="p-c" class="dimmable" x1="400" y1="62" x2="435" y2="150" stroke="#8A93A3" stroke-width="1.6"/>
+        <line id="p-d" class="dimmable" x1="470" y1="62" x2="612" y2="150" stroke="#8A93A3" stroke-width="1.6"/>
+
+        <!-- leaves -->
+        <g id="lf-a" class="dimmable">
+          <rect x="30"  y="150" width="138" height="46" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="99"  y="170" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#4A5160">leaf A</text>
+          <text x="99"  y="187" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7A2708">S1002 · S1006</text>
+        </g>
+        <g id="lf-b" class="dimmable">
+          <rect x="198" y="150" width="138" height="46" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="267" y="170" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#4A5160">leaf B</text>
+          <text x="267" y="187" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7A2708">S1015 · S1019</text>
+        </g>
+        <g id="lf-c" class="dimmable">
+          <rect x="366" y="150" width="138" height="46" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="435" y="170" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#4A5160">leaf C</text>
+          <text x="435" y="187" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7A2708">S1027 · S1031</text>
+        </g>
+        <g id="lf-d" class="dimmable">
+          <rect x="534" y="150" width="138" height="46" rx="5" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="603" y="170" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#4A5160">leaf D</text>
+          <text x="603" y="187" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7A2708">S1040 · S1044</text>
+        </g>
+
+        <!-- leaf chain -->
+        <g class="dimmable" id="chain">
+          <path d="M168 173 h30" stroke="#0033A0" stroke-width="1.5" fill="none" marker-end="url(#alf)"/>
+          <path d="M336 173 h30" stroke="#0033A0" stroke-width="1.5" fill="none" marker-end="url(#alf)"/>
+          <path d="M504 173 h30" stroke="#0033A0" stroke-width="1.5" fill="none" marker-end="url(#alf)"/>
+          <defs><marker id="alf" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#0033A0"/></marker></defs>
+        </g>
+
+        <!-- record pointers leaf -> block -->
+        <line id="pd-a" class="dimmable" x1="99"  y1="196" x2="99"  y2="284" stroke="#7A2708" stroke-width="1.6"/>
+        <line id="pd-b" class="dimmable" x1="267" y1="196" x2="267" y2="284" stroke="#7A2708" stroke-width="1.6"/>
+        <line id="pd-c" class="dimmable" x1="435" y1="196" x2="435" y2="284" stroke="#7A2708" stroke-width="1.6"/>
+        <line id="pd-d" class="dimmable" x1="603" y1="196" x2="603" y2="284" stroke="#7A2708" stroke-width="1.6"/>
+
+        <!-- data blocks -->
+        <g id="blk-a" class="dimmable">
+          <rect x="30"  y="284" width="138" height="44" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="99"  y="311" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">data block 1</text>
+        </g>
+        <g id="blk-b" class="dimmable">
+          <rect x="198" y="284" width="138" height="44" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="267" y="311" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">data block 2</text>
+        </g>
+        <g id="blk-c" class="dimmable">
+          <rect x="366" y="284" width="138" height="44" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="435" y="311" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">data block 3</text>
+        </g>
+        <g id="blk-d" class="dimmable">
+          <rect x="534" y="284" width="138" height="44" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="603" y="311" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">data block 4</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 12 · RECAP / PAYOFF -->
+  <section class="slide" data-title="Recap and payoff" aria-roledescription="slide" aria-label="Recap and payoff">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">What's under the hood</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">The mapping</h3>
+        <ul>
+          <li>Rows → records → <span class="term">blocks</span>, the unit of disk I/O.</li>
+          <li>Each row → one <span class="term">leaf entry</span>: (key, record pointer).</li>
+          <li>Internal nodes route; leaves hold all keys, sorted and chained.</li>
+          <li>Equality lookup ≈ <span class="term">tree height + 1</span> reads; ranges walk
+          the leaf chain.</li>
+        </ul>
+        <div class="callout">
+          <h3>You've already been building these</h3>
+          <p style="margin:0"><code>PRIMARY KEY</code> and <code>UNIQUE</code> create a
+          B+tree automatically; <code>CREATE INDEX</code> builds one on any column. Height
+          ≈ log<sub>fanout</sub>(N) — a handful of levels for any table you'll meet.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout ahead">
+          <h3>What Unit 7 fills in</h3>
+          <ul style="margin:0">
+            <li>The disk-I/O <strong>cost model</strong> — putting real numbers on "faster."</li>
+            <li><strong>B-tree vs. B+tree</strong>, and why databases pick B+.</li>
+            <li><strong>Clustering vs. secondary</strong> indexes; dense vs. sparse.</li>
+            <li>How inserts and deletes keep the tree balanced by <strong>splitting and
+            merging</strong> nodes.</li>
+          </ul>
+        </div>
+        <div class="callout warn">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why is a block, not a row, the unit of cost?</li>
+            <li>What does one leaf entry contain?</li>
+            <li>Why does a B+tree beat a hash index for <code>ORDER BY</code>?</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 12</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- B+tree search demonstrator ---
+  var treeChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-lit]'));
+  var treeDesc  = document.getElementById('tree-desc');
+  var ioCount   = document.getElementById('io-count');
+  var treeFig   = document.getElementById('tree-figure');
+  if (treeChips.length && treeFig){
+    var dimmable = Array.prototype.slice.call(treeFig.querySelectorAll('.dimmable'));
+    treeChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        treeChips.forEach(function(c){ c.setAttribute('aria-pressed', 'false'); });
+        chip.setAttribute('aria-pressed', 'true');
+        var keep = (chip.getAttribute('data-lit') || '').split(/\s+/);
+        dimmable.forEach(function(el){ el.classList.add('dim'); el.classList.remove('lit'); });
+        keep.forEach(function(id){
+          var el = document.getElementById(id);
+          if (el){ el.classList.remove('dim'); el.classList.add('lit'); }
+        });
+        if (treeDesc)  treeDesc.textContent  = chip.getAttribute('data-desc') || '';
+        if (ioCount)   ioCount.textContent   = chip.getAttribute('data-io')   || '—';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>
