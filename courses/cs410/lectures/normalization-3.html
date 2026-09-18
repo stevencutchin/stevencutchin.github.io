@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Normalization III — BCNF and Minimal Cover · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- FD notation ---- */
+.fd{font-family:var(--serif);font-size:1.06rem;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;margin:0 0 10px;display:inline-block}
+.fd .arrow{color:#7A2708;font-weight:700;padding:0 .25em}
+.fdlist{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}
+.fdlist .fd{margin:0;font-size:.98rem}
+.fd.viol{border-color:var(--orange);background:#FBEEE7}
+.fd.gone{opacity:.4;text-decoration:line-through}
+.bad{color:#7A2708;font-weight:700}
+.ok{color:#0B6B57;font-weight:700}
+
+/* ---- relation / schema cards ---- */
+.relset{display:flex;flex-direction:column;gap:8px}
+.relcard{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:8px 12px;background:#fff;font-family:var(--mono);font-size:.92rem;color:var(--blue-ink)}
+.relcard u{text-decoration-color:var(--blue-ink);text-underline-offset:3px}
+.relcard .fk{color:#7A2708;font-weight:700}
+.relcard .note{display:block;font-family:var(--sans);color:#0B6B57;font-size:.8rem;margin-top:3px}
+.relcard.ok{border-left-color:#0B6B57}
+
+/* ---- compare table ---- */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cmpcol{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff}
+.cmpcol h3{margin:0 0 6px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.cmpcol.strict{border-top:4px solid var(--orange)}
+.cmpcol.strict h3{color:#7A2708}
+.cmpcol ul{margin:0;padding-left:1.1rem}
+.cmpcol li{font-size:.92rem;margin:5px 0}
+
+/* ---- interactive: minimal-cover stepper ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.mcbox .mc-variant{display:none}
+html:not(.js) .mcbox .mc-variant{display:block;margin-bottom:8px}
+.mcbox[data-step="0"] .mc-variant[data-q="0"],
+.mcbox[data-step="1"] .mc-variant[data-q="1"],
+.mcbox[data-step="2"] .mc-variant[data-q="2"],
+.mcbox[data-step="3"] .mc-variant[data-q="3"]{display:block}
+.mc-variant .lbl{font-family:var(--sans);font-size:.82rem;font-weight:700;color:var(--muted);margin:0 0 6px}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .cmp{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  .relcard{font-size:.82rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.cmpcol,.relcard,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .callout,.cmpcol,.relcard{break-inside:avoid}
+  .mcbox .mc-variant{display:block!important;margin-bottom:8px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 6 · Normalization</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 3 of 4 · Elmasri &amp; Navathe, Ch. 14–15</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Normalization III — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Normalization III — BCNF and Minimal Cover"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Stricter forms, cleaner dependency sets</p>
+    <h2 class="slide-h" tabindex="-1">Normalization III<br>BCNF and minimal cover</h2>
+    <div class="two">
+      <div>
+        <p class="lead">3NF left one loophole open. BCNF closes it — but at a price. And
+        to reason about a schema's dependencies cleanly, we first boil them down to a
+        minimal cover.</p>
+        <p style="color:var(--muted)">Two tools today: the strictest common normal form,
+        and the canonical form of an FD set that every decomposition algorithm starts
+        from.</p>
+      </div>
+      <div class="callout">
+        <h3>The tension to watch</h3>
+        <p style="margin:0">BCNF removes more redundancy than 3NF, yet a BCNF
+        decomposition can lose the ability to check a dependency without a join. Which
+        to accept is a real design decision.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last lecture</h3>
+          <p style="margin:0">1NF, 2NF, 3NF. 3NF's test: every nontrivial FD's LHS is a
+          superkey, <em>or</em> its RHS is prime.</p>
+        </div>
+        <p>Next lecture: the lossless-join and dependency-preservation properties in
+        full, decomposition algorithms, and multivalued dependencies / 4NF.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>State and test <span class="term">BCNF</span>.</li>
+            <li>Work the classic <span class="term">3NF-but-not-BCNF</span> example.</li>
+            <li>Explain the dependency-preservation <span class="term">tradeoff</span>.</li>
+            <li>Compute a <span class="term">minimal cover</span> of an FD set.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHY BEYOND 3NF -->
+  <section class="slide" data-title="Why 3NF isn't the end" aria-roledescription="slide" aria-label="Why 3NF is not the end">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">The loophole 3NF leaves open</h2>
+    <div class="two">
+      <div>
+        <p>3NF's "<em>or the RHS is prime</em>" clause is deliberately lenient. It lets a
+        determinant that <strong>isn't a superkey</strong> stand, so long as what it
+        determines happens to be part of a key.</p>
+        <p>That loophole permits some redundancy to survive — most visibly when a
+        relation has <span class="term">overlapping candidate keys</span>.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The fix, previewed</h3>
+        <p style="margin:0">BCNF simply deletes the loophole: <em>every</em> determinant
+        must be a superkey. Cleaner rule, and less redundancy — but as we'll see, not
+        always reachable while preserving all dependencies.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · BCNF DEFINITION -->
+  <section class="slide" data-title="BCNF definition" aria-roledescription="slide" aria-label="Bcnf definition">
+    <p class="kicker">The definition</p>
+    <h2 class="slide-h" tabindex="-1">Boyce–Codd Normal Form</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>BCNF</h3>
+          <p style="margin:0">A relation is in BCNF when, for <strong>every</strong>
+          nontrivial FD <span class="fd" style="font-size:.95rem">X <span class="arrow">→</span> A</span>,
+          the determinant <strong>X is a superkey</strong>.</p>
+        </div>
+        <p>That's the whole rule — no exceptions, no prime-attribute escape. Every arrow
+        in the schema must originate from a superkey.</p>
+      </div>
+      <div class="callout">
+        <h3>How to test it</h3>
+        <p style="margin:0">For each FD X → A, compute X<sup>+</sup>. If X<sup>+</sup> is
+        not all attributes, X isn't a superkey — and that FD violates BCNF. Closure,
+        yet again.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · 3NF VS BCNF -->
+  <section class="slide" data-title="3NF vs BCNF" aria-roledescription="slide" aria-label="3nf versus bcnf">
+    <p class="kicker">Side by side</p>
+    <h2 class="slide-h" tabindex="-1">3NF vs. BCNF</h2>
+    <div class="cmp">
+      <div class="cmpcol">
+        <h3>3NF — for every nontrivial X → A</h3>
+        <ul>
+          <li>X is a superkey, <strong>or</strong></li>
+          <li>A is a prime attribute.</li>
+        </ul>
+        <p class="figcap" style="margin-top:8px">Tolerates a non-superkey determinant when the target is prime.</p>
+      </div>
+      <div class="cmpcol strict">
+        <h3>BCNF — for every nontrivial X → A</h3>
+        <ul>
+          <li>X is a superkey. Full stop.</li>
+        </ul>
+        <p class="figcap" style="margin-top:8px">Strictly stronger: every BCNF relation is 3NF, but not conversely.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>When do they differ?</h3>
+      <p style="margin:0">Only when a relation has a determinant that isn't a superkey
+      but determines a prime attribute — which needs overlapping candidate keys. The
+      next slide is the textbook case.</p>
+    </div>
+  </section>
+
+  <!-- 6 · THE CLASSIC EXAMPLE -->
+  <section class="slide" data-title="The classic example" aria-roledescription="slide" aria-label="The classic 3nf but not bcnf example">
+    <p class="kicker">3NF but not BCNF</p>
+    <h2 class="slide-h" tabindex="-1">The classic TEACH example</h2>
+    <div class="two">
+      <div>
+        <p class="fd">TEACH(Student, Course, Instructor)</p>
+        <div class="fdlist">
+          <span class="fd">Student, Course <span class="arrow">→</span> Instructor</span>
+          <span class="fd viol">Instructor <span class="arrow">→</span> Course</span>
+        </div>
+        <p style="margin:0">Business rules: a student takes a course from one instructor;
+        each instructor teaches one course.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Keys &amp; forms</h3>
+          <p style="margin:0">Candidate keys: {Student, Course} and {Student, Instructor}
+          — so <em>all three</em> attributes are prime.</p>
+          <ul style="margin:6px 0 0">
+            <li><span class="ok">3NF ✓</span> — Instructor → Course passes because Course is prime.</li>
+            <li><span class="bad">BCNF ✗</span> — Instructor isn't a superkey, yet it determines Course.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · BCNF DECOMPOSITION -->
+  <section class="slide" data-title="BCNF decomposition" aria-roledescription="slide" aria-label="Bcnf decomposition">
+    <p class="kicker">The algorithm</p>
+    <h2 class="slide-h" tabindex="-1">Decomposing to BCNF</h2>
+    <div class="two">
+      <div>
+        <p>For a violating FD <span class="fd" style="font-size:.95rem">X <span class="arrow">→</span> A</span>,
+        split R into two: one relation holding X<sup>+</sup>, and one holding R with the
+        determined attributes removed (but X kept, so they still join).</p>
+        <p>On the violation Instructor → Course:</p>
+        <div class="relset">
+          <div class="relcard ok">INSTRUCTS(<u>Instructor</u>, Course)</div>
+          <div class="relcard ok">ENROLLED(<u>Student</u>, <u>Instructor</u>)</div>
+        </div>
+      </div>
+      <div class="callout good">
+        <h3>Lossless — guaranteed</h3>
+        <p style="margin:0">The two share Instructor, which is a key of INSTRUCTS, so the
+        join reconstructs TEACH exactly with no spurious rows. BCNF decomposition is
+        <em>always</em> lossless.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · THE TRADEOFF -->
+  <section class="slide" data-title="The dependency-preservation tradeoff" aria-roledescription="slide" aria-label="The dependency preservation tradeoff">
+    <p class="kicker">The catch</p>
+    <h2 class="slide-h" tabindex="-1">What the BCNF split loses</h2>
+    <div class="two">
+      <div>
+        <p>The decomposition is lossless — but the FD
+        <span class="fd" style="font-size:.95rem">Student, Course <span class="arrow">→</span> Instructor</span>
+        now spans <strong>both</strong> relations. No single table holds all three
+        attributes, so you can't enforce that rule without joining.</p>
+        <p style="margin:0">That's a <span class="term">loss of dependency preservation</span> —
+        and it's not a bug in the algorithm; it's provably unavoidable for some
+        relations.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The theorem</h3>
+        <p style="margin:0">Every relation has a lossless BCNF decomposition. But not
+        every relation has one that is <em>also</em> dependency-preserving. TEACH is
+        exactly such a relation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · CHOOSING -->
+  <section class="slide" data-title="Choosing 3NF or BCNF" aria-roledescription="slide" aria-label="Choosing 3nf or bcnf">
+    <p class="kicker">The design decision</p>
+    <h2 class="slide-h" tabindex="-1">3NF or BCNF?</h2>
+    <div class="cmp">
+      <div class="cmpcol">
+        <h3>Stay at 3NF when…</h3>
+        <ul>
+          <li>you must enforce every FD locally, without joins;</li>
+          <li>the leftover redundancy is small and controlled;</li>
+          <li>the violating FD is rare in practice.</li>
+        </ul>
+      </div>
+      <div class="cmpcol strict">
+        <h3>Go to BCNF when…</h3>
+        <ul>
+          <li>removing all redundancy matters more;</li>
+          <li>the lost FD can be enforced by the application or a trigger;</li>
+          <li>a dependency-preserving BCNF decomposition happens to exist.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>The usual advice</h3>
+      <p style="margin:0">Aim for BCNF; fall back to 3NF when dependency preservation is
+      essential and BCNF can't give it. 3NF is the guaranteed floor — always achievable
+      losslessly <em>and</em> dependency-preserving.</p>
+    </div>
+  </section>
+
+  <!-- 10 · MINIMAL COVER MOTIVATION -->
+  <section class="slide" data-title="Minimal cover motivation" aria-roledescription="slide" aria-label="Minimal cover motivation">
+    <p class="kicker">Cleaning up the FD set</p>
+    <h2 class="slide-h" tabindex="-1">Minimal cover — why bother?</h2>
+    <div class="two">
+      <div>
+        <p>A set of FDs usually contains redundancy: split-apart right sides, needless
+        left-side attributes, whole FDs implied by the others.</p>
+        <p>A <span class="term">minimal cover</span> is an <em>equivalent</em> FD set —
+        same closure — stripped to a canonical, non-redundant form. The 3NF synthesis
+        algorithm needs one as input.</p>
+      </div>
+      <div class="callout">
+        <h3>Equivalent, remember</h3>
+        <p style="margin:0">"Equivalent" means each set implies the other — checked with
+        closures from Normalization I. A minimal cover throws away nothing you can't
+        already derive.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · THREE CONDITIONS -->
+  <section class="slide" data-title="The three conditions" aria-roledescription="slide" aria-label="The three conditions of a minimal cover">
+    <p class="kicker">What "minimal" means</p>
+    <h2 class="slide-h" tabindex="-1">Three conditions of a minimal cover</h2>
+    <ol>
+      <li><strong>Singleton right sides.</strong> Every FD has exactly one attribute on the
+      right (use decomposition to split X → AB into X → A, X → B).</li>
+      <li><strong>No extraneous left-side attribute.</strong> No attribute can be dropped
+      from any left side while keeping the same closure.</li>
+      <li><strong>No redundant FD.</strong> No whole FD can be removed while keeping the same
+      closure.</li>
+    </ol>
+    <div class="callout warn">
+      <h3>Not unique</h3>
+      <p style="margin:0">A set can have several minimal covers — the result depends on
+      the order you test FDs in step 3. All are equivalent; any one is fine.</p>
+    </div>
+  </section>
+
+  <!-- 12 · THE ALGORITHM -->
+  <section class="slide" data-title="Computing a minimal cover" aria-roledescription="slide" aria-label="Computing a minimal cover">
+    <p class="kicker">The procedure</p>
+    <h2 class="slide-h" tabindex="-1">Computing it, in order</h2>
+    <div class="two">
+      <div>
+        <p>Apply the three conditions as steps, in this order:</p>
+        <ol>
+          <li>Rewrite every FD with a <strong>single</strong> attribute on the right.</li>
+          <li>For each FD, try to remove each left-side attribute; drop it if the FD
+          still follows (test with a closure).</li>
+          <li>For each FD in turn, try to remove it entirely; drop it if it still
+          follows from the rest.</li>
+        </ol>
+      </div>
+      <div class="callout">
+        <h3>Order matters within a step</h3>
+        <p style="margin:0">In steps 2 and 3, each removal changes what's left, so test
+        against the <em>current</em> set as you go. Do the interactive on the next slide
+        to see each removal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · INTERACTIVE -->
+  <section class="slide" data-title="Minimal cover, step by step" aria-roledescription="slide" aria-label="Interactive: minimal cover step by step">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Reduce F to a minimal cover</h2>
+    <p>Start from
+    <span class="fd" style="font-size:.95rem">F = { A <span class="arrow">→</span> BC,&nbsp; B <span class="arrow">→</span> C,&nbsp; A <span class="arrow">→</span> B,&nbsp; AB <span class="arrow">→</span> C }</span>
+    and strip it down.</p>
+    <div class="hl-controls" role="group" aria-label="Step the minimal-cover reduction">
+      <button class="chip" data-step="0" aria-pressed="true"
+        data-desc="Starting set F, exactly as given — with multi-attribute right sides and likely redundancy.">start F</button>
+      <button class="chip" data-step="1" aria-pressed="false"
+        data-desc="Step 1 — singleton right sides: split A → BC into A → B and A → C. The duplicate A → B collapses. Now every FD has one attribute on the right.">1 · split RHS</button>
+      <button class="chip" data-step="2" aria-pressed="false"
+        data-desc="Step 2 — remove extraneous left-side attributes: in AB → C, B alone already gives C (B → C), so A is extraneous. AB → C reduces to B → C, a duplicate, and drops out.">2 · reduce LHS</button>
+      <button class="chip" data-step="3" aria-pressed="false"
+        data-desc="Step 3 — remove redundant FDs: A → C follows from A → B and B → C, so it's redundant and removed. The minimal cover is { A → B, B → C }.">3 · drop redundant</button>
+    </div>
+    <p id="mc-desc" class="live-desc"
+       data-default="Starting set F, exactly as given — with multi-attribute right sides and likely redundancy.">Starting set F, exactly as given — with multi-attribute right sides and likely redundancy.</p>
+    <div class="mcbox demo" id="mc-demo" data-step="0">
+      <div class="mc-variant" data-q="0">
+        <p class="lbl">F — as given</p>
+        <div class="fdlist">
+          <span class="fd">A <span class="arrow">→</span> BC</span>
+          <span class="fd">B <span class="arrow">→</span> C</span>
+          <span class="fd">A <span class="arrow">→</span> B</span>
+          <span class="fd">AB <span class="arrow">→</span> C</span>
+        </div>
+      </div>
+      <div class="mc-variant" data-q="1">
+        <p class="lbl">After step 1 — singleton right sides</p>
+        <div class="fdlist">
+          <span class="fd">A <span class="arrow">→</span> B</span>
+          <span class="fd">A <span class="arrow">→</span> C</span>
+          <span class="fd">B <span class="arrow">→</span> C</span>
+          <span class="fd">AB <span class="arrow">→</span> C</span>
+        </div>
+      </div>
+      <div class="mc-variant" data-q="2">
+        <p class="lbl">After step 2 — AB → C reduces to B → C (drops as a duplicate)</p>
+        <div class="fdlist">
+          <span class="fd">A <span class="arrow">→</span> B</span>
+          <span class="fd">A <span class="arrow">→</span> C</span>
+          <span class="fd">B <span class="arrow">→</span> C</span>
+          <span class="fd gone">AB <span class="arrow">→</span> C</span>
+        </div>
+      </div>
+      <div class="mc-variant" data-q="3">
+        <p class="lbl">After step 3 — minimal cover</p>
+        <div class="fdlist">
+          <span class="fd ok">A <span class="arrow">→</span> B</span>
+          <span class="fd gone">A <span class="arrow">→</span> C</span>
+          <span class="fd ok">B <span class="arrow">→</span> C</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · SYNTHESIS PREVIEW -->
+  <section class="slide" data-title="Minimal cover to 3NF" aria-roledescription="slide" aria-label="Minimal cover to 3nf synthesis">
+    <p class="kicker">Why we did this</p>
+    <h2 class="slide-h" tabindex="-1">Minimal cover → 3NF synthesis</h2>
+    <div class="two">
+      <div>
+        <p>The minimal cover isn't just tidy — it's the input to the
+        <span class="term">3NF synthesis</span> algorithm, which <em>builds</em> a good
+        schema rather than splitting a bad one:</p>
+        <ol>
+          <li>Compute a minimal cover of F.</li>
+          <li>Make one relation per FD (or per common left side).</li>
+          <li>Add a relation for a candidate key if none is covered.</li>
+        </ol>
+      </div>
+      <div class="callout good">
+        <h3>The payoff</h3>
+        <p style="margin:0">Synthesis from a minimal cover yields a schema that is 3NF,
+        <em>lossless</em>, and <em>dependency-preserving</em> — all three at once. We'll do
+        the full algorithm, and compare it to decomposition, next lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>BCNF is one clause simpler than 3NF.</strong> Drop the "or RHS is prime"
+      escape — every determinant must be a superkey, period.</li>
+      <li><strong>Lossless is guaranteed; dependency-preserving is not.</strong> A BCNF
+      split always rejoins correctly, but may strand an FD across relations.</li>
+      <li><strong>3NF is the safe floor.</strong> When BCNF can't preserve dependencies,
+      3NF always can — that's why it's the default target.</li>
+      <li><strong>Do minimal-cover steps in order.</strong> Singleton RHS, then reduce LHS,
+      then drop redundant FDs — and re-test against the current set.</li>
+      <li><strong>Minimal covers aren't unique.</strong> Different orderings give different
+      (equivalent) results; don't expect one canonical answer.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">BCNF</span>: every determinant is a superkey — stricter than 3NF.</li>
+          <li>The <span class="term">tradeoff</span>: BCNF is always lossless, not always dependency-preserving.</li>
+          <li><span class="term">Minimal cover</span>: singleton RHS → reduce LHS → drop redundant FDs.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why is TEACH in 3NF but not BCNF?</li>
+            <li>What does its BCNF split lose, and why is that unavoidable?</li>
+            <li>Give a minimal cover of { X → YZ, Y → Z, X → Y }.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Normalization IV</h3>
+          <p style="margin:0">Lossless-join and dependency-preservation tests,
+          decomposition vs. synthesis algorithms, and multivalued dependencies with 4NF.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- minimal-cover stepper (only if that markup is present) ---
+  var mChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-step]'));
+  var mDesc  = document.getElementById('mc-desc');
+  var mDemo  = document.getElementById('mc-demo');
+  if (mChips.length && mDemo){
+    mChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        mChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        mDemo.setAttribute('data-step', chip.getAttribute('data-step'));
+        if (mDesc) mDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

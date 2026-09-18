@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Access II — Stored Procedures &amp; SQL Injection · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- code blocks ---- */
+pre.sql{font-family:var(--mono);font-size:.87rem;line-height:1.5;color:var(--ink);
+  background:#0F1B33;border:1px solid var(--blue-ink);border-radius:9px;
+  padding:14px 16px;margin:0 0 12px;overflow-x:auto;white-space:pre}
+pre.sql code{color:#DCE4F5}
+pre.sql .kw{color:#8FB4FF;font-weight:700}
+pre.sql .ty{color:#7FD4C0}
+pre.sql .st{color:#F2B08A}
+pre.sql .cm{color:#8A93A3;font-style:italic}
+pre.sql .fn{color:#E6C06B}
+pre.sql .hv{color:#C6A6FF}
+pre.sql .bad{color:#FF9E80;font-weight:700;background:rgba(214,67,9,.22);border-radius:3px}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- approach cards ---- */
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ac{border:1px solid var(--line);border-top:4px solid var(--blue);border-radius:9px;
+  padding:12px 14px;background:#fff}
+.ac b{display:block;color:var(--blue-ink);font-size:1rem;margin-bottom:3px}
+.ac span{color:var(--muted);font-size:.9rem}
+
+/* ---- interactive: injection demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.qbox .q-variant{display:none}
+html:not(.js) .qbox .q-variant{display:block;margin-bottom:10px}
+.qbox[data-mode="normal"] .q-variant[data-q="normal"],
+.qbox[data-mode="concat"] .q-variant[data-q="concat"],
+.qbox[data-mode="param"]  .q-variant[data-q="param"]{display:block}
+.q-variant .outcome{font-family:var(--sans);font-size:.92rem;margin:6px 2px 0}
+.q-variant .ok{color:#0B6B57;font-weight:700}
+.q-variant .no{color:#7A2708;font-weight:700}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .cards3{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  pre.sql{font-size:.78rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.ac,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.ac,pre.sql,.q-variant{break-inside:avoid}
+  pre.sql{background:#F4F6FB;border-color:var(--line)}
+  pre.sql code{color:#14181F}
+  pre.sql .kw{color:#00246B}
+  pre.sql .ty{color:#0B6B57}
+  pre.sql .st{color:#7A2708}
+  pre.sql .cm{color:#4A5160}
+  pre.sql .hv{color:#5A3AA0}
+  pre.sql .bad{color:#7A2708;background:#FBEEE7}
+  .qbox .q-variant{display:block!important;margin-bottom:10px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 5 · Database access from applications</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 2 of 2 · Elmasri &amp; Navathe, Ch. 10–11</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="App Access II — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="App Access II — Stored Procedures & SQL Injection"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Logic in the database, and the seam that leaks</p>
+    <h2 class="slide-h" tabindex="-1">App Access II<br>Stored procedures &amp; SQL injection</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Two loose ends from last lecture: where application logic can
+        live <em>inside</em> the database, and the single most famous way the
+        code–data seam gets exploited.</p>
+        <p style="color:var(--muted)">Stored procedures and SQL/PSM first; then how SQL
+        injection works and why parameterized queries end it.</p>
+      </div>
+      <div class="callout">
+        <h3>Why together</h3>
+        <p style="margin:0">Both are about the boundary between a program and the
+        database — one moves logic across it deliberately, the other is what happens
+        when untrusted input crosses it by accident.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last lecture</h3>
+          <p style="margin:0">The impedance mismatch, embedded/dynamic SQL, cursors, and
+          JDBC — including the prepared statement we flagged as a safety hook.</p>
+        </div>
+        <p>This lecture closes Unit 5 and cashes that hook in.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Write a <span class="term">stored procedure</span> or function in SQL/PSM.</li>
+            <li>Use variables, control flow, and a cursor inside the database.</li>
+            <li>Explain how <span class="term">SQL injection</span> works.</li>
+            <li>Stop it with <span class="term">parameterized queries</span> and defense in depth.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHY LOGIC IN THE DB -->
+  <section class="slide" data-title="Why put logic in the database" aria-roledescription="slide" aria-label="Why put logic in the database">
+    <p class="kicker">Stored procedures · motivation</p>
+    <h2 class="slide-h" tabindex="-1">Why put logic in the database?</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">stored procedure</span> is code that lives and runs on the
+        database server. Reasons to move logic there:</p>
+        <ul>
+          <li><strong>Fewer round-trips</strong> — a multi-step operation runs in one call.</li>
+          <li><strong>Shared logic</strong> — every app (Java, Python, a report tool) calls the same rule.</li>
+          <li><strong>Encapsulation &amp; security</strong> — grant EXECUTE on the procedure, not raw table access.</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <h3>The trade-offs</h3>
+        <p style="margin:0">Procedural SQL is <em>less portable</em> across vendors, harder
+        to unit-test and version than application code, and can hide business logic
+        where developers don't look. Use it where its strengths clearly win.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · CREATE PROCEDURE -->
+  <section class="slide" data-title="CREATE PROCEDURE and CALL" aria-roledescription="slide" aria-label="Create procedure and call">
+    <p class="kicker">Stored procedures · 1</p>
+    <h2 class="slide-h" tabindex="-1">CREATE PROCEDURE &amp; CALL</h2>
+    <div class="two">
+      <div>
+        <p>A procedure has a name, typed parameters, and a body. Parameters carry a
+        direction:</p>
+        <ul>
+          <li><code class="rel">IN</code> — passed into the procedure.</li>
+          <li><code class="rel">OUT</code> — returned back to the caller.</li>
+          <li><code class="rel">INOUT</code> — both.</li>
+        </ul>
+        <p style="margin:0">Invoke with <code class="rel">CALL</code>.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE PROCEDURE</span> course_count(
+  <span class="kw">IN</span>  sid <span class="ty">CHAR</span>(5),
+  <span class="kw">OUT</span> n   <span class="ty">INT</span>)
+<span class="kw">BEGIN</span>
+  <span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">INTO</span> n
+  <span class="kw">FROM</span> ENROLLMENT
+  <span class="kw">WHERE</span> StudentID = sid;
+<span class="kw">END</span>;
+
+<span class="kw">CALL</span> course_count(<span class="st">'S1001'</span>, @c);</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · SQL/PSM -->
+  <section class="slide" data-title="SQL/PSM: variables and control flow" aria-roledescription="slide" aria-label="Sql psm variables and control flow">
+    <p class="kicker">Stored procedures · 2</p>
+    <h2 class="slide-h" tabindex="-1">SQL/PSM — a real programming language</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">SQL/PSM</span> (Persistent Stored Modules) adds the
+        procedural pieces SQL lacks: local <code class="rel">DECLARE</code> variables and
+        control flow — <code class="rel">IF</code>, <code class="rel">CASE</code>,
+        <code class="rel">WHILE</code>, <code class="rel">LOOP</code>,
+        <code class="rel">FOR</code>.</p>
+        <p>A <span class="term">function</span> returns a value, so it can be used
+        <em>inside</em> a query — a computed column with a name.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE FUNCTION</span> standing(g <span class="ty">DECIMAL</span>(3,2))
+  <span class="kw">RETURNS</span> <span class="ty">VARCHAR</span>(10)
+<span class="kw">BEGIN</span>
+  <span class="kw">IF</span> g &gt;= <span class="st">3.5</span> <span class="kw">THEN RETURN</span> <span class="st">'Honors'</span>;
+  <span class="kw">ELSEIF</span> g &gt;= <span class="st">2.0</span> <span class="kw">THEN RETURN</span> <span class="st">'Good'</span>;
+  <span class="kw">ELSE RETURN</span> <span class="st">'Warning'</span>;
+  <span class="kw">END IF</span>;
+<span class="kw">END</span>;
+
+<span class="kw">SELECT</span> Name, standing(GPA) <span class="kw">FROM</span> STUDENT;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · PROCEDURE WITH CURSOR -->
+  <section class="slide" data-title="A procedure with a cursor" aria-roledescription="slide" aria-label="A procedure with a cursor">
+    <p class="kicker">Stored procedures · 3</p>
+    <h2 class="slide-h" tabindex="-1">A cursor inside a procedure</h2>
+    <div class="two">
+      <div>
+        <p>The cursor loop from last lecture, now living server-side. A
+        <span class="term">handler</span> catches the "no more rows" condition and ends
+        the loop cleanly.</p>
+        <p style="margin:0">This flags every student carrying more than six courses —
+        a rule that would take several round-trips from the application, done in one
+        call.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE PROCEDURE</span> flag_overload()
+<span class="kw">BEGIN</span>
+  <span class="kw">DECLARE</span> done <span class="ty">INT DEFAULT</span> 0;
+  <span class="kw">DECLARE</span> sid <span class="ty">CHAR</span>(5); <span class="kw">DECLARE</span> cnt <span class="ty">INT</span>;
+  <span class="kw">DECLARE</span> c <span class="kw">CURSOR FOR</span>
+    <span class="kw">SELECT</span> StudentID, <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> ENROLLMENT
+    <span class="kw">GROUP BY</span> StudentID;
+  <span class="kw">DECLARE CONTINUE HANDLER FOR NOT FOUND</span>
+    <span class="kw">SET</span> done = 1;
+  <span class="kw">OPEN</span> c;
+  loop: <span class="kw">LOOP</span>
+    <span class="kw">FETCH</span> c <span class="kw">INTO</span> sid, cnt;
+    <span class="kw">IF</span> done <span class="kw">THEN LEAVE</span> loop; <span class="kw">END IF</span>;
+    <span class="kw">IF</span> cnt &gt; <span class="st">6</span> <span class="kw">THEN</span>
+      <span class="kw">INSERT INTO</span> OVERLOAD <span class="kw">VALUES</span>(sid);
+    <span class="kw">END IF</span>;
+  <span class="kw">END LOOP</span>;
+  <span class="kw">CLOSE</span> c;
+<span class="kw">END</span>;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · FUNCTIONS VS PROCEDURES -->
+  <section class="slide" data-title="Functions vs procedures" aria-roledescription="slide" aria-label="Functions versus procedures">
+    <p class="kicker">Stored procedures · 4</p>
+    <h2 class="slide-h" tabindex="-1">Function or procedure?</h2>
+    <div class="cards3">
+      <div class="ac"><b>Function</b><span>Returns one value; callable inside a query. Should be deterministic and side-effect-free.</span></div>
+      <div class="ac"><b>Procedure</b><span>Does work via OUT parameters and side effects; called with CALL, not inside a SELECT.</span></div>
+      <div class="ac"><b>Trigger</b><span>Procedure-like body the DBMS fires automatically on an event (Unit 4). Not called directly.</span></div>
+    </div>
+    <div class="callout">
+      <h3>Rule of thumb</h3>
+      <p style="margin:0">If you want to <em>use the result in SQL</em>, write a function.
+      If you want to <em>perform an operation</em> — insert, update, multi-step work —
+      write a procedure. Keep functions pure so the optimizer can trust them.</p>
+    </div>
+  </section>
+
+  <!-- 8 · THE CODE-DATA BOUNDARY -->
+  <section class="slide" data-title="The code–data boundary" aria-roledescription="slide" aria-label="The code data boundary">
+    <p class="kicker">Security · the setup</p>
+    <h2 class="slide-h" tabindex="-1">The code–data boundary</h2>
+    <div class="two">
+      <div>
+        <p>Every query the database runs is <em>code</em>. When an application builds
+        that code by <strong>pasting user input into a string</strong>, it hands the user
+        a chance to write code too.</p>
+        <p>The whole of SQL injection is that one confusion: input meant to be
+        <em>data</em> gets parsed as <em>SQL</em>. Keeping the two apart is the entire
+        defense.</p>
+      </div>
+      <div class="callout warn">
+        <h3>Where it lives</h3>
+        <p style="margin:0">Anywhere a query is assembled with string concatenation and
+        untrusted input — a login form, a search box, a URL parameter, an API field.
+        This is consistently among the most damaging web vulnerabilities.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · HOW INJECTION WORKS -->
+  <section class="slide" data-title="How SQL injection works" aria-roledescription="slide" aria-label="How sql injection works">
+    <p class="kicker">Security · the vulnerability</p>
+    <h2 class="slide-h" tabindex="-1">How injection happens</h2>
+    <div class="two">
+      <div>
+        <p>Consider a login that builds its query by concatenation:</p>
+        <p style="margin:0">The developer <em>intends</em> the input to be a username. But
+        the string is handed to the parser whole — so characters like a quote can
+        <strong>close the literal early</strong> and let the rest be read as SQL.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">// VULNERABLE: input pasted into SQL text</span>
+<span class="ty">String</span> sql =
+  <span class="st">"SELECT * FROM USERS "</span> +
+  <span class="st">"WHERE user='"</span> + user +
+  <span class="st">"' AND pass='"</span> + pw + <span class="st">"'"</span>;
+st.executeQuery(sql);</code></pre>
+        <p class="figcap">The quotes that were meant to fence the value can be supplied by the value.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · THE CLASSIC EXAMPLE -->
+  <section class="slide" data-title="The classic login bypass" aria-roledescription="slide" aria-label="The classic login bypass">
+    <p class="kicker">Security · the textbook case</p>
+    <h2 class="slide-h" tabindex="-1">The classic login bypass</h2>
+    <div class="two">
+      <div>
+        <p>Supply a password of <code class="rel">' OR '1'='1</code>. Concatenated in,
+        the WHERE clause becomes a tautology — <em>always true</em> — so the check
+        passes without a valid credential.</p>
+        <p style="margin:0">The same trick shape (a broken-out quote plus injected SQL)
+        can read or destroy data, not just skip a login. One flaw, wide blast radius.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">// pass = ' OR '1'='1</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> USERS
+<span class="kw">WHERE</span> user=<span class="st">'alice'</span>
+  <span class="kw">AND</span> pass=<span class="st">''</span> <span class="bad">OR '1'='1'</span>;
+<span class="cm">// '1'='1' is always true → row returned</span></code></pre>
+        <p class="figcap">The injected fragment turns the condition into "always true."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · INTERACTIVE -->
+  <section class="slide" data-title="Unsafe vs. parameterized" aria-roledescription="slide" aria-label="Interactive: unsafe versus parameterized">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Same malicious input, two constructions</h2>
+    <p>The attacker types <code class="rel">' OR '1'='1</code> in the password box.
+    Watch what the database actually receives under each approach.</p>
+    <div class="hl-controls" role="group" aria-label="Choose input and construction">
+      <button class="chip" data-mode="normal" aria-pressed="true"
+        data-desc="Ordinary input: pass = 'secret'. Concatenated, the query checks user and password normally and matches Alice's one row. Login succeeds as intended.">normal input</button>
+      <button class="chip" data-mode="concat" aria-pressed="false"
+        data-desc="Malicious input, string-concatenated: the quote in the input closes the password literal, and OR '1'='1' makes the WHERE always true. Every row matches — the login is bypassed.">malicious + concat</button>
+      <button class="chip" data-mode="param" aria-pressed="false"
+        data-desc="Malicious input, parameterized: the whole string is bound as the password value. The database never parses it as SQL, so it just looks for a user whose password is literally that text — and finds none. Login refused.">malicious + parameterized</button>
+    </div>
+    <p id="inj-desc" class="live-desc"
+       data-default="Ordinary input: pass = 'secret'. Concatenated, the query checks user and password normally and matches Alice's one row. Login succeeds as intended.">Ordinary input: pass = 'secret'. Concatenated, the query checks user and password normally and matches Alice's one row. Login succeeds as intended.</p>
+    <div class="qbox" id="inj-box" data-mode="normal">
+      <div class="q-variant" data-q="normal">
+<pre class="sql"><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> USERS
+<span class="kw">WHERE</span> user=<span class="st">'alice'</span> <span class="kw">AND</span> pass=<span class="st">'secret'</span>;</code></pre>
+        <p class="outcome"><span class="ok">Login OK</span> — matches Alice's single row, as intended.</p>
+      </div>
+      <div class="q-variant" data-q="concat">
+<pre class="sql"><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> USERS
+<span class="kw">WHERE</span> user=<span class="st">'alice'</span> <span class="kw">AND</span> pass=<span class="st">''</span> <span class="bad">OR '1'='1'</span>;</code></pre>
+        <p class="outcome"><span class="no">Bypassed</span> — the condition is always true; every row matches.</p>
+      </div>
+      <div class="q-variant" data-q="param">
+<pre class="sql"><code><span class="kw">SELECT</span> * <span class="kw">FROM</span> USERS
+<span class="kw">WHERE</span> user=? <span class="kw">AND</span> pass=?;
+<span class="cm">// ?2  ←  "' OR '1'='1"   (one literal value)</span></code></pre>
+        <p class="outcome"><span class="ok">Login refused</span> — no user has that literal password; the input never becomes SQL.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · THE FIX -->
+  <section class="slide" data-title="The fix: parameterized queries" aria-roledescription="slide" aria-label="The fix, parameterized queries">
+    <p class="kicker">Security · the fix</p>
+    <h2 class="slide-h" tabindex="-1">The fix: parameterized queries</h2>
+    <div class="two">
+      <div>
+        <p>Send the DBMS a fixed statement with placeholders, then bind values
+        separately. A bound value is <strong>never parsed as SQL</strong> — it can't
+        add a clause, close a quote, or change the statement's structure.</p>
+        <p style="margin:0">This is the prepared statement from last lecture, now doing
+        security work as well as performance work.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">// SAFE: structure fixed, values bound</span>
+<span class="ty">PreparedStatement</span> ps = con.prepareStatement(
+  <span class="st">"SELECT * FROM USERS "</span> +
+  <span class="st">"WHERE user=? AND pass=?"</span>);
+ps.setString(<span class="st">1</span>, user);
+ps.setString(<span class="st">2</span>, pw);   <span class="cm">// input stays data</span>
+<span class="ty">ResultSet</span> rs = ps.executeQuery();</code></pre>
+        <div class="callout good">
+          <h3>The rule</h3>
+          <p style="margin:0">Never build SQL by concatenating input. Bind it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · DEFENSE IN DEPTH -->
+  <section class="slide" data-title="Defense in depth" aria-roledescription="slide" aria-label="Defense in depth">
+    <p class="kicker">Security · layers</p>
+    <h2 class="slide-h" tabindex="-1">Defense in depth</h2>
+    <div class="two">
+      <div>
+        <p>Parameterization is the primary fix. Layer more behind it, because no single
+        control should be load-bearing alone:</p>
+        <ul>
+          <li><strong>Least privilege</strong> — the app's DB account can touch only what it
+          needs; no DROP, no admin.</li>
+          <li><strong>Input validation</strong> — accept known-good shapes (an allowlist),
+          as a complement, not a replacement.</li>
+          <li><strong>Views &amp; procedures</strong> — expose a narrow, parameterized surface.</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <h3>What doesn't work</h3>
+        <p style="margin:0">Hand-escaping quotes and blocklisting "bad words" are fragile
+        — attackers find encodings and edge cases you didn't. Parameterize instead of
+        trying to sanitize your way to safety.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · INJECTION AND PROCEDURES -->
+  <section class="slide" data-title="Injection and stored procedures" aria-roledescription="slide" aria-label="Injection and stored procedures">
+    <p class="kicker">Bringing the halves together</p>
+    <h2 class="slide-h" tabindex="-1">Procedures don't automatically save you</h2>
+    <div class="two">
+      <div>
+        <p>Stored procedures <em>can</em> reduce the attack surface — but only if they
+        themselves use parameters. A procedure that builds
+        <strong>dynamic SQL by concatenation</strong> inside its body is just as
+        injectable.</p>
+        <p style="margin:0">The lesson unifies the lecture: wherever SQL text is
+        assembled from input — in the app or in the database — bind, don't concatenate.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- Still vulnerable: concatenation inside</span>
+<span class="kw">SET</span> @q = <span class="fn">CONCAT</span>(
+  <span class="st">'SELECT * FROM STUDENT WHERE Name='''</span>,
+  term, <span class="st">''''</span>);
+<span class="kw">PREPARE</span> s <span class="kw">FROM</span> @q; <span class="kw">EXECUTE</span> s;
+
+<span class="cm">-- Safe: a parameter marker</span>
+<span class="kw">PREPARE</span> s <span class="kw">FROM</span>
+  <span class="st">'SELECT * FROM STUDENT WHERE Name=?'</span>;
+<span class="kw">EXECUTE</span> s <span class="kw">USING</span> term;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Concatenated input is the vulnerability.</strong> If user data reaches a
+      query as string text, assume it's exploitable.</li>
+      <li><strong>Parameterize everywhere</strong> — in the app <em>and</em> in any dynamic
+      SQL inside procedures.</li>
+      <li><strong>Validation complements, never replaces.</strong> Allowlists help; they are
+      not a substitute for binding.</li>
+      <li><strong>Grant the least the app needs.</strong> A compromised query does far less
+      damage on a restricted account.</li>
+      <li><strong>Weigh stored logic.</strong> Procedures buy fewer round-trips and central
+      rules, at the cost of portability and testability.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up · end of Unit 5</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">Stored procedures</span> &amp; SQL/PSM: parameters, control flow, cursors, functions.</li>
+          <li><span class="term">SQL injection</span>: input parsed as code when queries are concatenated.</li>
+          <li>The fix — <span class="term">parameterized queries</span> — plus least privilege and validation.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>When should logic be a function vs. a procedure?</li>
+            <li>Why does <code class="rel">' OR '1'='1</code> bypass a concatenated login?</li>
+            <li>Why can't a bound parameter change a statement's structure?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Unit 6: Normalization</h3>
+          <p style="margin:0">Functional dependencies and normal forms: the theory that
+          tells you whether a schema is well-designed, and the algorithms that fix it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- injection demonstrator (only if that markup is present) ---
+  var iChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-mode]'));
+  var iDesc  = document.getElementById('inj-desc');
+  var iBox   = document.getElementById('inj-box');
+  if (iChips.length && iBox){
+    iChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        iChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        iBox.setAttribute('data-mode', chip.getAttribute('data-mode'));
+        if (iDesc) iDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

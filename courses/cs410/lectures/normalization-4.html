@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Normalization IV — Lossless Join, Synthesis, and 4NF · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- FD / notation ---- */
+.fd{font-family:var(--serif);font-size:1.06rem;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;margin:0 0 10px;display:inline-block}
+.fd .arrow{color:#7A2708;font-weight:700;padding:0 .25em}
+.fdlist{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px}
+.fdlist .fd{margin:0;font-size:.98rem}
+.bad{color:#7A2708;font-weight:700}
+.ok{color:#0B6B57;font-weight:700}
+
+/* ---- relation cards ---- */
+.relset{display:flex;flex-direction:column;gap:8px}
+.relcard{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:8px 12px;background:#fff;font-family:var(--mono);font-size:.92rem;color:var(--blue-ink)}
+.relcard u{text-decoration-color:var(--blue-ink);text-underline-offset:3px}
+.relcard.ok{border-left-color:#0B6B57}
+.relcard.bad{border-left-color:var(--orange)}
+
+/* ---- instance / demo tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.88rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+
+/* ---- compare ---- */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cmpcol{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff}
+.cmpcol h3{margin:0 0 6px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.cmpcol.b{border-top:4px solid #0B6B57}
+.cmpcol.b h3{color:#0B6B57}
+.cmpcol.a{border-top:4px solid var(--blue)}
+.cmpcol ul{margin:0;padding-left:1.1rem}
+.cmpcol li{font-size:.92rem;margin:5px 0}
+
+/* ---- ladder grid ---- */
+.nfgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.nf{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:9px 12px;background:#fff}
+.nf b{display:block;color:var(--blue-ink);font-size:.94rem}
+.nf span{color:var(--muted);font-size:.84rem}
+
+/* ---- interactive: lossless demo ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+table.demo tr.spur{display:none}
+.demo[data-mode="lossy"] tr.spur{display:table-row}
+.demo[data-mode="lossy"] tr.spur td{background:#FBEEE7;color:#7A2708}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .cmp{grid-template-columns:1fr}
+  .nfgrid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  .relcard{font-size:.82rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.cmpcol,.nf,.relcard,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .callout,.cmpcol,.nf,.relcard,table.inst{break-inside:avoid}
+  table.demo tr.spur{display:table-row!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 6 · Normalization</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 4 of 4 · Elmasri &amp; Navathe, Ch. 15</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Normalization IV — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Normalization IV — Lossless Join, Synthesis, and 4NF"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Making decomposition safe, and finishing the ladder</p>
+    <h2 class="slide-h" tabindex="-1">Normalization IV<br>Lossless join, synthesis, and 4NF</h2>
+    <div class="two">
+      <div>
+        <p class="lead">We've been decomposing relations on faith. Now we prove a split
+        is safe — that it rejoins to the original and keeps every dependency checkable —
+        and then finish the normal-form ladder.</p>
+        <p style="color:var(--muted)">Two tests, two strategies, and the multivalued
+        dependencies that 4NF was invented to handle.</p>
+      </div>
+      <div class="callout">
+        <h3>The last piece</h3>
+        <p style="margin:0">A decomposition that loses data is worse than the redundancy
+        it removes. The lossless-join test is what keeps normalization honest.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>This unit so far</h3>
+          <p style="margin:0">FDs and closure; 1NF–3NF; BCNF and minimal cover. We kept
+          promising a proper treatment of "lossless" and "dependency-preserving."</p>
+        </div>
+        <p>Today delivers it, adds the two decomposition strategies, and closes with
+        MVDs, 4NF, and a word on 5NF.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Test a decomposition for the <span class="term">lossless-join</span> property.</li>
+            <li>Recognize <span class="term">spurious tuples</span> and their cause.</li>
+            <li>Test <span class="term">dependency preservation</span> and run <span class="term">3NF synthesis</span>.</li>
+            <li>Define an <span class="term">MVD</span> and <span class="term">4NF</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE TWO PROPERTIES -->
+  <section class="slide" data-title="The two properties" aria-roledescription="slide" aria-label="The two properties">
+    <p class="kicker">The standard every split must meet</p>
+    <h2 class="slide-h" tabindex="-1">Two properties a decomposition must earn</h2>
+    <div class="cmp">
+      <div class="cmpcol a">
+        <h3>Lossless join</h3>
+        <ul>
+          <li>Rejoining the pieces gives back <em>exactly</em> the original relation.</li>
+          <li>No <span class="term">spurious tuples</span> — no invented rows.</li>
+          <li><strong>Non-negotiable.</strong> A lossy split corrupts the data.</li>
+        </ul>
+      </div>
+      <div class="cmpcol b">
+        <h3>Dependency preservation</h3>
+        <ul>
+          <li>Every FD can be checked on a single relation, no join needed.</li>
+          <li>Keeps constraint enforcement cheap.</li>
+          <li><strong>Desirable</strong>, but sometimes traded away (recall BCNF).</li>
+        </ul>
+      </div>
+    </div>
+    <p class="figcap">Lossless is mandatory; dependency preservation is the one we
+    sometimes can't have alongside BCNF.</p>
+  </section>
+
+  <!-- 4 · LOSSLESS TEST -->
+  <section class="slide" data-title="The lossless-join test" aria-roledescription="slide" aria-label="The lossless join test">
+    <p class="kicker">Property 1 · the test</p>
+    <h2 class="slide-h" tabindex="-1">Testing for a lossless join</h2>
+    <div class="two">
+      <div>
+        <p>For a decomposition of R into two relations R<sub>1</sub> and R<sub>2</sub>,
+        the join is lossless <strong>iff</strong> their shared attributes form a key of
+        at least one side:</p>
+        <p class="fd">(R<sub>1</sub> ∩ R<sub>2</sub>) <span class="arrow">→</span> R<sub>1</sub>&nbsp;&nbsp;or&nbsp;&nbsp;(R<sub>1</sub> ∩ R<sub>2</sub>) <span class="arrow">→</span> R<sub>2</sub></p>
+        <p style="margin:0">In words: the common column(s) must determine everything in
+        one of the two relations. Compute the closure of the intersection to check.</p>
+      </div>
+      <div class="callout">
+        <h3>Why it works</h3>
+        <p style="margin:0">If the shared attribute is a key of R<sub>2</sub>, each row of
+        R<sub>1</sub> matches exactly one row of R<sub>2</sub> — so the join can't multiply
+        rows or invent new ones.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · SPURIOUS TUPLES -->
+  <section class="slide" data-title="Spurious tuples" aria-roledescription="slide" aria-label="Spurious tuples">
+    <p class="kicker">Property 1 · the failure</p>
+    <h2 class="slide-h" tabindex="-1">Spurious tuples — the lossy failure</h2>
+    <div class="two">
+      <div>
+        <p>When the shared attribute is <strong>not</strong> a key of either side, the
+        rejoin matches rows that don't belong together and manufactures tuples that were
+        never in R.</p>
+        <p>Those extra rows are <span class="term">spurious tuples</span>. They don't just
+        add noise — they represent facts the database never held, silently corrupting
+        every query that joins.</p>
+        <div class="callout warn">
+          <h3>The rule of thumb</h3>
+          <p style="margin:0">Split on a key, and you're safe. Split on a non-key common
+          attribute, and expect spurious tuples. The interactive shows both.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h3>Setup for the demo</h3>
+        <p style="margin:0">Take R(A, B, C) with <span class="fd" style="font-size:.9rem">A <span class="arrow">→</span> B, C</span>,
+        so A is the key. We'll split it two ways — once on A (safe), once on B
+        (disaster) — and rejoin.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · INTERACTIVE -->
+  <section class="slide" data-title="Lossless vs lossy rejoin" aria-roledescription="slide" aria-label="Interactive: lossless versus lossy rejoin">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Rejoin it — safe split vs. lossy split</h2>
+    <p>R(A, B, C) has two rows. Split it two ways and rejoin; watch spurious tuples
+    appear when the shared column isn't a key.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a decomposition to rejoin">
+      <button class="chip" data-mode="orig" aria-pressed="true"
+        data-desc="R itself. Since A → BC, A is the key — two rows: (A1,B1,C1) and (A2,B1,C2).">original R</button>
+      <button class="chip" data-mode="lossless" aria-pressed="false"
+        data-desc="Split into R1(A,B) and R2(A,C). They share A, which is a key of R. Rejoining on A gives back exactly R's two rows — lossless.">lossless: share A</button>
+      <button class="chip" data-mode="lossy" aria-pressed="false"
+        data-desc="Split into R1(A,B) and R2(B,C). They share B, which is NOT a key. Rejoining on B invents (A1,B1,C2) and (A2,B1,C1) — spurious tuples that were never in R.">lossy: share B</button>
+    </div>
+    <p id="loss-desc" class="live-desc"
+       data-default="R itself. Since A → BC, A is the key — two rows: (A1,B1,C1) and (A2,B1,C2).">R itself. Since A → BC, A is the key — two rows: (A1,B1,C1) and (A2,B1,C2).</p>
+    <table class="inst demo" id="loss-demo" data-mode="orig">
+      <caption>The rejoined relation</caption>
+      <thead><tr><th scope="col">A</th><th scope="col">B</th><th scope="col">C</th><th scope="col">in R?</th></tr></thead>
+      <tbody>
+        <tr><td class="keycol">A1</td><td>B1</td><td>C1</td><td class="ok">✓ in R</td></tr>
+        <tr><td class="keycol">A2</td><td>B1</td><td>C2</td><td class="ok">✓ in R</td></tr>
+        <tr class="spur"><td>A1</td><td>B1</td><td>C2</td><td>✗ spurious</td></tr>
+        <tr class="spur"><td>A2</td><td>B1</td><td>C1</td><td>✗ spurious</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 7 · THE CHASE -->
+  <section class="slide" data-title="The general test: the chase" aria-roledescription="slide" aria-label="The general test, the chase">
+    <p class="kicker">Property 1 · beyond two relations</p>
+    <h2 class="slide-h" tabindex="-1">More than two pieces: the chase</h2>
+    <div class="two">
+      <div>
+        <p>The key-of-one-side test is for a <em>binary</em> split. For a decomposition
+        into three or more relations, use the <span class="term">chase</span> algorithm.</p>
+        <p>Build a tableau — one row per relation, matching symbols on shared attributes —
+        then repeatedly apply the FDs to equate symbols. If some row becomes all-original,
+        the decomposition is lossless.</p>
+      </div>
+      <div class="callout">
+        <h3>You mostly won't hand-run it</h3>
+        <p style="margin:0">Both BCNF decomposition and 3NF synthesis are <em>constructed</em>
+        to be lossless, so you rarely need the chase in practice. Know it exists and what
+        it decides.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · DEPENDENCY PRESERVATION -->
+  <section class="slide" data-title="Dependency preservation" aria-roledescription="slide" aria-label="Dependency preservation">
+    <p class="kicker">Property 2 · the test</p>
+    <h2 class="slide-h" tabindex="-1">Testing dependency preservation</h2>
+    <div class="two">
+      <div>
+        <p>Project the FDs onto each relation — the FDs whose attributes all fit inside
+        that relation. The decomposition is
+        <span class="term">dependency-preserving</span> when the union of those projections
+        is <strong>equivalent</strong> to the original F.</p>
+        <p style="margin:0">Equivalent, checked with closures: every original FD must
+        follow from the projected ones.</p>
+      </div>
+      <div class="callout warn">
+        <h3>What loss looks like</h3>
+        <p style="margin:0">If an FD's attributes are split across two relations and it
+        can't be re-derived from the projections, it's lost — enforcing it now requires
+        a join. That was the BCNF/TEACH situation exactly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · DECOMPOSITION VS SYNTHESIS -->
+  <section class="slide" data-title="Decomposition vs synthesis" aria-roledescription="slide" aria-label="Decomposition versus synthesis">
+    <p class="kicker">Two strategies</p>
+    <h2 class="slide-h" tabindex="-1">Two ways to build a good schema</h2>
+    <div class="cmp">
+      <div class="cmpcol a">
+        <h3>Decomposition (top-down)</h3>
+        <ul>
+          <li>Start with one big relation; split on each violating FD.</li>
+          <li>Target: <strong>BCNF</strong>.</li>
+          <li><span class="ok">Always lossless.</span></li>
+          <li><span class="bad">Dependency preservation not guaranteed.</span></li>
+        </ul>
+      </div>
+      <div class="cmpcol b">
+        <h3>Synthesis (bottom-up)</h3>
+        <ul>
+          <li>Start from a minimal cover; build relations up from the FDs.</li>
+          <li>Target: <strong>3NF</strong>.</li>
+          <li><span class="ok">Always lossless <em>and</em> dependency-preserving.</span></li>
+          <li>Guaranteed 3NF, not always BCNF.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="figcap">Want all three guarantees at once? Synthesis to 3NF is the one that delivers them.</p>
+  </section>
+
+  <!-- 10 · 3NF SYNTHESIS -->
+  <section class="slide" data-title="3NF synthesis algorithm" aria-roledescription="slide" aria-label="3nf synthesis algorithm">
+    <p class="kicker">The synthesis procedure</p>
+    <h2 class="slide-h" tabindex="-1">The 3NF synthesis algorithm</h2>
+    <div class="two">
+      <div>
+        <ol>
+          <li>Compute a <strong>minimal cover</strong> G of F.</li>
+          <li>For each left side X in G, make a relation with X and all attributes X
+          determines (group FDs by common left side).</li>
+          <li>If no relation contains a <strong>candidate key</strong> of the original R,
+          add one relation that is a candidate key.</li>
+          <li>Drop any relation whose attributes are a subset of another's.</li>
+        </ol>
+      </div>
+      <div class="callout good">
+        <h3>The guarantee</h3>
+        <p style="margin:0">The result is in 3NF, is a lossless decomposition of R, and
+        preserves every dependency — the theoretical best you can promise for 3NF. This
+        is why we computed a minimal cover last lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · MVD -->
+  <section class="slide" data-title="Multivalued dependencies" aria-roledescription="slide" aria-label="Multivalued dependencies">
+    <p class="kicker">Beyond functional dependencies</p>
+    <h2 class="slide-h" tabindex="-1">Multivalued dependencies (MVD)</h2>
+    <div class="two">
+      <div>
+        <p>Some redundancy survives BCNF because it isn't caused by an FD at all. When an
+        entity has <strong>two independent multivalued facts</strong>, storing them in one
+        relation forces every combination.</p>
+        <p>An <span class="term">MVD</span>
+        <span class="fd" style="font-size:.95rem">X <span class="arrow">↠</span> Y</span>
+        holds when the set of Y-values for an X is independent of the other attributes.</p>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>INSTRUCTOR — courses and hobbies are independent</caption>
+          <thead><tr><th scope="col">Instructor</th><th scope="col">Course</th><th scope="col">Hobby</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">Cutchin</td><td>CS410</td><td>Sailing</td></tr>
+            <tr><td class="keycol">Cutchin</td><td>CS410</td><td>Chess</td></tr>
+            <tr><td class="keycol">Cutchin</td><td>CS564</td><td>Sailing</td></tr>
+            <tr><td class="keycol">Cutchin</td><td>CS564</td><td>Chess</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">Every course × every hobby — pure combinatorial redundancy, no FD to blame.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · 4NF -->
+  <section class="slide" data-title="Fourth normal form" aria-roledescription="slide" aria-label="Fourth normal form">
+    <p class="kicker">The MVD normal form</p>
+    <h2 class="slide-h" tabindex="-1">Fourth normal form (4NF)</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>4NF</h3>
+          <p style="margin:0">A relation is in 4NF when, for every nontrivial MVD
+          <span class="fd" style="font-size:.9rem">X <span class="arrow">↠</span> Y</span>,
+          X is a <strong>superkey</strong>.</p>
+        </div>
+        <p>The fix mirrors the FD case: split the independent facts into separate
+        relations.</p>
+        <div class="relset">
+          <div class="relcard ok">TEACHES(<u>Instructor</u>, <u>Course</u>)</div>
+          <div class="relcard ok">HOBBIES(<u>Instructor</u>, <u>Hobby</u>)</div>
+        </div>
+      </div>
+      <div class="callout warn">
+        <h3>And 5NF, briefly</h3>
+        <p style="margin:0"><span class="term">5NF</span> (project–join normal form) handles
+        the rare case where a relation must be split into <em>three or more</em> pieces to
+        avoid spurious tuples — a join dependency not implied by any key. Real, but you'll
+        seldom meet it. 4NF is the practical ceiling.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · LADDER -->
+  <section class="slide" data-title="The normal-form ladder" aria-roledescription="slide" aria-label="The normal form ladder">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">The whole ladder at a glance</h2>
+    <div class="nfgrid">
+      <div class="nf"><b>1NF</b><span>atomic values only</span></div>
+      <div class="nf"><b>2NF</b><span>no partial FD on a key</span></div>
+      <div class="nf"><b>3NF</b><span>no transitive FD; LHS superkey or RHS prime</span></div>
+      <div class="nf"><b>BCNF</b><span>every FD determinant is a superkey</span></div>
+      <div class="nf"><b>4NF</b><span>every MVD determinant is a superkey</span></div>
+      <div class="nf"><b>5NF</b><span>every join dependency implied by a key</span></div>
+    </div>
+    <p class="figcap">Each implies the ones above it. Most designs target 3NF or BCNF;
+    reach for 4NF when independent multivalued facts collide.</p>
+  </section>
+
+  <!-- 14 · DENORMALIZATION -->
+  <section class="slide" data-title="When to stop" aria-roledescription="slide" aria-label="When to stop, denormalization">
+    <p class="kicker">Judgment in practice</p>
+    <h2 class="slide-h" tabindex="-1">When to stop — and even step back</h2>
+    <div class="two">
+      <div>
+        <p>Normalization removes redundancy by adding relations — and joins. Sometimes,
+        for a read-heavy workload, the join cost outweighs the anomaly risk.</p>
+        <p><span class="term">Denormalization</span> deliberately reintroduces some
+        redundancy for performance — after measuring, and with a plan to keep the copies
+        consistent (triggers, materialized views).</p>
+      </div>
+      <div class="callout warn">
+        <h3>Do it on purpose, not by accident</h3>
+        <p style="margin:0">Normalize first so you understand the dependencies; denormalize
+        second, as a conscious, measured trade. An un-normalized schema you never
+        reasoned about is a bug, not an optimization.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Lossless is not optional.</strong> Always verify the shared attribute is a
+      key of one side before trusting a binary split.</li>
+      <li><strong>Spurious tuples are silent.</strong> A lossy schema looks fine until a join
+      returns rows that were never stored.</li>
+      <li><strong>Synthesis when you need all three guarantees.</strong> 3NF synthesis gives
+      lossless + dependency-preserving + 3NF together.</li>
+      <li><strong>MVDs aren't FDs.</strong> If BCNF still shows combinatorial repetition,
+      look for an independent multivalued fact and go to 4NF.</li>
+      <li><strong>Denormalize deliberately.</strong> Only after measuring, and only with a
+      consistency mechanism for the duplicated data.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up · end of Unit 6</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">Lossless join</span> (shared attribute a key of one side) vs. <span class="term">spurious tuples</span>.</li>
+          <li><span class="term">Dependency preservation</span>; decomposition vs. <span class="term">3NF synthesis</span>.</li>
+          <li><span class="term">MVDs</span> and <span class="term">4NF</span>; a word on 5NF and denormalization.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>State the binary lossless-join test in one line.</li>
+            <li>Which strategy guarantees lossless <em>and</em> dependency-preserving?</li>
+            <li>Why can't a plain FD explain the INSTRUCTOR redundancy?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Unit 7: Storage &amp; indexing</h3>
+          <p style="margin:0">Down to the disk: files and records, the I/O cost model, and
+          the B+-trees that make lookups fast.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- lossless-join demonstrator (only if that markup is present) ---
+  var lChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-mode]'));
+  var lDesc  = document.getElementById('loss-desc');
+  var lDemo  = document.getElementById('loss-demo');
+  if (lChips.length && lDemo){
+    lChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        lChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        lDemo.setAttribute('data-mode', chip.getAttribute('data-mode'));
+        if (lDesc) lDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

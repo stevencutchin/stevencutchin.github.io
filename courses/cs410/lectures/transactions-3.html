@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transactions III — Timestamps, MVCC, and Recovery · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- log records ---- */
+.log{font-family:var(--mono);font-size:.86rem;line-height:1.7;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:0}
+.log .op{color:#7A2708;font-weight:700}
+.log b{color:var(--blue-ink)}
+
+/* ---- tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.84rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 9px;text-align:center}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst th[scope="row"]{background:var(--tint);color:var(--blue-ink);text-align:left}
+table.inst .no{color:#7A2708;font-weight:700}
+table.inst .yes{color:#0B6B57;font-weight:700}
+
+/* ---- variant / phase cards ---- */
+.vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.vc{border:1px solid var(--line);border-top:4px solid var(--blue);border-radius:8px;
+  padding:10px 13px;background:#fff}
+.vc b{display:block;color:var(--blue-ink);font-size:1rem;margin-bottom:2px}
+.vc span{color:var(--muted);font-size:.87rem}
+
+/* ---- interactive: recovery timeline ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.rltl{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
+.rlaxis{position:relative;margin-left:2.8rem;height:16px;font-family:var(--sans);
+  font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.rlaxis .cp{position:absolute;left:50%;transform:translateX(-50%)}
+.rlaxis .cr{position:absolute;right:0;color:#7A2708}
+.rltrack{position:relative;height:24px;margin:5px 0}
+.rllabel{position:absolute;left:0;top:3px;width:2.4rem;font-family:var(--mono);font-size:.82rem;font-weight:700;color:var(--blue-ink)}
+.rlarea{position:relative;height:20px;margin-left:2.8rem;border-right:3px solid #7A2708;
+  background:linear-gradient(90deg,transparent calc(50% - 1px),#9aa2b1 calc(50% - 1px),#9aa2b1 calc(50% + 1px),transparent calc(50% + 1px))}
+.rlbar{position:absolute;top:2px;height:16px;border-radius:4px;background:#EEF1F6;
+  border:2px solid #C9D2E0;display:flex;align-items:center;justify-content:flex-end;
+  padding-right:4px;font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--muted);
+  transition:background .18s,border-color .18s,color .18s}
+.demo[data-mode="redo"] .rlbar.redo{background:#E7F3EE;border-color:#0B6B57;color:#0B6B57}
+.demo[data-mode="undo"] .rlbar.undo{background:#FBEEE7;border-color:#7A2708;color:#7A2708}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .vgrid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.vc,.fig,.callout,.rltl{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.vc,table.inst,.rltl{break-inside:avoid}
+  .demo .rlbar.redo{background:#E7F3EE!important;border-color:#0B6B57!important;color:#0B6B57!important}
+  .demo .rlbar.undo{background:#FBEEE7!important;border-color:#7A2708!important;color:#7A2708!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 8 · Transactions</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 3 of 3 · Elmasri &amp; Navathe, Ch. 21–22</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Transactions III — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Transactions III — Timestamps, MVCC, and Recovery"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Concurrency without locks, correctness after a crash</p>
+    <h2 class="slide-h" tabindex="-1">Transactions III<br>Timestamps, MVCC, and recovery</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Two loose ends close the course: concurrency control that
+        doesn't lock, and the recovery machinery that makes atomicity and durability
+        real when the power fails mid-write.</p>
+        <p style="color:var(--muted)">Timestamp ordering and MVCC first; then the log,
+        write-ahead logging, checkpoints, and ARIES.</p>
+      </div>
+      <div class="callout">
+        <h3>Completing ACID</h3>
+        <p style="margin:0">Locking gave us isolation. Recovery delivers the other two
+        letters — <strong>A</strong>tomicity and <strong>D</strong>urability — so a
+        committed transaction survives anything.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last lecture</h3>
+          <p style="margin:0">Two-phase locking enforces serializability, at the cost of
+          deadlock. Locking is <em>pessimistic</em> — it blocks on conflict.</p>
+        </div>
+        <p>This lecture covers the alternatives, then recovery — and closes the course's
+        teaching sequence.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Apply <span class="term">timestamp ordering</span> and describe <span class="term">MVCC</span>.</li>
+            <li>Name the SQL <span class="term">isolation levels</span>.</li>
+            <li>Explain the <span class="term">log</span> and <span class="term">write-ahead logging</span>.</li>
+            <li>Classify transactions for <span class="term">undo</span> vs <span class="term">redo</span>; sketch ARIES.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · BEYOND LOCKING -->
+  <section class="slide" data-title="Beyond locking" aria-roledescription="slide" aria-label="Beyond locking">
+    <p class="kicker">Other concurrency control</p>
+    <h2 class="slide-h" tabindex="-1">Three alternatives to locking</h2>
+    <div class="vgrid">
+      <div class="vc"><b>Timestamp ordering</b><span>Order transactions by a timestamp; abort any operation that would violate it. No locks, no deadlock.</span></div>
+      <div class="vc"><b>Optimistic (validation)</b><span>Run without checks, then validate at commit; roll back on conflict. Great when conflicts are rare.</span></div>
+      <div class="vc"><b>Multiversion (MVCC)</b><span>Keep several versions of each item so reads and writes rarely block each other. The modern default.</span></div>
+    </div>
+    <div class="callout">
+      <h3>Same goal, different bet</h3>
+      <p style="margin:0">All produce serializable schedules. Locking bets that conflicts
+      are common; timestamps and optimistic control bet they're rare; MVCC sidesteps
+      read–write conflicts entirely.</p>
+    </div>
+  </section>
+
+  <!-- 4 · TIMESTAMP ORDERING -->
+  <section class="slide" data-title="Timestamp ordering" aria-roledescription="slide" aria-label="Timestamp ordering">
+    <p class="kicker">Ordering by age</p>
+    <h2 class="slide-h" tabindex="-1">Timestamp ordering</h2>
+    <div class="two">
+      <div>
+        <p>Each transaction gets a unique <span class="term">timestamp</span> TS(T) when it
+        starts. The protocol enforces that the schedule is equivalent to running the
+        transactions <strong>in timestamp order</strong>.</p>
+        <p>Each data item X remembers two stamps:</p>
+        <ul>
+          <li><span class="term">read_TS(X)</span> — the newest transaction that read X;</li>
+          <li><span class="term">write_TS(X)</span> — the newest that wrote X.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>No locks at all</h3>
+        <p style="margin:0">There's nothing to wait on, so <strong>deadlock is
+        impossible</strong>. The cost moves to aborts: a transaction that arrives "too
+        late" is restarted with a fresh timestamp.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · TO RULES -->
+  <section class="slide" data-title="The basic TO rules" aria-roledescription="slide" aria-label="The basic timestamp ordering rules">
+    <p class="kicker">The check on each operation</p>
+    <h2 class="slide-h" tabindex="-1">The basic TO rules</h2>
+    <div class="two">
+      <div>
+        <p>Before each operation, compare TS(T) with the item's stamps:</p>
+        <ul>
+          <li><strong>T reads X</strong>: allowed unless a <em>younger</em> transaction already
+          wrote X (write_TS(X) &gt; TS(T)) — then T is too late → abort.</li>
+          <li><strong>T writes X</strong>: allowed unless a younger transaction already read
+          or wrote X — then abort.</li>
+        </ul>
+        <p style="margin:0">An aborted transaction rolls back and restarts with a new,
+        larger timestamp.</p>
+      </div>
+      <div class="callout">
+        <h3>Thomas's write rule</h3>
+        <p style="margin:0">An <em>obsolete</em> write — one already overwritten by a younger
+        transaction — can simply be <strong>ignored</strong> rather than causing an abort,
+        improving concurrency without breaking serializability.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · MVCC -->
+  <section class="slide" data-title="MVCC" aria-roledescription="slide" aria-label="Multiversion concurrency control">
+    <p class="kicker">The modern default</p>
+    <h2 class="slide-h" tabindex="-1">Multiversion concurrency control</h2>
+    <div class="two">
+      <div>
+        <p>Instead of overwriting an item, <span class="term">MVCC</span> keeps its old
+        versions. A write creates a new version; a read is served the version that was
+        current as of the reader's start.</p>
+        <p>So <strong>readers never block writers, and writers never block readers</strong> —
+        each transaction sees a consistent <span class="term">snapshot</span> of the database.</p>
+      </div>
+      <div class="callout good">
+        <h3>Snapshot isolation</h3>
+        <p style="margin:0">This gives snapshot isolation, used by PostgreSQL, Oracle, and
+        others. It's fast and avoids most anomalies — though plain snapshot isolation
+        needs an extra check (write-skew) to be fully serializable.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · ISOLATION LEVELS -->
+  <section class="slide" data-title="Isolation levels" aria-roledescription="slide" aria-label="Sql isolation levels">
+    <p class="kicker">Dialling concurrency up</p>
+    <h2 class="slide-h" tabindex="-1">SQL isolation levels</h2>
+    <div class="two">
+      <div>
+        <p>The SQL standard lets an application trade isolation for concurrency by
+        choosing how much anomaly it tolerates.</p>
+        <p style="margin:0">Weaker levels run faster but permit more anomalies; only
+        <span class="term">serializable</span> forbids them all.</p>
+      </div>
+      <table class="inst">
+        <caption>Anomalies each level may allow</caption>
+        <thead><tr><th scope="col">Level</th><th scope="col">Dirty read</th><th scope="col">Non-repeatable</th><th scope="col">Phantom</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Read uncommitted</th><td class="no">yes</td><td class="no">yes</td><td class="no">yes</td></tr>
+          <tr><th scope="row">Read committed</th><td class="yes">no</td><td class="no">yes</td><td class="no">yes</td></tr>
+          <tr><th scope="row">Repeatable read</th><td class="yes">no</td><td class="yes">no</td><td class="no">yes</td></tr>
+          <tr><th scope="row">Serializable</th><td class="yes">no</td><td class="yes">no</td><td class="yes">no</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 8 · RECOVERY INTRO -->
+  <section class="slide" data-title="Recovery: the other half of ACID" aria-roledescription="slide" aria-label="Recovery, the other half of acid">
+    <p class="kicker">Surviving failure</p>
+    <h2 class="slide-h" tabindex="-1">Recovery — atomicity &amp; durability</h2>
+    <div class="two">
+      <div>
+        <p>Concurrency control handled isolation. Recovery handles the rest: after a
+        crash, the database must be restored to a state where every committed
+        transaction is present and every uncommitted one is erased.</p>
+        <p>Failures to survive: a transaction error or abort, a system crash (power,
+        OS), and media failure (disk loss, handled by backups).</p>
+      </div>
+      <div class="callout warn">
+        <h3>The core problem</h3>
+        <p style="margin:0">At the moment of a crash, some committed changes may not have
+        reached disk, and some uncommitted ones may have. Recovery must sort out both —
+        and the log is how.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · THE LOG -->
+  <section class="slide" data-title="The system log" aria-roledescription="slide" aria-label="The system log">
+    <p class="kicker">The source of truth</p>
+    <h2 class="slide-h" tabindex="-1">The system log</h2>
+    <div class="two">
+      <div>
+        <p>The <span class="term">log</span> is an append-only, on-disk record of every
+        change, written as the transaction runs. Each write records the item's
+        <strong>old and new values</strong> — enough to undo <em>or</em> redo it.</p>
+        <p style="margin:0">Because the log is durable and sequential, it's the
+        authoritative history the recovery manager replays.</p>
+      </div>
+      <div class="fig">
+        <p class="log"><span class="op">[start</span>, <b>T1</b>]<br>
+        <span class="op">[write</span>, <b>T1</b>, X, old=5, new=8]<br>
+        <span class="op">[commit</span>, <b>T1</b>]<br>
+        <span class="op">[start</span>, <b>T2</b>]<br>
+        <span class="op">[write</span>, <b>T2</b>, Y, old=1, new=9]<br>
+        <span style="color:#7A2708">— crash —</span></p>
+        <p class="figcap">Old + new values let recovery go either direction.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · WAL -->
+  <section class="slide" data-title="Write-ahead logging" aria-roledescription="slide" aria-label="Write ahead logging">
+    <p class="kicker">The one rule that makes it work</p>
+    <h2 class="slide-h" tabindex="-1">Write-ahead logging (WAL)</h2>
+    <div class="two">
+      <div>
+        <p>The <span class="term">WAL rule</span>: a change's <strong>log record must reach
+        disk before the data page</strong> it describes — and all of a transaction's log
+        records must be on disk before it can commit.</p>
+        <p style="margin:0">This guarantees that whatever the data pages look like after a
+        crash, the log already contains enough to undo or redo them. Without WAL, a change
+        could hit disk with no record of how to reverse it.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 380 120" role="img" aria-labelledby="t10 d10">
+          <title id="t10">Write-ahead logging order</title>
+          <desc id="d10">A log record is flushed to disk first; only afterward is the
+          corresponding data page written to disk.</desc>
+          <rect x="16" y="30" width="120" height="34" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="76" y="52" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">log record</text>
+          <text x="76" y="80" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">1. to disk</text>
+          <line x1="140" y1="47" x2="228" y2="47" stroke="#7A2708" stroke-width="2"/>
+          <polygon points="228,47 217,42 217,52" fill="#7A2708"/>
+          <text x="184" y="38" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#7A2708">before</text>
+          <rect x="244" y="30" width="120" height="34" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="304" y="52" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">data page</text>
+          <text x="304" y="80" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">2. to disk</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · UNDO / REDO -->
+  <section class="slide" data-title="Undo and redo" aria-roledescription="slide" aria-label="Undo and redo">
+    <p class="kicker">The two directions</p>
+    <h2 class="slide-h" tabindex="-1">Undo &amp; redo</h2>
+    <div class="two">
+      <div>
+        <p>After a crash, recovery walks the log and applies two operations:</p>
+        <ul>
+          <li><span class="term">UNDO</span> — for transactions that never committed, restore
+          the <em>old</em> values, erasing their partial work (atomicity).</li>
+          <li><span class="term">REDO</span> — for committed transactions, reapply the
+          <em>new</em> values in case they hadn't reached disk (durability).</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>Deferred vs immediate</h3>
+        <p style="margin:0">If updates are <em>deferred</em> until commit, you only ever
+        redo. If they're written <em>immediately</em> (the common case), you may need
+        both — undo the losers, redo the winners.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · CHECKPOINTS -->
+  <section class="slide" data-title="Checkpoints" aria-roledescription="slide" aria-label="Checkpoints">
+    <p class="kicker">Bounding the work</p>
+    <h2 class="slide-h" tabindex="-1">Checkpoints</h2>
+    <div class="two">
+      <div>
+        <p>Without help, recovery would scan the entire log from the beginning. A
+        <span class="term">checkpoint</span> periodically flushes dirty pages to disk and
+        writes a checkpoint record to the log.</p>
+        <p style="margin:0">Recovery can then start from the last checkpoint: everything
+        before it is already safely on disk, so there's no need to look further back.</p>
+      </div>
+      <div class="callout good">
+        <h3>Why it matters</h3>
+        <p style="margin:0">Checkpoints turn recovery time from "proportional to the whole
+        log" into "proportional to work since the last checkpoint" — the difference
+        between minutes and hours after a crash.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · INTERACTIVE -->
+  <section class="slide" data-title="Undo or redo?" aria-roledescription="slide" aria-label="Interactive: undo or redo">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">After the crash: who gets undone, who redone?</h2>
+    <p>Four transactions relative to the last checkpoint (dashed) and the crash (right
+    edge). A ✓ marks a commit; T4 is still running at the crash.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a recovery action">
+      <button class="chip" data-mode="crash" aria-pressed="true"
+        data-desc="State at crash: T1 committed before the checkpoint; T2 and T3 committed after it; T4 was still active. The checkpoint means everything before it is already safely on disk.">at crash</button>
+      <button class="chip" data-mode="redo" aria-pressed="false"
+        data-desc="REDO the committed transactions whose changes may not have reached disk — T2 and T3 (they committed after the checkpoint). Reapply their new values from the log. T1 committed before the checkpoint, so it's already durable — no action.">REDO list</button>
+      <button class="chip" data-mode="undo" aria-pressed="false"
+        data-desc="UNDO the transactions active at the crash — T4 never committed, so roll back its partial changes using the old values in the log. Its work must vanish entirely.">UNDO list</button>
+    </div>
+    <p id="rec-desc" class="live-desc"
+       data-default="State at crash: T1 committed before the checkpoint; T2 and T3 committed after it; T4 was still active. The checkpoint means everything before it is already safely on disk.">State at crash: T1 committed before the checkpoint; T2 and T3 committed after it; T4 was still active. The checkpoint means everything before it is already safely on disk.</p>
+    <div class="rltl demo" id="rec-demo" data-mode="crash">
+      <div class="rlaxis"><span class="cp">checkpoint</span><span class="cr">crash</span></div>
+      <div class="rltrack"><span class="rllabel">T1</span>
+        <div class="rlarea"><div class="rlbar" style="left:0;width:28%">✓</div></div></div>
+      <div class="rltrack"><span class="rllabel">T2</span>
+        <div class="rlarea"><div class="rlbar redo" style="left:8%;width:60%">✓</div></div></div>
+      <div class="rltrack"><span class="rllabel">T3</span>
+        <div class="rlarea"><div class="rlbar redo" style="left:55%;width:33%">✓</div></div></div>
+      <div class="rltrack"><span class="rllabel">T4</span>
+        <div class="rlarea"><div class="rlbar undo" style="left:35%;width:65%">…</div></div></div>
+    </div>
+    <p class="figcap">Committed after the checkpoint → REDO. Uncommitted at the crash →
+    UNDO. Committed before the checkpoint → already on disk.</p>
+  </section>
+
+  <!-- 14 · ARIES -->
+  <section class="slide" data-title="ARIES" aria-roledescription="slide" aria-label="Aries recovery">
+    <p class="kicker">The industry algorithm</p>
+    <h2 class="slide-h" tabindex="-1">ARIES — recovery in three passes</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">ARIES</span> is the recovery algorithm real systems use. Built
+        on WAL and per-record log sequence numbers (LSNs), it runs three passes over the
+        log:</p>
+        <ol>
+          <li><span class="term">Analysis</span> — from the last checkpoint, find which
+          transactions were active and which pages were dirty.</li>
+          <li><span class="term">Redo</span> — repeat <em>all</em> logged changes to restore
+          the exact pre-crash page state.</li>
+          <li><span class="term">Undo</span> — roll back the transactions that never
+          committed.</li>
+        </ol>
+      </div>
+      <div class="callout">
+        <h3>"Repeat history"</h3>
+        <p style="margin:0">ARIES redoes everything first — even the losers' changes — then
+        undoes the losers. Reconstructing the precise crash state before undoing is what
+        makes it robust and restartable.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Timestamp ordering trades deadlock for aborts.</strong> No waiting means no
+      deadlock — but "too late" transactions restart, risking starvation.</li>
+      <li><strong>MVCC ≠ automatically serializable.</strong> Snapshot isolation is fast but
+      needs an extra check to catch write-skew.</li>
+      <li><strong>Weaker isolation is a deliberate trade.</strong> Know which anomaly each
+      level admits before choosing it.</li>
+      <li><strong>WAL is non-negotiable.</strong> Log before data, and before commit — it's
+      what makes undo and redo possible at all.</li>
+      <li><strong>Checkpoints bound recovery time.</strong> Redo committed work since the
+      checkpoint, undo the uncommitted — never rescan the whole log.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP / COURSE WRAP -->
+  <section class="slide" data-title="Recap and course wrap-up" aria-roledescription="slide" aria-label="Recap and course wrap up">
+    <p class="kicker">Wrap-up · end of Unit 8</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; the course, end to end</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">Timestamp ordering</span> &amp; <span class="term">MVCC</span>; SQL isolation levels.</li>
+          <li>Recovery: the <span class="term">log</span>, <span class="term">WAL</span>, undo/redo, checkpoints.</li>
+          <li><span class="term">ARIES</span>: analysis → redo → undo.</li>
+        </ul>
+        <div class="callout good">
+          <h3>The whole arc</h3>
+          <p style="margin:0">ER design → relational model → algebra → SQL → application
+          access → normalization → storage &amp; indexing → transactions. From a
+          description of the world to a system that stays correct under load and failure.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why is timestamp ordering deadlock-free?</li>
+            <li>State the write-ahead logging rule.</li>
+            <li>A transaction committed after the last checkpoint — undo, redo, or neither?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — review &amp; final</h3>
+          <p style="margin:0">The wrap-up session and graduate presentations, then the
+          comprehensive final exam — with emphasis on transactions and everything after
+          Midterm 2.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- recovery classifier (only if that markup is present) ---
+  var rChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-mode]'));
+  var rDesc  = document.getElementById('rec-desc');
+  var rDemo  = document.getElementById('rec-demo');
+  if (rChips.length && rDemo){
+    rChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        rChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        rDemo.setAttribute('data-mode', chip.getAttribute('data-mode'));
+        if (rDesc) rDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

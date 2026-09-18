@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Access I — Embedded &amp; Dynamic SQL, Cursors, JDBC · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- code blocks (SQL + host language) ---- */
+pre.sql{font-family:var(--mono);font-size:.88rem;line-height:1.5;color:var(--ink);
+  background:#0F1B33;border:1px solid var(--blue-ink);border-radius:9px;
+  padding:14px 16px;margin:0 0 12px;overflow-x:auto;white-space:pre}
+pre.sql code{color:#DCE4F5}
+pre.sql .kw{color:#8FB4FF;font-weight:700}
+pre.sql .ty{color:#7FD4C0}
+pre.sql .st{color:#F2B08A}
+pre.sql .cm{color:#8A93A3;font-style:italic}
+pre.sql .fn{color:#E6C06B}
+pre.sql .hv{color:#C6A6FF}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst .cur{width:1.6rem;text-align:center;color:#7A2708;font-weight:700}
+
+/* ---- approach cards ---- */
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ac{border:1px solid var(--line);border-top:4px solid var(--blue);border-radius:9px;
+  padding:12px 14px;background:#fff}
+.ac b{display:block;color:var(--blue-ink);font-size:1rem;margin-bottom:3px}
+.ac span{color:var(--muted);font-size:.9rem}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+/* cursor position: highlighted row + an arrow marker (two channels), text echoes it */
+table.demo td{transition:background .18s}
+.demo tr td.cur::before{content:"";}
+.demo[data-cur="f1"] tr.r1 td,
+.demo[data-cur="f2"] tr.r2 td,
+.demo[data-cur="f3"] tr.r3 td{background:var(--tint)}
+.demo[data-cur="f1"] tr.r1 td.cur::before{content:"\25B8"}
+.demo[data-cur="f2"] tr.r2 td.cur::before{content:"\25B8"}
+.demo[data-cur="f3"] tr.r3 td.cur::before{content:"\25B8"}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .cards3{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  pre.sql{font-size:.78rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.ac,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.ac,table.inst,pre.sql{break-inside:avoid}
+  pre.sql{background:#F4F6FB;border-color:var(--line)}
+  pre.sql code{color:#14181F}
+  pre.sql .kw{color:#00246B}
+  pre.sql .ty{color:#0B6B57}
+  pre.sql .st{color:#7A2708}
+  pre.sql .cm{color:#4A5160}
+  pre.sql .hv{color:#5A3AA0}
+  table.demo td{background:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 5 · Database access from applications</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 1 of 2 · Elmasri &amp; Navathe, Ch. 10</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="App Access I — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="App Access I — Embedded & Dynamic SQL, Cursors, JDBC"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Getting a program to talk to the database</p>
+    <h2 class="slide-h" tabindex="-1">App Access I<br>Embedded &amp; dynamic SQL, cursors, JDBC</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Almost no one types SQL at a prompt in production. A program
+        does — and the moment a program and a database meet, their worlds don't quite
+        line up.</p>
+        <p style="color:var(--muted)">Today: why the mismatch exists, the ways to
+        bridge it, and how cursors let procedural code walk a result set one row at a
+        time.</p>
+      </div>
+      <div class="callout">
+        <h3>The shift</h3>
+        <p style="margin:0">We move from "what does this query return?" to "how does an
+        application <em>obtain and process</em> that result, safely and one row at a
+        time?"</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Units 0–4</h3>
+          <p style="margin:0">Design (ER/EER → relational), the algebra, and the full
+          SQL language. We can define and query a database directly.</p>
+        </div>
+        <p>Unit 5 is two lectures: <strong>today</strong> embedding SQL, dynamic SQL,
+        cursors, and APIs; next time stored procedures and SQL injection.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Explain the <span class="term">impedance mismatch</span>.</li>
+            <li>Write <span class="term">embedded</span> SQL with host variables, and <span class="term">dynamic</span> SQL with PREPARE.</li>
+            <li>Iterate a result set with a <span class="term">cursor</span>.</li>
+            <li>Connect and query with <span class="term">JDBC</span>, and manage a transaction from code.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · IMPEDANCE MISMATCH -->
+  <section class="slide" data-title="The impedance mismatch" aria-roledescription="slide" aria-label="The impedance mismatch">
+    <p class="kicker">The core problem</p>
+    <h2 class="slide-h" tabindex="-1">The impedance mismatch</h2>
+    <div class="two">
+      <div>
+        <p>SQL is <span class="term">set-oriented</span>: a query yields a whole
+        relation at once. A host language like C or Java is
+        <span class="term">record-at-a-time</span>: it processes one value, one object,
+        one loop iteration.</p>
+        <p>Their type systems differ too — SQL's DECIMAL, DATE, and NULL have no exact
+        twin in the host language. Bridging both gaps is what this unit is about.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 170" role="img" aria-labelledby="t3 d3">
+          <title id="t3">Set-oriented SQL meets record-at-a-time code</title>
+          <desc id="d3">On the left, a database returns a set of rows all at once. On
+          the right, a program processes one record at a time in a loop. A gap
+          between them is labelled the impedance mismatch.</desc>
+          <rect x="16" y="30" width="150" height="110" rx="8" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="91" y="26" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">SQL — a set</text>
+          <rect x="34" y="48" width="114" height="16" rx="2" fill="#fff" stroke="#0033A0"/>
+          <rect x="34" y="70" width="114" height="16" rx="2" fill="#fff" stroke="#0033A0"/>
+          <rect x="34" y="92" width="114" height="16" rx="2" fill="#fff" stroke="#0033A0"/>
+          <rect x="34" y="114" width="114" height="16" rx="2" fill="#fff" stroke="#0033A0"/>
+          <text x="260" y="80" text-anchor="middle" font-family="system-ui" font-size="12" fill="#7A2708" font-weight="700">impedance</text>
+          <text x="260" y="96" text-anchor="middle" font-family="system-ui" font-size="12" fill="#7A2708" font-weight="700">mismatch</text>
+          <path d="M210 60 q40 25 0 50" fill="none" stroke="#7A2708" stroke-width="1.6" stroke-dasharray="4 3"/>
+          <path d="M312 60 q-40 25 0 50" fill="none" stroke="#7A2708" stroke-width="1.6" stroke-dasharray="4 3"/>
+          <rect x="356" y="30" width="150" height="110" rx="8" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="431" y="26" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">code — one row</text>
+          <text x="372" y="62" font-family="ui-monospace,monospace" font-size="11" fill="#00246B">while(...) {</text>
+          <text x="384" y="82" font-family="ui-monospace,monospace" font-size="11" fill="#14181F">fetch row;</text>
+          <text x="384" y="100" font-family="ui-monospace,monospace" font-size="11" fill="#14181F">process;</text>
+          <text x="372" y="118" font-family="ui-monospace,monospace" font-size="11" fill="#00246B">}</text>
+        </svg>
+        <p class="figcap">A set on one side, a loop on the other — a cursor connects them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THREE APPROACHES -->
+  <section class="slide" data-title="Three ways to connect" aria-roledescription="slide" aria-label="Three ways to connect">
+    <p class="kicker">The landscape</p>
+    <h2 class="slide-h" tabindex="-1">Three ways to reach the database</h2>
+    <div class="cards3">
+      <div class="ac"><b>Embedded SQL</b><span>SQL written inside the host source and handled by a <em>precompiler</em>. Tight, checked at compile time.</span></div>
+      <div class="ac"><b>Call-level API</b><span>Library calls that send SQL as strings — <em>JDBC</em>, <em>ODBC</em>. No precompiler; portable across DBMSs.</span></div>
+      <div class="ac"><b>DB programming language</b><span>Logic that lives in the database — <em>stored procedures</em>, SQL/PSM. Next lecture.</span></div>
+    </div>
+    <div class="callout">
+      <h3>Same goal, different seam</h3>
+      <p style="margin:0">All three send SQL and get results back. They differ in
+      <em>where</em> the SQL is written, <em>when</em> it's checked, and how portable the
+      result is. Today's slides work through the first two.</p>
+    </div>
+  </section>
+
+  <!-- 5 · EMBEDDED SQL -->
+  <section class="slide" data-title="Embedded SQL" aria-roledescription="slide" aria-label="Embedded sql">
+    <p class="kicker">Approach 1 · 1</p>
+    <h2 class="slide-h" tabindex="-1">Embedded SQL &amp; host variables</h2>
+    <div class="two">
+      <div>
+        <p>SQL statements sit in the host source, each marked
+        <code class="rel">EXEC SQL</code>. A <span class="term">precompiler</span> replaces
+        them with library calls before the normal compiler runs.</p>
+        <p><span class="term">Host variables</span> pass data across the seam, written
+        <code class="rel">:var</code> inside SQL. <code class="rel">INTO</code> reads a
+        single-row result back into them.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">EXEC SQL BEGIN DECLARE SECTION</span>;
+  <span class="ty">char</span>  sid[6], sname[51];
+  <span class="ty">float</span> gpa;
+<span class="kw">EXEC SQL END DECLARE SECTION</span>;
+
+<span class="cm">/* sid set by the program */</span>
+<span class="kw">EXEC SQL SELECT</span> Name, GPA
+  <span class="kw">INTO</span> <span class="hv">:sname</span>, <span class="hv">:gpa</span>
+  <span class="kw">FROM</span> STUDENT
+  <span class="kw">WHERE</span> StudentID = <span class="hv">:sid</span>;</code></pre>
+        <p class="figcap">Host variables carry the colon prefix inside SQL.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · STATIC VS DYNAMIC -->
+  <section class="slide" data-title="Static vs dynamic SQL" aria-roledescription="slide" aria-label="Static versus dynamic sql">
+    <p class="kicker">Approach 1 · 2</p>
+    <h2 class="slide-h" tabindex="-1">Static vs. dynamic SQL</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Static</span> SQL is fixed at compile time — the
+        precompiler sees the whole statement and can check and optimize it. Fast, but
+        the query shape can't change at runtime.</p>
+        <p><span class="term">Dynamic</span> SQL is built as a string while the program
+        runs, then prepared and executed. Flexible — a query builder, an ad-hoc
+        reporting tool — at the cost of runtime parsing and no compile-time checking.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The trade, and the risk</h3>
+        <p style="margin:0">Dynamic SQL is the only way to run a query whose text isn't
+        known in advance — but building that text by pasting in user input is exactly
+        where <em>SQL injection</em> enters. We'll disarm it next lecture with
+        parameters.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · DYNAMIC SQL -->
+  <section class="slide" data-title="Dynamic SQL" aria-roledescription="slide" aria-label="Dynamic sql">
+    <p class="kicker">Approach 1 · 3</p>
+    <h2 class="slide-h" tabindex="-1">Dynamic SQL: PREPARE and EXECUTE</h2>
+    <div class="two">
+      <div>
+        <p>Two steps: <code class="rel">PREPARE</code> parses and plans a statement held
+        in a string; <code class="rel">EXECUTE</code> runs it, optionally with supplied
+        values. A one-shot statement can use
+        <code class="rel">EXECUTE IMMEDIATE</code>.</p>
+        <p style="margin:0">Preparing once and executing many times amortizes the parse
+        cost when the same statement shape repeats.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="ty">char</span> q[200] =
+  <span class="st">"DELETE FROM ENROLLMENT "</span>
+  <span class="st">"WHERE Grade IS NULL"</span>;
+
+<span class="kw">EXEC SQL PREPARE</span> stmt <span class="kw">FROM</span> <span class="hv">:q</span>;
+<span class="kw">EXEC SQL EXECUTE</span> stmt;
+
+<span class="cm">/* one-shot form */</span>
+<span class="kw">EXEC SQL EXECUTE IMMEDIATE</span> <span class="hv">:q</span>;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · CURSORS -->
+  <section class="slide" data-title="Cursors" aria-roledescription="slide" aria-label="Cursors">
+    <p class="kicker">Crossing the seam</p>
+    <h2 class="slide-h" tabindex="-1">Cursors — the result-set iterator</h2>
+    <div class="two">
+      <div>
+        <p>A single-row <code class="rel">SELECT … INTO</code> is fine, but most queries
+        return many rows and a host variable holds one. A
+        <span class="term">cursor</span> is the iterator that bridges the mismatch.</p>
+        <p>Four verbs run its life:</p>
+        <ul>
+          <li><code class="rel">DECLARE</code> — bind a cursor to a query.</li>
+          <li><code class="rel">OPEN</code> — run the query; sit before the first row.</li>
+          <li><code class="rel">FETCH</code> — advance one row into host variables.</li>
+          <li><code class="rel">CLOSE</code> — release it.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">EXEC SQL DECLARE</span> c <span class="kw">CURSOR FOR</span>
+  <span class="kw">SELECT</span> StudentID, Name
+  <span class="kw">FROM</span> STUDENT
+  <span class="kw">WHERE</span> Major = <span class="hv">:major</span>;
+
+<span class="kw">EXEC SQL OPEN</span> c;
+<span class="cm">/* ... fetch loop ... */</span>
+<span class="kw">EXEC SQL CLOSE</span> c;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · FETCH LOOP -->
+  <section class="slide" data-title="The fetch loop" aria-roledescription="slide" aria-label="The fetch loop">
+    <p class="kicker">Cursors, continued</p>
+    <h2 class="slide-h" tabindex="-1">The fetch loop &amp; status codes</h2>
+    <div class="two">
+      <div>
+        <p>Loop, fetching until the cursor runs out. The DBMS reports status after each
+        call: <code class="rel">SQLCODE</code>/<code class="rel">SQLSTATE</code>, where
+        <code class="rel">'02000'</code> ("no data") ends the loop.</p>
+        <p>An <span class="term">updatable</span> cursor can even change the current row —
+        <code class="rel">WHERE CURRENT OF c</code> — for row-by-row edits.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">while</span> (1) {
+  <span class="kw">EXEC SQL FETCH</span> c <span class="kw">INTO</span> <span class="hv">:sid</span>, <span class="hv">:sname</span>;
+  <span class="kw">if</span> (SQLSTATE == <span class="st">"02000"</span>) <span class="kw">break</span>;
+  process(sid, sname);
+}
+
+<span class="cm">/* update through the cursor */</span>
+<span class="kw">EXEC SQL UPDATE</span> STUDENT <span class="kw">SET</span> Major=<span class="hv">:m</span>
+  <span class="kw">WHERE CURRENT OF</span> c;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · INTERACTIVE -->
+  <section class="slide" data-title="Walking a cursor" aria-roledescription="slide" aria-label="Interactive: walking a cursor">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Walk the cursor, one FETCH at a time</h2>
+    <p>Step through the cursor over this three-row result. The arrow marks where the
+    cursor is positioned after each call.</p>
+    <div class="hl-controls" role="group" aria-label="Step the cursor">
+      <button class="chip" data-cur="declare" aria-pressed="true"
+        data-desc="DECLARE: the cursor is bound to the query but has not run yet. No rows exist, no position.">DECLARE</button>
+      <button class="chip" data-cur="open" aria-pressed="false"
+        data-desc="OPEN: the query runs and the result set is ready. The cursor sits BEFORE the first row — the first FETCH will land on it.">OPEN</button>
+      <button class="chip" data-cur="f1" aria-pressed="false"
+        data-desc="FETCH #1: the cursor advances to row 1 (S1001, Ada) and copies it into the host variables.">FETCH ①</button>
+      <button class="chip" data-cur="f2" aria-pressed="false"
+        data-desc="FETCH #2: advance to row 2 (S1002, Liang). Each FETCH moves exactly one row forward.">FETCH ②</button>
+      <button class="chip" data-cur="f3" aria-pressed="false"
+        data-desc="FETCH #3: advance to row 3 (S1003, Grace) — the last row.">FETCH ③</button>
+      <button class="chip" data-cur="close" aria-pressed="false"
+        data-desc="A fourth FETCH returns no row: SQLSTATE '02000' ends the loop. CLOSE then releases the cursor and its resources.">end &amp; CLOSE</button>
+    </div>
+    <p id="cur-desc" class="live-desc"
+       data-default="DECLARE: the cursor is bound to the query but has not run yet. No rows exist, no position.">DECLARE: the cursor is bound to the query but has not run yet. No rows exist, no position.</p>
+    <table class="inst demo" id="cur-demo" data-cur="declare">
+      <caption>Result set of the cursor's query</caption>
+      <thead><tr><th scope="col" class="cur" aria-label="cursor position"></th><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
+      <tbody>
+        <tr class="r1"><td class="cur"></td><td class="keycol">S1001</td><td>Ada Okafor</td></tr>
+        <tr class="r2"><td class="cur"></td><td class="keycol">S1002</td><td>Liang Wei</td></tr>
+        <tr class="r3"><td class="cur"></td><td class="keycol">S1003</td><td>Grace Bello</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 11 · CLI / ODBC / JDBC -->
+  <section class="slide" data-title="Call-level interfaces" aria-roledescription="slide" aria-label="Call-level interfaces">
+    <p class="kicker">Approach 2 · 1</p>
+    <h2 class="slide-h" tabindex="-1">Call-level interfaces: ODBC &amp; JDBC</h2>
+    <div class="two">
+      <div>
+        <p>Instead of a precompiler, a <span class="term">call-level interface</span> is
+        an ordinary library the program calls at runtime, passing SQL as strings.</p>
+        <ul>
+          <li><span class="term">ODBC</span> — the language-neutral C standard.</li>
+          <li><span class="term">JDBC</span> — the Java analog, the model we'll use.</li>
+        </ul>
+        <p style="margin:0">A <em>driver</em> for each DBMS implements the interface, so
+        the same application code runs against different databases.</p>
+      </div>
+      <div class="callout">
+        <h3>Embedded vs. CLI</h3>
+        <p style="margin:0">Embedded SQL is checked early and can be faster; a CLI needs
+        no precompiler and is portable. Modern applications lean on CLIs like JDBC.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · JDBC -->
+  <section class="slide" data-title="JDBC in practice" aria-roledescription="slide" aria-label="Jdbc in practice">
+    <p class="kicker">Approach 2 · 2</p>
+    <h2 class="slide-h" tabindex="-1">JDBC in practice</h2>
+    <div class="two">
+      <div>
+        <p>Four objects do the work: a <code class="rel">Connection</code>, a
+        <code class="rel">Statement</code>, and a <code class="rel">ResultSet</code> you
+        iterate with <code class="rel">next()</code> — JDBC's cursor.</p>
+        <div class="callout warn">
+          <h3>Close what you open</h3>
+          <p style="margin:0">ResultSet, Statement, Connection each hold resources.
+          Leaking them exhausts the connection pool — use try-with-resources.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="ty">Connection</span> con = DriverManager
+    .getConnection(url, user, pw);
+<span class="ty">Statement</span> st = con.createStatement();
+<span class="ty">ResultSet</span> rs = st.executeQuery(
+  <span class="st">"SELECT Name, GPA FROM STUDENT "</span>
++ <span class="st">"WHERE Major = 'CS'"</span>);
+
+<span class="kw">while</span> (rs.next()) {
+  <span class="ty">String</span> n = rs.getString(<span class="st">"Name"</span>);
+  <span class="ty">double</span> g = rs.getDouble(<span class="st">"GPA"</span>);
+}
+rs.close(); st.close(); con.close();</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · PREPARED STATEMENTS -->
+  <section class="slide" data-title="Parameterized statements" aria-roledescription="slide" aria-label="Parameterized statements">
+    <p class="kicker">Approach 2 · 3</p>
+    <h2 class="slide-h" tabindex="-1">Parameterized statements</h2>
+    <div class="two">
+      <div>
+        <p>A <code class="rel">PreparedStatement</code> holds a fixed SQL template with
+        <code class="rel">?</code> placeholders; you bind values into them separately.</p>
+        <p>Two payoffs: the statement is parsed once and reused, and — crucially — a
+        bound value is <strong>never parsed as SQL</strong>. The value can't change the
+        statement's structure.</p>
+        <div class="callout">
+          <h3>The safety hook</h3>
+          <p style="margin:0">That separation of code from data is the whole defense
+          against SQL injection. We build the attack, and this fix, next lecture.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="ty">PreparedStatement</span> ps = con.prepareStatement(
+  <span class="st">"SELECT Name FROM STUDENT "</span>
++ <span class="st">"WHERE Major = ?"</span>);
+
+ps.setString(<span class="st">1</span>, major);   <span class="cm">// bind, don't concat</span>
+<span class="ty">ResultSet</span> rs = ps.executeQuery();</code></pre>
+        <p class="figcap">The value goes in the box; it never becomes part of the SQL.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · TRANSACTIONS FROM CODE -->
+  <section class="slide" data-title="Transactions from application code" aria-roledescription="slide" aria-label="Transactions from application code">
+    <p class="kicker">Correctness across statements</p>
+    <h2 class="slide-h" tabindex="-1">Transactions from application code</h2>
+    <div class="two">
+      <div>
+        <p>By default each statement auto-commits. When several statements must succeed
+        or fail together, turn autocommit off and bracket them with
+        <code class="rel">commit</code> or <code class="rel">rollback</code>.</p>
+        <p style="margin:0">Enrolling a student and charging their account is one unit of
+        work — both, or neither.</p>
+        <div class="callout">
+          <h3>Preview</h3>
+          <p style="margin:0">Why this actually keeps data correct under concurrency and
+          crashes is Unit 8. Here it's just the application's control knob.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code>con.setAutoCommit(<span class="kw">false</span>);
+<span class="kw">try</span> {
+  st.executeUpdate(enrollSql);
+  st.executeUpdate(chargeSql);
+  con.commit();            <span class="cm">// both succeed</span>
+} <span class="kw">catch</span> (SQLException e) {
+  con.rollback();          <span class="cm">// neither</span>
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Close every cursor, ResultSet, and Connection.</strong> Leaks silently
+      drain the connection pool until the app stalls.</li>
+      <li><strong>Check the fetch status, not the row count.</strong> Loop until "no data"
+      — assuming a count invites an off-by-one.</li>
+      <li><strong>Prefer parameters over string-built SQL.</strong> Faster on reuse, and
+      the only real defense against injection (next lecture).</li>
+      <li><strong>Mind the type and NULL mapping.</strong> A SQL NULL fetched into a host
+      variable needs an indicator (or <code class="rel">wasNull()</code> in JDBC).</li>
+      <li><strong>Dynamic only when you must.</strong> If the statement shape is fixed, use
+      static or a prepared statement — cheaper and checkable.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>The <span class="term">impedance mismatch</span> and three ways to bridge it.</li>
+          <li><span class="term">Embedded</span> SQL with host variables; static vs <span class="term">dynamic</span>; <span class="term">cursors</span> and the fetch loop.</li>
+          <li><span class="term">JDBC</span>: connect, query, iterate; prepared statements; transactions from code.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why does a many-row query need a cursor but a one-row query doesn't?</li>
+            <li>When must SQL be dynamic rather than static?</li>
+            <li>What does binding a value to <code class="rel">?</code> guarantee about it?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — App Access II</h3>
+          <p style="margin:0">Stored procedures and SQL/PSM, then SQL injection: how the
+          attack works and why parameterized queries stop it cold.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- cursor walk demonstrator (only if that markup is present) ---
+  var cChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-cur]'));
+  var cDesc  = document.getElementById('cur-desc');
+  var cDemo  = document.getElementById('cur-demo');
+  if (cChips.length && cDemo){
+    cChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        cChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        cDemo.setAttribute('data-cur', chip.getAttribute('data-cur'));
+        if (cDesc) cDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

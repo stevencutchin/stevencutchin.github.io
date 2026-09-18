@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storage &amp; Files — Disk, Records, and File Organizations · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- cost table ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.88rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst th[scope="row"]{background:var(--tint);color:var(--blue-ink)}
+table.inst .win{color:#0B6B57;font-weight:700}
+table.inst .lose{color:#7A2708;font-weight:700}
+
+/* ---- reference grid ---- */
+.costgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cg{border:1px solid var(--line);border-top:4px solid var(--blue);border-radius:9px;
+  padding:11px 13px;background:#fff}
+.cg b{display:block;color:var(--blue-ink);font-size:1rem;margin-bottom:4px}
+.cg span{display:block;color:var(--muted);font-size:.86rem;margin:2px 0}
+.cg span strong{color:var(--ink)}
+
+/* ---- interactive: block-access cost ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.blocks{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}
+.blk{width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:.82rem;
+  color:#9aa2b1;background:#fff;transition:background .18s,border-color .18s,color .18s}
+.demo[data-mode="heap"] .blk{background:var(--tint);border-color:var(--blue);color:var(--blue-ink)}
+.demo[data-mode="bsearch"] .blk.probe,
+.demo[data-mode="range"]   .blk.range{background:var(--tint);border-color:var(--blue);color:var(--blue-ink)}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .costgrid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.cg,.fig,.callout{border-color:#000}
+  .chip,.blk{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.cg,table.inst{break-inside:avoid}
+  .demo .blk{background:var(--tint)!important;border-color:var(--blue)!important;color:var(--blue-ink)!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 7 · Storage &amp; indexing</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 1 of 3 · Elmasri &amp; Navathe, Ch. 16</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Storage and Files — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Storage & Files — Disk, Records, and File Organizations"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Down to the disk</p>
+    <h2 class="slide-h" tabindex="-1">Storage &amp; Files<br>Disk, records, and file organizations</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Every clean design we've built still has to land on a physical
+        device. Down here, one number dominates everything: how many blocks you read
+        from disk.</p>
+        <p style="color:var(--muted)">Today: the memory hierarchy and the I/O cost model,
+        how records pack into blocks, and the three ways to organize a file — each fast
+        at something, slow at another.</p>
+      </div>
+      <div class="callout">
+        <h3>Why physical, now?</h3>
+        <p style="margin:0">The same query can run in one block read or a million,
+        depending purely on how the file is laid out. Query speed is a
+        <em>storage</em> decision as much as a logical one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Units 0–6</h3>
+          <p style="margin:0">A logically clean, normalized schema and a language to
+          query it. Now: how it's stored, and why that governs performance.</p>
+        </div>
+        <p>Unit 7 is three lectures: <strong>today</strong> storage and file
+        organizations; then ordered indexes; then B-trees and B+-trees.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Use the <span class="term">disk-I/O cost model</span> (count block accesses).</li>
+            <li>Compute a <span class="term">blocking factor</span> and pack records.</li>
+            <li>Compare <span class="term">heap</span>, <span class="term">sorted</span>, and <span class="term">hashed</span> files.</li>
+            <li>Pick an organization from the workload.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · MEMORY HIERARCHY -->
+  <section class="slide" data-title="The memory hierarchy" aria-roledescription="slide" aria-label="The memory hierarchy">
+    <p class="kicker">The setting</p>
+    <h2 class="slide-h" tabindex="-1">The memory hierarchy</h2>
+    <div class="two">
+      <div>
+        <p>Storage trades speed for capacity in layers: fast and tiny at the top, slow
+        and vast at the bottom. Each step down is <strong>orders of magnitude</strong>
+        slower.</p>
+        <p>Databases hold more data than fits in RAM, so the working set lives on
+        <span class="term">disk</span> (or SSD) and is pulled into memory as needed.
+        Managing that movement <em>is</em> the storage layer's job.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 460 210" role="img" aria-labelledby="t3 d3">
+          <title id="t3">The memory hierarchy pyramid</title>
+          <desc id="d3">A pyramid of storage layers from fastest and smallest at the
+          top to slowest and largest at the bottom: CPU registers and cache, then main
+          memory (RAM), then disk or SSD, then tape or archive. Speed decreases and
+          capacity increases going down.</desc>
+          <polygon points="230,14 300,54 160,54" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="230" y="42" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">cache / registers</text>
+          <rect x="150" y="58" width="160" height="36" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="230" y="81" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">main memory (RAM)</text>
+          <rect x="110" y="98" width="240" height="42" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="230" y="124" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#7A2708">disk / SSD  ← the DBMS lives here</text>
+          <rect x="70" y="144" width="320" height="42" fill="#fff" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="230" y="170" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">tape / archive (backup)</text>
+          <text x="404" y="40" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">fast</text>
+          <text x="404" y="176" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">vast</text>
+        </svg>
+        <p class="figcap">Each layer down: much slower, much bigger.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · I/O COST MODEL -->
+  <section class="slide" data-title="The I/O cost model" aria-roledescription="slide" aria-label="The i o cost model">
+    <p class="kicker">The one number that matters</p>
+    <h2 class="slide-h" tabindex="-1">The disk-I/O cost model</h2>
+    <div class="two">
+      <div>
+        <p>Disk transfers happen in fixed-size <span class="term">blocks</span> (pages) —
+        the unit of I/O. Reading one byte or a whole block costs the same one
+        <strong>block access</strong>.</p>
+        <p>Because a disk access — seek plus rotation — is ~100,000× slower than a memory
+        access, we measure an algorithm's cost as the
+        <strong>number of block accesses</strong>, and ignore CPU work by comparison.</p>
+        <div class="callout warn">
+          <h3>The whole model</h3>
+          <p style="margin:0">Cost ≈ blocks read + blocks written. Every file
+          organization and index in this unit is judged by that count.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h3>Symbols we'll use</h3>
+        <p style="margin:0"><code class="rel">B</code> = block size, <code class="rel">R</code> =
+        record size, <code class="rel">r</code> = number of records,
+        <code class="rel">b</code> = number of blocks in the file. Costs come out in terms
+        of <code class="rel">b</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · RECORDS & BLOCKING -->
+  <section class="slide" data-title="Records and blocking" aria-roledescription="slide" aria-label="Records and blocking">
+    <p class="kicker">Packing the block</p>
+    <h2 class="slide-h" tabindex="-1">Records &amp; blocking</h2>
+    <div class="two">
+      <div>
+        <p>Records are packed into blocks. The <span class="term">blocking factor</span> is
+        how many fit:</p>
+        <p class="fig" style="font-family:var(--mono);color:var(--blue-ink);padding:10px 14px;display:inline-block">bfr = ⌊ B / R ⌋</p>
+        <p>So a file of <code class="rel">r</code> records needs
+        <code class="rel">b = ⌈ r / bfr ⌉</code> blocks — the number every cost is stated
+        in.</p>
+      </div>
+      <div>
+        <ul>
+          <li><span class="term">Unspanned</span> — a record never crosses a block boundary;
+          simpler, wastes the leftover bytes.</li>
+          <li><span class="term">Spanned</span> — a record may straddle two blocks; packs
+          tighter, needs a pointer to the continuation.</li>
+          <li><span class="term">Fixed vs variable length</span> — variable-length records
+          (a VARCHAR, a repeating group) need length markers or delimiters.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · ORGANIZATIONS OVERVIEW -->
+  <section class="slide" data-title="File organizations overview" aria-roledescription="slide" aria-label="File organizations overview">
+    <p class="kicker">Three layouts</p>
+    <h2 class="slide-h" tabindex="-1">Three ways to organize a file</h2>
+    <div class="costgrid">
+      <div class="cg"><b>Heap</b><span>Records in insertion order — no order at all.</span><span><strong>Fast:</strong> insert.</span><span><strong>Slow:</strong> search (full scan).</span></div>
+      <div class="cg"><b>Sorted</b><span>Records kept ordered by one field.</span><span><strong>Fast:</strong> search &amp; range on that field.</span><span><strong>Slow:</strong> insert / delete.</span></div>
+      <div class="cg"><b>Hashed</b><span>Bucket chosen by a hash of one field.</span><span><strong>Fast:</strong> equality on that field.</span><span><strong>Slow:</strong> range (no order).</span></div>
+    </div>
+    <div class="callout">
+      <h3>No universal winner</h3>
+      <p style="margin:0">Each organization is fast at one thing and slow at another.
+      The choice follows the workload — which is exactly what the cost model lets us
+      reason about.</p>
+    </div>
+  </section>
+
+  <!-- 7 · HEAP -->
+  <section class="slide" data-title="Heap files" aria-roledescription="slide" aria-label="Heap files">
+    <p class="kicker">Organization · 1</p>
+    <h2 class="slide-h" tabindex="-1">Heap (unordered) files</h2>
+    <div class="two">
+      <div>
+        <p>Records are simply appended at the end. No ordering, no structure.</p>
+        <ul>
+          <li><span class="term">Insert</span>: read the last block, add the record, write it
+          back — essentially constant cost.</li>
+          <li><span class="term">Search</span>: no help — scan on average <code class="rel">b/2</code>
+          blocks, <code class="rel">b</code> in the worst case.</li>
+          <li><span class="term">Delete</span>: find it (a scan), then mark it deleted;
+          periodic reorganization reclaims the space.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>When a heap is right</h3>
+        <p style="margin:0">Bulk loading, small files, or workloads that read the whole
+        file anyway. If most queries scan everything, ordering buys you nothing.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · SORTED -->
+  <section class="slide" data-title="Sorted files" aria-roledescription="slide" aria-label="Sorted files">
+    <p class="kicker">Organization · 2</p>
+    <h2 class="slide-h" tabindex="-1">Sorted (ordered) files</h2>
+    <div class="two">
+      <div>
+        <p>Records are kept in order of an <span class="term">ordering field</span>. That
+        order unlocks binary search.</p>
+        <ul>
+          <li><span class="term">Search</span> on the ordering field:
+          <code class="rel">log₂ b</code> block accesses — a huge win over a scan.</li>
+          <li><span class="term">Range</span> queries: find the start, then read
+          consecutively.</li>
+          <li><span class="term">Insert / delete</span>: must preserve order — shifting
+          records is costly, so real systems use an <em>overflow</em> area and reorganize
+          periodically.</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <h3>The catch</h3>
+        <p style="margin:0">Binary search only helps for the <em>one</em> ordering field,
+        and keeping the order makes writes expensive. That tension is what indexes (next
+        lecture) resolve.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · HEAP VS SORTED COST -->
+  <section class="slide" data-title="Heap vs sorted cost" aria-roledescription="slide" aria-label="Heap versus sorted cost">
+    <p class="kicker">The cost model in a table</p>
+    <h2 class="slide-h" tabindex="-1">Heap vs. sorted — block accesses</h2>
+    <table class="inst">
+      <caption>b = number of blocks in the file</caption>
+      <thead><tr><th scope="col">Operation</th><th scope="col">Heap</th><th scope="col">Sorted (on the ordering field)</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Equality search</th><td class="lose">b/2 avg, b worst</td><td class="win">log₂ b</td></tr>
+        <tr><th scope="row">Range search</th><td class="lose">b (full scan)</td><td class="win">log₂ b + matched blocks</td></tr>
+        <tr><th scope="row">Insert</th><td class="win">~1 (append)</td><td class="lose">find + shift / overflow</td></tr>
+        <tr><th scope="row">Delete</th><td>find + mark</td><td>find + reorganize</td></tr>
+      </tbody>
+    </table>
+    <p class="figcap">Sorted wins reads on its ordering field; heap wins writes. Neither
+    helps a search on a <em>different</em> field — that's what an index is for.</p>
+  </section>
+
+  <!-- 10 · INTERACTIVE -->
+  <section class="slide" data-title="Counting block accesses" aria-roledescription="slide" aria-label="Interactive: counting block accesses">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Count the blocks read</h2>
+    <p>A file of 16 blocks. Watch which blocks a search touches — and how the count
+    collapses when the file is sorted.</p>
+    <div class="hl-controls" role="group" aria-label="Choose an access pattern">
+      <button class="chip" data-mode="heap" aria-pressed="true"
+        data-desc="Heap, equality search: no order to exploit, so in the worst case every block is read. 16 block accesses to be sure the record isn't there.">heap: search</button>
+      <button class="chip" data-mode="bsearch" aria-pressed="false"
+        data-desc="Sorted, binary search: probe the middle, then halve. Blocks 8 → 4 → 2 → 1 — just 4 accesses (log₂ 16) to locate a record.">sorted: binary search</button>
+      <button class="chip" data-mode="range" aria-pressed="false"
+        data-desc="Sorted, range query: binary-search to the start, then read the matching run consecutively — here blocks 5–8. Cheap, because matches are contiguous.">sorted: range</button>
+    </div>
+    <p id="io-desc" class="live-desc"
+       data-default="Heap, equality search: no order to exploit, so in the worst case every block is read. 16 block accesses to be sure the record isn't there.">Heap, equality search: no order to exploit, so in the worst case every block is read. 16 block accesses to be sure the record isn't there.</p>
+    <div class="blocks demo" id="io-demo" data-mode="heap" aria-label="file blocks; highlighted blocks are the ones read">
+      <span class="blk probe">1</span><span class="blk probe">2</span><span class="blk">3</span>
+      <span class="blk probe">4</span><span class="blk range">5</span><span class="blk range">6</span>
+      <span class="blk range">7</span><span class="blk probe range">8</span><span class="blk">9</span>
+      <span class="blk">10</span><span class="blk">11</span><span class="blk">12</span>
+      <span class="blk">13</span><span class="blk">14</span><span class="blk">15</span><span class="blk">16</span>
+    </div>
+    <p class="figcap" id="io-count">Highlighted = blocks read. Heap ≈ 16, binary search
+    ≈ 4, range ≈ a short contiguous run.</p>
+  </section>
+
+  <!-- 11 · HASHING -->
+  <section class="slide" data-title="Hashing" aria-roledescription="slide" aria-label="Hashing">
+    <p class="kicker">Organization · 3</p>
+    <h2 class="slide-h" tabindex="-1">Hashed files (static hashing)</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">hash function</span> maps a key to a bucket number, so a
+        record's block is <em>computed</em>, not searched for.</p>
+        <ul>
+          <li><span class="term">Equality search</span>: hash the key → go straight to the
+          bucket. Roughly <strong>one</strong> block access.</li>
+          <li><span class="term">Range search</span>: no help — nearby keys scatter across
+          buckets. Hashing has no order.</li>
+        </ul>
+        <p style="margin:0">Two keys can hash to one bucket — a <span class="term">collision</span> —
+        handled with an overflow chain.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The static-hashing problem</h3>
+        <p style="margin:0">A fixed number of buckets is fast until the file grows: buckets
+        overflow, chains lengthen, and performance decays. The fix is to let the hash
+        structure grow.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · DYNAMIC HASHING -->
+  <section class="slide" data-title="Dynamic hashing" aria-roledescription="slide" aria-label="Dynamic hashing">
+    <p class="kicker">Hashing that grows</p>
+    <h2 class="slide-h" tabindex="-1">Extendible &amp; linear hashing</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Extendible hashing</span> keeps a directory indexed by the
+        first few bits of the hash. When a bucket overflows, only that bucket splits and,
+        if needed, the directory <strong>doubles</strong> — no full reorganization.</p>
+        <p><span class="term">Linear hashing</span> splits buckets in a fixed round-robin
+        order as the file grows, needing <em>no</em> directory at all.</p>
+      </div>
+      <div class="callout good">
+        <h3>Why it matters</h3>
+        <p style="margin:0">Both keep equality search at roughly one or two block accesses
+        even as the file grows and shrinks, avoiding static hashing's decay. This is how
+        real hash-organized files stay fast.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · CHOOSING -->
+  <section class="slide" data-title="Choosing an organization" aria-roledescription="slide" aria-label="Choosing an organization">
+    <p class="kicker">Matching layout to workload</p>
+    <h2 class="slide-h" tabindex="-1">Which organization, when?</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li><strong>Full-scan or bulk-load workload</strong> → <span class="term">heap</span>.
+          Ordering earns nothing if you read everything.</li>
+          <li><strong>Range queries or ordered output</strong> → <span class="term">sorted</span>
+          (or, better, a B+-tree index — next lecture).</li>
+          <li><strong>Point lookups by key, no ranges</strong> → <span class="term">hashing</span>.
+          One access, if you never need order.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>It's rarely either/or</h3>
+        <p style="margin:0">A table has one physical organization but can carry several
+        <em>indexes</em> on top, each a mini structure for a different access path. That's
+        the whole of the next two lectures.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · COST AT A GLANCE -->
+  <section class="slide" data-title="Cost at a glance" aria-roledescription="slide" aria-label="Cost at a glance">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">File organizations at a glance</h2>
+    <div class="costgrid">
+      <div class="cg"><b>Heap</b>
+        <span><strong>Equality:</strong> b/2 avg</span>
+        <span><strong>Range:</strong> b (scan)</span>
+        <span><strong>Insert:</strong> ~1</span></div>
+      <div class="cg"><b>Sorted</b>
+        <span><strong>Equality:</strong> log₂ b</span>
+        <span><strong>Range:</strong> log₂ b + run</span>
+        <span><strong>Insert:</strong> costly</span></div>
+      <div class="cg"><b>Hashed</b>
+        <span><strong>Equality:</strong> ~1</span>
+        <span><strong>Range:</strong> no help</span>
+        <span><strong>Insert:</strong> ~1 (until overflow)</span></div>
+    </div>
+    <p class="figcap">All costs on the organizing field, in block accesses. Off-field
+    access is a full scan for every organization.</p>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Count block accesses, not instructions.</strong> Disk I/O dwarfs CPU;
+      that's the only cost that matters here.</li>
+      <li><strong>An organization helps one field only.</strong> Sorted or hashed on X does
+      nothing for a query on Y — that needs an index.</li>
+      <li><strong>Hashing has no order.</strong> Never reach for a hash file when you need
+      ranges or sorted output.</li>
+      <li><strong>Sorted files pay on every write.</strong> Great for read-mostly data;
+      painful under heavy inserts unless you use overflow + reorganization.</li>
+      <li><strong>Static hashing decays.</strong> As data grows, prefer extendible or linear
+      hashing over a fixed bucket count.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>The memory hierarchy and the <span class="term">block-access cost model</span>.</li>
+          <li>Records, blocking factor, spanned/unspanned.</li>
+          <li><span class="term">Heap</span>, <span class="term">sorted</span>, and <span class="term">hashed</span> files — each fast at one thing.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why measure cost in block accesses, not CPU time?</li>
+            <li>Search cost for equality in heap vs. sorted vs. hashed?</li>
+            <li>Why is hashing useless for a range query?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Indexing I</h3>
+          <p style="margin:0">Ordered indexes — primary, clustering, secondary — and
+          multilevel indexes: extra structures that speed access without reordering the
+          file.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- block-access demonstrator (only if that markup is present) ---
+  var bChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-mode]'));
+  var bDesc  = document.getElementById('io-desc');
+  var bDemo  = document.getElementById('io-demo');
+  if (bChips.length && bDemo){
+    bChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        bChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        bDemo.setAttribute('data-mode', chip.getAttribute('data-mode'));
+        if (bDesc) bDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

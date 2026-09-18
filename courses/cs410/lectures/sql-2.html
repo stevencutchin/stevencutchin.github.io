@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL II — Joins, Subqueries, and Data Modification · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- SQL code blocks ---- */
+pre.sql{font-family:var(--mono);font-size:.9rem;line-height:1.5;color:var(--ink);
+  background:#0F1B33;border:1px solid var(--blue-ink);border-radius:9px;
+  padding:14px 16px;margin:0 0 12px;overflow-x:auto;white-space:pre}
+pre.sql code{color:#DCE4F5}
+pre.sql .kw{color:#8FB4FF;font-weight:700}
+pre.sql .ty{color:#7FD4C0}
+pre.sql .st{color:#F2B08A}
+pre.sql .cm{color:#8A93A3;font-style:italic}
+pre.sql .fn{color:#E6C06B}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+.tblwrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.tblwrap.three{grid-template-columns:1fr 1fr 1fr}
+.null{color:#7A2708;font-style:italic}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+/* join-type explorer: unmatched rows appear/disappear; NULLs carry the meaning */
+.demo[data-join="inner"] tr.lonly,
+.demo[data-join="inner"] tr.ronly{display:none}
+.demo[data-join="left"]  tr.ronly{display:none}
+.demo[data-join="right"] tr.lonly{display:none}
+.demo tr.lonly td.pad,.demo tr.ronly td.pad{background:#FBEEE7}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .tblwrap,.tblwrap.three{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  pre.sql{font-size:.8rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,table.inst,pre.sql{break-inside:avoid}
+  pre.sql{background:#F4F6FB;border-color:var(--line)}
+  pre.sql code{color:#14181F}
+  pre.sql .kw{color:#00246B}
+  pre.sql .ty{color:#0B6B57}
+  pre.sql .st{color:#7A2708}
+  pre.sql .cm{color:#4A5160}
+  /* linearize the join explorer: show every row */
+  table.demo tr{display:table-row!important}
+  table.demo td.pad{background:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 4 · SQL</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 2 of 3 in the SQL sequence · Elmasri &amp; Navathe, Ch. 6</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="SQL II — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="SQL II — Joins, Subqueries, and Data Modification"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Querying across tables</p>
+    <h2 class="slide-h" tabindex="-1">SQL II<br>Joins, subqueries, and changing the data</h2>
+    <div class="two">
+      <div>
+        <p class="lead">One table at a time only gets you so far. Real questions cross
+        relations — and real databases are written to, not just read.</p>
+        <p style="color:var(--muted)">Today: join tables three different ways, nest a
+        query inside another, and use INSERT, UPDATE, and DELETE to change what's
+        stored.</p>
+      </div>
+      <div class="callout">
+        <h3>The thread from algebra</h3>
+        <p style="margin:0">Every join here is the ⋈ you already know, and every
+        subquery is a σ or π computed first and reused. SQL just gives you the
+        surface syntax to say it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last lecture</h3>
+          <p style="margin:0">DDL (CREATE TABLE, types, constraints) and single-table
+          SELECT-FROM-WHERE, with NULL's three-valued logic.</p>
+        </div>
+        <p>Next lecture closes SQL: GROUP BY / HAVING, views, and triggers.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Join in the FROM clause, with explicit <code class="rel">JOIN … ON</code>, and with outer joins.</li>
+            <li>Write nested and <span class="term">correlated</span> subqueries.</li>
+            <li>Use <span class="term">EXISTS</span>, <span class="term">ANY</span>, <span class="term">ALL</span> — and express "for all."</li>
+            <li>Change data with <span class="term">INSERT</span>, <span class="term">UPDATE</span>, <span class="term">DELETE</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE DATA -->
+  <section class="slide" data-title="The tables we'll use" aria-roledescription="slide" aria-label="The tables we will use">
+    <p class="kicker">Running example</p>
+    <h2 class="slide-h" tabindex="-1">The tables we'll use</h2>
+    <p>The UNIVERSITY tables again. Omar (S1004) has no enrollment — the row that
+    outer joins exist to keep.</p>
+    <div class="tblwrap three">
+      <table class="inst">
+        <caption>STUDENT</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th><th scope="col">Major</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td>Ada Okafor</td><td>CS</td></tr>
+          <tr><td class="keycol">S1002</td><td>Liang Wei</td><td>Math</td></tr>
+          <tr><td class="keycol">S1003</td><td>Grace Bello</td><td>CS</td></tr>
+          <tr><td class="keycol">S1004</td><td>Omar Haddad</td><td>Physics</td></tr>
+        </tbody>
+      </table>
+      <table class="inst">
+        <caption>ENROLLMENT</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">CourseID</th><th scope="col">Grade</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td class="keycol">CS410</td><td>A</td></tr>
+          <tr><td class="keycol">S1002</td><td class="keycol">CS410</td><td>B</td></tr>
+          <tr><td class="keycol">S1003</td><td class="keycol">MATH301</td><td>A</td></tr>
+        </tbody>
+      </table>
+      <table class="inst">
+        <caption>COURSE</caption>
+        <thead><tr><th scope="col">CourseID</th><th scope="col">Title</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">CS410</td><td>Databases</td></tr>
+          <tr><td class="keycol">MATH301</td><td>Linear Algebra</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4 · IMPLICIT JOIN -->
+  <section class="slide" data-title="Joining in the FROM clause" aria-roledescription="slide" aria-label="Joining in the from clause">
+    <p class="kicker">Joins · 1</p>
+    <h2 class="slide-h" tabindex="-1">The FROM-clause join</h2>
+    <div class="two">
+      <div>
+        <p>List several tables in <code class="rel">FROM</code> and you get their
+        Cartesian product; a <code class="rel">WHERE</code> condition on matching keys
+        turns it into a join — exactly σ over ×.</p>
+        <p>Qualify shared column names with the table (or an alias) so the reference
+        is unambiguous.</p>
+        <div class="callout warn">
+          <h3>Forget the condition, get a product</h3>
+          <p style="margin:0">Omit the WHERE join predicate and you get every pairing —
+          a silent, enormous result. This is the classic runaway query.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- each student with their courses</span>
+<span class="kw">SELECT</span> S.Name, E.CourseID, E.Grade
+<span class="kw">FROM</span>   STUDENT S, ENROLLMENT E
+<span class="kw">WHERE</span>  S.StudentID = E.StudentID;</code></pre>
+        <p class="figcap">Two tables in FROM, joined by the key match in WHERE.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · EXPLICIT JOIN -->
+  <section class="slide" data-title="Explicit JOIN syntax" aria-roledescription="slide" aria-label="Explicit join syntax">
+    <p class="kicker">Joins · 2</p>
+    <h2 class="slide-h" tabindex="-1">Explicit JOIN … ON</h2>
+    <div class="two">
+      <div>
+        <p>The modern form puts the join and its condition together, keeping the
+        WHERE clause for genuine filtering:</p>
+        <ul>
+          <li><code class="rel">INNER JOIN … ON</code> — any condition.</li>
+          <li><code class="rel">NATURAL JOIN</code> — auto-match on shared column names.</li>
+          <li><code class="rel">JOIN … USING (col)</code> — match on a named shared column,
+          keeping just one copy of it.</li>
+        </ul>
+        <p style="margin:0">Same result as the FROM-clause form — clearer intent, and
+        harder to forget the condition.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">SELECT</span> S.Name, C.Title, E.Grade
+<span class="kw">FROM</span>   STUDENT S
+  <span class="kw">JOIN</span> ENROLLMENT E <span class="kw">ON</span> E.StudentID = S.StudentID
+  <span class="kw">JOIN</span> COURSE C     <span class="kw">ON</span> C.CourseID  = E.CourseID
+<span class="kw">WHERE</span>  S.Major = <span class="st">'CS'</span>;</code></pre>
+        <p class="figcap">Chained joins; WHERE is left to filter, not to join.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · OUTER JOINS -->
+  <section class="slide" data-title="Outer joins in SQL" aria-roledescription="slide" aria-label="Outer joins in SQL">
+    <p class="kicker">Joins · 3</p>
+    <h2 class="slide-h" tabindex="-1">Outer joins keep the unmatched</h2>
+    <div class="two">
+      <div>
+        <p>An inner join drops rows with no match. The
+        <code class="rel">LEFT</code>, <code class="rel">RIGHT</code>, and
+        <code class="rel">FULL OUTER JOIN</code> keep them, filling the missing side
+        with <span class="null">NULL</span> — the SQL form of ⟕ ⟖ ⟗.</p>
+        <p style="margin:0">"Every student, with courses if any" needs a LEFT join so
+        Omar survives with NULLs.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">SELECT</span> S.Name, E.CourseID
+<span class="kw">FROM</span>   STUDENT S
+  <span class="kw">LEFT OUTER JOIN</span> ENROLLMENT E
+       <span class="kw">ON</span> E.StudentID = S.StudentID;</code></pre>
+        <div class="callout">
+          <h3>Reads as</h3>
+          <p style="margin:0">Ada→CS410, Liang→CS410, Grace→MATH301, and
+          <em>Omar→<span class="null">NULL</span></em>. Try the explorer next slide.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · INTERACTIVE -->
+  <section class="slide" data-title="Inner vs. outer joins" aria-roledescription="slide" aria-label="Interactive: inner versus outer joins">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Which unmatched rows survive?</h2>
+    <p>EMPLOYEE and PROJECT joined on <code class="rel">Dept</code>. Physics has an
+    employee but no project; Biology has a project but no employee. Switch the join
+    type and watch the unmatched rows come and go.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a join type">
+      <button class="chip" data-join="inner" aria-pressed="true"
+        data-desc="INNER JOIN: only departments present on both sides. CS and Math match; Omar (Physics) and the Biology project are both dropped. Two rows.">INNER</button>
+      <button class="chip" data-join="left" aria-pressed="false"
+        data-desc="LEFT OUTER JOIN: every EMPLOYEE row is kept. Omar (Physics) stays with a NULL project; the unmatched Biology project is still dropped.">LEFT</button>
+      <button class="chip" data-join="right" aria-pressed="false"
+        data-desc="RIGHT OUTER JOIN: every PROJECT row is kept. The Biology project stays with a NULL employee; Omar (Physics) is dropped.">RIGHT</button>
+      <button class="chip" data-join="full" aria-pressed="false"
+        data-desc="FULL OUTER JOIN: keep everything. Both Omar (NULL project) and the Biology project (NULL employee) appear. Four rows.">FULL</button>
+    </div>
+    <p id="join-desc" class="live-desc"
+       data-default="INNER JOIN: only departments present on both sides. CS and Math match; Omar (Physics) and the Biology project are both dropped. Two rows.">INNER JOIN: only departments present on both sides. CS and Math match; Omar (Physics) and the Biology project are both dropped. Two rows.</p>
+    <table class="inst demo" id="join-demo" data-join="inner">
+      <caption>EMPLOYEE ⋈ PROJECT on Dept</caption>
+      <thead><tr><th scope="col">Employee</th><th scope="col">Dept</th><th scope="col">Project</th></tr></thead>
+      <tbody>
+        <tr class="both"><td>Ada Okafor</td><td class="keycol">CS</td><td>Alpha</td></tr>
+        <tr class="both"><td>Liang Wei</td><td class="keycol">Math</td><td>Beta</td></tr>
+        <tr class="lonly"><td>Omar Haddad</td><td class="keycol">Physics</td><td class="pad null">NULL</td></tr>
+        <tr class="ronly"><td class="pad null">NULL</td><td class="keycol">Biology</td><td>Gamma</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 8 · NESTED SUBQUERIES -->
+  <section class="slide" data-title="Nested subqueries" aria-roledescription="slide" aria-label="Nested subqueries">
+    <p class="kicker">Subqueries · 1</p>
+    <h2 class="slide-h" tabindex="-1">Nested subqueries (uncorrelated)</h2>
+    <div class="two">
+      <div>
+        <p>A subquery in <code class="rel">WHERE</code> computes a set of values the
+        outer query tests against. Here it runs <strong>once</strong> — it doesn't
+        depend on the outer row.</p>
+        <ul>
+          <li><code class="rel">IN (subquery)</code> — value is among the results.</li>
+          <li><code class="rel">NOT IN (subquery)</code> — value is absent.</li>
+        </ul>
+        <div class="callout warn">
+          <h3>NOT IN and NULL</h3>
+          <p style="margin:0">If the subquery yields any NULL, <code class="rel">NOT IN</code>
+          can return no rows at all — three-valued logic again. Prefer
+          <code class="rel">NOT EXISTS</code> when NULLs are possible.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- students enrolled in CS410</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> StudentID <span class="kw">IN</span> (
+  <span class="kw">SELECT</span> StudentID <span class="kw">FROM</span> ENROLLMENT
+  <span class="kw">WHERE</span> CourseID = <span class="st">'CS410'</span>);
+
+<span class="cm">-- students never enrolled (Omar)</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> StudentID <span class="kw">NOT IN</span> (
+  <span class="kw">SELECT</span> StudentID <span class="kw">FROM</span> ENROLLMENT);</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · CORRELATED + EXISTS -->
+  <section class="slide" data-title="Correlated subqueries and EXISTS" aria-roledescription="slide" aria-label="Correlated subqueries and exists">
+    <p class="kicker">Subqueries · 2</p>
+    <h2 class="slide-h" tabindex="-1">Correlated subqueries &amp; EXISTS</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">correlated</span> subquery references a column from the
+        outer row, so it is re-evaluated <strong>per outer row</strong>.</p>
+        <p><code class="rel">EXISTS</code> is true when the subquery returns at least one
+        row — it tests presence, not values, and pairs naturally with correlation.</p>
+        <p style="margin:0"><code class="rel">NOT EXISTS</code> is the mirror: no matching
+        row at all.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- students who earned an A somewhere</span>
+<span class="kw">SELECT</span> S.Name
+<span class="kw">FROM</span>   STUDENT S
+<span class="kw">WHERE</span> <span class="kw">EXISTS</span> (
+  <span class="kw">SELECT</span> * <span class="kw">FROM</span> ENROLLMENT E
+  <span class="kw">WHERE</span>  E.StudentID = S.StudentID
+    <span class="kw">AND</span>  E.Grade = <span class="st">'A'</span>);</code></pre>
+        <p class="figcap">The inner E references the outer S — that's the correlation.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · ANY / ALL -->
+  <section class="slide" data-title="ANY and ALL" aria-roledescription="slide" aria-label="Any and all">
+    <p class="kicker">Subqueries · 3</p>
+    <h2 class="slide-h" tabindex="-1">Quantified comparison: ANY, ALL</h2>
+    <div class="two">
+      <div>
+        <p>Compare a value against a whole set of subquery results:</p>
+        <ul>
+          <li><code class="rel">&gt; ANY (…)</code> — greater than <em>at least one</em>
+          (i.e. greater than the minimum).</li>
+          <li><code class="rel">&gt; ALL (…)</code> — greater than <em>every</em> one
+          (greater than the maximum).</li>
+          <li><code class="rel">= ANY</code> is just <code class="rel">IN</code>.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- courses more popular than every</span>
+<span class="cm">-- Math course (by enrollment count)</span>
+<span class="kw">SELECT</span> CourseID <span class="kw">FROM</span> ENROLLMENT
+<span class="kw">GROUP BY</span> CourseID
+<span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; <span class="kw">ALL</span> (
+  <span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> ENROLLMENT
+  <span class="kw">WHERE</span> CourseID <span class="kw">LIKE</span> <span class="st">'MATH%'</span>
+  <span class="kw">GROUP BY</span> CourseID);</code></pre>
+        <p class="figcap">GROUP BY / HAVING arrives fully next lecture — here just for the ALL.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · DIVISION VIA NOT EXISTS -->
+  <section class="slide" data-title="For all, via NOT EXISTS" aria-roledescription="slide" aria-label="For all via not exists">
+    <p class="kicker">Subqueries · 4 — the hard one</p>
+    <h2 class="slide-h" tabindex="-1">"For all" — division via NOT EXISTS</h2>
+    <div class="two">
+      <div>
+        <p>SQL has no direct division operator. Express "for all" by the
+        <strong>double negative</strong>: a student took every required course when
+        there is <em>no required course they did not take</em>.</p>
+        <p>The two nested <code class="rel">NOT EXISTS</code> are the pattern to
+        recognize — it's the algebra's ÷ written in SQL.</p>
+        <div class="callout">
+          <h3>Read it inside-out</h3>
+          <p style="margin:0">Inner: a required course with no matching enrollment.
+          Outer: keep the student for whom that inner set is empty.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- students who took ALL required courses</span>
+<span class="kw">SELECT</span> S.Name <span class="kw">FROM</span> STUDENT S
+<span class="kw">WHERE</span> <span class="kw">NOT EXISTS</span> (
+  <span class="kw">SELECT</span> * <span class="kw">FROM</span> REQUIRED R
+  <span class="kw">WHERE</span> <span class="kw">NOT EXISTS</span> (
+    <span class="kw">SELECT</span> * <span class="kw">FROM</span> ENROLLMENT E
+    <span class="kw">WHERE</span> E.StudentID = S.StudentID
+      <span class="kw">AND</span> E.CourseID  = R.CourseID));</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · INSERT -->
+  <section class="slide" data-title="INSERT" aria-roledescription="slide" aria-label="Insert">
+    <p class="kicker">Modifying data · 1</p>
+    <h2 class="slide-h" tabindex="-1">INSERT</h2>
+    <div class="two">
+      <div>
+        <p>Add rows with an explicit column list — always list the columns, so the
+        statement survives a later schema change.</p>
+        <p>You can insert several rows at once, or feed rows straight from a query
+        with <code class="rel">INSERT … SELECT</code>.</p>
+        <div class="callout warn">
+          <h3>Constraints still apply</h3>
+          <p style="margin:0">Every INSERT is checked against PK, FK, NOT NULL, and
+          CHECK. A missing column takes its DEFAULT, or NULL if none is set.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">INSERT INTO</span> STUDENT (StudentID, Name, Major)
+<span class="kw">VALUES</span> (<span class="st">'S1005'</span>, <span class="st">'Nadia Rahman'</span>, <span class="st">'CS'</span>);
+
+<span class="cm">-- rows straight from a query</span>
+<span class="kw">INSERT INTO</span> HONORS (StudentID, Name)
+<span class="kw">SELECT</span> StudentID, Name <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span>  Major = <span class="st">'CS'</span>;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · UPDATE & DELETE -->
+  <section class="slide" data-title="UPDATE and DELETE" aria-roledescription="slide" aria-label="Update and delete">
+    <p class="kicker">Modifying data · 2</p>
+    <h2 class="slide-h" tabindex="-1">UPDATE &amp; DELETE</h2>
+    <div class="two">
+      <div>
+        <p><code class="rel">UPDATE</code> changes columns in the rows a WHERE clause
+        selects; <code class="rel">DELETE</code> removes them.</p>
+        <p>The WHERE clause is the same selection σ as in a query — it decides which
+        rows are affected.</p>
+        <div class="callout warn">
+          <h3>The missing WHERE</h3>
+          <p style="margin:0">No WHERE means <em>every row</em>. An
+          <code class="rel">UPDATE</code> or <code class="rel">DELETE</code> without one
+          rewrites or empties the whole table. Check twice.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">UPDATE</span> STUDENT
+<span class="kw">SET</span>    Major = <span class="st">'Data Science'</span>
+<span class="kw">WHERE</span>  StudentID = <span class="st">'S1004'</span>;
+
+<span class="kw">DELETE FROM</span> ENROLLMENT
+<span class="kw">WHERE</span> Grade <span class="kw">IS NULL</span>;</code></pre>
+        <p class="figcap">A DELETE can cascade to dependents if the FK said so.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>A missing join predicate is a product.</strong> Every extra table in FROM
+      needs a matching condition, or the row count explodes.</li>
+      <li><strong>Inner joins hide the unmatched.</strong> If you need students with no
+      enrollment, that's a LEFT join, not an inner one.</li>
+      <li><strong><code class="rel">NOT IN</code> breaks on NULL.</strong> A single NULL in the
+      subquery can zero out the result. Reach for <code class="rel">NOT EXISTS</code>.</li>
+      <li><strong>"For all" is two NOT EXISTS.</strong> Whenever a question says "every" or
+      "all," think division, not join.</li>
+      <li><strong>UPDATE/DELETE without WHERE hits everything.</strong> Preview with a
+      SELECT on the same WHERE before you run it.</li>
+    </ul>
+  </section>
+
+  <!-- 15 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>Joins three ways: FROM-clause, explicit <code class="rel">JOIN … ON</code>, and outer joins.</li>
+          <li>Nested, correlated, and <span class="term">EXISTS</span>/<span class="term">ANY</span>/<span class="term">ALL</span> subqueries; "for all" via NOT EXISTS.</li>
+          <li>Changing data with INSERT, UPDATE, DELETE — and the missing-WHERE trap.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Rewrite the FROM-clause join as an explicit <code class="rel">JOIN … ON</code>.</li>
+            <li>When does a correlated subquery re-run, and how often?</li>
+            <li>Why is "took every required course" two NOT EXISTS?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — SQL III</h3>
+          <p style="margin:0">GROUP BY and HAVING for aggregation, views and their
+          updatability, and assertions and triggers for active rules.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 15</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- join-type explorer (only if that markup is present) ---
+  var jChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-join]'));
+  var jDesc  = document.getElementById('join-desc');
+  var jDemo  = document.getElementById('join-demo');
+  if (jChips.length && jDemo){
+    jChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        jChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        jDemo.setAttribute('data-join', chip.getAttribute('data-join'));
+        if (jDesc) jDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

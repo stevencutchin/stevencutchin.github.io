@@ -3,15 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Relational Algebra I — Select, Project, Set Operations · CS 410/510</title>
+<title>Relational Algebra I — Select, Project, Rename, Set Operations · CS 410/510</title>
 <style>
 :root{
   --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
   --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
-  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB; --brown:#7A2708;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
   --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  --mono:"SF Mono",ui-monospace,"Cascadia Mono","Roboto Mono",Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -22,7 +21,6 @@ body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans)
   padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
 .vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
   overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-[hidden]{display:none!important}
 
 /* ---- shell ---- */
 .wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
@@ -49,56 +47,62 @@ html.js .slide.is-active{display:block;animation:fade .18s ease-out}
 .slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
 .slide li{margin:7px 0}
 .lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
 .callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
   border-radius:9px;padding:12px 16px;margin:14px 0}
 .callout.warn{border-left-color:var(--orange)}
 .callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
-.callout.warn h3{color:var(--brown)}
+.callout.warn h3{color:#7A2708}
 .term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
 .figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
 .objlist li::marker{color:var(--blue);font-weight:700}
 
-/* ---- expression display ---- */
-.expr{font-family:var(--serif);font-size:1.28rem;color:var(--blue-ink);
+/* ---- algebra expressions ---- */
+.expr{font-family:var(--serif);font-size:1.16rem;color:var(--blue-ink);
   background:var(--tint);border:1px solid var(--line);border-radius:8px;
-  padding:12px 16px;margin:10px 0;line-height:1.4}
-.expr sub{font-size:.62em;color:var(--brown);font-weight:600}
-.expr .op{color:var(--blue);font-weight:700}
-.inl{font-family:var(--serif);color:var(--blue-ink)}
-.inl sub{font-size:.7em;color:var(--brown)}
+  padding:10px 14px;margin:0 0 12px;display:inline-block}
+.expr sub{font-size:.72em}
+.op{font-weight:700;color:#7A2708}
 
 /* ---- instance tables ---- */
-.tablewrap{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
-table.inst{border-collapse:collapse;font-size:.9rem;margin-top:4px}
-table.inst.full{width:100%}
-table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px;
-  font-weight:600}
-table.inst th,table.inst td{border:1px solid var(--line);padding:5px 12px;text-align:left;
-  white-space:nowrap}
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
 table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
-table.inst.res thead th{background:var(--brown)}
 table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
-.resq{font-family:var(--serif);color:var(--brown);font-size:1.05rem;margin:2px 0 6px}
+.tblwrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 
 /* ---- interactive demonstrator ---- */
-.op-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
-html.js .op-controls{display:flex}
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
 .chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
   background:#fff;color:var(--blue-ink);border:2px solid var(--line);
   border-radius:999px;padding:5px 14px}
 .chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
 .chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
 .live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
-  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+
+/* demo table highlighting: state is echoed in the live-desc text, never color alone */
+table.demo td,table.demo th{transition:opacity .18s,background .18s}
+.demo .ren{display:none}
+.demo[data-op="rename"] .orig{display:none}
+.demo[data-op="rename"] .ren{display:inline}
+.demo[data-op="select"] tbody tr:not(.match){opacity:.34}
+.demo[data-op="select"] tbody tr.match td{background:var(--tint)}
+.demo[data-op="project"] .col-id,
+.demo[data-op="project"] .col-major{opacity:.3}
+.demo[data-op="project"] .col-name{background:var(--tint);font-weight:700}
+.demo[data-op="rename"] thead th{background:var(--blue-ink)}
 
 /* ---- notation legend grid ---- */
-.legendgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.legendgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .gl{border:1px solid var(--line);border-radius:9px;padding:12px;text-align:center;background:#fff}
-.gl .sym{font-family:var(--serif);font-size:1.9rem;font-weight:700;color:var(--blue);
-  line-height:1;margin-bottom:8px;min-height:34px;display:flex;align-items:center;justify-content:center}
-.gl b{display:block;color:var(--blue-ink);font-size:.98rem}
-.gl span{color:var(--muted);font-size:.84rem}
+.gl .sym{font-family:var(--serif);font-size:1.7rem;color:#7A2708;font-weight:700;line-height:1;margin-bottom:6px}
+.gl b{display:block;color:var(--blue-ink);font-size:.94rem}
+.gl span{color:var(--muted);font-size:.82rem}
 
 /* ---- chrome: progress + nav ---- */
 .deck-chrome{margin-top:16px}
@@ -119,29 +123,34 @@ html:not(.js) .deck-chrome{display:none}
   body{font-size:16px}
   .deck{padding:22px 18px;min-height:0}
   .two{grid-template-columns:1fr;gap:18px}
+  .tblwrap{grid-template-columns:1fr}
   .slide-h{font-size:1.55rem}
   .legendgrid{grid-template-columns:1fr 1fr}
 }
 @media (prefers-contrast:more){
   :root{--muted:#242830;--line:#3d4450}
-  .unit-tag,.gl,.callout,.expr,table.inst th,table.inst td{border-color:#000}
+  .unit-tag,.gl,.fig,.callout{border-color:#000}
   .chip{border-color:#000}
 }
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important;animation:none!important}
 }
 
-/* ---- print / PDF ---- */
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
 @page{size:landscape;margin:14mm}
 @media print{
   body{background:#fff;font-size:11.5pt}
-  .skip,.deck-chrome,.op-controls{display:none!important}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
   .wrap{max-width:none;padding:0}
   .deck{border:none;border-radius:0;padding:0;min-height:0}
   .slide{display:block!important;break-before:page;padding-top:6mm}
   .slide:first-of-type{break-before:auto}
   .slide-h{font-size:1.5rem}
-  .callout,.expr,table.inst{break-inside:avoid}
+  .fig,.callout,.gl,table.inst{break-inside:avoid}
+  /* linearize the demonstrator: show the full input relation, unfiltered */
+  table.demo td,table.demo th{opacity:1!important;background:none!important}
+  .demo .orig{display:inline!important}
+  .demo .ren{display:none!important}
 }
 </style>
 </head>
@@ -152,30 +161,46 @@ html:not(.js) .deck-chrome{display:none}
   <div class="topbar">
     <span class="unit-tag">Unit 3 · Relational algebra</span>
     <span class="course">CS 410/510 Databases</span>
-    <span class="where">Lecture 1 of 2 · Elmasri &amp; Navathe, Ch. 8</span>
+    <span class="where">Lecture 1 of 2 in the algebra sequence · Elmasri &amp; Navathe, Ch. 8</span>
   </div>
 
   <div id="deck" class="deck" role="region" aria-label="Relational Algebra I — lecture slides">
 
   <!-- 1 · TITLE -->
-  <section class="slide is-active" data-title="Relational Algebra I — Select, Project, Set Operations"
+  <section class="slide is-active" data-title="Relational Algebra I — Select, Project, Rename, Set Operations"
            aria-roledescription="slide" aria-label="Title">
-    <p class="kicker">Querying the relational model</p>
-    <h2 class="slide-h" tabindex="-1">Relational algebra I<br>Selecting, projecting, and set operations</h2>
+    <p class="kicker">What a query computes</p>
+    <h2 class="slide-h" tabindex="-1">Relational Algebra I<br>Select, project, rename, and set operations</h2>
     <div class="two">
       <div>
-        <p class="lead">We have relations. Now we need a precise way to ask
-        questions of them.</p>
-        <p style="color:var(--muted)">Relational algebra is a small set of
-        operations, each taking relations in and giving a relation out. Today:
-        the unary operations and the set operations. It is the formal core that
-        SQL sits on top of.</p>
+        <p class="lead">The tables exist. Now we ask the other half of the
+        question: given relations, how do we compute a new one — the answer to a
+        query?</p>
+        <p style="color:var(--muted)">Relational algebra is the procedural language
+        underneath SQL. Master these operators and every SELECT you write later has
+        a precise meaning you can trace by hand.</p>
       </div>
-      <div>
-        <p class="expr"><span class="op">&pi;</span><sub>Fname, Salary</sub>(
-          <span class="op">&sigma;</span><sub>Dno=5</sub>(EMPLOYEE) )</p>
-        <p class="figcap">A query is a function from relations to a relation — and
-        the result is itself a relation, so operations chain.</p>
+      <div class="fig">
+        <svg viewBox="0 0 520 170" role="img" aria-labelledby="t1 d1">
+          <title id="t1">An operator takes relations and returns a relation</title>
+          <desc id="d1">Two input relations feed an operator box; the box outputs a
+          single new relation. The output can itself feed another operator.</desc>
+          <rect x="18" y="30" width="120" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="78" y="55" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#00246B">relation</text>
+          <rect x="18" y="100" width="120" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="78" y="125" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#00246B">relation</text>
+          <line x1="138" y1="50" x2="214" y2="78" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="138" y1="120" x2="214" y2="92" stroke="#8A93A3" stroke-width="1.7"/>
+          <circle cx="248" cy="85" r="34" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="248" y="92" text-anchor="middle" font-family="serif" font-size="26" font-weight="700" fill="#7A2708">σ π</text>
+          <line x1="282" y1="85" x2="360" y2="85" stroke="#0033A0" stroke-width="2"/>
+          <polygon points="360,85 350,80 350,90" fill="#0033A0"/>
+          <rect x="374" y="62" width="128" height="46" rx="5" fill="#fff" stroke="#0033A0" stroke-width="2"/>
+          <rect x="374" y="62" width="128" height="22" rx="5" fill="#0033A0"/>
+          <text x="438" y="78" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#fff">result</text>
+          <text x="438" y="100" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#4A5160">a relation</text>
+        </svg>
+        <p class="figcap">Closed algebra: relations in, a relation out — so you can chain.</p>
       </div>
     </div>
   </section>
@@ -187,400 +212,426 @@ html:not(.js) .deck-chrome{display:none}
     <div class="two">
       <div>
         <div class="callout">
-          <h3>Unit 2 gave us</h3>
-          <p style="margin:0">Relations, keys, and integrity constraints — plus the
-          algorithm that produced our schema from a diagram.</p>
+          <h3>So far this unit</h3>
+          <p style="margin:0">We mapped the ER/EER diagram to relations with keys and
+          foreign keys. Those relations are the <em>inputs</em> to everything below.</p>
         </div>
-        <p>Relational algebra is the <em>procedural</em> query language of that
-        model: you specify a sequence of operations that computes the answer.</p>
+        <p>Algebra spans two lectures: today the <strong>unary</strong> operators and
+        the <strong>set</strong> operators; next time <strong>joins</strong>,
+        division, and aggregation.</p>
       </div>
       <div>
         <div class="callout">
-          <h3>The two lectures</h3>
-          <ol class="objlist">
-            <li><strong>RA I — today.</strong> SELECT, PROJECT, RENAME; UNION, INTERSECTION, DIFFERENCE, CARTESIAN PRODUCT.</li>
-            <li><strong>RA II.</strong> Joins, division, aggregation, outer joins, and query trees.</li>
-          </ol>
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Filter rows with <span class="term">SELECT</span> (σ) and columns with <span class="term">PROJECT</span> (π).</li>
+            <li>Compose operators into a query, read inside-out.</li>
+            <li>Use <span class="term">RENAME</span> (ρ) and say when it's needed.</li>
+            <li>Apply ∪, ∩, and − under <span class="term">union compatibility</span>, and ×.</li>
+          </ul>
         </div>
-        <p style="margin:0;color:var(--muted)">Why bother, when SQL is coming? Because
-        SQL is evaluated <em>as</em> relational algebra. Reading a query plan means
-        reading this.</p>
       </div>
     </div>
   </section>
 
-  <!-- 3 · WHAT IS RA -->
+  <!-- 3 · WHAT IT IS -->
   <section class="slide" data-title="What relational algebra is" aria-roledescription="slide" aria-label="What relational algebra is">
-    <p class="kicker">Motivation</p>
-    <h2 class="slide-h" tabindex="-1">A language of operations on relations</h2>
-    <p class="lead">Each operation takes one or two relations and returns a new
-    relation. Nothing else is in play — no loops, no variables beyond the
-    relations themselves.</p>
+    <p class="kicker">Foundations</p>
+    <h2 class="slide-h" tabindex="-1">A closed, procedural algebra</h2>
+    <p class="lead">Every operator takes one or two relations and returns a
+    relation — nothing else. That single property is what makes it powerful.</p>
     <ul>
-      <li><span class="term">Closure</span>: the output of any operation is a relation, so
-      it can feed the next operation. Whole queries are built by composition.</li>
-      <li><span class="term">Set semantics</span>: relations are sets of tuples, so results
-      carry no duplicate rows and no inherent order.</li>
-      <li><span class="term">Procedural</span>: an expression is a recipe. You say <em>how</em>
-      to compute the answer — unlike SQL, which leans declarative.</li>
+      <li><span class="term">Closed.</span> Because the output is a relation, an
+      operator's result can be the input to the next. A query is a
+      <em>pipeline</em> of operators.</li>
+      <li><span class="term">Set-based.</span> A relation is a set of tuples, so results
+      carry no duplicates and no inherent order.</li>
+      <li><span class="term">Procedural.</span> Algebra says <em>how</em> to compute the
+      answer, step by step. Its declarative twin — relational
+      <span class="term">calculus</span> (what, not how) — we'll meet at the end of
+      the next lecture.</li>
     </ul>
     <div class="callout">
-      <h3>Two families today</h3>
-      <p style="margin:0"><strong>Unary</strong> operations act on one relation (SELECT,
-      PROJECT, RENAME). <strong>Set</strong> operations combine two (UNION, INTERSECTION,
-      DIFFERENCE, CARTESIAN PRODUCT).</p>
+      <h3>Why learn it at all?</h3>
+      <p style="margin:0">SQL is translated into an algebra expression and optimized
+      as one. When a query is slow or wrong, this is the level you reason at.</p>
     </div>
   </section>
 
-  <!-- 4 · SELECT -->
-  <section class="slide" data-title="SELECT (σ)" aria-roledescription="slide" aria-label="Select sigma">
-    <p class="kicker">Unary · SELECT</p>
-    <h2 class="slide-h" tabindex="-1">SELECT (&sigma;) — keep some rows</h2>
-    <div class="two">
-      <div>
-        <p><span class="term">SELECT</span> filters <em>rows</em>. It keeps the tuples that
-        satisfy a condition and drops the rest; the columns are untouched.</p>
-        <p class="expr"><span class="op">&sigma;</span><sub>condition</sub>(R)</p>
-        <p>The condition is a boolean test over attributes, built from comparisons
-        (<span class="inl">=, &ne;, &lt;, &le;, &gt;, &ge;</span>) joined by AND, OR, NOT.
-        The result has the same columns as R.</p>
-        <div class="callout">
-          <h3>Read it aloud</h3>
-          <p style="margin:0"><span class="inl">&sigma;<sub>Salary&gt;40000</sub>(EMPLOYEE)</span>
-          — "the employees earning more than 40,000."</p>
-        </div>
-      </div>
-      <div>
-        <p class="resq">&sigma;<sub style="color:var(--brown)">Dno=5</sub>(EMPLOYEE)</p>
-        <table class="inst res"><caption>Result — rows where Dno = 5</caption>
-          <thead><tr><th>Fname</th><th>Dno</th><th>Salary</th></tr></thead>
-          <tbody>
-            <tr><td>Ada</td><td>5</td><td>40000</td></tr>
-            <tr><td>Cleo</td><td>5</td><td>43000</td></tr>
-          </tbody>
-        </table>
-        <p class="figcap">Same three columns as EMPLOYEE; only matching rows survive.</p>
-      </div>
+  <!-- 4 · THE DATA -->
+  <section class="slide" data-title="The relations we'll query" aria-roledescription="slide" aria-label="The relations we will query">
+    <p class="kicker">Running example</p>
+    <h2 class="slide-h" tabindex="-1">The relations we'll query</h2>
+    <p>Two small relations from the UNIVERSITY schema. Every example on the coming
+    slides is computed from exactly these rows.</p>
+    <div class="tblwrap">
+      <table class="inst">
+        <caption>STUDENT</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th><th scope="col">Major</th><th scope="col">GPA</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td>Ada Okafor</td><td>CS</td><td>3.8</td></tr>
+          <tr><td class="keycol">S1002</td><td>Liang Wei</td><td>Math</td><td>3.5</td></tr>
+          <tr><td class="keycol">S1003</td><td>Grace Bello</td><td>CS</td><td>3.9</td></tr>
+          <tr><td class="keycol">S1004</td><td>Omar Haddad</td><td>Physics</td><td>3.2</td></tr>
+        </tbody>
+      </table>
+      <table class="inst">
+        <caption>ENROLLMENT</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">CourseID</th><th scope="col">Grade</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td class="keycol">CS410</td><td>A</td></tr>
+          <tr><td class="keycol">S1002</td><td class="keycol">CS410</td><td>B</td></tr>
+          <tr><td class="keycol">S1003</td><td class="keycol">MATH301</td><td>A</td></tr>
+          <tr><td class="keycol">S1001</td><td class="keycol">MATH301</td><td>B</td></tr>
+        </tbody>
+      </table>
     </div>
+    <p class="figcap">StudentID in ENROLLMENT is a foreign key back to STUDENT — the M:N mapping from last unit.</p>
   </section>
 
-  <!-- 5 · PROJECT -->
-  <section class="slide" data-title="PROJECT (π)" aria-roledescription="slide" aria-label="Project pi">
-    <p class="kicker">Unary · PROJECT</p>
-    <h2 class="slide-h" tabindex="-1">PROJECT (&pi;) — keep some columns</h2>
+  <!-- 5 · SELECT -->
+  <section class="slide" data-title="SELECT (σ)" aria-roledescription="slide" aria-label="Select operator sigma">
+    <p class="kicker">Unary operators · 1</p>
+    <h2 class="slide-h" tabindex="-1">SELECT (σ) — keep some rows</h2>
     <div class="two">
       <div>
-        <p><span class="term">PROJECT</span> filters <em>columns</em>. It keeps only the
-        listed attributes and discards the others.</p>
-        <p class="expr"><span class="op">&pi;</span><sub>attribute list</sub>(R)</p>
-        <p>Because the result is a set, any duplicate rows that appear after
-        dropping columns are <span class="term">eliminated automatically</span>. That
-        difference from SQL (which keeps duplicates unless told otherwise) matters
-        later.</p>
+        <p><span class="term">SELECT</span> keeps the tuples that satisfy a condition
+        and drops the rest. It is a <strong>horizontal</strong> cut — it never
+        changes the columns.</p>
+        <p class="expr">σ<sub>Major = 'CS'</sub>(STUDENT)</p>
+        <p>The condition can combine comparisons with <span class="op">∧</span>
+        (and), <span class="op">∨</span> (or), <span class="op">¬</span> (not). The
+        result has the same schema as STUDENT.</p>
         <div class="callout warn">
-          <h3>Duplicate elimination</h3>
-          <p style="margin:0">Projecting EMPLOYEE onto Dno collapses four rows into
-          the two distinct department numbers.</p>
+          <h3>Not the SQL SELECT</h3>
+          <p style="margin:0">Algebra's σ is the SQL <code>WHERE</code>. The word
+          "SELECT" in SQL actually does the <em>projection</em> on the next slide —
+          a lifelong source of confusion, so name it now.</p>
         </div>
       </div>
-      <div>
-        <p class="resq">&pi;<sub style="color:var(--brown)">Dno</sub>(EMPLOYEE)</p>
-        <table class="inst res"><caption>Result — the distinct Dno values</caption>
-          <thead><tr><th>Dno</th></tr></thead>
-          <tbody><tr><td>5</td></tr><tr><td>4</td></tr></tbody>
-        </table>
-        <p class="figcap">Four employees, but only two distinct departments — the
-        duplicate 5 and duplicate 4 are gone.</p>
-      </div>
+      <table class="inst">
+        <caption>σ<sub>Major = 'CS'</sub>(STUDENT) — two rows survive</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th><th scope="col">Major</th><th scope="col">GPA</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td>Ada Okafor</td><td>CS</td><td>3.8</td></tr>
+          <tr><td class="keycol">S1003</td><td>Grace Bello</td><td>CS</td><td>3.9</td></tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
-  <!-- 6 · COMPOSING -->
-  <section class="slide" data-title="Composing operations" aria-roledescription="slide" aria-label="Composing operations">
-    <p class="kicker">Putting them together</p>
-    <h2 class="slide-h" tabindex="-1">Composing operations</h2>
+  <!-- 6 · PROJECT -->
+  <section class="slide" data-title="PROJECT (π)" aria-roledescription="slide" aria-label="Project operator pi">
+    <p class="kicker">Unary operators · 2</p>
+    <h2 class="slide-h" tabindex="-1">PROJECT (π) — keep some columns</h2>
     <div class="two">
       <div>
-        <p>Because every result is a relation, you can nest operations directly:</p>
-        <p class="expr"><span class="op">&pi;</span><sub>Fname</sub>(
-          <span class="op">&sigma;</span><sub>Salary&gt;40000</sub>(EMPLOYEE) )</p>
-        <p>Read inside-out: select the well-paid employees first, then project
-        their first names.</p>
-        <p>Or name the intermediate result with an <span class="term">assignment</span>
-        (&larr;), which is often clearer for long queries:</p>
-        <p class="expr">HIGH &larr; <span class="op">&sigma;</span><sub>Salary&gt;40000</sub>(EMPLOYEE)<br>
-        RESULT &larr; <span class="op">&pi;</span><sub>Fname</sub>(HIGH)</p>
+        <p><span class="term">PROJECT</span> keeps the listed attributes and discards
+        the others. It is a <strong>vertical</strong> cut.</p>
+        <p class="expr">π<sub>Name, Major</sub>(STUDENT)</p>
+        <p>Because the result is a <em>set</em>, PROJECT
+        <strong>removes duplicate</strong> rows that collapse together once the
+        dropped columns are gone.</p>
+        <div class="callout warn">
+          <h3>Duplicate elimination is automatic</h3>
+          <p style="margin:0">π<sub>Major</sub>(STUDENT) returns {CS, Math, Physics}
+          — three rows, not four. SQL keeps duplicates unless you write
+          <code>DISTINCT</code>; algebra never does.</p>
+        </div>
+      </div>
+      <table class="inst">
+        <caption>π<sub>Major</sub>(STUDENT) — four rows collapse to three</caption>
+        <thead><tr><th scope="col">Major</th></tr></thead>
+        <tbody>
+          <tr><td>CS</td></tr>
+          <tr><td>Math</td></tr>
+          <tr><td>Physics</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 7 · COMPOSING -->
+  <section class="slide" data-title="Composing operators" aria-roledescription="slide" aria-label="Composing operators">
+    <p class="kicker">Building a query</p>
+    <h2 class="slide-h" tabindex="-1">Composing: a query is a pipeline</h2>
+    <div class="two">
+      <div>
+        <p>Because the algebra is closed, feed one operator's output into the next.
+        "The names of CS students" is a σ then a π:</p>
+        <p class="expr">π<sub>Name</sub>( σ<sub>Major = 'CS'</sub>(STUDENT) )</p>
+        <p>Read it <strong>inside-out</strong>: first select the CS rows, then
+        project their names. Order matters for cost, and sometimes for correctness —
+        projecting away Major first would leave nothing to select on.</p>
       </div>
       <div>
         <div class="callout">
-          <h3>Order matters for cost, not result</h3>
-          <p style="margin:0">Selecting before projecting here gives the same answer
-          either way, but doing the row filter first shrinks the data the next step
-          touches — the seed of query optimization in Unit&nbsp;7.</p>
+          <h3>Two ways to write the same query</h3>
+          <p style="margin:0">Nested, as above — or as a sequence with named
+          intermediates:</p>
+          <p class="expr" style="margin-top:8px">CS ← σ<sub>Major='CS'</sub>(STUDENT)<br>RESULT ← π<sub>Name</sub>(CS)</p>
         </div>
         <div class="callout warn">
-          <h3>Watch what a step needs</h3>
-          <p style="margin:0">You can't project a column away and then select on it.
-          Each operation only sees the relation handed to it.</p>
+          <h3>Next lecture: query trees</h3>
+          <p style="margin:0">This pipeline drawn as a tree — leaves are relations,
+          internal nodes are operators — is exactly how an optimizer sees a query.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 7 · RENAME -->
-  <section class="slide" data-title="RENAME (ρ)" aria-roledescription="slide" aria-label="Rename rho">
-    <p class="kicker">Unary · RENAME</p>
-    <h2 class="slide-h" tabindex="-1">RENAME (&rho;) — change the names</h2>
+  <!-- 8 · RENAME -->
+  <section class="slide" data-title="RENAME (ρ)" aria-roledescription="slide" aria-label="Rename operator rho">
+    <p class="kicker">Unary operators · 3</p>
+    <h2 class="slide-h" tabindex="-1">RENAME (ρ) — relabel without recomputing</h2>
     <div class="two">
       <div>
-        <p><span class="term">RENAME</span> gives a relation a new name, new attribute
-        names, or both — without changing its tuples.</p>
-        <p class="expr"><span class="op">&rho;</span><sub>S(B1, B2, …)</sub>(R)</p>
-        <p>Why bother? Two situations force it:</p>
+        <p><span class="term">RENAME</span> changes a relation's name, its attribute
+        names, or both, leaving every tuple untouched.</p>
+        <p class="expr">ρ<sub>S(SID, Nm, Mj, G)</sub>(STUDENT)</p>
+        <p>It looks trivial, but two later operations <em>require</em> it:</p>
         <ul>
-          <li>Set operations need both relations to use the <em>same</em> attribute
-          names.</li>
-          <li>Relating a relation to <em>itself</em> (an employee and their supervisor,
-          both from EMPLOYEE) needs two differently-named copies.</li>
+          <li>A <span class="term">self-join</span> — comparing a relation with itself —
+          needs two different names for the same relation.</li>
+          <li>Set operations demand <span class="term">matching attribute names</span>;
+          rename lines them up.</li>
         </ul>
       </div>
-      <div>
-        <div class="callout">
-          <h3>Example</h3>
-          <p style="margin:0"><span class="inl">&rho;<sub>SUP(SupSsn, SupName)</sub>(EMPLOYEE)</span>
-          makes a second copy of EMPLOYEE whose columns won't clash with the
-          original when we join the two in RA&nbsp;II.</p>
-        </div>
-        <p style="color:var(--muted);margin:0">Rename is pure bookkeeping — no rows
-        added or removed — but without it several later operations can't even be
-        written.</p>
+      <div class="callout">
+        <h3>Shorthand</h3>
+        <p style="margin:0">Often written just to alias a relation:
+        <span class="expr" style="font-size:1rem">ρ<sub>E1</sub>(EMPLOYEE)</span>
+        and <span class="expr" style="font-size:1rem">ρ<sub>E2</sub>(EMPLOYEE)</span>
+        give you two handles on EMPLOYEE so a supervisor query can pair a row with
+        another row of the same table.</p>
       </div>
     </div>
   </section>
 
-  <!-- 8 · SET OPS / COMPATIBILITY -->
+  <!-- 9 · INTERACTIVE -->
+  <section class="slide" data-title="The three unary operators, side by side" aria-roledescription="slide" aria-label="Interactive: the three unary operators">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">σ, π, ρ on one relation</h2>
+    <p>Pick an operator and watch what it does to STUDENT — which rows survive,
+    which columns remain, what gets relabeled.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a unary operator">
+      <button class="chip" data-op="select" aria-pressed="true"
+        data-desc="SELECT σ(Major='CS'): a horizontal cut. Rows S1001 and S1003 satisfy the condition and stay; the Math and Physics rows are dropped. The columns are unchanged.">SELECT σ</button>
+      <button class="chip" data-op="project" aria-pressed="false"
+        data-desc="PROJECT π(Name): a vertical cut. Only the Name column remains; StudentID and Major are discarded. If any names repeated, duplicates would collapse.">PROJECT π</button>
+      <button class="chip" data-op="rename" aria-pressed="false"
+        data-desc="RENAME ρ: the tuples are identical, but the relation is relabeled LEARNER and Name becomes FullName. Nothing is filtered — only the schema's labels change.">RENAME ρ</button>
+    </div>
+    <p id="op-desc" class="live-desc"
+       data-default="SELECT σ(Major='CS'): a horizontal cut. Rows S1001 and S1003 satisfy the condition and stay; the Math and Physics rows are dropped. The columns are unchanged.">SELECT σ(Major='CS'): a horizontal cut. Rows S1001 and S1003 satisfy the condition and stay; the Math and Physics rows are dropped. The columns are unchanged.</p>
+    <table class="inst demo" id="ra-demo" data-op="select">
+      <caption><span class="orig">STUDENT — the input relation</span><span class="ren">LEARNER — relabeled by ρ</span></caption>
+      <thead><tr>
+        <th class="col-id" scope="col">StudentID</th>
+        <th class="col-name" scope="col"><span class="orig">Name</span><span class="ren">FullName</span></th>
+        <th class="col-major" scope="col">Major</th>
+      </tr></thead>
+      <tbody>
+        <tr class="match"><td class="col-id keycol">S1001</td><td class="col-name">Ada Okafor</td><td class="col-major">CS</td></tr>
+        <tr><td class="col-id keycol">S1002</td><td class="col-name">Liang Wei</td><td class="col-major">Math</td></tr>
+        <tr class="match"><td class="col-id keycol">S1003</td><td class="col-name">Grace Bello</td><td class="col-major">CS</td></tr>
+        <tr><td class="col-id keycol">S1004</td><td class="col-name">Omar Haddad</td><td class="col-major">Physics</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 10 · UNION COMPATIBILITY -->
   <section class="slide" data-title="Set operations and union compatibility" aria-roledescription="slide" aria-label="Set operations and union compatibility">
-    <p class="kicker">Set operations · setup</p>
-    <h2 class="slide-h" tabindex="-1">Set operations &amp; union compatibility</h2>
+    <p class="kicker">Set operators · setup</p>
+    <h2 class="slide-h" tabindex="-1">Set operations need compatible schemas</h2>
     <div class="two">
       <div>
-        <p>Relations are sets of tuples, so the usual set operations apply — but
-        with a type rule. UNION, INTERSECTION, and DIFFERENCE require the two
-        relations to be <span class="term">union-compatible</span>:</p>
+        <p>∪, ∩, and − treat relations as plain sets of tuples — but only when the
+        two relations line up. They must be <span class="term">union-compatible</span>:</p>
         <ul>
-          <li>the same number of attributes (same <em>degree</em>), and</li>
-          <li>matching domains, attribute by attribute in order.</li>
+          <li>the <strong>same number of attributes</strong> (same degree), and</li>
+          <li><strong>matching domains</strong>, attribute by attribute, in order.</li>
         </ul>
-        <p>The result takes the attribute names of the first relation.</p>
+        <p style="margin:0">If the names differ but the domains match, ρ first.</p>
       </div>
-      <div>
-        <div class="callout warn">
-          <h3>The odd one out</h3>
-          <p style="margin:0">CARTESIAN PRODUCT (&times;) is the exception — it needs
-          <em>no</em> compatibility, because it concatenates tuples rather than
-          matching them up. It is the bridge to joins in RA&nbsp;II.</p>
+      <div class="fig">
+        <p style="margin:0 0 8px;color:var(--muted);font-size:.92rem">Our two example relations, each of schema (StudentID, Name):</p>
+        <div class="tblwrap">
+          <table class="inst">
+            <caption>TOOK_CS310</caption>
+            <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
+            <tbody>
+              <tr><td class="keycol">S1001</td><td>Ada Okafor</td></tr>
+              <tr><td class="keycol">S1002</td><td>Liang Wei</td></tr>
+            </tbody>
+          </table>
+          <table class="inst">
+            <caption>TOOK_CS410</caption>
+            <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
+            <tbody>
+              <tr><td class="keycol">S1002</td><td>Liang Wei</td></tr>
+              <tr><td class="keycol">S1003</td><td>Grace Bello</td></tr>
+            </tbody>
+          </table>
         </div>
-        <p style="margin:0;color:var(--muted)">Example setup: let GRADS and UGRADS
-        each be <span class="inl">&pi;<sub>StudentID, Name</sub></span> of two student
-        relations — same two columns, same domains, so they're union-compatible.</p>
       </div>
     </div>
   </section>
 
-  <!-- 9 · UNION -->
-  <section class="slide" data-title="UNION (∪)" aria-roledescription="slide" aria-label="Union">
-    <p class="kicker">Set operations · UNION</p>
-    <h2 class="slide-h" tabindex="-1">UNION (&cup;)</h2>
+  <!-- 11 · UNION & INTERSECTION -->
+  <section class="slide" data-title="Union and intersection" aria-roledescription="slide" aria-label="Union and intersection">
+    <p class="kicker">Set operators · 1</p>
+    <h2 class="slide-h" tabindex="-1">Union (∪) and intersection (∩)</h2>
     <div class="two">
       <div>
-        <p><span class="inl">R &cup; S</span> is every tuple that appears in R, in S, or in
-        both. Duplicates collapse — a student in both inputs appears once.</p>
-        <p class="expr">GRADS <span class="op">&cup;</span> UGRADS</p>
-        <p>Use it to pool rows of the same shape from two sources: all students,
-        whether graduate or undergraduate.</p>
+        <p><span class="term">Union</span> collects every tuple in either relation,
+        with duplicates removed.</p>
+        <p class="expr">TOOK_CS310 ∪ TOOK_CS410</p>
+        <p><span class="term">Intersection</span> keeps only tuples present in
+        <em>both</em>.</p>
+        <p class="expr">TOOK_CS310 ∩ TOOK_CS410</p>
+        <p style="margin:0">Both are commutative: order of the two operands doesn't
+        matter.</p>
       </div>
-      <div>
-        <div class="tablewrap">
-          <table class="inst"><caption>GRADS</caption>
-            <thead><tr><th>StudentID</th><th>Name</th></tr></thead>
-            <tbody><tr><td class="keycol">S1</td><td>Ada</td></tr>
-            <tr><td class="keycol">S2</td><td>Ben</td></tr></tbody></table>
-          <table class="inst"><caption>UGRADS</caption>
-            <thead><tr><th>StudentID</th><th>Name</th></tr></thead>
-            <tbody><tr><td class="keycol">S2</td><td>Ben</td></tr>
-            <tr><td class="keycol">S3</td><td>Cleo</td></tr></tbody></table>
-        </div>
-        <table class="inst res" style="margin-top:12px"><caption>GRADS &cup; UGRADS</caption>
-          <thead><tr><th>StudentID</th><th>Name</th></tr></thead>
-          <tbody><tr><td>S1</td><td>Ada</td></tr><tr><td>S2</td><td>Ben</td></tr>
-          <tr><td>S3</td><td>Cleo</td></tr></tbody></table>
-        <p class="figcap">S2 appears in both inputs but only once in the result.</p>
+      <div class="tblwrap">
+        <table class="inst">
+          <caption>∪ — took either course (Liang appears once)</caption>
+          <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">S1001</td><td>Ada Okafor</td></tr>
+            <tr><td class="keycol">S1002</td><td>Liang Wei</td></tr>
+            <tr><td class="keycol">S1003</td><td>Grace Bello</td></tr>
+          </tbody>
+        </table>
+        <table class="inst">
+          <caption>∩ — took both courses</caption>
+          <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">S1002</td><td>Liang Wei</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>
 
-  <!-- 10 · INTERSECTION -->
-  <section class="slide" data-title="INTERSECTION (∩)" aria-roledescription="slide" aria-label="Intersection">
-    <p class="kicker">Set operations · INTERSECTION</p>
-    <h2 class="slide-h" tabindex="-1">INTERSECTION (&cap;)</h2>
+  <!-- 12 · DIFFERENCE -->
+  <section class="slide" data-title="Difference" aria-roledescription="slide" aria-label="Set difference">
+    <p class="kicker">Set operators · 2</p>
+    <h2 class="slide-h" tabindex="-1">Difference (−)</h2>
     <div class="two">
       <div>
-        <p><span class="inl">R &cap; S</span> keeps only the tuples present in <em>both</em>
-        relations.</p>
-        <p class="expr">GRADS <span class="op">&cap;</span> UGRADS</p>
-        <p>Answering "who is in both groups?" Using the same two inputs, only the
-        student who appears in each survives.</p>
+        <p><span class="term">Difference</span> keeps the tuples in the first relation
+        that are <em>not</em> in the second.</p>
+        <p class="expr">TOOK_CS310 − TOOK_CS410</p>
+        <p>"Students who took CS310 but not CS410." Unlike ∪ and ∩, difference is
+        <strong>not commutative</strong>:
+        <span class="expr" style="font-size:1rem">A − B ≠ B − A</span>.</p>
         <div class="callout">
-          <h3>Definable from the others</h3>
-          <p style="margin:0"><span class="inl">R &cap; S = R &minus; (R &minus; S)</span>.
-          Intersection is a convenience — but a very common one.</p>
+          <h3>Why it matters later</h3>
+          <p style="margin:0">Difference is how algebra expresses "for all" and
+          "none of" queries — the seed of the DIVISION operator in the next lecture.</p>
         </div>
       </div>
-      <div>
-        <table class="inst res"><caption>GRADS &cap; UGRADS</caption>
-          <thead><tr><th>StudentID</th><th>Name</th></tr></thead>
-          <tbody><tr><td>S2</td><td>Ben</td></tr></tbody></table>
-        <p class="figcap">Only S2 (Ben) is in both GRADS and UGRADS.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 11 · DIFFERENCE -->
-  <section class="slide" data-title="DIFFERENCE (−)" aria-roledescription="slide" aria-label="Difference">
-    <p class="kicker">Set operations · DIFFERENCE</p>
-    <h2 class="slide-h" tabindex="-1">DIFFERENCE (&minus;)</h2>
-    <div class="two">
-      <div>
-        <p><span class="inl">R &minus; S</span> keeps the tuples in R that are <em>not</em> in S.</p>
-        <p class="expr">GRADS <span class="op">&minus;</span> UGRADS</p>
-        <div class="callout warn">
-          <h3>Order matters</h3>
-          <p style="margin:0">Difference is <em>not</em> commutative:
-          <span class="inl">R &minus; S</span> and <span class="inl">S &minus; R</span> generally
-          differ. Say which side you mean.</p>
-        </div>
-        <p>It expresses "in the first but not the second" — the graduate students
-        who are not also listed as undergraduates.</p>
-      </div>
-      <div>
-        <table class="inst res"><caption>GRADS &minus; UGRADS</caption>
-          <thead><tr><th>StudentID</th><th>Name</th></tr></thead>
-          <tbody><tr><td>S1</td><td>Ada</td></tr></tbody></table>
-        <table class="inst res" style="margin-top:12px"><caption>UGRADS &minus; GRADS</caption>
-          <thead><tr><th>StudentID</th><th>Name</th></tr></thead>
-          <tbody><tr><td>S3</td><td>Cleo</td></tr></tbody></table>
-        <p class="figcap">Swapping the operands changes the answer.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 12 · CARTESIAN PRODUCT -->
-  <section class="slide" data-title="CARTESIAN PRODUCT (×)" aria-roledescription="slide" aria-label="Cartesian product">
-    <p class="kicker">Set operations · PRODUCT</p>
-    <h2 class="slide-h" tabindex="-1">CARTESIAN PRODUCT (&times;)</h2>
-    <div class="two">
-      <div>
-        <p><span class="inl">R &times; S</span> pairs <em>every</em> tuple of R with
-        <em>every</em> tuple of S. The result's degree is the sum of the two
-        degrees; its tuple count is the product.</p>
-        <p>On its own it is rarely meaningful — most of those pairings are
-        nonsense. Its value is as a first step: follow it with a SELECT that keeps
-        only the sensible pairings.</p>
-        <div class="callout warn">
-          <h3>The pattern to remember</h3>
-          <p style="margin:0"><span class="inl">&sigma;<sub>condition</sub>(R &times; S)</span> —
-          product then select — is exactly what a <span class="term">join</span> packages
-          into one operation. That's the opening of RA&nbsp;II.</p>
-        </div>
-      </div>
-      <div>
-        <p style="margin:0 0 6px;color:var(--muted)">2 employees &times; 2 departments
-        = 4 combined rows, only some of which match:</p>
-        <table class="inst res full"><caption>EMPLOYEE &times; DEPARTMENT (abridged)</caption>
-          <thead><tr><th>Fname</th><th>E.Dno</th><th>D.Dnumber</th><th>Dname</th></tr></thead>
+      <div class="tblwrap">
+        <table class="inst">
+          <caption>CS310 − CS410</caption>
+          <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
           <tbody>
-            <tr><td>Ada</td><td>5</td><td>5</td><td>Research</td></tr>
-            <tr><td>Ada</td><td>5</td><td>4</td><td>Admin</td></tr>
-            <tr><td>Ben</td><td>4</td><td>5</td><td>Research</td></tr>
-            <tr><td>Ben</td><td>4</td><td>4</td><td>Admin</td></tr>
+            <tr><td class="keycol">S1001</td><td>Ada Okafor</td></tr>
           </tbody>
         </table>
-        <p class="figcap">Rows 1 and 4 (Dno = Dnumber) are the meaningful ones.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 13 · INTERACTIVE -->
-  <section class="slide" data-title="Try it: select, project, compose" aria-roledescription="slide" aria-label="Try it, select, project, compose">
-    <p class="kicker">Demonstrator</p>
-    <h2 class="slide-h" tabindex="-1">Try it on EMPLOYEE</h2>
-    <div class="two">
-      <div>
-        <table class="inst"><caption>EMPLOYEE (input)</caption>
-          <thead><tr><th>Fname</th><th>Dno</th><th>Salary</th></tr></thead>
+        <table class="inst">
+          <caption>CS410 − CS310 (different!)</caption>
+          <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th></tr></thead>
           <tbody>
-            <tr><td>Ada</td><td>5</td><td>40000</td></tr>
-            <tr><td>Ben</td><td>4</td><td>38000</td></tr>
-            <tr><td>Cleo</td><td>5</td><td>43000</td></tr>
-            <tr><td>Dana</td><td>4</td><td>38000</td></tr>
+            <tr><td class="keycol">S1003</td><td>Grace Bello</td></tr>
           </tbody>
         </table>
-        <p style="color:var(--muted);font-size:.9rem;margin-top:10px">Pick an
-        expression; the result relation is shown on the right.</p>
-      </div>
-      <div>
-        <div class="op-controls" role="group" aria-label="Choose an expression">
-          <button class="chip" data-op="sel" aria-pressed="true"
-            data-desc="SELECT keeps rows where Dno equals 5. Same three columns; two of the four rows survive — Ada and Cleo.">&sigma;<sub>Dno=5</sub></button>
-          <button class="chip" data-op="proj" aria-pressed="false"
-            data-desc="PROJECT onto Dno keeps one column. The four rows collapse to the two distinct values 5 and 4, because a relation has no duplicates.">&pi;<sub>Dno</sub></button>
-          <button class="chip" data-op="comp" aria-pressed="false"
-            data-desc="Compose: select the rows with Dno = 5 first, then project onto Fname and Salary. The result is Ada with 40000 and Cleo with 43000.">&pi;<sub>Fname,Salary</sub>(&sigma;<sub>Dno=5</sub>)</button>
-        </div>
-        <p id="op-desc" class="live-desc"
-           data-default="SELECT keeps rows where Dno equals 5. Same three columns; two of the four rows survive — Ada and Cleo.">SELECT keeps rows where Dno equals 5. Same three columns; two of the four rows survive — Ada and Cleo.</p>
-        <div class="op-results" aria-live="polite">
-          <div class="op-panel" data-op-panel="sel">
-            <table class="inst res"><caption>&sigma;<sub>Dno=5</sub>(EMPLOYEE)</caption>
-              <thead><tr><th>Fname</th><th>Dno</th><th>Salary</th></tr></thead>
-              <tbody><tr><td>Ada</td><td>5</td><td>40000</td></tr>
-              <tr><td>Cleo</td><td>5</td><td>43000</td></tr></tbody></table>
-          </div>
-          <div class="op-panel" data-op-panel="proj" hidden>
-            <table class="inst res"><caption>&pi;<sub>Dno</sub>(EMPLOYEE)</caption>
-              <thead><tr><th>Dno</th></tr></thead>
-              <tbody><tr><td>5</td></tr><tr><td>4</td></tr></tbody></table>
-          </div>
-          <div class="op-panel" data-op-panel="comp" hidden>
-            <table class="inst res"><caption>&pi;<sub>Fname,Salary</sub>(&sigma;<sub>Dno=5</sub>(EMPLOYEE))</caption>
-              <thead><tr><th>Fname</th><th>Salary</th></tr></thead>
-              <tbody><tr><td>Ada</td><td>40000</td></tr>
-              <tr><td>Cleo</td><td>43000</td></tr></tbody></table>
-          </div>
-        </div>
       </div>
     </div>
   </section>
 
-  <!-- 14 · NOTATION -->
-  <section class="slide" data-title="RA I notation at a glance" aria-roledescription="slide" aria-label="Relational algebra one notation at a glance">
+  <!-- 13 · CARTESIAN PRODUCT -->
+  <section class="slide" data-title="Cartesian product" aria-roledescription="slide" aria-label="Cartesian product">
+    <p class="kicker">Set operators · 3</p>
+    <h2 class="slide-h" tabindex="-1">Cartesian product (×)</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Cartesian product</span> pairs <em>every</em> tuple of
+        one relation with every tuple of the other. No condition, no matching.</p>
+        <p class="expr">STUDENT × ENROLLMENT</p>
+        <ul>
+          <li>Degree <strong>adds</strong>: all columns of both.</li>
+          <li>Cardinality <strong>multiplies</strong>: |R| × |S| rows.</li>
+        </ul>
+        <div class="callout warn">
+          <h3>Rarely the goal itself</h3>
+          <p style="margin:0">Most product rows are meaningless pairings. Follow × with
+          a σ that keeps only the matching ones and you have a <em>join</em> — the
+          heart of the next lecture.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 480 150" role="img" aria-labelledby="t13 d13">
+          <title id="t13">Product multiplies rows and adds columns</title>
+          <desc id="d13">A relation of 4 rows times a relation of 4 rows yields 16
+          rows, with the columns of both relations side by side.</desc>
+          <rect x="16" y="40" width="90" height="70" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="61" y="30" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#4A5160">4 rows</text>
+          <text x="61" y="80" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">STUDENT</text>
+          <text x="140" y="82" text-anchor="middle" font-family="serif" font-size="26" font-weight="700" fill="#7A2708">×</text>
+          <rect x="172" y="40" width="100" height="70" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="222" y="30" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#4A5160">4 rows</text>
+          <text x="222" y="80" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">ENROLLMENT</text>
+          <line x1="284" y1="75" x2="322" y2="75" stroke="#0033A0" stroke-width="2"/>
+          <polygon points="322,75 312,70 312,80" fill="#0033A0"/>
+          <rect x="336" y="30" width="128" height="90" rx="5" fill="#fff" stroke="#0033A0" stroke-width="2"/>
+          <text x="400" y="24" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#7A2708" font-weight="700">16 rows</text>
+          <text x="400" y="72" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">all 7</text>
+          <text x="400" y="90" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#00246B">columns</text>
+        </svg>
+        <p class="figcap">4 × 4 = 16 rows; 4 + 3 = 7 columns.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · NOTATION LEGEND -->
+  <section class="slide" data-title="Algebra notation at a glance" aria-roledescription="slide" aria-label="Algebra notation at a glance">
     <p class="kicker">Reference</p>
-    <h2 class="slide-h" tabindex="-1">RA I notation at a glance</h2>
+    <h2 class="slide-h" tabindex="-1">Notation at a glance</h2>
     <div class="legendgrid">
-      <div class="gl"><div class="sym">&sigma;</div><b>SELECT</b><span>keep rows by a condition</span></div>
-      <div class="gl"><div class="sym">&pi;</div><b>PROJECT</b><span>keep columns; drop duplicates</span></div>
-      <div class="gl"><div class="sym">&rho;</div><b>RENAME</b><span>rename relation / attributes</span></div>
-      <div class="gl"><div class="sym">&cup;</div><b>UNION</b><span>in either (union-compatible)</span></div>
-      <div class="gl"><div class="sym">&cap;</div><b>INTERSECTION</b><span>in both</span></div>
-      <div class="gl"><div class="sym">&minus;</div><b>DIFFERENCE</b><span>in first, not second</span></div>
-      <div class="gl"><div class="sym">&times;</div><b>PRODUCT</b><span>every pairing of tuples</span></div>
-      <div class="gl"><div class="sym">&larr;</div><b>ASSIGNMENT</b><span>name an intermediate result</span></div>
+      <div class="gl"><div class="sym">σ</div><b>SELECT</b><span>keep rows (a condition)</span></div>
+      <div class="gl"><div class="sym">π</div><b>PROJECT</b><span>keep columns; dedupe</span></div>
+      <div class="gl"><div class="sym">ρ</div><b>RENAME</b><span>relabel relation / attrs</span></div>
+      <div class="gl"><div class="sym">∪</div><b>UNION</b><span>in either (dedupe)</span></div>
+      <div class="gl"><div class="sym">∩</div><b>INTERSECT</b><span>in both</span></div>
+      <div class="gl"><div class="sym">−</div><b>DIFFERENCE</b><span>in first, not second</span></div>
+      <div class="gl"><div class="sym">×</div><b>PRODUCT</b><span>every pairing</span></div>
+      <div class="gl"><div class="sym">⋈</div><b>JOIN</b><span>next lecture</span></div>
     </div>
-    <p class="figcap">UNION, INTERSECTION, and DIFFERENCE demand union-compatible
-    inputs; PRODUCT does not. Joins in RA&nbsp;II are built from PRODUCT and SELECT.</p>
+    <p class="figcap">σ, π, ρ are unary. ∪, ∩, −, × are binary; ∪, ∩, − also need
+    union compatibility. ⋈ is the star of Relational Algebra II.</p>
   </section>
 
-  <!-- 15 · RECAP -->
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>σ is WHERE; π is SQL's SELECT.</strong> The names cross over. Keep them
+      straight and half the confusion disappears.</li>
+      <li><strong>PROJECT silently removes duplicates.</strong> Expecting four rows and
+      getting three usually means a projection collapsed them — by design.</li>
+      <li><strong>∪, ∩, − demand union compatibility.</strong> Mismatched degree or domains
+      is not a runtime surprise — the expression is simply not well-formed.</li>
+      <li><strong>Difference is directional.</strong> Always ask which relation is the
+      "base" you're subtracting from.</li>
+      <li><strong>Parenthesize.</strong> Operator precedence in algebra is not worth
+      memorizing — make the pipeline explicit and it can't be misread.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
   <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
     <p class="kicker">Wrap-up</p>
     <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
@@ -588,25 +639,24 @@ html:not(.js) .deck-chrome{display:none}
       <div>
         <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
         <ul>
-          <li><span class="term">SELECT (&sigma;)</span> keeps rows; <span class="term">PROJECT (&pi;)</span> keeps columns and drops duplicates.</li>
-          <li><span class="term">RENAME (&rho;)</span> sets up set operations and self-references.</li>
-          <li>Set operations need union compatibility — except <span class="term">PRODUCT</span>.</li>
-          <li>Closure lets everything <span class="term">compose</span> into one expression.</li>
+          <li>Unary: <span class="term">σ</span> (rows), <span class="term">π</span> (columns, dedupe), <span class="term">ρ</span> (relabel).</li>
+          <li>Operators compose into a pipeline — read inside-out.</li>
+          <li>Set ops <span class="term">∪ ∩ −</span> under union compatibility; <span class="term">×</span> pairs everything.</li>
         </ul>
       </div>
       <div>
         <div class="callout">
           <h3>Check yourself</h3>
           <ol style="margin:0">
-            <li>Why does &pi; sometimes return fewer rows than its input?</li>
-            <li>Which set operations require union compatibility?</li>
-            <li>Rewrite <span class="inl">R &cap; S</span> using only difference.</li>
+            <li>Write "the IDs of students with GPA above 3.6" with σ and π.</li>
+            <li>Why does π<sub>Major</sub>(STUDENT) return three rows, not four?</li>
+            <li>What must be true of two relations before you can union them?</li>
           </ol>
         </div>
         <div class="callout warn">
-          <h3>Next — RA II</h3>
-          <p style="margin:0">Product + select becomes the <span class="term">join</span>;
-          then division, aggregation, outer joins, and reading a query as a tree.</p>
+          <h3>Next — Relational Algebra II</h3>
+          <p style="margin:0">JOIN (theta, equijoin, natural), DIVISION, aggregation
+          and grouping, outer joins, and query trees. σ over × becomes ⋈.</p>
         </div>
       </div>
     </div>
@@ -618,7 +668,7 @@ html:not(.js) .deck-chrome{display:none}
     <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
     <div class="nav">
       <button class="btn" id="prev" type="button">‹ Previous</button>
-      <span class="counter" id="deck-counter" aria-hidden="true">1 / 15</span>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
       <button class="btn" id="next" type="button">Next ›</button>
     </div>
     <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
@@ -680,30 +730,19 @@ html:not(.js) .deck-chrome{display:none}
     }
   });
 
-  // --- generic operation demonstrator ---
-  var opChips  = Array.prototype.slice.call(document.querySelectorAll('.chip[data-op]'));
-  var opDesc   = document.getElementById('op-desc');
-  var opPanels = Array.prototype.slice.call(document.querySelectorAll('[data-op-panel]'));
-  if (opChips.length && opPanels.length){
-    function showOp(key){
-      opChips.forEach(function(c){
-        c.setAttribute('aria-pressed', c.getAttribute('data-op') === key ? 'true' : 'false');
-      });
-      opPanels.forEach(function(p){
-        if (p.getAttribute('data-op-panel') === key){ p.removeAttribute('hidden'); }
-        else { p.setAttribute('hidden', ''); }
-      });
-      var active = opChips.filter(function(c){ return c.getAttribute('data-op') === key; })[0];
-      if (opDesc){
-        opDesc.textContent = (active && active.getAttribute('data-desc'))
-          || opDesc.getAttribute('data-default') || '';
-      }
-    }
+  // --- unary-operator demonstrator (only if that markup is present) ---
+  var opChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-op]'));
+  var opDesc  = document.getElementById('op-desc');
+  var demo    = document.getElementById('ra-demo');
+  if (opChips.length && demo){
     opChips.forEach(function(chip){
-      chip.addEventListener('click', function(){ showOp(chip.getAttribute('data-op')); });
+      chip.addEventListener('click', function(){
+        opChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        demo.setAttribute('data-op', chip.getAttribute('data-op'));
+        if (opDesc) opDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
     });
-    var pressed = opChips.filter(function(c){ return c.getAttribute('aria-pressed') === 'true'; })[0];
-    showOp(pressed ? pressed.getAttribute('data-op') : opChips[0].getAttribute('data-op'));
   }
 
   // deep link (#s3) support

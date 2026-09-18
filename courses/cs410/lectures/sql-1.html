@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL I — DDL, Constraints, and Basic Queries · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- SQL code blocks ---- */
+pre.sql{font-family:var(--mono);font-size:.92rem;line-height:1.5;color:var(--ink);
+  background:#0F1B33;border:1px solid var(--blue-ink);border-radius:9px;
+  padding:14px 16px;margin:0 0 12px;overflow-x:auto;white-space:pre}
+pre.sql code{color:#DCE4F5}
+pre.sql .kw{color:#8FB4FF;font-weight:700}
+pre.sql .ty{color:#7FD4C0}
+pre.sql .st{color:#F2B08A}
+pre.sql .cm{color:#8A93A3;font-style:italic}
+pre.sql .fn{color:#E6C06B}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- algebra mapping expression ---- */
+.expr{font-family:var(--serif);font-size:1.1rem;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:8px;
+  padding:9px 13px;margin:0 0 12px;display:inline-block}
+.expr sub{font-size:.72em}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+.null{color:#7A2708;font-style:italic}
+
+/* ---- clause reference grid ---- */
+.clauses{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cl{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:9px 12px;background:#fff}
+.cl b{font-family:var(--mono);color:var(--blue-ink);font-size:.92rem}
+.cl span{display:block;color:var(--muted);font-size:.88rem;margin-top:1px}
+.cl.later{border-left-color:#9aa2b1}
+.cl.later b{color:#4A5160}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+table.demo td,table.demo th{transition:opacity .18s,background .18s}
+.demo[data-op="where"] tbody tr:not(.match){opacity:.32}
+.demo[data-op="where"] tbody tr.match td{background:var(--tint)}
+.demo[data-op="select"] .col-id,
+.demo[data-op="select"] .col-major,
+.demo[data-op="select"] .col-gpa{opacity:.3}
+.demo[data-op="select"] .col-name{background:var(--tint);font-weight:700}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .clauses{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  pre.sql{font-size:.82rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.cl,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.cl,table.inst,pre.sql{break-inside:avoid}
+  pre.sql{background:#F4F6FB;border-color:var(--line)}
+  pre.sql code{color:#14181F}
+  pre.sql .kw{color:#00246B}
+  pre.sql .ty{color:#0B6B57}
+  pre.sql .st{color:#7A2708}
+  pre.sql .cm{color:#4A5160}
+  table.demo td,table.demo th{opacity:1!important;background:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 4 · SQL</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 1 of 3 in the SQL sequence · Elmasri &amp; Navathe, Ch. 6</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="SQL I — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="SQL I — DDL, Constraints, and Basic Queries"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">The language you can run</p>
+    <h2 class="slide-h" tabindex="-1">SQL I<br>Defining tables and asking the first questions</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Relational algebra told us what a query <em>means</em>. SQL is
+        the standard language that lets us actually build the tables and run the
+        queries on a real DBMS.</p>
+        <p style="color:var(--muted)">Today: create tables with the right types and
+        constraints, then retrieve from them with SELECT-FROM-WHERE.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 150" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A SQL query returns a table</title>
+          <desc id="d1">A SELECT statement box points via an arrow to a small result
+          table, illustrating that SQL takes tables and returns a table.</desc>
+          <rect x="16" y="30" width="240" height="88" rx="8" fill="#0F1B33" stroke="#00246B" stroke-width="2"/>
+          <text x="30" y="56" font-family="ui-monospace,monospace" font-size="13" fill="#8FB4FF" font-weight="700">SELECT</text>
+          <text x="92" y="56" font-family="ui-monospace,monospace" font-size="13" fill="#DCE4F5">Name</text>
+          <text x="30" y="78" font-family="ui-monospace,monospace" font-size="13" fill="#8FB4FF" font-weight="700">FROM</text>
+          <text x="80" y="78" font-family="ui-monospace,monospace" font-size="13" fill="#DCE4F5">STUDENT</text>
+          <text x="30" y="100" font-family="ui-monospace,monospace" font-size="13" fill="#8FB4FF" font-weight="700">WHERE</text>
+          <text x="92" y="100" font-family="ui-monospace,monospace" font-size="13" fill="#DCE4F5">GPA &gt; 3.6;</text>
+          <line x1="256" y1="74" x2="330" y2="74" stroke="#0033A0" stroke-width="2"/>
+          <polygon points="330,74 320,69 320,79" fill="#0033A0"/>
+          <rect x="344" y="42" width="160" height="66" rx="5" fill="#fff" stroke="#0033A0" stroke-width="2"/>
+          <rect x="344" y="42" width="160" height="22" rx="5" fill="#0033A0"/>
+          <text x="424" y="58" text-anchor="middle" font-family="system-ui" font-size="12" font-weight="700" fill="#fff">Name</text>
+          <text x="424" y="82" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#14181F">Ada Okafor</text>
+          <text x="424" y="100" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#14181F">Grace Bello</text>
+        </svg>
+        <p class="figcap">Tables in, a table out — SQL keeps the algebra's shape.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; the SQL roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>The unit so far</h3>
+          <p style="margin:0">ER/EER → relations → algebra. We can describe any query
+          precisely. SQL is the commercial language that runs those descriptions.</p>
+        </div>
+        <p>SQL spans three lectures: <strong>today</strong> DDL and basic queries;
+        then nested queries and modification; then grouping, views, and triggers.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Write <code class="rel">CREATE TABLE</code> with types and constraints.</li>
+            <li>Enforce keys with <span class="term">PRIMARY KEY</span> and <span class="term">FOREIGN KEY</span>.</li>
+            <li>Retrieve rows with <span class="term">SELECT-FROM-WHERE</span>.</li>
+            <li>Filter, deduplicate, sort, and reason about <span class="term">NULL</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHAT SQL IS -->
+  <section class="slide" data-title="What SQL is" aria-roledescription="slide" aria-label="What SQL is">
+    <p class="kicker">Orientation</p>
+    <h2 class="slide-h" tabindex="-1">What SQL is — and isn't</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Declarative.</span> You state <em>what</em> you want, like
+        relational calculus; the DBMS decides how to compute it.</p>
+        <p><span class="term">A standard.</span> Keywords are case-insensitive, whitespace
+        is free, and every statement ends in a semicolon. Vendors add extensions,
+        but the core is portable.</p>
+        <p><span class="term">Three sub-languages.</span> DDL defines structure, DML
+        reads and changes data, DCL grants access.</p>
+      </div>
+      <div class="callout warn">
+        <h3>SQL is a multiset language</h3>
+        <p style="margin:0">Unlike the algebra, a SQL table and a query result are
+        <em>bags</em> — duplicates are kept unless you ask for
+        <code class="rel">DISTINCT</code>. This one difference explains a surprising
+        amount of later behavior.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · SCHEMA -->
+  <section class="slide" data-title="The schema we'll build" aria-roledescription="slide" aria-label="The schema we will build">
+    <p class="kicker">Running example</p>
+    <h2 class="slide-h" tabindex="-1">The schema we'll build</h2>
+    <p>The UNIVERSITY relations from the mapping unit, now written as SQL. STUDENT
+    and COURSE stand on their own; ENROLLMENT ties them together with foreign keys.</p>
+    <div class="expr">STUDENT(<u>StudentID</u>, Name, Major, GPA)</div>
+    <div class="expr">COURSE(<u>CourseID</u>, Title)</div>
+    <div class="expr">ENROLLMENT(<u>StudentID</u>, <u>CourseID</u>, Grade)</div>
+    <div class="callout">
+      <h3>Where this came from</h3>
+      <p style="margin:0">These are exactly the relations the 7-step algorithm
+      produced: two strong-entity tables and the M:N junction relation carrying
+      Grade. DDL just makes them real.</p>
+    </div>
+  </section>
+
+  <!-- 5 · CREATE TABLE -->
+  <section class="slide" data-title="CREATE TABLE" aria-roledescription="slide" aria-label="Create table">
+    <p class="kicker">DDL · 1</p>
+    <h2 class="slide-h" tabindex="-1">CREATE TABLE</h2>
+    <div class="two">
+      <div>
+        <p>A table definition lists columns, each with a name and a
+        <span class="term">data type</span>, followed by any constraints.</p>
+        <p>The DBMS records this in its <em>catalog</em> and enforces it from then on:
+        every row inserted must satisfy the declared types and constraints.</p>
+        <div class="callout">
+          <h3>Companion statements</h3>
+          <p style="margin:0"><code class="rel">DROP TABLE</code> removes a table and its
+          data; <code class="rel">ALTER TABLE</code> adds or changes columns and
+          constraints later (Unit 4, lecture 3).</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE TABLE</span> STUDENT (
+  StudentID  <span class="ty">CHAR</span>(5)      <span class="kw">PRIMARY KEY</span>,
+  Name       <span class="ty">VARCHAR</span>(50)  <span class="kw">NOT NULL</span>,
+  Major      <span class="ty">VARCHAR</span>(20)
+             <span class="kw">DEFAULT</span> <span class="st">'Undeclared'</span>,
+  GPA        <span class="ty">DECIMAL</span>(3,2)
+);</code></pre>
+        <p class="figcap">One column per line reads best; the PK is declared inline here.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · DATA TYPES -->
+  <section class="slide" data-title="Data types" aria-roledescription="slide" aria-label="Data types">
+    <p class="kicker">DDL · 2</p>
+    <h2 class="slide-h" tabindex="-1">Choosing a data type</h2>
+    <div class="two">
+      <div>
+        <p>A type is the column's <span class="term">domain</span> — the set of legal
+        values. Pick the tightest one that fits; it's your first line of data
+        quality.</p>
+        <ul>
+          <li><span class="term">Numeric</span> — <code class="rel">INT</code>,
+          <code class="rel">SMALLINT</code>, <code class="rel">DECIMAL(p,s)</code>,
+          <code class="rel">FLOAT</code>.</li>
+          <li><span class="term">Text</span> — <code class="rel">CHAR(n)</code> fixed,
+          <code class="rel">VARCHAR(n)</code> variable.</li>
+          <li><span class="term">Date/time</span> — <code class="rel">DATE</code>,
+          <code class="rel">TIME</code>, <code class="rel">TIMESTAMP</code>.</li>
+          <li><span class="term">Boolean</span> — <code class="rel">BOOLEAN</code> (where supported).</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <h3>CHAR vs VARCHAR, and money</h3>
+        <p style="margin:0">Use <code class="rel">CHAR</code> only for truly
+        fixed-width codes; <code class="rel">VARCHAR</code> otherwise. Never store money
+        as <code class="rel">FLOAT</code> — rounding error accumulates. Use
+        <code class="rel">DECIMAL</code> for anything exact.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · KEY CONSTRAINTS -->
+  <section class="slide" data-title="Key constraints" aria-roledescription="slide" aria-label="Key constraints">
+    <p class="kicker">DDL · 3 — constraints</p>
+    <h2 class="slide-h" tabindex="-1">Key constraints: PRIMARY &amp; FOREIGN KEY</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">PRIMARY KEY</span> enforces entity integrity: unique and
+        never NULL. Use a table-level clause for a composite key.</p>
+        <p><span class="term">FOREIGN KEY</span> enforces referential integrity: the value
+        must match a primary key in the referenced table (or be NULL).</p>
+        <p>A <span class="term">referential action</span> says what happens when the
+        referenced row is deleted or updated:</p>
+        <ul>
+          <li><code class="rel">ON DELETE CASCADE</code> — delete the dependent rows too.</li>
+          <li><code class="rel">ON DELETE SET NULL</code> — blank the foreign key.</li>
+          <li>Default is <code class="rel">RESTRICT</code> — refuse the delete.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE TABLE</span> ENROLLMENT (
+  StudentID <span class="ty">CHAR</span>(5),
+  CourseID  <span class="ty">CHAR</span>(8),
+  Grade     <span class="ty">CHAR</span>(1),
+  <span class="kw">PRIMARY KEY</span> (StudentID, CourseID),
+  <span class="kw">FOREIGN KEY</span> (StudentID)
+     <span class="kw">REFERENCES</span> STUDENT(StudentID)
+     <span class="kw">ON DELETE CASCADE</span>,
+  <span class="kw">FOREIGN KEY</span> (CourseID)
+     <span class="kw">REFERENCES</span> COURSE(CourseID)
+);</code></pre>
+        <p class="figcap">The composite PK and both FKs are the M:N mapping in SQL.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · OTHER CONSTRAINTS -->
+  <section class="slide" data-title="Column constraints" aria-roledescription="slide" aria-label="Column constraints">
+    <p class="kicker">DDL · 4 — constraints</p>
+    <h2 class="slide-h" tabindex="-1">NOT NULL, UNIQUE, CHECK, DEFAULT</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li><span class="term">NOT NULL</span> — a value is required.</li>
+          <li><span class="term">UNIQUE</span> — no duplicates, but NULL is allowed; use it
+          for alternate (candidate) keys.</li>
+          <li><span class="term">CHECK</span> — a per-row condition the DBMS enforces.</li>
+          <li><span class="term">DEFAULT</span> — value used when none is supplied.</li>
+        </ul>
+        <p style="margin:0">Name constraints (<code class="rel">CONSTRAINT chk_gpa …</code>)
+        so error messages point you to the rule that failed.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE TABLE</span> STUDENT (
+  StudentID <span class="ty">CHAR</span>(5)  <span class="kw">PRIMARY KEY</span>,
+  Name      <span class="ty">VARCHAR</span>(50) <span class="kw">NOT NULL</span>,
+  Email     <span class="ty">VARCHAR</span>(80) <span class="kw">UNIQUE</span>,
+  Major     <span class="ty">VARCHAR</span>(20)
+            <span class="kw">DEFAULT</span> <span class="st">'Undeclared'</span>,
+  GPA       <span class="ty">DECIMAL</span>(3,2)
+    <span class="kw">CHECK</span> (GPA &gt;= <span class="st">0.0</span> <span class="kw">AND</span> GPA &lt;= <span class="st">4.0</span>)
+);</code></pre>
+        <p class="figcap">Email is a candidate key; CHECK keeps GPA in range.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · SELECT-FROM-WHERE -->
+  <section class="slide" data-title="SELECT-FROM-WHERE" aria-roledescription="slide" aria-label="Select from where">
+    <p class="kicker">DML · the query block</p>
+    <h2 class="slide-h" tabindex="-1">SELECT-FROM-WHERE is π, σ, ×</h2>
+    <div class="two">
+      <div>
+        <p>The basic query has three clauses, and each is an algebra operator you
+        already know:</p>
+        <ul>
+          <li><code class="rel">FROM</code> names the relations (a product if several).</li>
+          <li><code class="rel">WHERE</code> is the selection σ — the row filter.</li>
+          <li><code class="rel">SELECT</code> is the projection π — the columns to keep.</li>
+        </ul>
+        <p class="expr">π<sub>Name,Major</sub>( σ<sub>GPA&gt;3.6</sub>(STUDENT) )</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">SELECT</span> Name, Major
+<span class="kw">FROM</span>   STUDENT
+<span class="kw">WHERE</span>  GPA &gt; <span class="st">3.6</span>;</code></pre>
+        <div class="callout warn">
+          <h3>The lifelong gotcha</h3>
+          <p style="margin:0">SQL's <code class="rel">SELECT</code> does the
+          <em>projection</em>, and <code class="rel">WHERE</code> does the algebra's
+          <em>select</em>. The names cross over — say it out loud once and it sticks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · WHERE CONDITIONS -->
+  <section class="slide" data-title="WHERE conditions" aria-roledescription="slide" aria-label="Where conditions">
+    <p class="kicker">Filtering rows</p>
+    <h2 class="slide-h" tabindex="-1">Writing the WHERE condition</h2>
+    <div class="two">
+      <div>
+        <p>Combine comparisons (<code class="rel">= &lt; &gt; &lt;= &gt;= &lt;&gt;</code>)
+        with <code class="rel">AND</code>, <code class="rel">OR</code>,
+        <code class="rel">NOT</code>. Several shorthands make conditions readable:</p>
+        <ul>
+          <li><code class="rel">BETWEEN a AND b</code> — inclusive range.</li>
+          <li><code class="rel">IN (…)</code> — membership in a list.</li>
+          <li><code class="rel">LIKE</code> — pattern match: <code class="rel">%</code>
+          any run of characters, <code class="rel">_</code> a single one.</li>
+          <li><code class="rel">IS NULL</code> — test for a missing value.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- CS or Math students, GPA at least 3.5</span>
+<span class="kw">SELECT</span> Name
+<span class="kw">FROM</span>   STUDENT
+<span class="kw">WHERE</span>  Major <span class="kw">IN</span> (<span class="st">'CS'</span>, <span class="st">'Math'</span>)
+  <span class="kw">AND</span>  GPA <span class="kw">BETWEEN</span> <span class="st">3.5</span> <span class="kw">AND</span> <span class="st">4.0</span>;
+
+<span class="cm">-- names beginning with A</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span>  Name <span class="kw">LIKE</span> <span class="st">'A%'</span>;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · DISTINCT / ORDER BY / ALIAS -->
+  <section class="slide" data-title="DISTINCT, ORDER BY, aliases" aria-roledescription="slide" aria-label="Distinct, order by, aliases">
+    <p class="kicker">Shaping the output</p>
+    <h2 class="slide-h" tabindex="-1">DISTINCT, ORDER BY, and aliases</h2>
+    <div class="two">
+      <div>
+        <p><code class="rel">DISTINCT</code> removes duplicate result rows — recovering
+        the algebra's set behavior on demand.</p>
+        <p><code class="rel">ORDER BY</code> sorts the output, <code class="rel">ASC</code>
+        (default) or <code class="rel">DESC</code>; order otherwise is not guaranteed.</p>
+        <p><code class="rel">AS</code> renames a column or table in the output — SQL's
+        rename (ρ), handy for computed columns and self-joins later.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">SELECT DISTINCT</span> Major
+<span class="kw">FROM</span> STUDENT;
+
+<span class="kw">SELECT</span> Name, GPA <span class="kw">AS</span> grade_point
+<span class="kw">FROM</span>   STUDENT
+<span class="kw">ORDER BY</span> GPA <span class="kw">DESC</span>;</code></pre>
+        <p class="figcap">DISTINCT dedupes; ORDER BY sorts; AS relabels.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · INTERACTIVE -->
+  <section class="slide" data-title="A query, clause by clause" aria-roledescription="slide" aria-label="Interactive: a query clause by clause">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Watch each clause do its algebra</h2>
+    <p>The query is <code class="rel">SELECT Name FROM STUDENT WHERE Major='CS'</code>.
+    Toggle a clause to see the operator it performs on the table.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a clause to spotlight">
+      <button class="chip" data-op="from" aria-pressed="true"
+        data-desc="FROM STUDENT: the input relation, all rows and all columns. This is where the data comes from — the leaf of the algebra tree.">FROM</button>
+      <button class="chip" data-op="where" aria-pressed="false"
+        data-desc="WHERE Major='CS': the selection σ. Rows S1001 and S1003 satisfy the condition and stay; the others are filtered out. Columns unchanged.">WHERE</button>
+      <button class="chip" data-op="select" aria-pressed="false"
+        data-desc="SELECT Name: the projection π. Only the Name column is returned; StudentID, Major, and GPA are dropped from the output.">SELECT</button>
+    </div>
+    <p id="q-desc" class="live-desc"
+       data-default="FROM STUDENT: the input relation, all rows and all columns. This is where the data comes from — the leaf of the algebra tree.">FROM STUDENT: the input relation, all rows and all columns. This is where the data comes from — the leaf of the algebra tree.</p>
+    <table class="inst demo" id="sql-demo" data-op="from">
+      <caption>STUDENT</caption>
+      <thead><tr>
+        <th class="col-id" scope="col">StudentID</th>
+        <th class="col-name" scope="col">Name</th>
+        <th class="col-major" scope="col">Major</th>
+        <th class="col-gpa" scope="col">GPA</th>
+      </tr></thead>
+      <tbody>
+        <tr class="match"><td class="col-id keycol">S1001</td><td class="col-name">Ada Okafor</td><td class="col-major">CS</td><td class="col-gpa">3.8</td></tr>
+        <tr><td class="col-id keycol">S1002</td><td class="col-name">Liang Wei</td><td class="col-major">Math</td><td class="col-gpa">3.5</td></tr>
+        <tr class="match"><td class="col-id keycol">S1003</td><td class="col-name">Grace Bello</td><td class="col-major">CS</td><td class="col-gpa">3.9</td></tr>
+        <tr><td class="col-id keycol">S1004</td><td class="col-name">Omar Haddad</td><td class="col-major">Physics</td><td class="col-gpa">3.2</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 13 · NULLS -->
+  <section class="slide" data-title="NULLs and three-valued logic" aria-roledescription="slide" aria-label="NULLs and three-valued logic">
+    <p class="kicker">The subtle part</p>
+    <h2 class="slide-h" tabindex="-1">NULL and three-valued logic</h2>
+    <div class="two">
+      <div>
+        <p>A comparison with NULL yields neither true nor false but
+        <span class="null">UNKNOWN</span>. SQL logic has <strong>three</strong> values,
+        and <code class="rel">WHERE</code> keeps a row only when the condition is
+        <em>true</em> — never when it is UNKNOWN.</p>
+        <p>So <code class="rel">GPA = NULL</code> is always UNKNOWN and matches nothing.
+        Test missing values with <code class="rel">IS NULL</code> instead.</p>
+      </div>
+      <div class="callout warn">
+        <h3>Consequences to remember</h3>
+        <ul style="margin:0">
+          <li><code class="rel">x = NULL</code> is never true — use <code class="rel">IS NULL</code>.</li>
+          <li>A row where the test is UNKNOWN is <em>excluded</em>.</li>
+          <li><code class="rel">NOT UNKNOWN</code> is still UNKNOWN.</li>
+          <li>Aggregates skip NULLs (more in lecture 3).</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · AT A GLANCE -->
+  <section class="slide" data-title="The SELECT statement at a glance" aria-roledescription="slide" aria-label="The select statement at a glance">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">The SELECT statement, clause by clause</h2>
+    <div class="clauses">
+      <div class="cl"><b>SELECT</b><span>columns to keep — the projection π (with DISTINCT to dedupe)</span></div>
+      <div class="cl"><b>FROM</b><span>the relations — a product when more than one</span></div>
+      <div class="cl"><b>WHERE</b><span>row condition — the selection σ</span></div>
+      <div class="cl later"><b>GROUP BY</b><span>form groups for aggregation — lecture 3</span></div>
+      <div class="cl later"><b>HAVING</b><span>condition on groups — lecture 3</span></div>
+      <div class="cl later"><b>ORDER BY</b><span>sort the final output (ASC / DESC)</span></div>
+    </div>
+    <div class="callout">
+      <h3>Written vs. evaluated order</h3>
+      <p style="margin:0">You <em>write</em> SELECT first, but the DBMS conceptually
+      evaluates FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY. That's why a
+      SELECT alias can't be used in WHERE.</p>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>SELECT is π, WHERE is σ.</strong> The crossover from the algebra
+      names trips up everyone once. Name it now and move on.</li>
+      <li><strong>Results keep duplicates.</strong> If a count looks too high, you
+      wanted <code class="rel">DISTINCT</code>. SQL is a bag, not a set.</li>
+      <li><strong><code class="rel">= NULL</code> never matches.</strong> Reach for
+      <code class="rel">IS NULL</code> / <code class="rel">IS NOT NULL</code> every time.</li>
+      <li><strong>Quote strings with single quotes.</strong> Double quotes mean an
+      identifier in standard SQL, not a string.</li>
+      <li><strong>Match FK and PK types.</strong> A <code class="rel">CHAR(5)</code> key
+      referenced by a <code class="rel">CHAR(8)</code> foreign key is a definition-time
+      error, not a runtime one.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">DDL</span>: CREATE TABLE, types, and constraints (PK, FK, NOT NULL, UNIQUE, CHECK, DEFAULT).</li>
+          <li><span class="term">SELECT-FROM-WHERE</span> ≡ π, σ over the FROM relations.</li>
+          <li>Filtering shorthands, DISTINCT, ORDER BY, and the <span class="term">NULL</span> gotchas.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Write CREATE TABLE for COURSE with a CHECK on a credits column.</li>
+            <li>Which clause is the algebra's σ, and which is π?</li>
+            <li>Why does <code class="rel">WHERE Grade = NULL</code> return no rows?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — SQL II</h3>
+          <p style="margin:0">Joining tables in SQL, nested and correlated subqueries,
+          EXISTS / ANY / ALL, and changing data with INSERT, UPDATE, and DELETE.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- SQL clause demonstrator (only if that markup is present) ---
+  var qChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-op]'));
+  var qDesc  = document.getElementById('q-desc');
+  var qDemo  = document.getElementById('sql-demo');
+  if (qChips.length && qDemo){
+    qChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        qChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        qDemo.setAttribute('data-op', chip.getAttribute('data-op'));
+        if (qDesc) qDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

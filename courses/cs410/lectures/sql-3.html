@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL III — Grouping, Views, Assertions, and Triggers · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- SQL code blocks ---- */
+pre.sql{font-family:var(--mono);font-size:.9rem;line-height:1.5;color:var(--ink);
+  background:#0F1B33;border:1px solid var(--blue-ink);border-radius:9px;
+  padding:14px 16px;margin:0 0 12px;overflow-x:auto;white-space:pre}
+pre.sql code{color:#DCE4F5}
+pre.sql .kw{color:#8FB4FF;font-weight:700}
+pre.sql .ty{color:#7FD4C0}
+pre.sql .st{color:#F2B08A}
+pre.sql .cm{color:#8A93A3;font-style:italic}
+pre.sql .fn{color:#E6C06B}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+.tblwrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+/* ---- evaluation-order clause grid ---- */
+.clauses{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cl{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:9px 12px;background:#fff}
+.cl .n{font-family:var(--mono);font-size:.78rem;color:#7A2708;font-weight:700}
+.cl b{display:block;font-family:var(--mono);color:var(--blue-ink);font-size:.92rem}
+.cl span{display:block;color:var(--muted);font-size:.84rem;margin-top:1px}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.88rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+/* HAVING demo: failing groups dim, passing groups tint; text echoes the state */
+table.demo td,table.demo th{transition:opacity .18s,background .18s}
+.demo[data-having="count"] tbody tr:not(.c2){opacity:.3}
+.demo[data-having="avg"]   tbody tr:not(.a35){opacity:.3}
+.demo[data-having="count"] tbody tr.c2 td,
+.demo[data-having="avg"]   tbody tr.a35 td{background:var(--tint)}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .tblwrap{grid-template-columns:1fr}
+  .clauses{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  pre.sql{font-size:.8rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.cl,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.cl,table.inst,pre.sql{break-inside:avoid}
+  pre.sql{background:#F4F6FB;border-color:var(--line)}
+  pre.sql code{color:#14181F}
+  pre.sql .kw{color:#00246B}
+  pre.sql .ty{color:#0B6B57}
+  pre.sql .st{color:#7A2708}
+  pre.sql .cm{color:#4A5160}
+  table.demo td,table.demo th{opacity:1!important;background:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 4 · SQL</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 3 of 3 in the SQL sequence · Elmasri &amp; Navathe, Ch. 7</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="SQL III — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="SQL III — Grouping, Views, Assertions, and Triggers"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Summarizing, abstracting, reacting</p>
+    <h2 class="slide-h" tabindex="-1">SQL III<br>Grouping, views, assertions, and triggers</h2>
+    <div class="two">
+      <div>
+        <p class="lead">The last SQL lecture moves past individual rows: summarize
+        many rows into one, hide complexity behind a view, and let the database act
+        on its own.</p>
+        <p style="color:var(--muted)">GROUP BY and HAVING for aggregation; views and
+        their limits; assertions and triggers for rules the schema can't state alone.</p>
+      </div>
+      <div class="callout">
+        <h3>Two new powers</h3>
+        <p style="margin:0"><strong>Aggregation</strong> turns a group of rows into a
+        single summary row. <strong>Active rules</strong> let the database enforce or
+        react without an application asking it to.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>SQL so far</h3>
+          <p style="margin:0">DDL and basic queries (I); joins, subqueries, and
+          modification (II). Today completes the language.</p>
+        </div>
+        <p>After this we leave SQL-as-typed-at-a-prompt and get an
+        <em>application</em> to run it (Unit 5).</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Summarize with aggregates and <span class="term">GROUP BY</span>.</li>
+            <li>Filter groups with <span class="term">HAVING</span>, and place WHERE vs HAVING correctly.</li>
+            <li>Define and reason about the updatability of a <span class="term">view</span>.</li>
+            <li>Enforce rules with <span class="term">assertions</span> and <span class="term">triggers</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE DATA -->
+  <section class="slide" data-title="The data we'll summarize" aria-roledescription="slide" aria-label="The data we will summarize">
+    <p class="kicker">Running example</p>
+    <h2 class="slide-h" tabindex="-1">The data we'll summarize</h2>
+    <p>The same UNIVERSITY tables. Grouping STUDENT by Major and counting ENROLLMENT
+    by course are our two running summaries.</p>
+    <div class="tblwrap">
+      <table class="inst">
+        <caption>STUDENT</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">Name</th><th scope="col">Major</th><th scope="col">GPA</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td>Ada Okafor</td><td>CS</td><td>3.8</td></tr>
+          <tr><td class="keycol">S1002</td><td>Liang Wei</td><td>Math</td><td>3.5</td></tr>
+          <tr><td class="keycol">S1003</td><td>Grace Bello</td><td>CS</td><td>3.9</td></tr>
+          <tr><td class="keycol">S1004</td><td>Omar Haddad</td><td>Physics</td><td>3.2</td></tr>
+        </tbody>
+      </table>
+      <table class="inst">
+        <caption>ENROLLMENT</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">CourseID</th><th scope="col">Grade</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td class="keycol">CS410</td><td>A</td></tr>
+          <tr><td class="keycol">S1002</td><td class="keycol">CS410</td><td>B</td></tr>
+          <tr><td class="keycol">S1003</td><td class="keycol">MATH301</td><td>A</td></tr>
+          <tr><td class="keycol">S1001</td><td class="keycol">MATH301</td><td>B</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4 · AGGREGATE FUNCTIONS -->
+  <section class="slide" data-title="Aggregate functions" aria-roledescription="slide" aria-label="Aggregate functions">
+    <p class="kicker">Summarizing · 1</p>
+    <h2 class="slide-h" tabindex="-1">Aggregate functions</h2>
+    <div class="two">
+      <div>
+        <p>An aggregate collapses a set of values into one:
+        <code class="rel">COUNT</code>, <code class="rel">SUM</code>,
+        <code class="rel">AVG</code>, <code class="rel">MIN</code>,
+        <code class="rel">MAX</code>. With no GROUP BY, the whole table is one group.</p>
+        <ul>
+          <li><code class="rel">COUNT(*)</code> counts rows;
+          <code class="rel">COUNT(col)</code> counts non-NULL values.</li>
+          <li><code class="rel">COUNT(DISTINCT col)</code> counts distinct values.</li>
+          <li>SUM/AVG/MIN/MAX also ignore NULLs.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">SELECT</span> <span class="fn">COUNT</span>(*)              <span class="kw">AS</span> n,
+       <span class="fn">AVG</span>(GPA)             <span class="kw">AS</span> avg_gpa,
+       <span class="fn">MAX</span>(GPA)             <span class="kw">AS</span> top_gpa,
+       <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> Major) <span class="kw">AS</span> majors
+<span class="kw">FROM</span> STUDENT;
+<span class="cm">-- n=4, avg_gpa=3.6, top_gpa=3.9, majors=3</span></code></pre>
+        <p class="figcap">One summary row over the whole table.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · GROUP BY -->
+  <section class="slide" data-title="GROUP BY" aria-roledescription="slide" aria-label="Group by">
+    <p class="kicker">Summarizing · 2</p>
+    <h2 class="slide-h" tabindex="-1">GROUP BY — one row per group</h2>
+    <div class="two">
+      <div>
+        <p><code class="rel">GROUP BY</code> partitions rows by the grouping columns and
+        applies the aggregates <em>within each group</em>, returning one row per group.</p>
+        <p class="figcap" style="margin:0 0 8px">"How many students, and what average
+        GPA, in each major?"</p>
+<pre class="sql"><code><span class="kw">SELECT</span> Major, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> n,
+       <span class="fn">AVG</span>(GPA) <span class="kw">AS</span> avg_gpa
+<span class="kw">FROM</span>   STUDENT
+<span class="kw">GROUP BY</span> Major;</code></pre>
+      </div>
+      <table class="inst">
+        <caption>Result — one row per Major</caption>
+        <thead><tr><th scope="col">Major</th><th scope="col">n</th><th scope="col">avg_gpa</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">CS</td><td>2</td><td>3.85</td></tr>
+          <tr><td class="keycol">Math</td><td>1</td><td>3.5</td></tr>
+          <tr><td class="keycol">Physics</td><td>1</td><td>3.2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 6 · THE GROUP BY RULE -->
+  <section class="slide" data-title="The GROUP BY rule" aria-roledescription="slide" aria-label="The group by rule">
+    <p class="kicker">Summarizing · 3</p>
+    <h2 class="slide-h" tabindex="-1">The rule that trips everyone</h2>
+    <div class="two">
+      <div>
+        <p>Every column in <code class="rel">SELECT</code> must be either a
+        <strong>grouping column</strong> or <strong>inside an aggregate</strong>. Nothing
+        else has a single value per group.</p>
+        <p style="margin:0">Asking for a bare <code class="rel">Name</code> alongside a
+        per-major count is meaningless — which of the group's names would it be?</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- ERROR: Name is neither grouped</span>
+<span class="cm">-- nor aggregated</span>
+<span class="kw">SELECT</span> Major, Name, <span class="fn">COUNT</span>(*)
+<span class="kw">FROM</span> STUDENT
+<span class="kw">GROUP BY</span> Major;
+
+<span class="cm">-- OK</span>
+<span class="kw">SELECT</span> Major, <span class="fn">COUNT</span>(*), <span class="fn">MAX</span>(GPA)
+<span class="kw">FROM</span> STUDENT
+<span class="kw">GROUP BY</span> Major;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · HAVING -->
+  <section class="slide" data-title="HAVING vs WHERE" aria-roledescription="slide" aria-label="Having versus where">
+    <p class="kicker">Summarizing · 4</p>
+    <h2 class="slide-h" tabindex="-1">HAVING filters groups; WHERE filters rows</h2>
+    <div class="two">
+      <div>
+        <p>A condition on an aggregate can't live in <code class="rel">WHERE</code> —
+        the groups don't exist yet. It goes in <code class="rel">HAVING</code>, applied
+        <em>after</em> grouping.</p>
+        <ul>
+          <li><code class="rel">WHERE</code> — drops <em>rows</em> before grouping.</li>
+          <li><code class="rel">HAVING</code> — drops <em>groups</em> after aggregating.</li>
+        </ul>
+        <p style="margin:0">Use both together: WHERE to pre-filter, HAVING to test the
+        summary.</p>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- majors with more than one student,</span>
+<span class="cm">-- counting only GPAs at or above 2.0</span>
+<span class="kw">SELECT</span> Major, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> n
+<span class="kw">FROM</span>   STUDENT
+<span class="kw">WHERE</span>  GPA &gt;= <span class="st">2.0</span>
+<span class="kw">GROUP BY</span> Major
+<span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; <span class="st">1</span>;</code></pre>
+        <p class="figcap">WHERE first, then GROUP BY, then HAVING.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · INTERACTIVE -->
+  <section class="slide" data-title="What HAVING keeps" aria-roledescription="slide" aria-label="Interactive: what having keeps">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Which groups survive HAVING?</h2>
+    <p>Here is <code class="rel">GROUP BY Major</code> over the full class roster.
+    Apply a HAVING condition and watch which groups are kept.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a HAVING condition">
+      <button class="chip" data-having="none" aria-pressed="true"
+        data-desc="No HAVING: all four groups are returned, one row per major, straight from GROUP BY.">no HAVING</button>
+      <button class="chip" data-having="count" aria-pressed="false"
+        data-desc="HAVING COUNT(*) >= 2: keep majors with at least two students. CS (3), Math (2), and Biology (2) pass; Physics (1) is dropped.">COUNT(*) &gt;= 2</button>
+      <button class="chip" data-having="avg" aria-pressed="false"
+        data-desc="HAVING AVG(GPA) > 3.5: keep majors whose average GPA exceeds 3.5. CS (3.6) and Math (3.9) pass; Biology (3.3) and Physics (3.2) are dropped.">AVG(GPA) &gt; 3.5</button>
+    </div>
+    <p id="having-desc" class="live-desc"
+       data-default="No HAVING: all four groups are returned, one row per major, straight from GROUP BY.">No HAVING: all four groups are returned, one row per major, straight from GROUP BY.</p>
+    <table class="inst demo" id="having-demo" data-having="none">
+      <caption>GROUP BY Major (full roster)</caption>
+      <thead><tr><th scope="col">Major</th><th scope="col">COUNT(*)</th><th scope="col">AVG(GPA)</th></tr></thead>
+      <tbody>
+        <tr class="c2 a35"><td class="keycol">CS</td><td>3</td><td>3.6</td></tr>
+        <tr class="c2 a35"><td class="keycol">Math</td><td>2</td><td>3.9</td></tr>
+        <tr class="c2"><td class="keycol">Biology</td><td>2</td><td>3.3</td></tr>
+        <tr><td class="keycol">Physics</td><td>1</td><td>3.2</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 9 · EVALUATION ORDER -->
+  <section class="slide" data-title="The SELECT statement, evaluated in order" aria-roledescription="slide" aria-label="The select statement evaluated in order">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">The full SELECT, in evaluation order</h2>
+    <div class="clauses">
+      <div class="cl"><span class="n">1</span><b>FROM / JOIN</b><span>assemble the input rows</span></div>
+      <div class="cl"><span class="n">2</span><b>WHERE</b><span>filter rows (σ)</span></div>
+      <div class="cl"><span class="n">3</span><b>GROUP BY</b><span>partition into groups</span></div>
+      <div class="cl"><span class="n">4</span><b>HAVING</b><span>filter groups</span></div>
+      <div class="cl"><span class="n">5</span><b>SELECT</b><span>project columns / aggregates (π)</span></div>
+      <div class="cl"><span class="n">6</span><b>ORDER BY</b><span>sort the final output</span></div>
+    </div>
+    <div class="callout">
+      <h3>Why the order matters</h3>
+      <p style="margin:0">SELECT is written first but evaluated fifth — which is why a
+      column alias defined in SELECT can't be used in WHERE, and why an aggregate
+      condition must wait for HAVING, not WHERE.</p>
+    </div>
+  </section>
+
+  <!-- 10 · VIEWS -->
+  <section class="slide" data-title="Views" aria-roledescription="slide" aria-label="Views">
+    <p class="kicker">Abstraction · 1</p>
+    <h2 class="slide-h" tabindex="-1">Views — a query with a name</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">view</span> is a virtual table defined by a query. It
+        stores no data of its own; querying it runs the underlying query.</p>
+        <p>Views earn their keep three ways:</p>
+        <ul>
+          <li><strong>Simplify</strong> — hide a complex join behind a friendly name.</li>
+          <li><strong>Secure</strong> — expose only some columns or rows to a user.</li>
+          <li><strong>Stabilize</strong> — a fixed interface even as base tables change.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE VIEW</span> cs_students <span class="kw">AS</span>
+  <span class="kw">SELECT</span> StudentID, Name, GPA
+  <span class="kw">FROM</span>   STUDENT
+  <span class="kw">WHERE</span>  Major = <span class="st">'CS'</span>;
+
+<span class="cm">-- use it like any table</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> cs_students
+<span class="kw">WHERE</span> GPA &gt; <span class="st">3.8</span>;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · VIEW UPDATABILITY -->
+  <section class="slide" data-title="View updatability" aria-roledescription="slide" aria-label="View updatability">
+    <p class="kicker">Abstraction · 2</p>
+    <h2 class="slide-h" tabindex="-1">When can you write through a view?</h2>
+    <div class="two">
+      <div>
+        <p>Reading a view is always fine. Writing through one is only well-defined
+        when each changed row maps back to exactly one base-table row.</p>
+        <p>A view is generally <span class="term">updatable</span> when it:</p>
+        <ul>
+          <li>draws from a <strong>single base table</strong>,</li>
+          <li>includes that table's <strong>primary key</strong>, and</li>
+          <li>uses <strong>no</strong> DISTINCT, GROUP BY, aggregate, or join.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>WITH CHECK OPTION</h3>
+          <p style="margin:0">Add it so an INSERT or UPDATE through the view can't
+          create a row that falls outside the view's own WHERE — no smuggling a
+          non-CS student into <code class="rel">cs_students</code>.</p>
+        </div>
+        <div class="callout">
+          <h3>Materialized views</h3>
+          <p style="margin:0">A <em>materialized</em> view stores its result for speed
+          and must be refreshed as base data changes — a query-performance tool, more
+          in the storage unit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · ASSERTIONS -->
+  <section class="slide" data-title="Assertions" aria-roledescription="slide" aria-label="Assertions">
+    <p class="kicker">Active rules · 1</p>
+    <h2 class="slide-h" tabindex="-1">Assertions — constraints across rows</h2>
+    <div class="two">
+      <div>
+        <p>A <code class="rel">CHECK</code> constrains one row. An
+        <span class="term">assertion</span> states a condition over the
+        <strong>whole database</strong> that must always hold — spanning many rows or
+        tables.</p>
+        <p>Write the rule as "there is no violation," using
+        <code class="rel">NOT EXISTS</code>.</p>
+        <div class="callout warn">
+          <h3>Rarely implemented</h3>
+          <p style="margin:0">General assertions are expensive to check and most DBMSs
+          don't support them. In practice the same rules are enforced with triggers —
+          next slide.</p>
+        </div>
+      </div>
+      <div>
+<pre class="sql"><code><span class="cm">-- no student may exceed 6 courses</span>
+<span class="kw">CREATE ASSERTION</span> max_load <span class="kw">CHECK</span> (
+  <span class="kw">NOT EXISTS</span> (
+    <span class="kw">SELECT</span> StudentID <span class="kw">FROM</span> ENROLLMENT
+    <span class="kw">GROUP BY</span> StudentID
+    <span class="kw">HAVING</span> <span class="fn">COUNT</span>(*) &gt; <span class="st">6</span>));</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · TRIGGERS -->
+  <section class="slide" data-title="Triggers" aria-roledescription="slide" aria-label="Triggers">
+    <p class="kicker">Active rules · 2</p>
+    <h2 class="slide-h" tabindex="-1">Triggers — event, condition, action</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">trigger</span> is stored procedural code the DBMS runs
+        automatically on a data event. Its three parts:</p>
+        <ul>
+          <li><strong>Event</strong> — <code class="rel">BEFORE</code>/<code class="rel">AFTER</code>
+          an INSERT, UPDATE, or DELETE.</li>
+          <li><strong>Condition</strong> — an optional <code class="rel">WHEN</code> test.</li>
+          <li><strong>Action</strong> — the body; <code class="rel">NEW</code> and
+          <code class="rel">OLD</code> name the row versions.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">CREATE TRIGGER</span> enforce_load
+<span class="kw">BEFORE INSERT ON</span> ENROLLMENT
+<span class="kw">FOR EACH ROW</span>
+<span class="kw">WHEN</span> ((<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> ENROLLMENT
+       <span class="kw">WHERE</span> StudentID = <span class="kw">NEW</span>.StudentID) &gt;= <span class="st">6</span>)
+<span class="kw">BEGIN</span>
+  <span class="cm">-- reject the overload</span>
+  <span class="kw">SIGNAL</span> <span class="kw">SQLSTATE</span> <span class="st">'45000'</span>;
+<span class="kw">END</span>;</code></pre>
+        <p class="figcap">Use triggers sparingly — logic hidden here is easy to forget.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · ALTER TABLE -->
+  <section class="slide" data-title="ALTER TABLE" aria-roledescription="slide" aria-label="Alter table">
+    <p class="kicker">Evolving the schema</p>
+    <h2 class="slide-h" tabindex="-1">ALTER TABLE — schema change after the fact</h2>
+    <div class="two">
+      <div>
+        <p>Schemas outlive their first draft. <code class="rel">ALTER TABLE</code> adds
+        or drops columns and constraints without recreating the table.</p>
+        <ul>
+          <li><code class="rel">ADD</code> a column (existing rows get NULL or a DEFAULT).</li>
+          <li><code class="rel">ADD CONSTRAINT</code> — the DBMS checks it against current data.</li>
+          <li><code class="rel">DROP</code> a column or constraint.</li>
+        </ul>
+      </div>
+      <div>
+<pre class="sql"><code><span class="kw">ALTER TABLE</span> STUDENT
+  <span class="kw">ADD</span> Email <span class="ty">VARCHAR</span>(80);
+
+<span class="kw">ALTER TABLE</span> STUDENT
+  <span class="kw">ADD CONSTRAINT</span> chk_gpa
+      <span class="kw">CHECK</span> (GPA &lt;= <span class="st">4.0</span>);
+
+<span class="kw">ALTER TABLE</span> STUDENT
+  <span class="kw">DROP COLUMN</span> Email;</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Every SELECT column is grouped or aggregated.</strong> A bare column
+      alongside an aggregate is the most common GROUP BY error.</li>
+      <li><strong>Aggregate conditions go in HAVING, not WHERE.</strong> WHERE runs before
+      groups exist.</li>
+      <li><strong>COUNT(*) ≠ COUNT(col).</strong> The second skips NULLs — they can differ,
+      and the difference is usually the point.</li>
+      <li><strong>Not every view is updatable.</strong> Anything with a join, DISTINCT, or
+      aggregate is read-only; add <code class="rel">WITH CHECK OPTION</code> to those
+      that are writable.</li>
+      <li><strong>Triggers hide behavior.</strong> They're powerful for integrity, but
+      logic buried in a trigger surprises whoever debugs the app later.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up · end of Unit 4</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>Aggregates, <span class="term">GROUP BY</span>, and <span class="term">HAVING</span> (with its evaluation order).</li>
+          <li><span class="term">Views</span>, their uses, and when they're updatable.</li>
+          <li><span class="term">Assertions</span> and <span class="term">triggers</span> for rules beyond a single row; ALTER for schema change.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why can't <code class="rel">COUNT(*) &gt; 1</code> go in WHERE?</li>
+            <li>Give two reasons a view might be read-only.</li>
+            <li>Name the three parts of a trigger.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — review, Midterm 1, then Unit 5</h3>
+          <p style="margin:0">A review of Units 0–4 and Midterm 1, then database access
+          from applications: embedded/dynamic SQL, JDBC, and SQL injection.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- HAVING demonstrator (only if that markup is present) ---
+  var hChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-having]'));
+  var hDesc  = document.getElementById('having-desc');
+  var hDemo  = document.getElementById('having-demo');
+  if (hChips.length && hDemo){
+    hChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        hChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        hDemo.setAttribute('data-having', chip.getAttribute('data-having'));
+        if (hDesc) hDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

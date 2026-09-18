@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transactions I — ACID, Schedules, and Serializability · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- ACID grid ---- */
+.acid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.ac{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:10px 13px;background:#fff}
+.ac b{color:var(--blue-ink);font-size:1rem}
+.ac span{display:block;color:var(--muted);font-size:.88rem;margin-top:2px}
+
+/* ---- schedule / instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.87rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.sched td{font-family:var(--mono);text-align:center}
+table.sched .t1{color:var(--blue-ink);font-weight:700}
+table.sched .t2{color:#7A2708;font-weight:700}
+table.sched .conf{background:#FBEEE7}
+
+/* ---- interactive: precedence graph ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.pgbox .pg-variant{display:none}
+html:not(.js) .pgbox .pg-variant{display:block;margin-bottom:12px}
+.pgbox[data-mode="s1"] .pg-variant[data-q="s1"],
+.pgbox[data-mode="s2"] .pg-variant[data-q="s2"]{display:block}
+.pg-variant{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center}
+.verdict{font-weight:700;font-size:.98rem;margin:6px 0 0}
+.verdict.yes{color:#0B6B57}
+.verdict.no{color:#7A2708}
+@media (max-width:760px){.pg-variant{grid-template-columns:1fr}}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .acid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.ac,.fig,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.ac,table.inst{break-inside:avoid}
+  .pgbox .pg-variant{display:grid!important;margin-bottom:12px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 8 · Transactions</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 1 of 3 · Elmasri &amp; Navathe, Ch. 20</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Transactions I — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Transactions I — ACID, Schedules, and Serializability"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Correct under chaos</p>
+    <h2 class="slide-h" tabindex="-1">Transactions I<br>ACID, schedules, and serializability</h2>
+    <div class="two">
+      <div>
+        <p class="lead">A database serves many users at once, and the power can fail
+        mid-write. Transactions are how it stays correct anyway — treating a bundle of
+        operations as one indivisible, isolated unit.</p>
+        <p style="color:var(--muted)">Today: the ACID guarantees, what goes wrong without
+        them, and the precise standard of correctness — serializability.</p>
+      </div>
+      <div class="callout">
+        <h3>The question this unit answers</h3>
+        <p style="margin:0">When many transactions interleave, which interleavings are
+        <em>safe</em>? Serializability gives an exact, testable answer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Units 0–7</h3>
+          <p style="margin:0">Design, querying, and the physical storage layer. All of it
+          assumed one user, no crashes. Now we drop both assumptions.</p>
+        </div>
+        <p>Unit 8 is three lectures: <strong>today</strong> ACID and serializability; then
+        two-phase locking and deadlock; then timestamps, MVCC, and recovery.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>State the <span class="term">ACID</span> properties and transaction states.</li>
+            <li>Name the classic <span class="term">concurrency anomalies</span>.</li>
+            <li>Define a <span class="term">schedule</span> and <span class="term">serializability</span>.</li>
+            <li>Test <span class="term">conflict serializability</span> with a precedence graph.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHAT IS A TRANSACTION -->
+  <section class="slide" data-title="What a transaction is" aria-roledescription="slide" aria-label="What a transaction is">
+    <p class="kicker">The unit of work</p>
+    <h2 class="slide-h" tabindex="-1">What a transaction is</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">transaction</span> is a logical unit of work — a sequence
+        of reads and writes that must take effect <strong>all together or not at all</strong>.</p>
+        <p>The archetype is a bank transfer: debit one account, credit another. Half of
+        that — money leaving one account but never arriving — must never be a state the
+        database can be left in.</p>
+      </div>
+      <div class="fig">
+        <p style="font-family:var(--mono);color:var(--blue-ink);margin:0">
+          <b>Transfer $50, A → B</b><br>
+          read(A)<br>
+          A := A − 50<br>
+          write(A)<br>
+          read(B)<br>
+          B := B + 50<br>
+          write(B)<br>
+          <span style="color:#0B6B57">commit</span>
+        </p>
+        <p class="figcap">Both writes commit, or neither does.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · WHY -->
+  <section class="slide" data-title="Why transactions" aria-roledescription="slide" aria-label="Why transactions">
+    <p class="kicker">Two threats</p>
+    <h2 class="slide-h" tabindex="-1">Two things transactions defend against</h2>
+    <div class="two">
+      <div>
+        <div class="callout warn">
+          <h3>Concurrency</h3>
+          <p style="margin:0">Many transactions run at once. Interleave their reads and
+          writes carelessly and they corrupt each other's data — even though each is
+          correct alone.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Failure</h3>
+          <p style="margin:0">A crash, a power loss, an error mid-transaction can leave
+          updates half-applied. Recovery must undo the partial work and leave a
+          consistent state.</p>
+        </div>
+      </div>
+    </div>
+    <p class="figcap">Isolation handles the first; atomicity and durability handle the
+    second. Together they're ACID.</p>
+  </section>
+
+  <!-- 5 · ACID -->
+  <section class="slide" data-title="ACID" aria-roledescription="slide" aria-label="Acid properties">
+    <p class="kicker">The four guarantees</p>
+    <h2 class="slide-h" tabindex="-1">ACID</h2>
+    <div class="acid">
+      <div class="ac"><b>Atomicity</b><span>All operations happen, or none do. A failed transaction is rolled back completely.</span></div>
+      <div class="ac"><b>Consistency</b><span>A transaction moves the database from one valid state to another, preserving all constraints.</span></div>
+      <div class="ac"><b>Isolation</b><span>Concurrent transactions don't see each other's partial work — the result is as if they ran one at a time.</span></div>
+      <div class="ac"><b>Durability</b><span>Once committed, changes survive crashes — they're permanently recorded.</span></div>
+    </div>
+    <div class="callout">
+      <h3>Who provides which</h3>
+      <p style="margin:0">Isolation is the <em>concurrency control</em>'s job (today and next
+      lecture); atomicity and durability are the <em>recovery manager</em>'s (lecture 3).
+      Consistency emerges when the others hold.</p>
+    </div>
+  </section>
+
+  <!-- 6 · STATES -->
+  <section class="slide" data-title="Transaction states" aria-roledescription="slide" aria-label="Transaction states">
+    <p class="kicker">The lifecycle</p>
+    <h2 class="slide-h" tabindex="-1">Transaction states</h2>
+    <div class="two">
+      <div>
+        <p>Operations are <code class="rel">read_item</code>, <code class="rel">write_item</code>,
+        <code class="rel">commit</code>, <code class="rel">abort</code>. A transaction moves
+        through states:</p>
+        <ul>
+          <li><span class="term">Active</span> → executing operations.</li>
+          <li><span class="term">Partially committed</span> → last op done, not yet saved.</li>
+          <li><span class="term">Committed</span> → durably recorded.</li>
+          <li><span class="term">Failed → aborted</span> → rolled back.</li>
+        </ul>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 460 170" role="img" aria-labelledby="t6 d6">
+          <title id="t6">Transaction state diagram</title>
+          <desc id="d6">Active leads to partially committed, which leads to committed.
+          Active can also lead to failed, which leads to aborted. Partially committed
+          can also fail on save and go to failed then aborted.</desc>
+          <rect x="16" y="66" width="96" height="34" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="64" y="87" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">Active</text>
+          <rect x="150" y="20" width="130" height="34" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="215" y="41" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#00246B">Partially committed</text>
+          <rect x="330" y="20" width="110" height="34" rx="6" fill="#E7F3EE" stroke="#0B6B57" stroke-width="1.8"/>
+          <text x="385" y="41" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#0B6B57">Committed</text>
+          <rect x="150" y="112" width="96" height="34" rx="6" fill="#FBEEE7" stroke="#7A2708" stroke-width="1.8"/>
+          <text x="198" y="133" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#7A2708">Failed</text>
+          <rect x="330" y="112" width="110" height="34" rx="6" fill="#FBEEE7" stroke="#7A2708" stroke-width="1.8"/>
+          <text x="385" y="133" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#7A2708">Aborted</text>
+          <line x1="112" y1="76" x2="150" y2="44" stroke="#8A93A3" stroke-width="1.6"/><polygon points="150,44 140,44 146,52" fill="#8A93A3"/>
+          <line x1="280" y1="37" x2="330" y2="37" stroke="#8A93A3" stroke-width="1.6"/><polygon points="330,37 320,32 320,42" fill="#8A93A3"/>
+          <line x1="112" y1="90" x2="150" y2="122" stroke="#8A93A3" stroke-width="1.6"/><polygon points="150,122 140,120 146,130" fill="#8A93A3"/>
+          <line x1="246" y1="129" x2="330" y2="129" stroke="#8A93A3" stroke-width="1.6"/><polygon points="330,129 320,124 320,134" fill="#8A93A3"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · ANOMALIES -->
+  <section class="slide" data-title="Concurrency anomalies" aria-roledescription="slide" aria-label="Concurrency anomalies">
+    <p class="kicker">What goes wrong</p>
+    <h2 class="slide-h" tabindex="-1">Concurrency anomalies</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li><span class="term">Lost update</span> — two transactions read the same value and
+          overwrite each other; one update vanishes.</li>
+          <li><span class="term">Dirty read</span> — a transaction reads another's uncommitted
+          value, which then aborts.</li>
+          <li><span class="term">Unrepeatable read / incorrect summary</span> — a value changes
+          under a transaction mid-computation, so its reads disagree.</li>
+        </ul>
+      </div>
+      <table class="inst sched">
+        <caption>Lost update — T2's write erases T1's</caption>
+        <thead><tr><th scope="col">T1</th><th scope="col">T2</th></tr></thead>
+        <tbody>
+          <tr><td class="t1">read(X) → 100</td><td></td></tr>
+          <tr><td></td><td class="t2">read(X) → 100</td></tr>
+          <tr><td class="t1 conf">write(X=120)</td><td></td></tr>
+          <tr><td></td><td class="t2 conf">write(X=90)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 8 · SCHEDULES -->
+  <section class="slide" data-title="Schedules" aria-roledescription="slide" aria-label="Schedules">
+    <p class="kicker">The formal object</p>
+    <h2 class="slide-h" tabindex="-1">Schedules: serial and nonserial</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">schedule</span> is an ordering of the operations of several
+        transactions that <strong>preserves each transaction's own order</strong> internally.</p>
+        <ul>
+          <li><span class="term">Serial</span> — transactions run one entirely after another;
+          always correct, but no concurrency.</li>
+          <li><span class="term">Nonserial</span> — operations interleave; concurrent, but
+          possibly incorrect.</li>
+        </ul>
+        <p style="margin:0">The goal: interleave for performance, without the errors.</p>
+      </div>
+      <div class="callout">
+        <h3>Notation</h3>
+        <p style="margin:0">We write operations as
+        <code class="rel">r<sub>1</sub>(X)</code> (T1 reads X),
+        <code class="rel">w<sub>2</sub>(Y)</code> (T2 writes Y), and read a schedule
+        left to right as time.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · SERIALIZABILITY -->
+  <section class="slide" data-title="Serializability" aria-roledescription="slide" aria-label="Serializability">
+    <p class="kicker">The correctness standard</p>
+    <h2 class="slide-h" tabindex="-1">Serializability</h2>
+    <div class="two">
+      <div>
+        <p>A serial schedule is correct by definition. So we call a nonserial schedule
+        <span class="term">serializable</span> when its effect is <strong>equivalent to some
+        serial schedule</strong> of the same transactions.</p>
+        <p style="margin:0">Serializability is the gold standard for concurrency: an
+        interleaving is safe exactly when it's serializable. The rest of the lecture is
+        how to <em>test</em> for it.</p>
+      </div>
+      <div class="callout">
+        <h3>Which equivalence?</h3>
+        <p style="margin:0"><span class="term">Conflict</span> equivalence is the practical
+        one: it's efficiently testable and slightly stricter than the more general
+        (but harder) view equivalence.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · CONFLICTS -->
+  <section class="slide" data-title="Conflicting operations" aria-roledescription="slide" aria-label="Conflicting operations">
+    <p class="kicker">The building block</p>
+    <h2 class="slide-h" tabindex="-1">When do two operations conflict?</h2>
+    <div class="two">
+      <div>
+        <p>Two operations <span class="term">conflict</span> when all three hold:</p>
+        <ul>
+          <li>they belong to <strong>different</strong> transactions,</li>
+          <li>they access the <strong>same</strong> data item, and</li>
+          <li>at least one is a <strong>write</strong>.</li>
+        </ul>
+        <p style="margin:0">So the conflicting pairs are read–write, write–read, and
+        write–write. Two reads never conflict.</p>
+      </div>
+      <div class="callout">
+        <h3>Why it matters</h3>
+        <p style="margin:0">Non-conflicting adjacent operations can be
+        <strong>swapped</strong> without changing the result. Conflicting ones can't —
+        their order is what determines correctness.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · CONFLICT SERIALIZABILITY -->
+  <section class="slide" data-title="Conflict serializability" aria-roledescription="slide" aria-label="Conflict serializability">
+    <p class="kicker">Testable equivalence</p>
+    <h2 class="slide-h" tabindex="-1">Conflict serializability</h2>
+    <div class="two">
+      <div>
+        <p>A schedule is <span class="term">conflict-serializable</span> if it can be turned
+        into a serial schedule by repeatedly <strong>swapping adjacent non-conflicting
+        operations</strong>.</p>
+        <p style="margin:0">Since only conflicts fix the order, whether that's possible
+        depends entirely on the pattern of conflicts between transactions — which we can
+        capture in a graph.</p>
+      </div>
+      <div class="callout good">
+        <h3>The plan</h3>
+        <p style="margin:0">Rather than trying swaps by hand, build a
+        <span class="term">precedence graph</span> of the conflicts and read the answer off
+        its shape. Next slide.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · PRECEDENCE GRAPH -->
+  <section class="slide" data-title="Precedence graph" aria-roledescription="slide" aria-label="Precedence graph">
+    <p class="kicker">The test</p>
+    <h2 class="slide-h" tabindex="-1">The precedence graph</h2>
+    <div class="two">
+      <div>
+        <p>Build a directed graph:</p>
+        <ul>
+          <li>one <strong>node per transaction</strong>;</li>
+          <li>an edge <span class="term">T<sub>i</sub> → T<sub>j</sub></span> whenever a
+          conflicting operation of T<sub>i</sub> comes <em>before</em> one of T<sub>j</sub>.</li>
+        </ul>
+        <div class="callout good">
+          <h3>The theorem</h3>
+          <p style="margin:0">A schedule is conflict-serializable <strong>if and only if its
+          precedence graph is acyclic</strong>. A cycle means the transactions each
+          must come before the other — impossible in any serial order.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <h3>Bonus</h3>
+        <p style="margin:0">If the graph is acyclic, a <em>topological sort</em> of it gives
+        an equivalent serial order — the exact sequence the schedule is equivalent to.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · INTERACTIVE -->
+  <section class="slide" data-title="Serializable or not?" aria-roledescription="slide" aria-label="Interactive: serializable or not">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Build the graph, read the verdict</h2>
+    <p>Two schedules of T1 and T2 over items X and Y. Compare the conflicts, the
+    precedence graph, and the answer.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a schedule">
+      <button class="chip" data-mode="s1" aria-pressed="true"
+        data-desc="Schedule S1: T1 writes X and Y before T2 touches them, so every conflict points T1 → T2. The graph is acyclic — conflict-serializable, equivalent to the serial order T1 then T2.">Schedule S1</button>
+      <button class="chip" data-mode="s2" aria-pressed="false"
+        data-desc="Schedule S2: T1 writes X before T2 (T1 → T2), but T2 writes Y before T1 reads it (T2 → T1). That's a cycle — NOT conflict-serializable. No serial order can reproduce it.">Schedule S2</button>
+    </div>
+    <p id="pg-desc" class="live-desc"
+       data-default="Schedule S1: T1 writes X and Y before T2 touches them, so every conflict points T1 → T2. The graph is acyclic — conflict-serializable, equivalent to the serial order T1 then T2.">Schedule S1: T1 writes X and Y before T2 touches them, so every conflict points T1 → T2. The graph is acyclic — conflict-serializable, equivalent to the serial order T1 then T2.</p>
+    <div class="pgbox" id="pg-box" data-mode="s1">
+      <div class="pg-variant" data-q="s1">
+        <div>
+          <table class="inst sched">
+            <caption>S1 — order of operations</caption>
+            <thead><tr><th scope="col">T1</th><th scope="col">T2</th></tr></thead>
+            <tbody>
+              <tr><td class="t1">w(X)</td><td></td></tr>
+              <tr><td></td><td class="t2">r(X)</td></tr>
+              <tr><td class="t1">w(Y)</td><td></td></tr>
+              <tr><td></td><td class="t2">r(Y)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fig">
+          <svg viewBox="0 0 260 90" role="img" aria-labelledby="g1t g1d">
+            <title id="g1t">Precedence graph for S1</title>
+            <desc id="g1d">Two nodes, T1 and T2, with a single arrow from T1 to T2. No cycle.</desc>
+            <circle cx="55" cy="45" r="24" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="55" y="50" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">T1</text>
+            <circle cx="205" cy="45" r="24" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="205" y="50" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">T2</text>
+            <line x1="80" y1="45" x2="177" y2="45" stroke="#0033A0" stroke-width="2"/>
+            <polygon points="177,45 166,39 166,51" fill="#0033A0"/>
+            <text x="130" y="34" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">X, Y</text>
+          </svg>
+          <p class="verdict yes">Acyclic → conflict-serializable ✓</p>
+        </div>
+      </div>
+      <div class="pg-variant" data-q="s2">
+        <div>
+          <table class="inst sched">
+            <caption>S2 — order of operations</caption>
+            <thead><tr><th scope="col">T1</th><th scope="col">T2</th></tr></thead>
+            <tbody>
+              <tr><td class="t1">w(X)</td><td></td></tr>
+              <tr><td></td><td class="t2">r(X)</td></tr>
+              <tr><td></td><td class="t2">w(Y)</td></tr>
+              <tr><td class="t1">r(Y)</td><td></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="fig">
+          <svg viewBox="0 0 260 90" role="img" aria-labelledby="g2t g2d">
+            <title id="g2t">Precedence graph for S2</title>
+            <desc id="g2d">Two nodes, T1 and T2, with an arrow from T1 to T2 and another from T2 back to T1 — a cycle.</desc>
+            <circle cx="55" cy="45" r="24" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="55" y="50" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">T1</text>
+            <circle cx="205" cy="45" r="24" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="205" y="50" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">T2</text>
+            <path d="M78 33 Q130 8 182 33" fill="none" stroke="#7A2708" stroke-width="2"/>
+            <polygon points="182,33 171,29 174,40" fill="#7A2708"/>
+            <text x="130" y="14" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#7A2708">X</text>
+            <path d="M182 57 Q130 82 78 57" fill="none" stroke="#7A2708" stroke-width="2"/>
+            <polygon points="78,57 89,61 86,50" fill="#7A2708"/>
+            <text x="130" y="80" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#7A2708">Y</text>
+          </svg>
+          <p class="verdict no">Cycle → NOT serializable ✗</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · RECOVERABILITY -->
+  <section class="slide" data-title="Recoverability" aria-roledescription="slide" aria-label="Recoverability">
+    <p class="kicker">Beyond serializability</p>
+    <h2 class="slide-h" tabindex="-1">Recoverable, cascadeless, strict</h2>
+    <div class="two">
+      <div>
+        <p>Serializability isn't the only requirement — schedules must also survive
+        aborts:</p>
+        <ul>
+          <li><span class="term">Recoverable</span> — a transaction commits only after every
+          transaction it read from has committed. Otherwise a commit can't be undone when
+          the source aborts.</li>
+          <li><span class="term">Cascadeless</span> — read only committed data, so one abort
+          never forces others to roll back.</li>
+          <li><span class="term">Strict</span> — don't read or overwrite uncommitted data at
+          all; the simplest to recover.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>Where this leads</h3>
+        <p style="margin:0">Real systems want serializable <em>and</em> strict schedules.
+        The locking protocol next lecture delivers both — without hand-checking every
+        interleaving.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Serial is safe; nonserial needs proof.</strong> Interleaving buys speed but
+      requires a serializability check.</li>
+      <li><strong>Only reads never conflict.</strong> Any pair touching the same item with a
+      write is a conflict — and fixes the order.</li>
+      <li><strong>Acyclic ⟺ conflict-serializable.</strong> The precedence graph turns a
+      hand-swapping puzzle into a cycle check.</li>
+      <li><strong>Serializable isn't enough.</strong> A schedule must also be recoverable —
+      ideally strict — to survive aborts.</li>
+      <li><strong>Conflict ⊂ view serializable.</strong> Conflict serializability is the
+      practical, efficient test, slightly stricter than view.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>Transactions, <span class="term">ACID</span>, and the state lifecycle.</li>
+          <li>Concurrency anomalies; <span class="term">schedules</span> serial vs nonserial.</li>
+          <li><span class="term">Serializability</span>, conflicts, and the <span class="term">precedence-graph</span> acyclicity test.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Which two ACID properties does recovery provide?</li>
+            <li>When do two operations conflict?</li>
+            <li>What does a cycle in the precedence graph mean?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Transactions II</h3>
+          <p style="margin:0">Two-phase locking: how the DBMS <em>enforces</em>
+          serializability with shared and exclusive locks — and the deadlock that
+          creates.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- precedence-graph demonstrator (only if that markup is present) ---
+  var pChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-mode]'));
+  var pDesc  = document.getElementById('pg-desc');
+  var pBox   = document.getElementById('pg-box');
+  if (pChips.length && pBox){
+    pChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        pChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        pBox.setAttribute('data-mode', chip.getAttribute('data-mode'));
+        if (pDesc) pDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

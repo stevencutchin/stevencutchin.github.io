@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transactions II — Two-Phase Locking and Deadlock · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- tables ---- */
+table.inst{border-collapse:collapse;width:auto;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:7px 14px;text-align:center}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst th[scope="row"]{background:var(--tint);color:var(--blue-ink)}
+table.inst .yes{color:#0B6B57;font-weight:700}
+table.inst .no{color:#7A2708;font-weight:700}
+table.sched{width:100%}
+table.sched td{font-family:var(--mono);text-align:center;font-size:.84rem}
+table.sched .t1{color:var(--blue-ink);font-weight:700}
+table.sched .t2{color:#7A2708;font-weight:700}
+
+/* ---- variant cards ---- */
+.vgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.vc{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:10px 13px;background:#fff}
+.vc b{color:var(--blue-ink);font-size:.98rem}
+.vc span{display:block;color:var(--muted);font-size:.87rem;margin-top:2px}
+
+/* ---- interactive: 2PL phases ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.phasebox .phase-variant{display:none}
+html:not(.js) .phasebox .phase-variant{display:block;margin-bottom:10px}
+.phasebox[data-mode="basic"]  .phase-variant[data-q="basic"],
+.phasebox[data-mode="strict"] .phase-variant[data-q="strict"]{display:block}
+.phaseline{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}
+.pstep{border:2px solid var(--line);border-radius:6px;padding:6px 9px;
+  font-family:var(--mono);font-size:.78rem;color:var(--muted);background:#fff;position:relative}
+.pstep.grow{border-color:var(--blue);background:#EAF0FB;color:var(--blue-ink);font-weight:700}
+.pstep.shrink{border-color:var(--orange);background:#FBEEE7;color:#7A2708;font-weight:700}
+.pstep.commit{border-color:#0B6B57;background:#E7F3EE;color:#0B6B57;font-weight:700}
+.pstep.point::after{content:"lock point";position:absolute;top:-16px;left:0;
+  font-family:var(--sans);font-size:.62rem;font-weight:700;color:#0B6B57;white-space:nowrap}
+.legendrow{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:.8rem;color:var(--muted)}
+.legendrow b{font-weight:700}
+.sw{display:inline-block;width:.8rem;height:.8rem;border-radius:3px;vertical-align:-1px;margin-right:3px;border:2px solid}
+.sw.g{background:#EAF0FB;border-color:var(--blue)}
+.sw.s{background:#FBEEE7;border-color:var(--orange)}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .vgrid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.vc,.fig,.callout{border-color:#000}
+  .chip,.pstep{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.vc,table.inst{break-inside:avoid}
+  .phasebox .phase-variant{display:block!important;margin-bottom:10px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 8 · Transactions</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 2 of 3 · Elmasri &amp; Navathe, Ch. 21</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Transactions II — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Transactions II — Two-Phase Locking and Deadlock"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Enforcing serializability</p>
+    <h2 class="slide-h" tabindex="-1">Transactions II<br>Two-phase locking and deadlock</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Serializability told us which schedules are safe. But the DBMS
+        can't check a precedence graph while transactions run — it needs a protocol that
+        <em>produces</em> only safe schedules. That protocol is locking.</p>
+        <p style="color:var(--muted)">Today: shared and exclusive locks, the two-phase
+        rule that guarantees serializability, and the deadlock it introduces.</p>
+      </div>
+      <div class="callout">
+        <h3>From test to mechanism</h3>
+        <p style="margin:0">Last lecture was diagnosis after the fact. This one is
+        prevention: rules a transaction follows so the schedule is serializable by
+        construction.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last lecture</h3>
+          <p style="margin:0">ACID, schedules, conflict serializability, and the
+          precedence-graph test. A correctness <em>standard</em> — but not a way to enforce
+          it live.</p>
+        </div>
+        <p>Next lecture: timestamp ordering, MVCC, and recovery. Today bridges to them
+        with the dominant concurrency-control method: locking.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Use <span class="term">shared</span> and <span class="term">exclusive</span> locks.</li>
+            <li>Apply <span class="term">two-phase locking</span> and say why it works.</li>
+            <li>Compare basic, conservative, and <span class="term">strict</span> 2PL.</li>
+            <li>Detect and prevent <span class="term">deadlock</span>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · LOCKING IDEA -->
+  <section class="slide" data-title="The idea of locking" aria-roledescription="slide" aria-label="The idea of locking">
+    <p class="kicker">The mechanism</p>
+    <h2 class="slide-h" tabindex="-1">Locking, in one idea</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">lock</span> is a right to access a data item. A transaction
+        must <strong>acquire</strong> the appropriate lock before touching an item and
+        <strong>release</strong> it afterward; a conflicting request must wait.</p>
+        <p style="margin:0">Locks serialize access to each item. With the right rule about
+        <em>when</em> to acquire and release them, they force the whole schedule to be
+        serializable.</p>
+      </div>
+      <div class="callout">
+        <h3>The operations</h3>
+        <p style="margin:0"><code class="rel">lock_S(X)</code> — lock X for reading;
+        <code class="rel">lock_X(X)</code> — lock X for writing;
+        <code class="rel">unlock(X)</code> — release. The lock manager grants or blocks
+        each request.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · SHARED & EXCLUSIVE -->
+  <section class="slide" data-title="Shared and exclusive locks" aria-roledescription="slide" aria-label="Shared and exclusive locks">
+    <p class="kicker">Two lock modes</p>
+    <h2 class="slide-h" tabindex="-1">Shared &amp; exclusive locks</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li><span class="term">Shared (S)</span> — a read lock. Many transactions can hold
+          an S lock on the same item at once; reads don't interfere.</li>
+          <li><span class="term">Exclusive (X)</span> — a write lock. Only one transaction can
+          hold it, and no S locks may coexist with it.</li>
+        </ul>
+        <p style="margin:0">A transaction upgrades S→X to write an item it was reading, and
+        may downgrade X→S — carefully, so as not to break the two-phase rule.</p>
+      </div>
+      <div class="callout">
+        <h3>Why two modes</h3>
+        <p style="margin:0">Concurrent reads are safe and common, so a single exclusive
+        lock would needlessly serialize them. Sharing read access is a big concurrency
+        win.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · COMPATIBILITY -->
+  <section class="slide" data-title="Lock compatibility" aria-roledescription="slide" aria-label="Lock compatibility matrix">
+    <p class="kicker">When can two locks coexist?</p>
+    <h2 class="slide-h" tabindex="-1">The lock compatibility matrix</h2>
+    <div class="two">
+      <div>
+        <p>A request is granted only if it's compatible with every lock already held on
+        the item:</p>
+        <table class="inst">
+          <caption>Held (rows) vs. requested (columns)</caption>
+          <thead><tr><th scope="col"></th><th scope="col">S</th><th scope="col">X</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">S</th><td class="yes">✓</td><td class="no">✗</td></tr>
+            <tr><th scope="row">X</th><td class="no">✗</td><td class="no">✗</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <h3>Read it as</h3>
+        <p style="margin:0">Only <strong>S with S</strong> is compatible. Any request
+        involving an X lock conflicts and must wait — which is exactly the read–write,
+        write–read, write–write conflict set from last lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · LOCKING ALONE ISN'T ENOUGH -->
+  <section class="slide" data-title="Locking alone isn't enough" aria-roledescription="slide" aria-label="Locking alone is not enough">
+    <p class="kicker">The gap</p>
+    <h2 class="slide-h" tabindex="-1">Locks alone don't guarantee serializability</h2>
+    <div class="two">
+      <div>
+        <p>Suppose each transaction locks an item, uses it, and releases it
+        <em>immediately</em> — then locks the next. Every access is protected, yet the
+        schedule can still be non-serializable.</p>
+        <p style="margin:0">Releasing a lock too early lets another transaction slip in and
+        create a conflict cycle. Correctness needs a rule about <strong>when</strong> locks
+        may be released — not just that they're held during use.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The missing constraint</h3>
+        <p style="margin:0">Once a transaction starts releasing locks, it must be
+        <em>done</em> acquiring them. Enforce that and cycles become impossible. That rule
+        is two-phase locking.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · 2PL -->
+  <section class="slide" data-title="Two-phase locking" aria-roledescription="slide" aria-label="Two phase locking">
+    <p class="kicker">The protocol</p>
+    <h2 class="slide-h" tabindex="-1">Two-phase locking (2PL)</h2>
+    <div class="two">
+      <div>
+        <p>Every transaction splits its locking into two phases:</p>
+        <ul>
+          <li><span class="term">Growing phase</span> — it may acquire locks, but release
+          none.</li>
+          <li><span class="term">Shrinking phase</span> — once it releases its first lock, it
+          may release more but <strong>acquire no new locks</strong>.</li>
+        </ul>
+        <p style="margin:0">The switch-over — the moment it holds its maximum set of locks —
+        is the <span class="term">lock point</span>.</p>
+      </div>
+      <div class="callout good">
+        <h3>The guarantee</h3>
+        <p style="margin:0">Any schedule of transactions that all obey 2PL is
+        <strong>conflict-serializable</strong>. Order the transactions by their lock points
+        and you get an equivalent serial order.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · WHY 2PL WORKS -->
+  <section class="slide" data-title="Why 2PL works" aria-roledescription="slide" aria-label="Why two phase locking works">
+    <p class="kicker">The intuition</p>
+    <h2 class="slide-h" tabindex="-1">Why 2PL forces an acyclic graph</h2>
+    <div class="two">
+      <div>
+        <p>Because no transaction acquires a lock after releasing one, if T<sub>i</sub>'s
+        operation conflicts with T<sub>j</sub>'s, T<sub>i</sub>'s lock point must come before
+        T<sub>j</sub>'s. All conflicts therefore point the same way, ordered by lock point.</p>
+        <p style="margin:0">A consistent ordering of all conflicts is exactly an
+        <strong>acyclic precedence graph</strong> — the serializability condition from last
+        lecture.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The price</h3>
+        <p style="margin:0">2PL guarantees serializability but not freedom from
+        <span class="term">deadlock</span>: two transactions can each hold a lock the other
+        is waiting for. That's the rest of the lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · VARIANTS -->
+  <section class="slide" data-title="Variants of 2PL" aria-roledescription="slide" aria-label="Variants of two phase locking">
+    <p class="kicker">Trading concurrency for safety</p>
+    <h2 class="slide-h" tabindex="-1">Variants of 2PL</h2>
+    <div class="vgrid">
+      <div class="vc"><b>Basic 2PL</b><span>The rule as stated. Serializable, but allows deadlock and cascading aborts.</span></div>
+      <div class="vc"><b>Conservative 2PL</b><span>Acquire <em>all</em> locks before starting. Deadlock-free — but you must predeclare, and concurrency drops.</span></div>
+      <div class="vc"><b>Strict 2PL</b><span>Hold all <em>exclusive</em> locks until commit/abort. Cascadeless and strict — the common real-world choice.</span></div>
+      <div class="vc"><b>Rigorous 2PL</b><span>Hold <em>all</em> locks (S and X) until commit. Simplest to reason about; even less concurrency.</span></div>
+    </div>
+    <div class="callout">
+      <h3>What systems actually use</h3>
+      <p style="margin:0">Most databases run <strong>strict 2PL</strong>: it gives
+      serializable, cascadeless, recoverable schedules, and pairs cleanly with the
+      recovery manager next lecture.</p>
+    </div>
+  </section>
+
+  <!-- 10 · INTERACTIVE -->
+  <section class="slide" data-title="The two phases" aria-roledescription="slide" aria-label="Interactive: the two phases">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Trace the growing and shrinking phases</h2>
+    <p>One transaction writing A then B. Follow the lock count up to the lock point,
+    then down — and see how strict 2PL delays every release to commit.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a 2PL variant">
+      <button class="chip" data-mode="basic" aria-pressed="true"
+        data-desc="Basic 2PL: lock A, lock B (the lock point — maximum locks held), then release A early and B later, all before commit. Serializable, but the early release permits cascades and deadlock.">basic 2PL</button>
+      <button class="chip" data-mode="strict" aria-pressed="false"
+        data-desc="Strict 2PL: acquire A and B in the growing phase, do the work, and hold both exclusive locks until commit — only then release. No early release, so no cascading aborts.">strict 2PL</button>
+    </div>
+    <p id="phase-desc" class="live-desc"
+       data-default="Basic 2PL: lock A, lock B (the lock point — maximum locks held), then release A early and B later, all before commit. Serializable, but the early release permits cascades and deadlock.">Basic 2PL: lock A, lock B (the lock point — maximum locks held), then release A early and B later, all before commit. Serializable, but the early release permits cascades and deadlock.</p>
+    <div class="phasebox" id="phase-box" data-mode="basic">
+      <div class="phase-variant" data-q="basic">
+        <div class="phaseline">
+          <span class="pstep grow">lock-X(A)</span>
+          <span class="pstep">w(A)</span>
+          <span class="pstep grow point">lock-X(B)</span>
+          <span class="pstep shrink">unlock(A)</span>
+          <span class="pstep">w(B)</span>
+          <span class="pstep shrink">unlock(B)</span>
+          <span class="pstep commit">commit</span>
+        </div>
+      </div>
+      <div class="phase-variant" data-q="strict">
+        <div class="phaseline">
+          <span class="pstep grow">lock-X(A)</span>
+          <span class="pstep">w(A)</span>
+          <span class="pstep grow point">lock-X(B)</span>
+          <span class="pstep">w(B)</span>
+          <span class="pstep commit">commit</span>
+          <span class="pstep shrink">unlock(A)</span>
+          <span class="pstep shrink">unlock(B)</span>
+        </div>
+      </div>
+      <div class="legendrow">
+        <span><span class="sw g"></span><b>growing</b> — acquiring locks</span>
+        <span><span class="sw s"></span><b>shrinking</b> — releasing locks</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · DEADLOCK -->
+  <section class="slide" data-title="Deadlock" aria-roledescription="slide" aria-label="Deadlock">
+    <p class="kicker">2PL's side effect</p>
+    <h2 class="slide-h" tabindex="-1">The deadlock 2PL creates</h2>
+    <div class="two">
+      <div>
+        <p>Two transactions can wait on each other forever:</p>
+        <table class="inst sched">
+          <thead><tr><th scope="col">T1</th><th scope="col">T2</th></tr></thead>
+          <tbody>
+            <tr><td class="t1">lock-X(A)</td><td></td></tr>
+            <tr><td></td><td class="t2">lock-X(B)</td></tr>
+            <tr><td class="t1">lock-X(B) …wait</td><td></td></tr>
+            <tr><td></td><td class="t2">lock-X(A) …wait</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn">
+        <h3>Stuck</h3>
+        <p style="margin:0">T1 holds A and wants B; T2 holds B and wants A. Neither can
+        proceed, neither will release. This <span class="term">deadlock</span> is the price of
+        letting transactions grab locks as they go.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · DEADLOCK DETECTION -->
+  <section class="slide" data-title="Deadlock detection" aria-roledescription="slide" aria-label="Deadlock detection">
+    <p class="kicker">Finding it</p>
+    <h2 class="slide-h" tabindex="-1">Detection: the wait-for graph</h2>
+    <div class="two">
+      <div>
+        <p>Build a <span class="term">wait-for graph</span>: a node per transaction, an edge
+        <span class="term">T<sub>i</sub> → T<sub>j</sub></span> when T<sub>i</sub> is waiting for
+        a lock T<sub>j</sub> holds.</p>
+        <p><strong>A cycle means deadlock.</strong> When one appears, the system picks a
+        <span class="term">victim</span> to abort and roll back, freeing its locks so the
+        others proceed.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 260 100" role="img" aria-labelledby="t12 d12">
+          <title id="t12">A wait-for graph with a cycle</title>
+          <desc id="d12">Two nodes, T1 and T2, with an arrow from T1 to T2 and another
+          from T2 back to T1 — a cycle indicating deadlock.</desc>
+          <circle cx="55" cy="50" r="24" fill="#FBEEE7" stroke="#7A2708" stroke-width="2"/>
+          <text x="55" y="55" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#7A2708">T1</text>
+          <circle cx="205" cy="50" r="24" fill="#FBEEE7" stroke="#7A2708" stroke-width="2"/>
+          <text x="205" y="55" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#7A2708">T2</text>
+          <path d="M78 38 Q130 12 182 38" fill="none" stroke="#7A2708" stroke-width="2"/>
+          <polygon points="182,38 171,34 174,45" fill="#7A2708"/>
+          <text x="130" y="18" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">waits for B</text>
+          <path d="M182 62 Q130 88 78 62" fill="none" stroke="#7A2708" stroke-width="2"/>
+          <polygon points="78,62 89,66 86,55" fill="#7A2708"/>
+          <text x="130" y="86" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">waits for A</text>
+        </svg>
+        <p class="figcap">Cycle = deadlock. Abort a victim to break it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · DEADLOCK PREVENTION -->
+  <section class="slide" data-title="Deadlock prevention" aria-roledescription="slide" aria-label="Deadlock prevention">
+    <p class="kicker">Avoiding it</p>
+    <h2 class="slide-h" tabindex="-1">Prevention &amp; timeouts</h2>
+    <div class="two">
+      <div>
+        <p>Instead of detecting cycles, prevent them. Timestamp-based schemes decide who
+        waits and who dies by transaction age:</p>
+        <ul>
+          <li><span class="term">Wait-die</span> — an older transaction waits for a younger;
+          a younger one requesting an older's lock aborts (dies).</li>
+          <li><span class="term">Wound-wait</span> — an older transaction forces a younger to
+          abort (wounds it); a younger one waits.</li>
+        </ul>
+        <p style="margin:0">Both make waiting one-directional, so no cycle can form.</p>
+      </div>
+      <div class="callout">
+        <h3>Simpler still: timeouts</h3>
+        <p style="margin:0">Many systems just abort a transaction that waits too long. Crude,
+        but cheap and cycle-proof. Conservative 2PL (all locks up front) avoids deadlock
+        outright.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · GRANULARITY -->
+  <section class="slide" data-title="Granularity and starvation" aria-roledescription="slide" aria-label="Granularity and starvation">
+    <p class="kicker">Practical concerns</p>
+    <h2 class="slide-h" tabindex="-1">Lock granularity &amp; starvation</h2>
+    <div class="two">
+      <div>
+        <p><span class="term">Granularity</span> is what a lock covers — a row, a page, or a
+        whole table. Fine locks maximize concurrency but multiply overhead; coarse locks
+        are cheap but serialize more.</p>
+        <p style="margin:0"><span class="term">Intention locks</span> on parent nodes let the
+        system mix granularities safely — signalling "a descendant is locked" without
+        scanning.</p>
+      </div>
+      <div class="callout warn">
+        <h3>Starvation</h3>
+        <p style="margin:0">A transaction can wait forever if it's always chosen as the
+        deadlock victim, or if writers keep losing to a stream of readers. Fair scheduling
+        (e.g. first-come-first-served on the lock queue) prevents it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Holding locks during use isn't enough.</strong> Serializability needs the
+      two-phase rule: no acquire after any release.</li>
+      <li><strong>2PL guarantees serializable, not deadlock-free.</strong> You still need
+      detection or prevention.</li>
+      <li><strong>Strict 2PL is the default.</strong> Holding X locks to commit buys
+      cascadeless recovery for a modest concurrency cost.</li>
+      <li><strong>A cycle is the signal.</strong> Precedence-graph cycle = not serializable;
+      wait-for-graph cycle = deadlock.</li>
+      <li><strong>Granularity is a tuning knob.</strong> Row locks for concurrency, coarser
+      locks to cut overhead — and watch for starvation.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">Shared/exclusive</span> locks and the compatibility matrix.</li>
+          <li><span class="term">Two-phase locking</span> ⟹ serializable; basic vs <span class="term">strict</span> variants.</li>
+          <li><span class="term">Deadlock</span>: the wait-for-graph cycle, and how to detect or prevent it.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why isn't "lock, use, unlock immediately" serializable?</li>
+            <li>What does strict 2PL add over basic 2PL?</li>
+            <li>How does a wait-for-graph cycle differ from a precedence-graph cycle?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Transactions III</h3>
+          <p style="margin:0">Lock-free concurrency: timestamp ordering and MVCC — then
+          recovery, write-ahead logging, and ARIES.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- 2PL phase demonstrator (only if that markup is present) ---
+  var fChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-mode]'));
+  var fDesc  = document.getElementById('phase-desc');
+  var fBox   = document.getElementById('phase-box');
+  if (fChips.length && fBox){
+    fChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        fChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        fBox.setAttribute('data-mode', chip.getAttribute('data-mode'));
+        if (fDesc) fDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

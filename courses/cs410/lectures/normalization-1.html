@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Normalization I — FDs, Armstrong's Axioms, and Closure · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- FD notation ---- */
+.fd{font-family:var(--serif);font-size:1.14rem;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:8px;
+  padding:8px 13px;margin:0 0 10px;display:inline-block}
+.fd .arrow{color:#7A2708;font-weight:700;padding:0 .25em}
+.fdlist{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+.fdlist .fd{margin:0;font-size:1rem}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.86rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 9px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst .redun{color:#7A2708}
+
+/* ---- axiom / rule cards ---- */
+.rulegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.rc{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:10px 13px;background:#fff}
+.rc b{display:block;color:var(--blue-ink);font-size:.95rem}
+.rc .r{font-family:var(--serif);color:#7A2708;font-weight:700;font-size:1rem;margin:2px 0}
+.rc span{color:var(--muted);font-size:.86rem}
+
+/* ---- interactive: closure stepper ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.88rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.closure{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0 2px}
+.closure .lbl{font-family:var(--serif);color:var(--blue-ink);font-weight:700;font-size:1.1rem}
+.pill{font-family:var(--mono);font-weight:700;font-size:1.05rem;border-radius:8px;
+  padding:8px 16px;border:2px solid var(--line);color:#9aa2b1;background:#fff;
+  transition:opacity .18s,background .18s,border-color .18s,color .18s}
+/* cumulative "in the closure" states, keyed by the current step */
+.demo[data-step="0"] .e0,
+.demo[data-step="1"] .e0,.demo[data-step="1"] .e1,
+.demo[data-step="2"] .e0,.demo[data-step="2"] .e1,.demo[data-step="2"] .e2,
+.demo[data-step="3"] .e0,.demo[data-step="3"] .e1,.demo[data-step="3"] .e2,.demo[data-step="3"] .e3,
+.demo[data-step="4"] .e0,.demo[data-step="4"] .e1,.demo[data-step="4"] .e2,.demo[data-step="4"] .e3,.demo[data-step="4"] .e4{
+  background:var(--tint);border-color:var(--blue);color:var(--blue-ink)}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .rulegrid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.rc,.fig,.callout{border-color:#000}
+  .chip,.pill{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.rc,table.inst{break-inside:avoid}
+  /* linearize the stepper: show the full closure */
+  .demo .pill{background:var(--tint)!important;border-color:var(--blue)!important;color:var(--blue-ink)!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 6 · Normalization</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 1 of 4 · Elmasri &amp; Navathe, Ch. 14</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Normalization I — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Normalization I — FDs, Armstrong's Axioms, and Closure"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Is this schema any good?</p>
+    <h2 class="slide-h" tabindex="-1">Normalization I<br>Functional dependencies, axioms, and closure</h2>
+    <div class="two">
+      <div>
+        <p class="lead">We can design, query, and program a database. This unit asks a
+        different question: is the schema itself <em>well-designed</em> — and if not,
+        how do we know, and how do we fix it?</p>
+        <p style="color:var(--muted)">The answer rests on functional dependencies. Today
+        we define them and build the machinery — axioms and closure — to reason about
+        them.</p>
+      </div>
+      <div class="callout">
+        <h3>From art to theory</h3>
+        <p style="margin:0">Good ER design gave us decent tables by judgment.
+        Normalization replaces the judgment with a <em>test</em>: given the dependencies,
+        is a relation in a good normal form, yes or no?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; the normalization roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>So far</h3>
+          <p style="margin:0">Design → relational model → algebra → SQL → application
+          access. Now: a theory of what makes a relational schema good.</p>
+        </div>
+        <p>Unit 6 is four lectures: <strong>today</strong> FDs, axioms, closure; then
+        1NF–3NF; then BCNF and minimal cover; then lossless-join,
+        dependency-preservation, decomposition, and 4NF.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Name the three <span class="term">update anomalies</span>.</li>
+            <li>State a <span class="term">functional dependency</span> and read it off a schema.</li>
+            <li>Apply <span class="term">Armstrong's axioms</span>.</li>
+            <li>Compute an <span class="term">attribute closure</span> and use it to find keys.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE PROBLEM -->
+  <section class="slide" data-title="The redundancy problem" aria-roledescription="slide" aria-label="The redundancy problem">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">One wide table, lots of repetition</h2>
+    <div class="two">
+      <div>
+        <p>Suppose we cram enrollment into a single relation:</p>
+        <p class="fd">CLASS(<u>StudentID</u>, <u>CourseID</u>, StudentName, CourseTitle, Grade)</p>
+        <p>The student's name repeats on every course they take; a course's title
+        repeats for every student in it. That <span class="term">redundancy</span> is not
+        just wasteful — it's a correctness hazard, as the next slide shows.</p>
+      </div>
+      <table class="inst">
+        <caption>CLASS — note the repeated values</caption>
+        <thead><tr><th scope="col">StudentID</th><th scope="col">CourseID</th><th scope="col">StudentName</th><th scope="col">CourseTitle</th><th scope="col">Grade</th></tr></thead>
+        <tbody>
+          <tr><td class="keycol">S1001</td><td class="keycol">CS410</td><td class="redun">Ada Okafor</td><td class="redun">Databases</td><td>A</td></tr>
+          <tr><td class="keycol">S1001</td><td class="keycol">MATH301</td><td class="redun">Ada Okafor</td><td>Linear Algebra</td><td>B</td></tr>
+          <tr><td class="keycol">S1002</td><td class="keycol">CS410</td><td>Liang Wei</td><td class="redun">Databases</td><td>B</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4 · ANOMALIES -->
+  <section class="slide" data-title="Update anomalies" aria-roledescription="slide" aria-label="Update anomalies">
+    <p class="kicker">Why redundancy hurts</p>
+    <h2 class="slide-h" tabindex="-1">The three update anomalies</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li><span class="term">Insertion.</span> Can't record a new course until some
+          student enrolls — its title has nowhere to live without a key.</li>
+          <li><span class="term">Deletion.</span> Delete the last enrollment in a course and
+          you lose the course's title entirely.</li>
+          <li><span class="term">Modification.</span> Rename a course and you must update it
+          in every row — miss one and the data contradicts itself.</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <h3>The common cause</h3>
+        <p style="margin:0">All three come from storing a fact in many places. The cure
+        is to split the relation so each fact lives once — but split it
+        <em>correctly</em>. That "correctly" is what the theory pins down.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · GUIDELINES -->
+  <section class="slide" data-title="Informal design guidelines" aria-roledescription="slide" aria-label="Informal design guidelines">
+    <p class="kicker">Before the formalism</p>
+    <h2 class="slide-h" tabindex="-1">Informal design guidelines</h2>
+    <div class="two">
+      <div>
+        <p>Four rules of thumb that the normal forms will later make precise:</p>
+        <ul>
+          <li><strong>Clear semantics</strong> — each relation is about one thing; don't mix
+          entities in a table.</li>
+          <li><strong>No redundancy</strong> — avoid designs that cause update anomalies.</li>
+          <li><strong>Few NULLs</strong> — attributes that apply to a minority of rows belong
+          elsewhere.</li>
+          <li><strong>No spurious tuples</strong> — a decomposition must join back to exactly
+          the original, no bogus rows.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>Guidelines vs. guarantees</h3>
+        <p style="margin:0">These are judgment calls. The rest of the unit turns the
+        first two into a decidable test on functional dependencies, and the last into
+        the lossless-join property.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · FUNCTIONAL DEPENDENCIES -->
+  <section class="slide" data-title="Functional dependencies" aria-roledescription="slide" aria-label="Functional dependencies">
+    <p class="kicker">The core concept</p>
+    <h2 class="slide-h" tabindex="-1">Functional dependencies</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">functional dependency</span>
+        <span class="fd" style="font-size:1rem">X <span class="arrow">→</span> Y</span>
+        means: any two tuples that agree on X must agree on Y. X
+        <em>determines</em> Y.</p>
+        <p>It is a <strong>constraint from the meaning</strong> of the data, true of every
+        legal instance — not something you read off one table by luck.</p>
+        <div class="callout warn">
+          <h3>Instances can only disprove</h3>
+          <p style="margin:0">A table can show an FD is violated, but no table can prove
+          one holds — that comes from the semantics of the mini-world.</p>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 6px;color:var(--muted)">On CLASS, the meaning gives us:</p>
+        <div class="fdlist">
+          <span class="fd">StudentID <span class="arrow">→</span> StudentName</span>
+          <span class="fd">CourseID <span class="arrow">→</span> CourseTitle</span>
+          <span class="fd">StudentID, CourseID <span class="arrow">→</span> Grade</span>
+        </div>
+        <p class="figcap">A grade depends on the pair; a name depends on the student alone.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · IDENTIFYING FDs -->
+  <section class="slide" data-title="Identifying FDs" aria-roledescription="slide" aria-label="Identifying functional dependencies">
+    <p class="kicker">Reading the dependencies</p>
+    <h2 class="slide-h" tabindex="-1">Where do FDs come from?</h2>
+    <div class="two">
+      <div>
+        <p>You get FDs from the <strong>rules of the domain</strong>, not from sample rows:</p>
+        <ul>
+          <li>"Each student has one name" → StudentID → StudentName.</li>
+          <li>"Each course has one title" → CourseID → CourseTitle.</li>
+          <li>"One grade per student per course" → {StudentID, CourseID} → Grade.</li>
+        </ul>
+        <p style="margin:0">The <em>key</em> of a well-formed relation determines every
+        attribute — that's the FD we most want to be the only one.</p>
+      </div>
+      <div class="callout">
+        <h3>Trivial vs. nontrivial</h3>
+        <p style="margin:0">An FD X → Y is <span class="term">trivial</span> when Y ⊆ X (it
+        always holds, e.g. {A,B} → A). The interesting design questions are all about
+        the <em>nontrivial</em> ones.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · FDs, SUPERKEYS, CANDIDATE KEYS -->
+  <section class="slide" data-title="FDs, superkeys, candidate keys" aria-roledescription="slide" aria-label="Functional dependencies, superkeys, candidate keys">
+    <p class="kicker">Keys, defined by FDs</p>
+    <h2 class="slide-h" tabindex="-1">Keys are just special FDs</h2>
+    <div class="two">
+      <div>
+        <p>The key concepts from Unit 2 get a precise FD definition:</p>
+        <ul>
+          <li><span class="term">Superkey</span> X: <span class="fd" style="font-size:.95rem">X <span class="arrow">→</span> all attributes</span> — X determines the whole tuple.</li>
+          <li><span class="term">Candidate key</span>: a superkey with nothing removable — minimal.</li>
+          <li><span class="term">Prime attribute</span>: one that's part of <em>some</em> candidate key.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>On CLASS</h3>
+        <p style="margin:0">{StudentID, CourseID} determines every attribute, and neither
+        column alone does — so it's the candidate key. StudentID and CourseID are prime;
+        StudentName, CourseTitle, Grade are nonprime. Hold that distinction — 2NF and 3NF
+        turn on it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · ARMSTRONG'S AXIOMS -->
+  <section class="slide" data-title="Armstrong's axioms" aria-roledescription="slide" aria-label="Armstrong's axioms">
+    <p class="kicker">Inference · the core rules</p>
+    <h2 class="slide-h" tabindex="-1">Armstrong's axioms</h2>
+    <p>Three rules let us derive every FD that a set logically implies. They are
+    <span class="term">sound</span> (derive only true FDs) and
+    <span class="term">complete</span> (derive all of them).</p>
+    <div class="rulegrid">
+      <div class="rc"><b>Reflexivity</b><div class="r">Y ⊆ X ⟹ X → Y</div><span>a set determines its own subsets (trivial FDs).</span></div>
+      <div class="rc"><b>Augmentation</b><div class="r">X → Y ⟹ XZ → YZ</div><span>add the same attributes to both sides.</span></div>
+      <div class="rc"><b>Transitivity</b><div class="r">X → Y, Y → Z ⟹ X → Z</div><span>dependencies chain.</span></div>
+    </div>
+    <div class="callout">
+      <h3>Why we need them</h3>
+      <p style="margin:0">The FDs you're told are rarely all the FDs that hold. The
+      axioms let you reach the rest — the full <em>closure</em> of the FD set,
+      written F<sup>+</sup>.</p>
+    </div>
+  </section>
+
+  <!-- 10 · DERIVED RULES -->
+  <section class="slide" data-title="Derived inference rules" aria-roledescription="slide" aria-label="Derived inference rules">
+    <p class="kicker">Inference · shortcuts</p>
+    <h2 class="slide-h" tabindex="-1">Handy derived rules</h2>
+    <p>These follow from the three axioms and save work in practice:</p>
+    <div class="rulegrid">
+      <div class="rc"><b>Union</b><div class="r">X → Y, X → Z ⟹ X → YZ</div><span>combine right-hand sides.</span></div>
+      <div class="rc"><b>Decomposition</b><div class="r">X → YZ ⟹ X → Y, X → Z</div><span>split a right-hand side apart.</span></div>
+      <div class="rc"><b>Pseudotransitivity</b><div class="r">X → Y, WY → Z ⟹ WX → Z</div><span>chain with extra context W.</span></div>
+    </div>
+    <div class="callout warn">
+      <h3>One-sided splitting only</h3>
+      <p style="margin:0">Decomposition splits the <em>right</em> side. You may
+      <strong>not</strong> split the left: X → Z does not let you conclude that a part of X
+      determines Z. A very common mistake.</p>
+    </div>
+  </section>
+
+  <!-- 11 · CLOSURE ALGORITHM -->
+  <section class="slide" data-title="Attribute closure" aria-roledescription="slide" aria-label="Attribute closure">
+    <p class="kicker">The workhorse computation</p>
+    <h2 class="slide-h" tabindex="-1">Attribute closure X<sup>+</sup></h2>
+    <div class="two">
+      <div>
+        <p>The <span class="term">closure</span> X<sup>+</sup> is the set of all attributes
+        that X functionally determines under a set of FDs. The algorithm is a
+        fixpoint:</p>
+        <ol>
+          <li>Start with X<sup>+</sup> = X.</li>
+          <li>For any FD V → W with V ⊆ X<sup>+</sup>, add W to X<sup>+</sup>.</li>
+          <li>Repeat until nothing new is added.</li>
+        </ol>
+      </div>
+      <div class="callout">
+        <h3>Why it's central</h3>
+        <p style="margin:0">Nearly every normalization test reduces to a closure:
+        <em>does X → Y hold?</em> ⟺ Y ⊆ X<sup>+</sup>. <em>Is X a superkey?</em> ⟺ X<sup>+</sup>
+        is everything. We use it constantly for the rest of the unit.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · INTERACTIVE -->
+  <section class="slide" data-title="Computing a closure" aria-roledescription="slide" aria-label="Interactive: computing a closure">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Compute {A}<sup>+</sup> step by step</h2>
+    <p>Given
+    <span class="fd" style="font-size:.95rem">F = { A <span class="arrow">→</span> B,&nbsp; A <span class="arrow">→</span> D,&nbsp; B <span class="arrow">→</span> C,&nbsp; CD <span class="arrow">→</span> E }</span>,
+    grow the closure of {A} one FD at a time.</p>
+    <div class="hl-controls" role="group" aria-label="Step the closure computation">
+      <button class="chip" data-step="0" aria-pressed="true"
+        data-desc="Start: the closure is just {A} itself. Now look for any FD whose left side is already inside the closure.">start {A}</button>
+      <button class="chip" data-step="1" aria-pressed="false"
+        data-desc="A → B: A is in the closure, so add B. Closure is now {A, B}.">apply A→B</button>
+      <button class="chip" data-step="2" aria-pressed="false"
+        data-desc="A → D: A is in the closure, so add D. Closure is now {A, B, D}.">apply A→D</button>
+      <button class="chip" data-step="3" aria-pressed="false"
+        data-desc="B → C: B is now in the closure, so add C. Closure is now {A, B, C, D}.">apply B→C</button>
+      <button class="chip" data-step="4" aria-pressed="false"
+        data-desc="CD → E: both C and D are in the closure, so add E. Closure is {A, B, C, D, E} — everything, so A is a key.">apply CD→E</button>
+    </div>
+    <p id="clo-desc" class="live-desc"
+       data-default="Start: the closure is just {A} itself. Now look for any FD whose left side is already inside the closure.">Start: the closure is just {A} itself. Now look for any FD whose left side is already inside the closure.</p>
+    <div class="closure demo" id="clo-demo" data-step="0" aria-label="current closure of A">
+      <span class="lbl">{A}<sup>+</sup> =</span>
+      <span class="pill e0">A</span>
+      <span class="pill e1">B</span>
+      <span class="pill e3">C</span>
+      <span class="pill e2">D</span>
+      <span class="pill e4">E</span>
+    </div>
+    <p class="figcap">Filled pills are in the closure so far. At the last step it's all
+    five attributes — so {A} is a superkey.</p>
+  </section>
+
+  <!-- 13 · USING CLOSURE -->
+  <section class="slide" data-title="Using closure" aria-roledescription="slide" aria-label="Using closure">
+    <p class="kicker">What closure buys you</p>
+    <h2 class="slide-h" tabindex="-1">Three things closure decides</h2>
+    <div class="two">
+      <div>
+        <ul>
+          <li><strong>FD membership.</strong> Does X → Y follow from F? Compute X<sup>+</sup>
+          and check Y ⊆ X<sup>+</sup> — no need to build all of F<sup>+</sup>.</li>
+          <li><strong>Superkey test.</strong> X is a superkey iff X<sup>+</sup> = all attributes.</li>
+          <li><strong>Finding candidate keys.</strong> Shrink a superkey attribute by
+          attribute; if the closure still covers everything, the removed attribute was
+          redundant.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>Equivalent FD sets</h3>
+        <p style="margin:0">Two FD sets F and G are <span class="term">equivalent</span> when
+        each covers the other — every FD in F follows from G and vice versa (check with
+        closures). That's the idea behind the <em>minimal cover</em> we'll compute two
+        lectures from now.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · PRIME VS NONPRIME -->
+  <section class="slide" data-title="Prime vs nonprime attributes" aria-roledescription="slide" aria-label="Prime versus nonprime attributes">
+    <p class="kicker">Setting up the normal forms</p>
+    <h2 class="slide-h" tabindex="-1">Prime vs. nonprime attributes</h2>
+    <div class="two">
+      <div>
+        <p>Once you know the candidate keys, split the attributes:</p>
+        <ul>
+          <li><span class="term">Prime</span> — belongs to at least one candidate key.</li>
+          <li><span class="term">Nonprime</span> — belongs to none.</li>
+        </ul>
+        <p style="margin:0">The normal forms are stated in exactly these terms: 2NF and
+        3NF are about how <em>nonprime</em> attributes depend on the keys.</p>
+      </div>
+      <div class="callout">
+        <h3>Preview of the tests</h3>
+        <p style="margin:0">Roughly: <strong>2NF</strong> forbids a nonprime attribute
+        depending on <em>part</em> of a key; <strong>3NF</strong> forbids it depending on
+        another nonprime attribute. Both are closure checks — which is why we built
+        closure first.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>FDs come from meaning, not data.</strong> Never infer an FD from a sample
+      table — one coincidental instance proves nothing.</li>
+      <li><strong>Don't split the left side.</strong> X → Z says nothing about a subset of X
+      determining Z. Decomposition applies only to the right.</li>
+      <li><strong>Compute a closure instead of guessing.</strong> "Is this a key?" and "does
+      this FD hold?" are both just X<sup>+</sup>.</li>
+      <li><strong>Trivial FDs are real but uninformative.</strong> Y ⊆ X always holds; they
+      never drive a design decision.</li>
+      <li><strong>Redundancy is the enemy, anomalies are the symptom.</strong> When you spot
+      a repeated fact, expect all three anomalies.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>Redundancy → the three <span class="term">update anomalies</span>.</li>
+          <li><span class="term">Functional dependencies</span> from semantics; keys defined via FDs.</li>
+          <li><span class="term">Armstrong's axioms</span> and derived rules; the <span class="term">closure</span> X<sup>+</sup> and what it decides.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Which anomaly loses a course title, and why?</li>
+            <li>Compute {B}<sup>+</sup> for the interactive's F. Is B a key?</li>
+            <li>Why can't you split the left side of an FD?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Normalization II</h3>
+          <p style="margin:0">1NF, 2NF, and 3NF: partial and transitive dependencies,
+          and the first decompositions that remove them.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- closure stepper (only if that markup is present) ---
+  var sChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-step]'));
+  var sDesc  = document.getElementById('clo-desc');
+  var sDemo  = document.getElementById('clo-demo');
+  if (sChips.length && sDemo){
+    sChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        sChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        sDemo.setAttribute('data-step', chip.getAttribute('data-step'));
+        if (sDesc) sDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

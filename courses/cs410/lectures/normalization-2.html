@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Normalization II — 1NF, 2NF, and 3NF · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- FD notation ---- */
+.fd{font-family:var(--serif);font-size:1.06rem;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;margin:0 0 10px;display:inline-block}
+.fd .arrow{color:#7A2708;font-weight:700;padding:0 .25em}
+.fdlist{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+.fdlist .fd{margin:0;font-size:.96rem}
+.bad{color:#7A2708;font-weight:700}
+
+/* ---- relation cards (schema) ---- */
+.relset{display:flex;flex-direction:column;gap:8px}
+.relcard{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:8px 12px;background:#fff;font-family:var(--mono);font-size:.92rem;color:var(--blue-ink)}
+.relcard u{text-decoration-color:var(--blue-ink);text-underline-offset:3px}
+.relcard .fk{color:#7A2708;font-weight:700}
+.relcard .note{display:block;font-family:var(--sans);color:#7A2708;font-size:.8rem;margin-top:3px}
+.relcard.ok{border-left-color:#0B6B57}
+.relcard.ok .note{color:#0B6B57}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.85rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 9px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+
+/* ---- reference grid ---- */
+.nfgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.nf{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:10px 13px;background:#fff}
+.nf b{display:block;color:var(--blue-ink);font-size:.98rem}
+.nf span{color:var(--muted);font-size:.88rem}
+
+/* ---- interactive: normalize stepper ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.88rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.nf-cards > .stage{display:none}
+.nf-cards > .stage > .lbl{font-family:var(--sans);font-size:.8rem;font-weight:700;
+  color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.demo[data-nf="0"] .stage.n0,
+.demo[data-nf="1"] .stage.n1,
+.demo[data-nf="2"] .stage.n2,
+.demo[data-nf="3"] .stage.n3{display:block}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .nfgrid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+  .relcard{font-size:.82rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.nf,.relcard,.callout{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .callout,.nf,.relcard,table.inst{break-inside:avoid}
+  /* linearize the stepper: show every stage in order */
+  .nf-cards > .stage{display:block!important;margin-bottom:10px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 6 · Normalization</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 2 of 4 · Elmasri &amp; Navathe, Ch. 14</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Normalization II — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Normalization II — 1NF, 2NF, and 3NF"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">The normal forms</p>
+    <h2 class="slide-h" tabindex="-1">Normalization II<br>1NF, 2NF, and 3NF</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Last time we built the tools. Now we use them: a ladder of
+        tests, each removing a specific kind of bad dependency and the anomalies it
+        causes.</p>
+        <p style="color:var(--muted)">A relation climbs from 1NF to 2NF to 3NF by
+        decomposition — splitting off the attributes that depend on the wrong thing.</p>
+      </div>
+      <div class="callout">
+        <h3>The shape of the process</h3>
+        <p style="margin:0">For each normal form: <em>state a test on the FDs</em>, check
+        it, and if it fails, <em>decompose</em> so each piece passes. The forms nest —
+        3NF is stricter than 2NF is stricter than 1NF.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last lecture</h3>
+          <p style="margin:0">FDs, Armstrong's axioms, attribute closure, and the
+          prime / nonprime split — the vocabulary the normal forms are stated in.</p>
+        </div>
+        <p>Next lecture: BCNF (stricter still) and how to compute a minimal cover of an
+        FD set.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Check <span class="term">1NF</span> (atomic values).</li>
+            <li>Find and remove a <span class="term">partial dependency</span> for 2NF.</li>
+            <li>Find and remove a <span class="term">transitive dependency</span> for 3NF.</li>
+            <li>State the general 3NF test and decompose a relation to reach it.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHAT A NORMAL FORM IS -->
+  <section class="slide" data-title="What a normal form is" aria-roledescription="slide" aria-label="What a normal form is">
+    <p class="kicker">Orientation</p>
+    <h2 class="slide-h" tabindex="-1">A ladder of nested tests</h2>
+    <div class="two">
+      <div>
+        <p>Each normal form is a condition on a relation's dependencies. They stack:
+        satisfying 3NF implies 2NF implies 1NF.</p>
+        <p>Our running example is one wide relation with both problems on display:</p>
+        <p class="fd">ENROLL(<u>SID</u>, <u>CID</u>, SName, CTitle, InsID, InsName, Grade)</p>
+      </div>
+      <div>
+        <p style="margin:0 0 6px;color:var(--muted)">Its FDs — from the meaning of the data:</p>
+        <div class="fdlist">
+          <span class="fd">SID <span class="arrow">→</span> SName</span>
+          <span class="fd">CID <span class="arrow">→</span> CTitle, InsID</span>
+          <span class="fd">InsID <span class="arrow">→</span> InsName</span>
+          <span class="fd">SID, CID <span class="arrow">→</span> Grade</span>
+        </div>
+        <p class="figcap">Key = {SID, CID}. Watch SName/CTitle (partial) and InsName (transitive).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · 1NF -->
+  <section class="slide" data-title="First normal form" aria-roledescription="slide" aria-label="First normal form">
+    <p class="kicker">The baseline · 1NF</p>
+    <h2 class="slide-h" tabindex="-1">1NF — atomic values only</h2>
+    <div class="two">
+      <div>
+        <p>A relation is in <span class="term">1NF</span> when every attribute value is
+        <strong>atomic</strong> — no repeating groups, no set-valued or nested cells.
+        It's the assumption the relational model already makes.</p>
+        <p>The fix for a repeating group is to give each value its own row, promoting
+        the repeating attribute into the key.</p>
+      </div>
+      <div>
+        <table class="inst">
+          <caption><span class="bad">Not 1NF</span> — a set of courses in one cell</caption>
+          <thead><tr><th scope="col">SID</th><th scope="col">Courses</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">S1001</td><td>{CS410, MATH301}</td></tr>
+          </tbody>
+        </table>
+        <table class="inst" style="margin-top:10px">
+          <caption>1NF — one atomic row per pair</caption>
+          <thead><tr><th scope="col">SID</th><th scope="col">CID</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">S1001</td><td class="keycol">CS410</td></tr>
+            <tr><td class="keycol">S1001</td><td class="keycol">MATH301</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · 2NF CONCEPT -->
+  <section class="slide" data-title="Partial dependencies" aria-roledescription="slide" aria-label="Partial dependencies">
+    <p class="kicker">Toward 2NF · the concept</p>
+    <h2 class="slide-h" tabindex="-1">Partial dependencies</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">partial dependency</span> is when a nonprime attribute
+        depends on <strong>part</strong> of a candidate key, not the whole thing.</p>
+        <p>It can only arise when the key is <em>composite</em>. With a single-attribute
+        key there are no proper parts, so 1NF already gives you 2NF.</p>
+        <div class="callout warn">
+          <h3>The tell</h3>
+          <p style="margin:0">A fact that repeats identically across a key value is the
+          signature of a partial dependency — SName is the same in every row for a given
+          SID.</p>
+        </div>
+      </div>
+      <div>
+        <p style="margin:0 0 6px;color:var(--muted)">In ENROLL, key = {SID, CID}:</p>
+        <div class="fdlist">
+          <span class="fd">SID <span class="arrow">→</span> SName <span class="bad">(partial)</span></span>
+          <span class="fd">CID <span class="arrow">→</span> CTitle, InsID <span class="bad">(partial)</span></span>
+        </div>
+        <p class="figcap">SName needs only SID; CTitle and InsID need only CID. Neither needs the full key.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · 2NF RULE -->
+  <section class="slide" data-title="Second normal form" aria-roledescription="slide" aria-label="Second normal form">
+    <p class="kicker">Toward 2NF · the rule</p>
+    <h2 class="slide-h" tabindex="-1">2NF — full dependency on the key</h2>
+    <div class="two">
+      <div>
+        <p>A relation is in <span class="term">2NF</span> when it is in 1NF and
+        <strong>no nonprime attribute is partially dependent</strong> on any candidate
+        key — every nonprime attribute needs the <em>whole</em> key.</p>
+        <p>ENROLL fails: SName, CTitle, and InsID each depend on only part of {SID, CID}.
+        Only Grade depends on the full key.</p>
+      </div>
+      <div class="callout">
+        <h3>How to fix it</h3>
+        <p style="margin:0">For each partial dependency, move the determined attributes
+        into a new relation keyed by the part they actually depend on. What genuinely
+        needs the full key stays behind.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · 2NF DECOMPOSITION -->
+  <section class="slide" data-title="2NF decomposition" aria-roledescription="slide" aria-label="2NF decomposition">
+    <p class="kicker">Toward 2NF · the result</p>
+    <h2 class="slide-h" tabindex="-1">Decomposing to 2NF</h2>
+    <div class="two">
+      <div>
+        <p>Split off each partially-dependent group by its own determinant:</p>
+        <div class="relset">
+          <div class="relcard">STUDENT(<u>SID</u>, SName)</div>
+          <div class="relcard">COURSE(<u>CID</u>, CTitle, InsID, InsName)<span class="note">still hides a transitive dependency — see 3NF</span></div>
+          <div class="relcard ok">ENROLLMENT(<u>SID</u>, <u>CID</u>, Grade)<span class="note">Grade needs the whole key — stays</span></div>
+        </div>
+      </div>
+      <div class="callout">
+        <h3>Progress, not done</h3>
+        <p style="margin:0">All three are now in 2NF — no partial dependencies remain.
+        But COURSE still carries <em>InsID → InsName</em>, a nonprime-to-nonprime
+        dependency. That's the next rung.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · 3NF CONCEPT -->
+  <section class="slide" data-title="Transitive dependencies" aria-roledescription="slide" aria-label="Transitive dependencies">
+    <p class="kicker">Toward 3NF · the concept</p>
+    <h2 class="slide-h" tabindex="-1">Transitive dependencies</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">transitive dependency</span> is when a nonprime attribute
+        depends on the key <em>through another nonprime attribute</em>:
+        key → X → A, with X and A both nonprime.</p>
+        <p>In COURSE, the key CID determines InsID, and InsID determines InsName — so
+        InsName depends on the key only by way of InsID.</p>
+      </div>
+      <div>
+        <p style="margin:0 0 6px;color:var(--muted)">Inside COURSE(<u>CID</u>, CTitle, InsID, InsName):</p>
+        <div class="fdlist">
+          <span class="fd">CID <span class="arrow">→</span> InsID</span>
+          <span class="fd">InsID <span class="arrow">→</span> InsName <span class="bad">(transitive)</span></span>
+        </div>
+        <p class="figcap">CID → InsID → InsName. InsName is one hop too far from the key.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · 3NF RULE -->
+  <section class="slide" data-title="Third normal form" aria-roledescription="slide" aria-label="Third normal form">
+    <p class="kicker">Toward 3NF · the rule</p>
+    <h2 class="slide-h" tabindex="-1">3NF — no transitive dependency</h2>
+    <div class="two">
+      <div>
+        <p>A relation is in <span class="term">3NF</span> when it is in 2NF and
+        <strong>no nonprime attribute transitively depends</strong> on a candidate key —
+        every nonprime attribute depends on the key <em>directly</em>.</p>
+        <p>COURSE fails on InsName. The other three relations already pass.</p>
+      </div>
+      <div class="callout">
+        <h3>How to fix it</h3>
+        <p style="margin:0">Move the transitively-dependent attribute, together with the
+        nonprime that determines it, into its own relation — keyed by that determinant.
+        Leave the determinant behind as a foreign key.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · 3NF DECOMPOSITION -->
+  <section class="slide" data-title="3NF decomposition" aria-roledescription="slide" aria-label="3NF decomposition">
+    <p class="kicker">Toward 3NF · the result</p>
+    <h2 class="slide-h" tabindex="-1">Decomposing to 3NF</h2>
+    <div class="two">
+      <div>
+        <p>Split InsName out of COURSE, keyed by InsID:</p>
+        <div class="relset">
+          <div class="relcard ok">STUDENT(<u>SID</u>, SName)</div>
+          <div class="relcard ok">COURSE(<u>CID</u>, CTitle, <span class="fk">InsID</span>)</div>
+          <div class="relcard ok">INSTRUCTOR(<u>InsID</u>, InsName)</div>
+          <div class="relcard ok">ENROLLMENT(<u>SID</u>, <u>CID</u>, Grade)</div>
+        </div>
+      </div>
+      <div class="callout good">
+        <h3>All four in 3NF</h3>
+        <p style="margin:0">Every nonprime attribute now depends on its relation's key,
+        wholly and directly. The anomalies from the wide table are gone — each fact
+        lives in exactly one place, joined back by foreign keys.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · INTERACTIVE -->
+  <section class="slide" data-title="Normalize step by step" aria-roledescription="slide" aria-label="Interactive: normalize step by step">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Walk ENROLL up the ladder</h2>
+    <p>Step from the raw table to 3NF and watch the schema split at each rung.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a normal form stage">
+      <button class="chip" data-nf="0" aria-pressed="true"
+        data-desc="Unnormalized: a single row packs several (course, grade) pairs into one cell — a repeating group. Not even 1NF.">unnormalized</button>
+      <button class="chip" data-nf="1" aria-pressed="false"
+        data-desc="1NF: flatten to atomic cells — one row per (student, course). Now a wide, single relation. But partial and transitive dependencies remain.">1NF</button>
+      <button class="chip" data-nf="2" aria-pressed="false"
+        data-desc="2NF: remove partial dependencies. SName depended on SID alone, and CTitle/InsID on CID alone — split those out into STUDENT and COURSE, leaving ENROLLMENT for the full-key Grade.">2NF</button>
+      <button class="chip" data-nf="3" aria-pressed="false"
+        data-desc="3NF: remove the transitive dependency inside COURSE. InsID → InsName splits off into INSTRUCTOR; COURSE keeps InsID as a foreign key. Four clean relations.">3NF</button>
+    </div>
+    <p id="nf-desc" class="live-desc"
+       data-default="Unnormalized: a single row packs several (course, grade) pairs into one cell — a repeating group. Not even 1NF.">Unnormalized: a single row packs several (course, grade) pairs into one cell — a repeating group. Not even 1NF.</p>
+    <div class="nf-cards demo" id="nf-demo" data-nf="0">
+      <div class="stage n0">
+        <p class="lbl">Unnormalized</p>
+        <div class="relset">
+          <div class="relcard">STUDENT_SHEET(<u>SID</u>, SName, <span class="bad">{(CID, Grade), …}</span>)<span class="note">repeating group — not atomic</span></div>
+        </div>
+      </div>
+      <div class="stage n1">
+        <p class="lbl">1NF — atomic</p>
+        <div class="relset">
+          <div class="relcard">ENROLL(<u>SID</u>, <u>CID</u>, SName, CTitle, InsID, InsName, Grade)<span class="note">atomic, but partial + transitive dependencies remain</span></div>
+        </div>
+      </div>
+      <div class="stage n2">
+        <p class="lbl">2NF — no partial dependency</p>
+        <div class="relset">
+          <div class="relcard">STUDENT(<u>SID</u>, SName)</div>
+          <div class="relcard">COURSE(<u>CID</u>, CTitle, InsID, InsName)<span class="note">transitive InsID → InsName still here</span></div>
+          <div class="relcard ok">ENROLLMENT(<u>SID</u>, <u>CID</u>, Grade)</div>
+        </div>
+      </div>
+      <div class="stage n3">
+        <p class="lbl">3NF — no transitive dependency</p>
+        <div class="relset">
+          <div class="relcard ok">STUDENT(<u>SID</u>, SName)</div>
+          <div class="relcard ok">COURSE(<u>CID</u>, CTitle, <span class="fk">InsID</span>)</div>
+          <div class="relcard ok">INSTRUCTOR(<u>InsID</u>, InsName)</div>
+          <div class="relcard ok">ENROLLMENT(<u>SID</u>, <u>CID</u>, Grade)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · GENERAL 3NF -->
+  <section class="slide" data-title="The general 3NF definition" aria-roledescription="slide" aria-label="The general 3NF definition">
+    <p class="kicker">Stated precisely</p>
+    <h2 class="slide-h" tabindex="-1">The general definition of 3NF</h2>
+    <div class="two">
+      <div>
+        <p>The partial/transitive phrasing is intuitive; here is the crisp test used in
+        practice:</p>
+        <div class="callout">
+          <h3>3NF (general form)</h3>
+          <p style="margin:0">For every nontrivial FD <span class="fd" style="font-size:.95rem">X <span class="arrow">→</span> A</span>,
+          either <strong>X is a superkey</strong>, or <strong>A is a prime attribute</strong>.</p>
+        </div>
+        <p style="margin:0">Check it FD by FD — and each check is a closure computation
+        from last lecture.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The "or A is prime" escape</h3>
+        <p style="margin:0">That second clause is what makes 3NF a little lenient: it
+        tolerates a determinant that isn't a superkey, as long as what it determines is
+        part of a key. BCNF removes that leniency — next lecture.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · NF AT A GLANCE -->
+  <section class="slide" data-title="Normal forms at a glance" aria-roledescription="slide" aria-label="Normal forms at a glance">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">Normal forms at a glance</h2>
+    <div class="nfgrid">
+      <div class="nf"><b>1NF</b><span>All attribute values are atomic — no repeating groups or nested relations.</span></div>
+      <div class="nf"><b>2NF</b><span>1NF, and no nonprime attribute is partially dependent on a candidate key.</span></div>
+      <div class="nf"><b>3NF</b><span>2NF, and no nonprime attribute is transitively dependent on a key — every nontrivial FD's LHS is a superkey or its RHS is prime.</span></div>
+      <div class="nf"><b>BCNF</b><span>Every nontrivial FD's LHS is a superkey — no exceptions. Next lecture.</span></div>
+    </div>
+    <p class="figcap">Each form implies the one above it. Most schemas target 3NF or BCNF.</p>
+  </section>
+
+  <!-- 14 · DECOMPOSITION DONE RIGHT -->
+  <section class="slide" data-title="Decomposition done right" aria-roledescription="slide" aria-label="Decomposition done right">
+    <p class="kicker">A caveat to hold</p>
+    <h2 class="slide-h" tabindex="-1">Splitting a relation isn't free</h2>
+    <div class="two">
+      <div>
+        <p>A decomposition must earn two properties, or it does more harm than the
+        anomalies it removes:</p>
+        <ul>
+          <li><span class="term">Lossless join</span> — rejoining the pieces gives back
+          exactly the original, no spurious rows.</li>
+          <li><span class="term">Dependency preservation</span> — every FD can still be
+          checked without a join.</li>
+        </ul>
+      </div>
+      <div class="callout good">
+        <h3>Good news for 3NF</h3>
+        <p style="margin:0">A relation can always be decomposed into 3NF relations that
+        are <em>both</em> lossless and dependency-preserving. BCNF can't always promise
+        both at once — a tension we'll unpack in Normalization IV.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>Partial dependencies need a composite key.</strong> With a single-attribute
+      key, 1NF already gives you 2NF — don't hunt for partials that can't exist.</li>
+      <li><strong>Identify the candidate keys first.</strong> "Prime" and "nonprime" — and
+      therefore every 2NF/3NF test — depend on knowing them.</li>
+      <li><strong>Transitive means nonprime-to-nonprime.</strong> A dependency between two
+      prime attributes isn't a 3NF problem.</li>
+      <li><strong>Keep the join key.</strong> When you split off a relation, leave its
+      determinant behind as a foreign key, or you can't rejoin.</li>
+      <li><strong>Normalize for a reason.</strong> Each step trades a join for fewer
+      anomalies; know which you're buying.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">1NF</span>: atomic values.</li>
+          <li><span class="term">2NF</span>: no <span class="term">partial</span> dependency on a key.</li>
+          <li><span class="term">3NF</span>: no <span class="term">transitive</span> dependency — LHS a superkey or RHS prime — reached by decomposition.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why can a single-attribute-key relation never violate 2NF?</li>
+            <li>Name the transitive dependency in COURSE and its fix.</li>
+            <li>State the general 3NF test in one sentence.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Normalization III</h3>
+          <p style="margin:0">BCNF — the stricter cousin of 3NF — and computing a
+          minimal cover of a set of functional dependencies.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- normalize stepper (only if that markup is present) ---
+  var nChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-nf]'));
+  var nDesc  = document.getElementById('nf-desc');
+  var nDemo  = document.getElementById('nf-demo');
+  if (nChips.length && nDemo){
+    nChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        nChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        nDemo.setAttribute('data-nf', chip.getAttribute('data-nf'));
+        if (nDesc) nDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

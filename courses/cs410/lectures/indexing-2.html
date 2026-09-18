@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indexing II — B-Trees and B+-Trees · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout.good{border-left-color:#0B6B57}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:#7A2708}
+.callout.good h3{color:#0B6B57}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+code.rel{font-family:var(--mono);font-size:.9em;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+
+/* ---- tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.86rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst th[scope="row"]{background:var(--tint);color:var(--blue-ink)}
+table.inst .win{color:#0B6B57;font-weight:700}
+
+/* ---- reference grid ---- */
+.costgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.cg{border:1px solid var(--line);border-top:4px solid var(--blue);border-radius:9px;
+  padding:11px 13px;background:#fff}
+.cg b{display:block;color:var(--blue-ink);font-size:1rem;margin-bottom:3px}
+.cg span{color:var(--muted);font-size:.88rem}
+
+/* ---- B+-tree node rendering ---- */
+.tstage{text-align:center}
+.trowlabel{font-family:var(--sans);font-size:.72rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.04em;margin:2px 0}
+.trow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:4px 0 10px}
+.tnode{display:inline-flex;border:2px solid var(--blue);border-radius:6px;overflow:hidden;
+  font-family:var(--mono);font-size:.85rem;font-weight:700}
+.tnode .k{padding:4px 9px;background:#EAF0FB;color:var(--blue-ink);border-right:1px solid var(--blue)}
+.tnode .k:last-child{border-right:none}
+.tnode.leaf .k{background:#fff}
+.tnode.over{border-color:var(--orange)}
+.tnode.over .k{background:#FBEEE7;color:#7A2708}
+.tnode.newk .k{background:var(--tint);color:#0B6B57}
+
+/* ---- interactive: split stepper ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 12px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none;margin-bottom:12px}
+.treebox .tstage{display:none}
+html:not(.js) .treebox .tstage{display:block;margin-bottom:12px}
+.treebox[data-step="0"] .t0,
+.treebox[data-step="1"] .t1,
+.treebox[data-step="2"] .t2,
+.treebox[data-step="3"] .t3{display:block}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .costgrid{grid-template-columns:1fr}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.cg,.fig,.callout{border-color:#000}
+  .chip,.tnode{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.cg,table.inst,.tstage{break-inside:avoid}
+  .treebox .tstage{display:block!important;margin-bottom:12px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 7 · Storage &amp; indexing</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Lecture 3 of 3 · Elmasri &amp; Navathe, Ch. 17</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Indexing II — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Indexing II — B-Trees and B+-Trees"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">The index databases actually use</p>
+    <h2 class="slide-h" tabindex="-1">Indexing II<br>B-trees and B+-trees</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Multilevel indexes were fast but brittle — inserts and deletes
+        wreck them. The B+-tree keeps the speed and stays balanced automatically, no
+        matter what you throw at it.</p>
+        <p style="color:var(--muted)">Today: the B-tree idea, the B+-tree refinement that
+        databases prefer, and how a search, an insert, and a split actually work.</p>
+      </div>
+      <div class="callout">
+        <h3>The headline</h3>
+        <p style="margin:0">A B+-tree indexes billions of records in three or four
+        block accesses — and self-balances on every write. It's the default index in
+        essentially every relational database.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · RECAP / ROADMAP -->
+  <section class="slide" data-title="Recap and roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Last lecture</h3>
+          <p style="margin:0">Primary, clustering, secondary, and multilevel indexes. A
+          multilevel index gives ~log(fan-out) cost — but it's static.</p>
+        </div>
+        <p>This lecture makes it dynamic and closes Unit 7. Then Midterm 2, and Unit 8:
+        transactions.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul>
+            <li>Describe a <span class="term">B-tree</span> and a <span class="term">B+-tree</span>.</li>
+            <li>Say why B+-trees are preferred for databases.</li>
+            <li>Trace a search, an insert, and a <span class="term">node split</span>.</li>
+            <li>Reason about fan-out, height, and physical design.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE PROBLEM -->
+  <section class="slide" data-title="Why multilevel indexes aren't enough" aria-roledescription="slide" aria-label="Why multilevel indexes are not enough">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">The trouble with a static index</h2>
+    <div class="two">
+      <div>
+        <p>A multilevel index is built once over a sorted file. Then reality intrudes:</p>
+        <ul>
+          <li>an <strong>insert</strong> has nowhere to go in a full block → overflow chains
+          that lengthen and slow lookups;</li>
+          <li>a <strong>delete</strong> leaves gaps → wasted space and skew;</li>
+          <li>rebuilding the whole index periodically is expensive.</li>
+        </ul>
+      </div>
+      <div class="callout warn">
+        <h3>What we want</h3>
+        <p style="margin:0">A tree that reshapes itself on every insert and delete —
+        staying balanced, staying full enough, keeping the height low — with no global
+        rebuild. That's the B-tree family.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE B-TREE IDEA -->
+  <section class="slide" data-title="The B-tree idea" aria-roledescription="slide" aria-label="The b tree idea">
+    <p class="kicker">The structure</p>
+    <h2 class="slide-h" tabindex="-1">The B-tree idea</h2>
+    <div class="two">
+      <div>
+        <p>A <span class="term">B-tree</span> is a balanced multi-way search tree built for
+        disk. Its defining traits:</p>
+        <ul>
+          <li><strong>High fan-out</strong> — each node is a block holding <em>many</em> keys and
+          pointers, so the tree is very shallow.</li>
+          <li><strong>Always balanced</strong> — every leaf sits at the same depth.</li>
+          <li><strong>Kept partly full</strong> — nodes stay at least half full, bounding
+          height and wasted space.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>Why "shallow" matters</h3>
+        <p style="margin:0">Height is the number of block accesses per search. With a
+        fan-out in the hundreds, a tree of height 3–4 already indexes hundreds of
+        millions of keys.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · B-TREE NODE -->
+  <section class="slide" data-title="B-tree node structure" aria-roledescription="slide" aria-label="B tree node structure">
+    <p class="kicker">Inside a node</p>
+    <h2 class="slide-h" tabindex="-1">B-tree node structure</h2>
+    <div class="two">
+      <div>
+        <p>A node of <span class="term">order p</span> holds up to <code class="rel">p−1</code>
+        sorted keys and <code class="rel">p</code> child pointers. The keys separate the
+        subtrees: everything left of a key is smaller, everything right is larger.</p>
+        <p>In a plain B-tree, a <strong>data pointer sits beside every key</strong>, in
+        internal nodes as well as leaves — a key found high in the tree needs no descent
+        to the leaf.</p>
+      </div>
+      <div class="callout warn">
+        <h3>The downside for databases</h3>
+        <p style="margin:0">Storing a data pointer in every internal node eats space that
+        could hold more keys — lowering fan-out, raising height. The B+-tree fixes exactly
+        this.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · B+-TREE -->
+  <section class="slide" data-title="B+-tree structure" aria-roledescription="slide" aria-label="B plus tree structure">
+    <p class="kicker">The database variant</p>
+    <h2 class="slide-h" tabindex="-1">The B+-tree</h2>
+    <div class="two">
+      <div>
+        <p>The <span class="term">B+-tree</span> makes two changes:</p>
+        <ul>
+          <li>Internal nodes hold <strong>only keys</strong> — pure routing, no data
+          pointers.</li>
+          <li><strong>All data pointers live in the leaves</strong>, and the leaves are
+          <strong>linked</strong> in a sorted chain.</li>
+        </ul>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 480 170" role="img" aria-labelledby="t6 d6">
+          <title id="t6">A B+-tree with linked leaves</title>
+          <desc id="d6">A root node with a routing key points down to two leaf nodes.
+          The leaves hold the data keys and are connected left-to-right by a link
+          pointer forming a sorted chain.</desc>
+          <rect x="200" y="18" width="80" height="30" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="240" y="38" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" font-weight="700" fill="#00246B">13</text>
+          <line x1="220" y1="48" x2="110" y2="92" stroke="#8A93A3" stroke-width="1.6"/>
+          <line x1="260" y1="48" x2="370" y2="92" stroke="#8A93A3" stroke-width="1.6"/>
+          <rect x="40" y="92" width="140" height="30" fill="#fff" stroke="#0033A0" stroke-width="2"/>
+          <text x="110" y="112" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#14181F">5 · 9  →</text>
+          <rect x="300" y="92" width="140" height="30" fill="#fff" stroke="#0033A0" stroke-width="2"/>
+          <text x="370" y="112" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#14181F">13 · 17 · 21</text>
+          <line x1="180" y1="107" x2="300" y2="107" stroke="#7A2708" stroke-width="1.6" stroke-dasharray="4 3"/>
+          <text x="240" y="140" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">leaves linked in sorted order (dashed)</text>
+          <text x="240" y="60" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">internal node = keys only (routing)</text>
+        </svg>
+        <p class="figcap">Keys route; data lives in the chained leaves.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · WHY B+ WINS -->
+  <section class="slide" data-title="Why B+-trees win" aria-roledescription="slide" aria-label="Why b plus trees win for databases">
+    <p class="kicker">The payoff</p>
+    <h2 class="slide-h" tabindex="-1">Why B+-trees win for databases</h2>
+    <ul>
+      <li><strong>Higher fan-out.</strong> No data pointers in internal nodes → more keys per
+      block → shallower tree → <em>fewer disk accesses</em> per search.</li>
+      <li><strong>Great range scans.</strong> The linked leaf chain lets you find a start key,
+      then read consecutive leaves — ordered traversal for free.</li>
+      <li><strong>Uniform search cost.</strong> Every lookup ends at a leaf, so every search
+      is the same length — the tree height.</li>
+    </ul>
+    <div class="callout good">
+      <h3>The upshot</h3>
+      <p style="margin:0">Equality lookups, range queries, and ordered scans all run
+      well on one structure. That versatility is why the B+-tree is the default database
+      index.</p>
+    </div>
+  </section>
+
+  <!-- 8 · SEARCH -->
+  <section class="slide" data-title="Search in a B+-tree" aria-roledescription="slide" aria-label="Search in a b plus tree">
+    <p class="kicker">The read path</p>
+    <h2 class="slide-h" tabindex="-1">Searching a B+-tree</h2>
+    <div class="two">
+      <div>
+        <p>Start at the root. At each node, compare the target with the routing keys and
+        follow the matching child pointer. Repeat down to a leaf, then read the data
+        pointer.</p>
+        <p>The number of block accesses is the <span class="term">height</span> of the tree,
+        ≈ <code class="rel">log<sub>fan-out</sub>(N)</code> — three or four for hundreds of
+        millions of keys.</p>
+      </div>
+      <div class="callout">
+        <h3>Range on top of it</h3>
+        <p style="margin:0">Descend to the start key's leaf, then walk the leaf chain
+        rightward until you pass the end of the range — no re-descent needed for each
+        row.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · INSERTION / SPLIT -->
+  <section class="slide" data-title="Insertion and splitting" aria-roledescription="slide" aria-label="Insertion and node splitting">
+    <p class="kicker">The write path</p>
+    <h2 class="slide-h" tabindex="-1">Insertion &amp; node splitting</h2>
+    <div class="two">
+      <div>
+        <p>Find the target leaf and insert in order. If the leaf overflows, it
+        <span class="term">splits</span> into two, and a separator key is pushed up to the
+        parent.</p>
+        <p>If the parent then overflows, it splits too — a split can
+        <strong>cascade to the root</strong>, and a root split adds one level, keeping every
+        leaf at the same depth.</p>
+      </div>
+      <div class="callout warn">
+        <h3>Copy up, don't move up</h3>
+        <p style="margin:0">In a B+-tree the separator is <em>copied</em> to the parent —
+        the key value still lives in the leaf, because all data stays at the leaves. (In a
+        plain B-tree it moves up.) The interactive shows exactly this.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · INTERACTIVE -->
+  <section class="slide" data-title="Insert and split, step by step" aria-roledescription="slide" aria-label="Interactive: insert and split step by step">
+    <p class="kicker">Check yourself · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Watch a leaf split</h2>
+    <p>An order-4 B+-tree (max 3 keys per node). The right leaf is full. Insert
+    <code class="rel">19</code> and step through the split.</p>
+    <div class="hl-controls" role="group" aria-label="Step the insertion">
+      <button class="chip" data-step="0" aria-pressed="true"
+        data-desc="Before: root [13] routes to leaves [5,9] and [13,17,21]. The right leaf already holds its maximum of 3 keys.">before</button>
+      <button class="chip" data-step="1" aria-pressed="false"
+        data-desc="Insert 19 into its leaf, keeping order: [13,17,19,21]. That's four keys — one over capacity. The leaf overflows.">insert 19 → overflow</button>
+      <button class="chip" data-step="2" aria-pressed="false"
+        data-desc="Split the overflowing leaf into [13,17] and [19,21]. The first key of the new right leaf, 19, is COPIED up into the root as a separator — the value still lives in the leaf.">split &amp; copy up</button>
+      <button class="chip" data-step="3" aria-pressed="false"
+        data-desc="Done. Root [13,19] routes to three balanced leaves, all still at the same depth and chained in sorted order. No global rebuild needed.">after</button>
+    </div>
+    <p id="tree-desc" class="live-desc"
+       data-default="Before: root [13] routes to leaves [5,9] and [13,17,21]. The right leaf already holds its maximum of 3 keys.">Before: root [13] routes to leaves [5,9] and [13,17,21]. The right leaf already holds its maximum of 3 keys.</p>
+    <div class="treebox demo" id="tree-demo" data-step="0">
+      <div class="tstage t0">
+        <p class="trowlabel">root</p>
+        <div class="trow"><span class="tnode"><span class="k">13</span></span></div>
+        <p class="trowlabel">leaves</p>
+        <div class="trow">
+          <span class="tnode leaf"><span class="k">5</span><span class="k">9</span></span>
+          <span class="tnode leaf"><span class="k">13</span><span class="k">17</span><span class="k">21</span></span>
+        </div>
+      </div>
+      <div class="tstage t1">
+        <p class="trowlabel">root</p>
+        <div class="trow"><span class="tnode"><span class="k">13</span></span></div>
+        <p class="trowlabel">leaves — right leaf overflows (4 keys &gt; 3)</p>
+        <div class="trow">
+          <span class="tnode leaf"><span class="k">5</span><span class="k">9</span></span>
+          <span class="tnode leaf over"><span class="k">13</span><span class="k">17</span><span class="k">19</span><span class="k">21</span></span>
+        </div>
+      </div>
+      <div class="tstage t2">
+        <p class="trowlabel">root — 19 copied up as separator</p>
+        <div class="trow"><span class="tnode newk"><span class="k">13</span><span class="k">19</span></span></div>
+        <p class="trowlabel">leaves — split into two</p>
+        <div class="trow">
+          <span class="tnode leaf"><span class="k">5</span><span class="k">9</span></span>
+          <span class="tnode leaf"><span class="k">13</span><span class="k">17</span></span>
+          <span class="tnode leaf newk"><span class="k">19</span><span class="k">21</span></span>
+        </div>
+      </div>
+      <div class="tstage t3">
+        <p class="trowlabel">root</p>
+        <div class="trow"><span class="tnode"><span class="k">13</span><span class="k">19</span></span></div>
+        <p class="trowlabel">leaves — balanced, all at the same depth</p>
+        <div class="trow">
+          <span class="tnode leaf"><span class="k">5</span><span class="k">9</span></span>
+          <span class="tnode leaf"><span class="k">13</span><span class="k">17</span></span>
+          <span class="tnode leaf"><span class="k">19</span><span class="k">21</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · DELETION -->
+  <section class="slide" data-title="Deletion and underflow" aria-roledescription="slide" aria-label="Deletion and underflow">
+    <p class="kicker">The write path · 2</p>
+    <h2 class="slide-h" tabindex="-1">Deletion &amp; underflow</h2>
+    <div class="two">
+      <div>
+        <p>Delete the key from its leaf. If the leaf drops below half full — an
+        <span class="term">underflow</span> — the tree rebalances:</p>
+        <ul>
+          <li><strong>Borrow</strong> a key from an adjacent sibling that has a spare, and
+          fix the parent separator; or</li>
+          <li><strong>Merge</strong> with a sibling, removing a separator from the parent —
+          which may cascade upward and can shrink the height.</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h3>Symmetry</h3>
+        <p style="margin:0">Insertion grows the tree by splitting; deletion shrinks it by
+        merging. Both keep every node at least half full and every leaf at the same
+        depth — the invariants that bound the height.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · FAN-OUT / PHYSICAL DESIGN -->
+  <section class="slide" data-title="Fan-out and physical design" aria-roledescription="slide" aria-label="Fan out and physical design">
+    <p class="kicker">Sizing it for disk</p>
+    <h2 class="slide-h" tabindex="-1">Fan-out, height, and physical design</h2>
+    <div class="two">
+      <div>
+        <p>A node <strong>is</strong> a disk block, so fan-out ≈ block size ÷ entry size —
+        often several hundred. That huge branching factor is why the height stays at
+        3–4 even for billions of keys.</p>
+        <p style="margin:0">Upper levels are small and stay <span class="term">cached</span>,
+        so a search often costs just one real disk read at the leaf.</p>
+      </div>
+      <div class="callout">
+        <h3>Design choices</h3>
+        <p style="margin:0">Which columns get a B+-tree, whether the primary index is
+        <em>clustering</em> (leaves hold the rows) or not, and how wide to make a
+        covering index — the physical-design decisions from last lecture, now on the
+        structure that implements them.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · COMPARISON -->
+  <section class="slide" data-title="B+-tree vs B-tree vs hash" aria-roledescription="slide" aria-label="B plus tree versus b tree versus hash">
+    <p class="kicker">Choosing a structure</p>
+    <h2 class="slide-h" tabindex="-1">B+-tree vs. B-tree vs. hash</h2>
+    <table class="inst">
+      <thead><tr><th scope="col"></th><th scope="col">B+-tree</th><th scope="col">B-tree</th><th scope="col">Hash</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Equality search</th><td class="win">height (~3–4)</td><td>height</td><td class="win">~1</td></tr>
+        <tr><th scope="row">Range search</th><td class="win">yes — leaf chain</td><td>awkward</td><td>no</td></tr>
+        <tr><th scope="row">Ordered scan</th><td class="win">yes</td><td>in-order traversal</td><td>no</td></tr>
+        <tr><th scope="row">Fan-out</th><td class="win">highest</td><td>lower (data in nodes)</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <p class="figcap">Hash wins pure equality; the B+-tree wins everything else and is the
+    all-round default. Use a hash index only when you never need order.</p>
+  </section>
+
+  <!-- 14 · AT A GLANCE -->
+  <section class="slide" data-title="B+-tree at a glance" aria-roledescription="slide" aria-label="B plus tree at a glance">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">The B+-tree at a glance</h2>
+    <div class="costgrid">
+      <div class="cg"><b>Balanced</b><span>Every leaf at the same depth; nodes at least half full.</span></div>
+      <div class="cg"><b>High fan-out</b><span>Internal nodes = keys only; a node is one block.</span></div>
+      <div class="cg"><b>Data in leaves</b><span>All record pointers at the leaf level; uniform search length.</span></div>
+      <div class="cg"><b>Linked leaves</b><span>Sorted chain → efficient range and ordered scans.</span></div>
+      <div class="cg"><b>Dynamic</b><span>Splits on insert, merges on delete — no global rebuild.</span></div>
+      <div class="cg"><b>Shallow</b><span>Height ≈ log<sub>fan-out</sub>(N): 3–4 for billions of keys.</span></div>
+    </div>
+    <p class="figcap">Balanced + shallow + ordered + dynamic — the reasons it's the
+    universal database index.</p>
+  </section>
+
+  <!-- 15 · PITFALLS -->
+  <section class="slide" data-title="Pitfalls and tips" aria-roledescription="slide" aria-label="Pitfalls and tips">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Pitfalls &amp; tips</h2>
+    <ul>
+      <li><strong>B+-tree, not B-tree, for databases.</strong> Keeping data out of internal
+      nodes raises fan-out and enables leaf-chain range scans.</li>
+      <li><strong>Height is the cost.</strong> Search, insert, and delete are all ≈ the tree
+      height — which stays tiny thanks to fan-out.</li>
+      <li><strong>A hash index can't do ranges.</strong> Reach for a B+-tree unless the
+      workload is pure equality lookups.</li>
+      <li><strong>Splits and merges are local.</strong> Writes touch a path from leaf to root
+      at worst — never a global rebuild.</li>
+      <li><strong>Fan-out follows block size.</strong> Bigger blocks → more keys per node →
+      shallower tree; it's a physical-design lever.</li>
+    </ul>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up · end of Unit 7</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><span class="term">B-trees</span>: balanced, high fan-out, shallow.</li>
+          <li><span class="term">B+-trees</span>: keys route, data in linked leaves — higher fan-out and free range scans.</li>
+          <li>Search, insert with <span class="term">splitting</span>, delete with merging; fan-out and physical design.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why does moving data out of internal nodes raise fan-out?</li>
+            <li>Trace inserting a key that overflows a full leaf.</li>
+            <li>Why are range scans easy in a B+-tree but not a hash index?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next — Midterm 2, then Unit 8</h3>
+          <p style="margin:0">A review of Units 5–7 and Midterm 2, then transactions:
+          ACID, concurrency, serializability, and recovery.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- B+-tree split stepper (only if that markup is present) ---
+  var tChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-step]'));
+  var tDesc  = document.getElementById('tree-desc');
+  var tDemo  = document.getElementById('tree-demo');
+  if (tChips.length && tDemo){
+    tChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        tChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        tDemo.setAttribute('data-step', chip.getAttribute('data-step'));
+        if (tDesc) tDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>
