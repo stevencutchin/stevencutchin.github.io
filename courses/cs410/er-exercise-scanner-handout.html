@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>In-Class Exercise — Reverse-Engineer the ER Diagram · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:16.5px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+
+.wrap{max-width:900px;margin:0 auto;padding:20px 22px 56px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 10px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.9rem}
+.unit-tag{display:inline-block;font-size:.76rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+h1{font-family:var(--serif);font-weight:700;color:var(--ink);font-size:1.85rem;
+  line-height:1.14;margin:16px 0 6px}
+h2{font-family:var(--serif);font-weight:700;color:var(--blue-ink);font-size:1.28rem;
+  margin:30px 0 8px;padding-bottom:5px;border-bottom:2px solid var(--line)}
+h3{font-family:var(--sans);font-weight:700;color:var(--blue-ink);font-size:1rem;margin:16px 0 4px}
+p{margin:0 0 11px;max-width:70ch}
+.lead{font-size:1.08rem;color:var(--muted);max-width:66ch}
+ul,ol{max-width:70ch;margin:0 0 12px;padding-left:1.25rem}
+li{margin:6px 0}
+code,.mono{font-family:var(--mono);font-size:.9em;background:var(--tint);
+  padding:1px 5px;border-radius:4px;color:var(--blue-ink)}
+strong{color:var(--ink)}
+.pk{color:var(--blue);font-weight:700}
+.card{color:var(--brown);font-weight:700}
+
+.box{background:var(--bg);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:13px 17px;margin:16px 0}
+.box h3{margin-top:0}
+.box.task{border-left-color:var(--brown);background:#fff}
+
+/* notation legend */
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;
+  background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:12px 16px;margin:10px 0 4px}
+.legend .li{display:inline-flex;align-items:center;gap:8px;font-size:.92rem;color:var(--ink)}
+.legend svg{display:block}
+
+/* entity catalog */
+.subsys{margin:14px 0}
+.subsys > .head{display:flex;align-items:center;gap:9px;margin:0 0 6px}
+.subsys .dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex:0 0 auto}
+.subsys .head b{font-size:1.02rem;color:var(--ink)}
+.subsys .head span{color:var(--muted);font-size:.9rem}
+.ent{border:1px solid var(--line);border-radius:8px;background:var(--bg);
+  padding:9px 13px;margin:7px 0}
+.ent .name{font-family:var(--mono);font-weight:700;color:var(--blue-ink);font-size:.96rem}
+.ent .attrs{color:var(--ink);font-size:.93rem;margin-top:2px}
+.ent .attrs .a{font-family:var(--mono);font-size:.88rem}
+.ent .note{color:var(--muted);font-size:.86rem;margin-top:3px}
+
+table.rules{border-collapse:collapse;width:100%;margin:8px 0 4px;font-size:.95rem}
+table.rules td{border:1px solid var(--line);padding:8px 11px;vertical-align:top}
+table.rules td.n{width:2.4rem;text-align:center;font-weight:700;color:var(--blue);
+  background:var(--tint);font-variant-numeric:tabular-nums}
+
+.instr{border:1px dashed var(--brown);border-radius:9px;background:#fff;
+  padding:13px 17px;margin:22px 0 0}
+.instr h2{border:0;margin:0 0 6px;color:var(--brown)}
+.foot{color:var(--muted);font-size:.85rem;margin-top:28px;border-top:1px solid var(--line);padding-top:10px}
+
+@media print{
+  @page{size:letter portrait;margin:16mm}
+  body{background:#fff;font-size:11pt}
+  .skip{display:none}
+  .wrap{max-width:none;padding:0}
+  h2{break-after:avoid}
+  .ent,.box,.legend,table.rules,.instr{break-inside:avoid}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .box,.ent,.legend,table.rules td{border-color:#000}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#task">Skip to the task</a>
+<div class="wrap">
+
+  <div class="topbar">
+    <span class="unit-tag">Unit 1 · ER modeling</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">In-class exercise · Elmasri &amp; Navathe, Ch. 3</span>
+  </div>
+
+  <h1>Reverse-engineer the ER diagram</h1>
+  <p class="lead">You are handed a written description of a real database. Your job is to
+  turn it back into the diagram the designers drew &mdash; entities, keys, foreign keys,
+  and crow's-foot cardinalities.</p>
+
+  <h2>The mini-world</h2>
+  <p>A company runs an <strong>automated website-privacy scanner</strong>. Customers register
+  the <em>sites</em> they own; the service crawls each site's pages, runs scans, and records
+  every privacy-relevant thing it finds &mdash; cookies, third-party trackers, browser-fingerprinting
+  scripts, session recorders, keylogging listeners &mdash; plus a summary of the site's network
+  traffic. It then generates reports and bills for the work.</p>
+  <p>One design decision is baked into the whole schema: <strong>every table except
+  <code>import_batch</code> stores a <code>site_id</code></strong> that points back to the
+  owning <code>site</code>. It is deliberately <em>denormalized</em> &mdash; the same site you
+  could reach by walking the parent chain, copied onto each row &mdash; so that any
+  &ldquo;everything for this site&rdquo; query stays a single-column filter instead of a long
+  chain of joins. You will represent this on your diagram.</p>
+
+  <h2>Notation to use</h2>
+  <p>Draw a <strong>crow's-foot ER diagram</strong>. One box per entity, listing its attributes;
+  mark the primary key, add the foreign-key columns the rules below imply, and connect related
+  entities with a line whose ends show the cardinality:</p>
+  <div class="legend" role="img" aria-label="Notation key: a bar marks the one end of a relationship; a crow's foot marks the many end; a diamond marks the primary key; a hollow circle marks a foreign key.">
+    <span class="li">
+      <svg width="60" height="20" viewBox="0 0 60 20" aria-hidden="true"><line x1="4" y1="10" x2="56" y2="10" stroke="#7A2708" stroke-width="1.7"/><line x1="12" y1="3" x2="12" y2="17" stroke="#7A2708" stroke-width="1.8"/></svg>
+      <span><span class="card">bar</span> = the <strong>one</strong> end</span>
+    </span>
+    <span class="li">
+      <svg width="60" height="20" viewBox="0 0 60 20" aria-hidden="true"><line x1="4" y1="10" x2="56" y2="10" stroke="#7A2708" stroke-width="1.7"/><path d="M48,10 L58,4 M48,10 L58,10 M48,10 L58,16" stroke="#7A2708" stroke-width="1.6" fill="none"/></svg>
+      <span><span class="card">crow's foot</span> = the <strong>many</strong> end</span>
+    </span>
+    <span class="li"><span class="pk">&#9670;</span>&nbsp;primary key</span>
+    <span class="li"><span style="color:var(--muted)">&#9675;</span>&nbsp;foreign key</span>
+    <span class="li"><span style="color:var(--muted)">&middot;&middot;&middot;</span>&nbsp;optional (nullable) link</span>
+  </div>
+
+  <h2>The entities</h2>
+  <p>Each entity's <em>descriptive</em> attributes are listed below, with its primary key marked
+  <span class="pk">&#9670;</span>. Foreign-key columns are <em>not</em> pre-filled &mdash; you add
+  those from the rules in the next section. Colors match the subsystem groupings.</p>
+
+  <div class="subsys">
+    <div class="head"><span class="dot" style="background:#2563eb"></span><b>Intake &amp; targets</b><span>what gets scanned</span></div>
+    <div class="ent"><span class="name">import_batch</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">source, filename, loaded_at</span></div>
+      <div class="note">The only table with <em>no</em> <code>site_id</code>. A batch is a file-load that brings sites into the system.</div>
+    </div>
+    <div class="ent"><span class="name">site</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">domain, company_name, scan_mode, status</span></div>
+      <div class="note">A registered customer site. Its <code>id</code> is the value every other table copies as <code>site_id</code>.</div>
+    </div>
+    <div class="ent"><span class="name">url</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">url, url_role, is_primary</span></div>
+      <div class="note">A specific page/URL under a site.</div>
+    </div>
+  </div>
+
+  <div class="subsys">
+    <div class="head"><span class="dot" style="background:#7c3aed"></span><b>Scanning</b><span>runs and their scans</span></div>
+    <div class="ent"><span class="name">scan_run</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">scan_mode, outbound_ip, technician_name, status</span></div>
+      <div class="note">One launched job against a site (and usually one URL).</div>
+    </div>
+    <div class="ent"><span class="name">scan</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">device, phase, status</span></div>
+      <div class="note">One unit of work inside a run &mdash; e.g. a given device or phase.</div>
+    </div>
+  </div>
+
+  <div class="subsys">
+    <div class="head"><span class="dot" style="background:#15803d"></span><b>Evidence / findings</b><span>six finding tables, same shape, plus a summary</span></div>
+    <div class="ent"><span class="name">finding_cookie</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">name, domain, owner, is_third_party, evidence_tier</span></div></div>
+    <div class="ent"><span class="name">finding_tracker</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">host, owner, category, evidence_tier</span></div></div>
+    <div class="ent"><span class="name">finding_canvas_fp</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">host, method, evidence_tier</span></div></div>
+    <div class="ent"><span class="name">finding_session_recorder</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">host, capture_confirmed, evidence_tier</span></div></div>
+    <div class="ent"><span class="name">finding_keylogging</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">host, event_type, selector, evidence_tier</span></div></div>
+    <div class="ent"><span class="name">finding_fingerprint_network</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">host, category, evidence_tier</span></div></div>
+    <div class="ent"><span class="name">scan_summary</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">scan_id</span> &middot; <span class="a">cookie_count, tracker_count, aggressiveness</span></div>
+      <div class="note">Roll-up counts for a scan. Note its primary key is <code>scan_id</code> itself &mdash; that is a hint about its cardinality with <code>scan</code>.</div>
+    </div>
+  </div>
+
+  <div class="subsys">
+    <div class="head"><span class="dot" style="background:#c2410c"></span><b>Network traces</b><span>traffic captured during a scan</span></div>
+    <div class="ent"><span class="name">network_trace</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">request_count, host_count, third_party_host_count</span></div></div>
+    <div class="ent"><span class="name">network_trace_request</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">method, host, owner, is_third_party</span></div>
+      <div class="note">One individual request line within a trace.</div>
+    </div>
+  </div>
+
+  <div class="subsys">
+    <div class="head"><span class="dot" style="background:#be123c"></span><b>Reports</b><span>generated outputs</span></div>
+    <div class="ent"><span class="name">report</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">report_type, status</span></div>
+      <div class="note">A generated report. It can point at what it was built from &mdash; see the rules.</div>
+    </div>
+  </div>
+
+  <div class="subsys">
+    <div class="head"><span class="dot" style="background:#475569"></span><b>Billing</b><span>charges for the work</span></div>
+    <div class="ent"><span class="name">invoice</span>
+      <div class="attrs"><span class="pk">&#9670;</span> <span class="a">id</span> &middot; <span class="a">invoice_number, amount, status</span></div></div>
+  </div>
+
+  <h2>Business rules (how the entities relate)</h2>
+  <p>Each rule becomes one connector on your diagram. Read every rule in both directions to fix the
+  cardinality before you draw it. &ldquo;May&rdquo; / &ldquo;optional&rdquo; means the link is nullable
+  &mdash; draw it dashed.</p>
+  <table class="rules">
+    <tbody>
+      <tr><td class="n">1</td><td>An <code>import_batch</code> brings in <strong>many</strong> <code>site</code>s; each <code>site</code> was brought in by <strong>one</strong> batch.</td></tr>
+      <tr><td class="n">2</td><td>A <code>site</code> has <strong>many</strong> <code>url</code>s; each <code>url</code> belongs to <strong>one</strong> site.</td></tr>
+      <tr><td class="n">3</td><td>A <code>url</code> can be the target of <strong>many</strong> <code>scan_run</code>s; each <code>scan_run</code> targets <strong>at most one</strong> <code>url</code> (optional).</td></tr>
+      <tr><td class="n">4</td><td>A <code>scan_run</code> contains <strong>many</strong> <code>scan</code>s; each <code>scan</code> belongs to <strong>one</strong> run.</td></tr>
+      <tr><td class="n">5</td><td>A <code>scan</code> produces <strong>many</strong> findings of <em>each</em> of the six finding types; every finding was produced by <strong>one</strong> <code>scan</code>. (Six connectors, one per finding table.)</td></tr>
+      <tr><td class="n">6</td><td>A <code>scan</code> has <strong>at most one</strong> <code>scan_summary</code>, and a <code>scan_summary</code> describes <strong>exactly one</strong> <code>scan</code>. <em>(What cardinality is that? Look at its primary key.)</em></td></tr>
+      <tr><td class="n">7</td><td>A <code>scan</code> produces <strong>at most one</strong> <code>network_trace</code>; each <code>network_trace</code> summarizes <strong>one</strong> scan.</td></tr>
+      <tr><td class="n">8</td><td>A <code>network_trace</code> has <strong>many</strong> <code>network_trace_request</code>s; each request belongs to <strong>one</strong> trace.</td></tr>
+      <tr><td class="n">9</td><td>A <code>report</code> may reference <strong>one</strong> <code>scan_run</code> and/or <strong>one</strong> <code>scan</code> it was built from (both optional), and may be derived from <strong>one</strong> earlier <code>report</code> (optional). So <code>report</code> also relates to <em>itself</em>.</td></tr>
+      <tr><td class="n">10</td><td>An <code>invoice</code> may reference <strong>one</strong> <code>report</code> (optional); a <code>report</code> can have <strong>many</strong> invoices.</td></tr>
+      <tr><td class="n">11</td><td><strong>Denormalized <code>site_id</code>:</strong> every entity <em>except</em> <code>import_batch</code> carries a <code>site_id</code> foreign key to <code>site</code>. Add it to each box.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="task">Your task</h2>
+  <div class="box task">
+    <h3>Deliverable (≈ 20–25 min, in pairs)</h3>
+    <ol style="margin-bottom:0">
+      <li>Draw all sixteen entity boxes with their descriptive attributes; mark each primary key.</li>
+      <li>Add the foreign-key column(s) each rule implies (e.g. <code>url_id</code>, <code>scan_run_id</code>,
+      <code>scan_id</code>, <code>network_trace_id</code>, <code>report_id</code>, <code>source_report_id</code>,
+      and <code>site_id</code> almost everywhere).</li>
+      <li>Connect related entities with crow's-foot lines; put the <span class="card">bar</span> on the
+      one end and the <span class="card">crow's foot</span> on the many end.</li>
+      <li>Draw optional (nullable) links dashed.</li>
+    </ol>
+  </div>
+
+  <div class="box">
+    <h3>Watch for these &mdash; they're the interesting parts</h3>
+    <ul style="margin-bottom:0">
+      <li><strong>A 1:1 you can spot from the key.</strong> <code>scan_summary</code> uses <code>scan_id</code>
+      <em>as</em> its primary key, so it can extend at most one scan &mdash; a one-to-one, not one-to-many.</li>
+      <li><strong>A self-relationship.</strong> <code>report</code> can point at another <code>report</code>
+      (<code>source_report_id</code>). One entity, both ends of the line.</li>
+      <li><strong>Repeated structure.</strong> The six <code>finding_*</code> tables are the same shape with
+      different payload columns &mdash; each connects to <code>scan</code> identically.</li>
+      <li><strong>Optional vs. mandatory.</strong> Which links are nullable? A <code>scan_run</code> without a
+      <code>url</code>, a <code>report</code> without a <code>scan</code>, an <code>invoice</code> without a
+      <code>report</code> &mdash; all allowed.</li>
+      <li><strong>Denormalization on purpose.</strong> Why copy <code>site_id</code> onto every table when the
+      join chain already reaches <code>site</code>? What does it cost, and what does it buy? (Discussion.)</li>
+    </ul>
+  </div>
+
+  <div class="instr">
+    <h2>Instructor notes</h2>
+    <p style="margin-bottom:6px">The completed target diagram is in the companion file
+    <code>er-exercise-scanner-key.html</code> (16 tables; open full-width or print landscape).</p>
+    <ul style="margin-bottom:0">
+      <li><strong>Structural chain:</strong> <code>import_batch</code> &rarr; <code>site</code> &rarr;
+      <code>url</code> &rarr; <code>scan_run</code> &rarr; <code>scan</code> &rarr; the six findings; all one-to-many.</li>
+      <li><strong>Cardinalities to check:</strong> Rule 6 is <em>1:1</em> (PK = FK); Rule 7 is 1:(0..1);
+      Rule 9 yields three separate optional links into <code>report</code>, one of them recursive.</li>
+      <li><strong>Grading surface:</strong> correct crow's-foot direction on every link, the 1:1 recognized,
+      the recursive <code>report</code> link drawn, and <code>site_id</code> present on all but
+      <code>import_batch</code>. The denormalization &ldquo;why&rdquo; is the discussion payoff, not a
+      drawing requirement.</li>
+      <li>To shorten: assign only Intake + Scanning + Findings (rules 1&ndash;6) and treat traces/reports/billing as an extension.</li>
+    </ul>
+  </div>
+
+  <p class="foot">CS 410/510 Databases · Boise State University · In-class ER exercise.
+  Some foreign-key columns are intentionally omitted from the entity list for you to supply.</p>
+
+</div>
+</body>
+</html>
