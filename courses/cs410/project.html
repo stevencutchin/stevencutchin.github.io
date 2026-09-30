@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Final Project — Gradebook Manager · CS 410/510 Databases · Fall 2026</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:17px;line-height:1.6}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:900px;margin:0 auto;padding:18px 20px 56px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+.sheet{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 42px 42px}
+
+/* ---- type ---- */
+h1{font-family:var(--serif);font-weight:700;font-size:2.15rem;line-height:1.1;
+  margin:0 0 6px;color:var(--ink)}
+.subtitle{font-size:1.1rem;color:var(--muted);margin:0 0 4px;max-width:62ch}
+h2{font-family:var(--serif);font-weight:700;font-size:1.45rem;line-height:1.2;
+  color:var(--blue-ink);margin:2.1em 0 .5em;padding-bottom:6px;
+  border-bottom:2px solid var(--tint)}
+h3{font-family:var(--sans);font-weight:700;font-size:1.05rem;color:var(--blue-ink);
+  margin:1.5em 0 .4em}
+h4{font-family:var(--sans);font-weight:700;font-size:.95rem;color:var(--ink);
+  margin:1.2em 0 .3em}
+p{max-width:70ch;margin:0 0 .85em}
+ul,ol{max-width:70ch;margin:0 0 .9em;padding-left:1.25rem}
+li{margin:6px 0}
+li::marker{color:var(--blue)}
+.term{color:var(--blue-ink);font-weight:700}
+code,kbd{font-family:var(--mono);font-size:.88em;background:var(--tint);
+  border:1px solid #D8E1F2;border-radius:4px;padding:1px 5px;color:var(--blue-ink)}
+pre{font-family:var(--mono);font-size:.84rem;line-height:1.5;background:#F8FAFD;
+  border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:12px 16px;overflow-x:auto;margin:0 0 1em}
+pre code{background:none;border:none;padding:0;color:var(--ink)}
+a{color:var(--blue);text-underline-offset:2px}
+a:hover{color:var(--blue-ink)}
+a:focus-visible{outline:3px solid var(--brown);outline-offset:2px;border-radius:3px}
+
+/* ---- blocks ---- */
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:13px 18px;margin:1.1em 0}
+.callout.warn{border-left-color:var(--brown);background:#FBF6F3}
+.callout h3{margin:0 0 4px;font-size:1rem}
+.callout.warn h3{color:var(--brown)}
+.callout p:last-child,.callout ul:last-child,.callout ol:last-child{margin-bottom:0}
+
+.facts{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:1.2em 0 0}
+.facts div{background:#fff;padding:11px 16px}
+.facts dt{font-size:.78rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 2px}
+.facts dd{margin:0;font-weight:600;color:var(--blue-ink)}
+.facts dd small{display:block;font-weight:400;color:var(--muted);font-size:.84rem}
+
+table{border-collapse:collapse;width:100%;margin:0 0 1.1em;font-size:.93rem}
+caption{caption-side:top;text-align:left;color:var(--muted);font-size:.87rem;
+  padding:0 0 7px}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+thead th{background:var(--tint);color:var(--blue-ink);font-size:.86rem;
+  letter-spacing:.02em}
+tbody th{background:#FAFBFE;font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td,tfoot th{background:#FAFBFE;font-weight:700}
+.cmd{font-family:var(--mono);font-size:.86rem;color:var(--blue-ink);white-space:nowrap}
+.url{display:block;font-family:var(--mono);font-size:.72rem;font-weight:400;
+  color:var(--muted);word-break:break-all;margin-top:3px;line-height:1.35}
+.cmd-wrap{font-family:var(--mono);font-size:.86rem;color:var(--blue-ink)}
+
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:16px;
+  margin:1.2em 0}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:9px 2px 0}
+
+.req{border-left:3px solid var(--tint);padding-left:14px;margin:0 0 .9em}
+.req-id{font-family:var(--mono);font-size:.8rem;font-weight:700;color:var(--brown)}
+
+.checklist{list-style:none;padding-left:0}
+.checklist li{position:relative;padding-left:28px;margin:8px 0}
+.checklist li::before{content:"";position:absolute;left:0;top:.28em;width:15px;height:15px;
+  border:2px solid var(--blue);border-radius:3px;background:#fff}
+
+/* ---- interactive demonstrator ---- */
+.gc-controls{display:none;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+html.js .gc-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 15px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--brown);outline-offset:2px}
+.live-desc{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  padding:10px 15px;font-size:.95rem;margin:0 0 1em;max-width:none}
+html.js .gc-panel[hidden]{display:none}
+.gc-panel h4:first-child{margin-top:0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .sheet{padding:22px 18px 30px}
+  h1{font-size:1.7rem}
+  .facts{grid-template-columns:1fr}
+  table{font-size:.86rem}
+  th,td{padding:7px 8px}
+  .cmd{white-space:normal}
+  .scroll-x{overflow-x:auto}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .callout,.fig,.facts,th,td{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---- print / PDF ---- */
+@page{size:letter portrait;margin:18mm 16mm}
+@media print{
+  body{background:#fff;font-size:10.5pt;line-height:1.45}
+  .skip,.gc-controls,.live-desc{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .sheet{border:none;border-radius:0;padding:0}
+  .topbar{border-top-width:4px;padding:0 0 8px;margin-bottom:10px}
+  a{color:var(--blue-ink);text-decoration:none}
+  a[href^="http"]::after{content:" (" attr(href) ")";font-size:.82em;color:#555;
+    word-break:break-all;font-family:var(--mono)}
+  table a[href^="http"]::after{content:none}
+  h2{break-after:avoid;margin-top:1.4em}
+  h3,h4{break-after:avoid}
+  .callout,.fig,.facts,pre,.req{break-inside:avoid}
+  tr,caption{break-inside:avoid}
+  caption{break-after:avoid}
+  thead{display:table-header-group}
+  .gc-panel[hidden]{display:block!important}
+  .page-break{break-before:page}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the project description</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Final Project · 15% of course grade</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Boise State University · Fall 2026 · Dr. Steve Cutchin</span>
+  </div>
+
+  <main id="main" class="sheet">
+
+  <h1>Gradebook Manager</h1>
+  <p class="subtitle">Design a relational database for managing grades in a university
+  course, and build a Java command-shell application that talks to it over JDBC.</p>
+
+  <dl class="facts">
+    <div><dt>Released</dt><dd>Monday, September 28, 2026</dd></div>
+    <div><dt>Final submission due</dt><dd>Wednesday, December 9, 2026, 11:59 p.m.
+      <small>Not accepted late — see §11.</small></dd></div>
+    <div><dt>Milestone 1 — proposal &amp; schema</dt><dd>Wednesday, October 14, 2026, 11:59 p.m.</dd></div>
+    <div><dt>Milestone 2 — checkpoint</dt><dd>Monday, November 16, 2026, 11:59 p.m.</dd></div>
+    <div><dt>Points</dt><dd>100 (CS 510: 110)
+      <small>15% of the course grade.</small></dd></div>
+    <div><dt>Teams</dt><dd>CS 410: pairs. CS 510: solo.
+      <small>One submission per team.</small></dd></div>
+  </dl>
+
+  <h2 id="s1">1 · What you are building, and why</h2>
+
+  <p>Every topic in this course so far has been practiced in isolation: you drew ER
+  diagrams on paper, mapped them to relations on paper, and wrote SQL against a
+  database someone else had already created. This project is where those pieces
+  become one system.</p>
+
+  <p>You will build a <span class="term">gradebook manager</span>: a command-line
+  application, written in Java, that stores everything it knows in a MySQL database
+  running on your own machine. An instructor should be able to start your program,
+  create a class, define grading categories and assignments, enroll students, record
+  grades, and print a gradebook — and then quit, restart, and find everything exactly
+  as they left it, because none of it ever lived in Java memory.</p>
+
+  <p>That last point is the whole exercise. The natural instinct of a Java programmer
+  is to load everything into <code>ArrayList</code>s and <code>HashMap</code>s, compute
+  in Java, and treat the database as a place to dump objects. Doing that here will cost
+  you a substantial number of points. The database is not storage behind your
+  application; it <em>is</em> your application's model. Your Java code is a thin shell
+  that parses commands, sends SQL, and formats what comes back.</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 190" role="img" aria-labelledby="archt archd">
+      <title id="archt">System architecture for the gradebook manager</title>
+      <desc id="archd">Three boxes left to right. First, the user typing commands at a
+      terminal. Second, your Java command shell, containing a command parser, a JDBC
+      data-access layer, and an output formatter. Third, a MySQL server running on your
+      own machine, holding the tables, constraints, indexes, and views. An arrow labelled
+      parameterized SQL runs from the Java shell to MySQL, and an arrow labelled result
+      sets runs back. A note reads: all state lives in MySQL, none in Java.</desc>
+      <rect x="14" y="52" width="130" height="78" rx="7" fill="#F4F6FB" stroke="#0033A0" stroke-width="2.1"/>
+      <text x="79" y="80" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">You</text>
+      <text x="79" y="100" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">terminal</text>
+      <text x="79" y="116" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">commands</text>
+
+      <line x1="144" y1="91" x2="196" y2="91" stroke="#8A93A3" stroke-width="1.7"/>
+      <polygon points="196,91 188,87 188,95" fill="#8A93A3"/>
+
+      <rect x="196" y="30" width="216" height="122" rx="7" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+      <text x="304" y="52" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">Java command shell</text>
+      <rect x="210" y="63" width="188" height="24" rx="4" fill="#fff" stroke="#8FA6D4" stroke-width="1.3"/>
+      <text x="304" y="79" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#14181F">command parser</text>
+      <rect x="210" y="91" width="188" height="24" rx="4" fill="#fff" stroke="#8FA6D4" stroke-width="1.3"/>
+      <text x="304" y="107" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#14181F">JDBC data access</text>
+      <rect x="210" y="119" width="188" height="24" rx="4" fill="#fff" stroke="#8FA6D4" stroke-width="1.3"/>
+      <text x="304" y="135" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#14181F">output formatter</text>
+
+      <line x1="412" y1="72" x2="534" y2="72" stroke="#0033A0" stroke-width="1.8"/>
+      <polygon points="534,72 526,68 526,76" fill="#0033A0"/>
+      <text x="473" y="65" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">parameterized SQL</text>
+      <line x1="534" y1="110" x2="412" y2="110" stroke="#0033A0" stroke-width="1.8"/>
+      <polygon points="412,110 420,106 420,114" fill="#0033A0"/>
+      <text x="473" y="125" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">result sets</text>
+
+      <rect x="534" y="30" width="152" height="122" rx="7" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+      <text x="610" y="55" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">MySQL</text>
+      <text x="610" y="75" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">tables · keys</text>
+      <text x="610" y="93" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">constraints</text>
+      <text x="610" y="111" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">indexes · views</text>
+      <text x="610" y="133" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">all state lives here</text>
+
+      <text x="350" y="178" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">Nothing persists in Java. Restarting the program must lose nothing.</text>
+    </svg>
+    <p class="figcap">The shape of the system. Everything you are graded on for
+    correctness happens on the right; Java is the part that asks the questions.</p>
+  </div>
+
+  <h3>What this project assesses</h3>
+  <ul>
+    <li><strong>Unit 1–2</strong> — conceptual design and ER-to-relational mapping (Parts 1 and 2).</li>
+    <li><strong>Unit 4</strong> — SQL, including aggregation, grouping, joins, and views (Parts 2 and 4).</li>
+    <li><strong>Unit 5</strong> — application access via JDBC, prepared statements, and SQL injection (Part 3).</li>
+    <li><strong>Unit 7</strong> — index selection and physical design (Part 2, and Part 6 for CS 510).</li>
+  </ul>
+
+  <h2 id="s2">2 · The problem domain</h2>
+
+  <p>Read this section as a requirements document from a client. Each requirement is
+  labelled (<span class="req-id">D1</span>, <span class="req-id">D2</span>, …) so you
+  can refer to it in your design write-up and so we can refer to it when grading. The
+  requirements describe <em>what must be true</em>, not what tables to create — the
+  mapping is your job.</p>
+
+  <div class="req"><span class="req-id">D1 · Classes</span>
+  <p>The system tracks many classes. A class is identified to a user by its
+  <strong>course number</strong> (e.g. <code>CS410</code>), <strong>term</strong>
+  (e.g. <code>Fa26</code>), and <strong>section number</strong> (e.g. <code>1</code>).
+  No two classes share all three. A class also has a <strong>description</strong>
+  (e.g. <code>Databases</code>). You may add fields you can justify.</p></div>
+
+  <div class="req"><span class="req-id">D2 · Categories</span>
+  <p>A class has one or more grading <strong>categories</strong> — homework, exam,
+  project, participation, and so on. Each category has a name and a
+  <strong>weight</strong>. Category names are unique within a class, and two different
+  classes may use different category names and weights. Weights are not required to sum
+  to 100; see <span class="req-id">D8</span>.</p></div>
+
+  <div class="req"><span class="req-id">D3 · Assignments</span>
+  <p>A class has <strong>assignments</strong>. Each belongs to exactly one category of
+  that class, and has a name, a description, and a <strong>point value</strong> (the
+  maximum points available). No two assignments in the same class may share a name;
+  assignments in different classes may.</p></div>
+
+  <div class="req"><span class="req-id">D4 · Students</span>
+  <p>A <strong>student</strong> has a <strong>username</strong> (the part of their email
+  address before the <code>@</code>), a <strong>student ID</strong>, and a name. A
+  student exists independently of any class and may be enrolled in many classes across
+  many terms. Usernames and student IDs are each unique across the whole system.</p></div>
+
+  <div class="req"><span class="req-id">D5 · Enrollment</span>
+  <p>A student is <strong>enrolled</strong> in zero or more classes; a class enrolls
+  zero or more students. A student cannot be enrolled in the same class twice.</p></div>
+
+  <div class="req"><span class="req-id">D6 · Grades</span>
+  <p>A student who is enrolled in a class may be assigned a <strong>grade</strong> — a
+  number of points — for an assignment in that class. A student has at most one grade
+  per assignment. A student with no grade for an assignment is
+  <em>ungraded</em>, which is not the same as scoring zero: the distinction drives
+  §4's two grade figures, so do not represent it with a <code>0</code>.</p></div>
+
+  <div class="req"><span class="req-id">D7 · Grade integrity</span>
+  <p>It must be impossible for the database to hold a grade for a student who is not
+  enrolled in the class that owns the assignment. Enforce this with constraints where
+  you can; where the constraint cannot be expressed declaratively, say so in your
+  README and explain how your application prevents it.</p></div>
+
+  <div class="req"><span class="req-id">D8 · Grade calculation</span>
+  <p>Grades are reported out of 100 using the weighted scheme fully specified in §4.</p></div>
+
+  <h2 id="s3">3 · Deliverables</h2>
+
+  <h3>Part 1 — Conceptual and logical data model</h3>
+  <p>Produce a single PDF, <code>model.pdf</code>, containing:</p>
+  <ul>
+    <li>An <strong>ER or EER diagram</strong> covering <span class="req-id">D1</span>–<span class="req-id">D7</span>,
+    in either Chen or Elmasri–Navathe notation. Show cardinality ratios, participation
+    constraints, keys, and any weak entities. State which notation you used.</li>
+    <li>The <strong>relational schema diagram</strong> that your ER model maps to:
+    relation names, attributes, primary keys underlined, and foreign-key arrows.</li>
+    <li>Half a page of prose naming the design decisions you actually had to make —
+    for example, how you represented a category's relationship to a class, or how you
+    guaranteed <span class="req-id">D7</span>. Two defensible models of the same
+    requirements are both acceptable; an undefended one is not.</li>
+  </ul>
+
+  <h3>Part 2 — MySQL schema</h3>
+  <p>Produce <code>schema.sql</code>: a script that creates your database from nothing.
+  It must run cleanly on a fresh MySQL server with <code>mysql &lt; schema.sql</code>
+  and must include:</p>
+  <ul>
+    <li><code>CREATE TABLE</code> statements with appropriate data types. Use
+    <code>DECIMAL</code> for point values and grades, not <code>FLOAT</code> or
+    <code>DOUBLE</code>.</li>
+    <li><code>PRIMARY KEY</code>, <code>FOREIGN KEY</code>, <code>UNIQUE</code>,
+    <code>NOT NULL</code>, and <code>CHECK</code> constraints implementing
+    <span class="req-id">D1</span>–<span class="req-id">D7</span>. Choose
+    <code>ON DELETE</code> / <code>ON UPDATE</code> behavior deliberately for each
+    foreign key.</li>
+    <li>At least <strong>two secondary indexes</strong> beyond those created
+    automatically by keys, each with a one-line comment in the script saying which
+    query it is there to serve.</li>
+    <li>Any views you use. Views are encouraged for the reporting queries in §4.</li>
+  </ul>
+
+  <h3>Part 3 — Java command-shell application</h3>
+  <p>A Java program that presents an interactive prompt, reads one command per line,
+  executes it against MySQL, prints the result, and loops until the user exits. The
+  full command reference is §5.</p>
+
+  <h3>Part 4 — SQL-first computation</h3>
+  <p>This is a requirement on <em>how</em> Part 3 is implemented, and it is graded
+  separately. Do the work in SQL. Specifically:</p>
+  <ul>
+    <li><code>student-grades</code> must be produced by <strong>one</strong> query
+    (a view or CTE chain counts as one), and <code>gradebook</code> by one more.</li>
+    <li>Java may loop over the result set to format output. Java must not compute
+    sums, averages, weights, or rescaling.</li>
+    <li>Every value that came from user input must reach the database through a
+    <code>PreparedStatement</code> parameter. String concatenation into SQL anywhere
+    in your source is an automatic deduction, whether or not it is exploitable.</li>
+  </ul>
+
+  <h3>Part 5 — Documentation and demonstration</h3>
+  <p>A <code>README.md</code> and a demonstration video; see §10.</p>
+
+  <h3>Part 6 — CS 510 only</h3>
+  <p>A performance and indexing analysis, plus an in-class presentation; see §12.</p>
+
+  <h2 id="s4" class="page-break">4 · Grade calculation, specified exactly</h2>
+
+  <p>The old version of this project left this section vague, and every team
+  interpreted it differently. It is now pinned down. Implement exactly this.</p>
+
+  <h3>Definitions</h3>
+  <p>For a given student in a given class:</p>
+  <ul>
+    <li>A category's <strong>possible points</strong> is the sum of the point values of
+    all assignments in that category.</li>
+    <li>A category's <strong>attempted points</strong> is the sum of the point values of
+    the assignments in that category for which the student <em>has</em> a grade.</li>
+    <li>A category's <strong>earned points</strong> is the sum of the student's grades in
+    that category.</li>
+  </ul>
+
+  <h3>Two figures, always reported together</h3>
+  <ol>
+    <li><strong>Total grade</strong> — what the student has now, treating everything not
+    yet graded as worth zero. Each category's fraction is
+    <code>earned ÷ possible</code>.</li>
+    <li><strong>Attempted grade</strong> — how the student is doing on the work they have
+    actually been graded on. Each category's fraction is
+    <code>earned ÷ attempted</code>.</li>
+  </ol>
+
+  <h3>Weight rescaling</h3>
+  <p>Category weights are rescaled to sum to 100 before use. If the categories carry
+  weights 40, 40 and 30, they contribute 36.36, 36.36 and 27.27 respectively.</p>
+
+  <div class="callout warn">
+    <h3>The three edge cases that decide this section's points</h3>
+    <ul>
+      <li><strong>A category with no assignments</strong> has no possible points. Exclude
+      it from both figures and rescale the remaining weights over the categories that
+      remain.</li>
+      <li><strong>A category with assignments but none attempted</strong> is excluded from
+      the <em>attempted</em> grade only, and the remaining weights are rescaled again for
+      that figure. It stays in the total grade, contributing zero.</li>
+      <li><strong>A student with no grades at all</strong> has a total grade of 0.00 and an
+      attempted grade that is undefined. Print <code>—</code> or <code>n/a</code>, not
+      <code>0.00</code>.</li>
+    </ul>
+    <p>Round only at the point of display, to two decimal places. Do not round
+    intermediate values.</p>
+  </div>
+
+  <h3>A worked example</h3>
+  <p>A class with three categories and four assignments, and one student, Alice, who
+  has been graded on two of them.</p>
+
+  <div class="scroll-x">
+  <table>
+    <caption>Class setup and Alice's grades</caption>
+    <thead>
+      <tr><th scope="col">Category</th><th scope="col" class="num">Weight</th>
+          <th scope="col">Assignment</th><th scope="col" class="num">Points</th>
+          <th scope="col" class="num">Alice's grade</th></tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row" rowspan="2">homework</th><td class="num" rowspan="2">40</td>
+          <td>HW1</td><td class="num">100</td><td class="num">90</td></tr>
+      <tr><td>HW2</td><td class="num">100</td><td class="num">ungraded</td></tr>
+      <tr><th scope="row">exam</th><td class="num">40</td>
+          <td>Midterm</td><td class="num">100</td><td class="num">80</td></tr>
+      <tr><th scope="row">project</th><td class="num">30</td>
+          <td>Project</td><td class="num">100</td><td class="num">ungraded</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="2">Weights sum to 110, so each is scaled by 100/110</td>
+          <td colspan="3">homework 36.36 · exam 36.36 · project 27.27</td></tr>
+    </tfoot>
+  </table>
+  </div>
+
+  <div class="gc-controls" role="group" aria-label="Choose which grade figure to show">
+    <button class="chip" type="button" data-gc="total" aria-pressed="true"
+      data-desc="Total grade: ungraded work counts against the student. All three categories are included, so the rescaled weights 36.36, 36.36 and 27.27 are used unchanged.">Total grade</button>
+    <button class="chip" type="button" data-gc="attempted" aria-pressed="false"
+      data-desc="Attempted grade: only graded work counts. The project category has nothing attempted, so it drops out and the remaining weights 40 and 40 are rescaled to 50 and 50.">Attempted grade</button>
+  </div>
+  <p id="gc-desc" class="live-desc" aria-live="polite"
+     data-default="Total grade: ungraded work counts against the student. All three categories are included, so the rescaled weights 36.36, 36.36 and 27.27 are used unchanged.">Total grade: ungraded work counts against the student. All three categories are included, so the rescaled weights 36.36, 36.36 and 27.27 are used unchanged.</p>
+
+  <div class="gc-panel" id="gc-total">
+    <h4>Total grade — denominator is possible points</h4>
+    <div class="scroll-x">
+    <table>
+      <thead>
+        <tr><th scope="col">Category</th><th scope="col" class="num">Earned</th>
+            <th scope="col" class="num">Possible</th><th scope="col" class="num">Fraction</th>
+            <th scope="col" class="num">Weight</th><th scope="col" class="num">Contribution</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">homework</th><td class="num">90</td><td class="num">200</td>
+            <td class="num">0.4500</td><td class="num">36.36</td><td class="num">16.36</td></tr>
+        <tr><th scope="row">exam</th><td class="num">80</td><td class="num">100</td>
+            <td class="num">0.8000</td><td class="num">36.36</td><td class="num">29.09</td></tr>
+        <tr><th scope="row">project</th><td class="num">0</td><td class="num">100</td>
+            <td class="num">0.0000</td><td class="num">27.27</td><td class="num">0.00</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><th scope="row" colspan="5">Total grade</th><td class="num">45.45</td></tr>
+      </tfoot>
+    </table>
+    </div>
+  </div>
+
+  <div class="gc-panel" id="gc-attempted" hidden>
+    <h4>Attempted grade — denominator is attempted points, empty categories dropped</h4>
+    <div class="scroll-x">
+    <table>
+      <thead>
+        <tr><th scope="col">Category</th><th scope="col" class="num">Earned</th>
+            <th scope="col" class="num">Attempted</th><th scope="col" class="num">Fraction</th>
+            <th scope="col" class="num">Weight</th><th scope="col" class="num">Contribution</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">homework</th><td class="num">90</td><td class="num">100</td>
+            <td class="num">0.9000</td><td class="num">50.00</td><td class="num">45.00</td></tr>
+        <tr><th scope="row">exam</th><td class="num">80</td><td class="num">100</td>
+            <td class="num">0.8000</td><td class="num">50.00</td><td class="num">40.00</td></tr>
+        <tr><th scope="row">project</th><td class="num">—</td><td class="num">0</td>
+            <td class="num">excluded</td><td class="num">—</td><td class="num">—</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><th scope="row" colspan="5">Attempted grade</th><td class="num">85.00</td></tr>
+      </tfoot>
+    </table>
+    </div>
+  </div>
+
+  <p>Alice's row in the gradebook therefore reads <strong>45.45 total, 85.00
+  attempted</strong>. Both figures appear in both <code>student-grades</code> and
+  <code>gradebook</code>. Use this example as your first test case — if your program
+  reproduces these two numbers, your weighting logic is almost certainly right.</p>
+
+  <h2 id="s5" class="page-break">5 · Command reference</h2>
+
+  <p>Your shell must implement every command below. Arguments in
+  <code>&lt;angle brackets&gt;</code> are required, <code>[square brackets]</code>
+  optional. Any argument that may contain spaces is given in double quotes on the
+  command line; your parser must handle quoted arguments.</p>
+
+  <p>After <code>select-class</code>, every subsequent command operates on the selected
+  class — the same way a shell's working directory scopes the commands you type. Any
+  class-scoped command issued with no class selected must print an error, not crash.</p>
+
+  <h3>Class management</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:38%">Command</th><th scope="col">Behavior</th></tr></thead>
+    <tbody>
+      <tr><td class="cmd-wrap">new-class &lt;course&gt; &lt;term&gt; &lt;section&gt; "&lt;description&gt;"</td>
+          <td>Creates a class. Example: <code>new-class CS410 Fa26 1 "Databases"</code>.
+          Error if that course/term/section already exists.</td></tr>
+      <tr><td class="cmd">list-classes</td>
+          <td>Lists every class with its course number, term, section, description, and
+          the number of students enrolled. Order by term then course number.</td></tr>
+      <tr><td class="cmd-wrap">select-class &lt;course&gt; [&lt;term&gt;] [&lt;section&gt;]</td>
+          <td>Makes a class active. With only a course number, selects that course's
+          single section in the most recent term — and fails with a message listing the
+          candidates if there is more than one. With course and term, same rule within
+          that term. With all three, selects exactly that section.</td></tr>
+      <tr><td class="cmd">show-class</td>
+          <td>Shows the active class and its enrollment count, or reports that no class
+          is selected.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Categories and assignments</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:38%">Command</th><th scope="col">Behavior</th></tr></thead>
+    <tbody>
+      <tr><td class="cmd">show-categories</td>
+          <td>Lists the active class's categories with their weights, and the rescaled
+          percentage each one is worth.</td></tr>
+      <tr><td class="cmd-wrap">add-category &lt;name&gt; &lt;weight&gt;</td>
+          <td>Adds a category to the active class. Error if the name is already used in
+          this class, or the weight is not a positive number.</td></tr>
+      <tr><td class="cmd">show-assignments</td>
+          <td>Lists the active class's assignments grouped by category, with point
+          values, plus each category's total possible points.</td></tr>
+      <tr><td class="cmd-wrap">add-assignment &lt;name&gt; &lt;category&gt; &lt;points&gt; "&lt;description&gt;"</td>
+          <td>Adds an assignment. Error if the name is already used in this class, if
+          the category does not exist in this class, or if points are not positive.
+          Note the argument order differs from earlier versions of this assignment —
+          the quoted description is last.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Students and grades</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:38%">Command</th><th scope="col">Behavior</th></tr></thead>
+    <tbody>
+      <tr><td class="cmd-wrap">add-student &lt;username&gt; &lt;student-id&gt; &lt;last&gt; &lt;first&gt;</td>
+          <td>Creates the student if they do not exist, then enrolls them in the active
+          class. If the student already exists and the supplied name differs from the
+          stored name, update the stored name <em>and</em> print a warning showing the
+          old and new values. Error if already enrolled in this class.</td></tr>
+      <tr><td class="cmd-wrap">add-student &lt;username&gt;</td>
+          <td>Enrolls an existing student in the active class. Error if no such student
+          exists — do not create one from a bare username.</td></tr>
+      <tr><td class="cmd-wrap">show-students [&lt;string&gt;]</td>
+          <td>With no argument, lists all students in the active class. With a string,
+          lists those in the active class whose username or name contains it,
+          case-insensitively.</td></tr>
+      <tr><td class="cmd-wrap">grade &lt;assignment&gt; &lt;username&gt; &lt;points&gt;</td>
+          <td>Records a grade, replacing any existing grade for that student and
+          assignment. Error if the assignment is not in the active class, or the student
+          is not enrolled in it. If the points exceed the assignment's point value,
+          record it anyway but print a warning showing the configured maximum. Negative
+          points are an error.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Reporting</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:38%">Command</th><th scope="col">Behavior</th></tr></thead>
+    <tbody>
+      <tr><td class="cmd-wrap">student-grades &lt;username&gt;</td>
+          <td>For one student in the active class: every assignment, grouped by category,
+          showing the grade or a clear ungraded marker; a subtotal per category with its
+          weight; and the total and attempted grades from §4.</td></tr>
+      <tr><td class="cmd">gradebook</td>
+          <td>Every student in the active class — username, student ID, name — with
+          their total and attempted grades. Order by last name.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Shell commands</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:38%">Command</th><th scope="col">Behavior</th></tr></thead>
+    <tbody>
+      <tr><td class="cmd">help [&lt;command&gt;]</td>
+          <td>Lists the commands, or explains one of them.</td></tr>
+      <tr><td class="cmd">quit &nbsp;·&nbsp; exit</td>
+          <td>Closes the connection cleanly and exits with status 0.
+          End-of-input (Ctrl-D) behaves the same way.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>You may add commands beyond these — <code>drop-student</code>,
+  <code>delete-assignment</code>, <code>import-students</code> from a CSV, and so on.
+  Document any you add in your README. Extra commands do not earn extra points, but a
+  shell that is pleasant to use does help the demonstration go well.</p>
+
+  <h3>Behavior expected of every command</h3>
+  <ul>
+    <li><strong>No stack traces.</strong> Any error a user can cause — bad arguments,
+    missing class, duplicate name, constraint violation — produces a one-line message
+    beginning with <code>error:</code> and returns to the prompt. Catch
+    <code>SQLException</code> and translate it.</li>
+    <li><strong>No silent success.</strong> A command that changes data confirms what it
+    did.</li>
+    <li><strong>Multi-statement changes are atomic.</strong> Where a command performs
+    more than one write, wrap it in a transaction and roll back on failure.</li>
+    <li><strong>Tabular output is aligned.</strong> Use
+    <code>String.format</code> or equivalent; do not print raw
+    <code>toString()</code> output.</li>
+  </ul>
+
+  <h2 id="s6">6 · Environment and technical requirements</h2>
+
+  <ul>
+    <li><strong>Database:</strong> MySQL Community Server, installed and running on your
+    own machine. MySQL 9.7 LTS is the reference version; 8.4 LTS is also fine. Docker is
+    an acceptable way to run it. Do not build against a shared server — your submission
+    must be reproducible from <code>schema.sql</code> and <code>dump.sql</code> alone.</li>
+    <li><strong>Language:</strong> Java 21 or later. Java 25 (the current LTS) is
+    recommended.</li>
+    <li><strong>Driver:</strong> MySQL Connector/J, declared as a dependency
+    (<code>com.mysql:mysql-connector-j</code>). Note the group ID — the old
+    <code>mysql:mysql-connector-java</code> coordinates are deprecated.</li>
+    <li><strong>Build:</strong> Maven or Gradle, so that a clean checkout builds with one
+    command. A plain <code>javac</code> build is acceptable only if you include a working
+    build script and vendored driver JAR.</li>
+    <li><strong>Credentials:</strong> read the JDBC URL, username, and password from a
+    configuration file or environment variables. Hard-coded passwords in source cost
+    points. Include a <code>config.properties.example</code> with placeholder values, and
+    make sure the real one is not in your submission.</li>
+    <li><strong>Structure:</strong> separate the command parsing, the database access,
+    and the output formatting. A single 900-line <code>Main.java</code> will be marked
+    down under code quality.</li>
+  </ul>
+
+  <h2 id="s7">7 · Milestone 1 — proposal and schema</h2>
+  <p><strong>Due Wednesday, October 14, 2026, 11:59 p.m. · 10 points</strong></p>
+
+  <p>This lands the day we cover JDBC in lecture, so you will have your design settled
+  before you write application code. Submit a single PDF containing:</p>
+  <ul>
+    <li>Your team (both names, or your name if you are in CS 510).</li>
+    <li>Your ER/EER diagram — a draft is fine, but it must cover
+    <span class="req-id">D1</span>–<span class="req-id">D7</span>.</li>
+    <li>Your <code>CREATE TABLE</code> statements, pasted in, with keys and constraints.</li>
+    <li>Two or three sentences on how you intend to enforce
+    <span class="req-id">D7</span>.</li>
+    <li>Confirmation that MySQL is installed and running on both partners' machines, and
+    that you can connect to it from a Java program — one line of output from a trivial
+    connection test is enough evidence.</li>
+  </ul>
+  <p>Graded on completeness and on whether the schema is a plausible foundation. You
+  will get written feedback in time to change course; you are not locked into this
+  design.</p>
+
+  <h2 id="s8">8 · Milestone 2 — working checkpoint</h2>
+  <p><strong>Due Monday, November 16, 2026, 11:59 p.m. · 10 points</strong></p>
+
+  <p>Submit your repository (or a zip) plus a half-page status note. To earn full marks
+  the code must, at minimum:</p>
+  <ul>
+    <li>Connect to MySQL and run a command loop.</li>
+    <li>Implement <code>new-class</code>, <code>list-classes</code>,
+    <code>select-class</code>, <code>show-class</code>, <code>add-category</code>,
+    <code>add-assignment</code>, and <code>add-student</code>.</li>
+    <li>Use <code>PreparedStatement</code> throughout.</li>
+  </ul>
+  <p>The status note should say what is done, what is left, and anything that is
+  blocking you. Teams that are behind at this point almost never recover by December 9,
+  so treat a low checkpoint score as a signal to come to office hours.</p>
+
+  <h2 id="s9">9 · Suggested schedule</h2>
+
+  <div class="fig">
+    <svg viewBox="0 0 700 132" role="img" aria-labelledby="tlt tld">
+      <title id="tlt">Project timeline from release to final submission</title>
+      <desc id="tld">A timeline with five marked points: project released September 28;
+      Milestone 1, proposal and schema, due October 14; Milestone 2, working checkpoint,
+      due November 16; Thanksgiving break November 23 to 27; and final submission due
+      December 9. Between the checkpoint and the final submission the label reads
+      reporting queries, polish, video.</desc>
+      <line x1="42" y1="62" x2="668" y2="62" stroke="#C9D2E0" stroke-width="3"/>
+      <line x1="42" y1="62" x2="180" y2="62" stroke="#0033A0" stroke-width="3"/>
+      <line x1="180" y1="62" x2="432" y2="62" stroke="#0033A0" stroke-width="3"/>
+      <line x1="432" y1="62" x2="668" y2="62" stroke="#0033A0" stroke-width="3"/>
+
+      <circle cx="42" cy="62" r="7" fill="#0033A0"/>
+      <text x="42" y="40" text-anchor="start" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">Sep 28</text>
+      <text x="42" y="88" text-anchor="start" font-family="system-ui" font-size="10.5" fill="#4A5160">released</text>
+
+      <circle cx="180" cy="62" r="7" fill="#0033A0"/>
+      <text x="180" y="40" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">Oct 14</text>
+      <text x="180" y="88" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">Milestone 1</text>
+      <text x="180" y="102" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">proposal + schema</text>
+
+      <circle cx="432" cy="62" r="7" fill="#0033A0"/>
+      <text x="432" y="40" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">Nov 16</text>
+      <text x="432" y="88" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">Milestone 2</text>
+      <text x="432" y="102" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">working checkpoint</text>
+
+      <rect x="536" y="55" width="40" height="14" rx="3" fill="#EAF0FB" stroke="#8FA6D4" stroke-width="1.2"/>
+      <text x="556" y="44" text-anchor="middle" font-family="system-ui" font-size="9.5" fill="#4A5160">Nov 23–27</text>
+
+      <circle cx="668" cy="62" r="7" fill="#7A2708"/>
+      <text x="668" y="40" text-anchor="end" font-family="system-ui" font-size="11.5" font-weight="700" fill="#7A2708">Dec 9</text>
+      <text x="668" y="88" text-anchor="end" font-family="system-ui" font-size="10.5" fill="#4A5160">final submission</text>
+
+      <text x="111" y="120" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">model + schema</text>
+      <text x="306" y="120" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">core commands</text>
+      <text x="550" y="120" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">reporting queries · polish · video</text>
+    </svg>
+    <p class="figcap">Three phases, two feedback points. The reporting queries in §4 are
+    the hardest part and belong in the final stretch, not the last weekend.</p>
+  </div>
+
+  <h2 id="s10">10 · Submission</h2>
+
+  <p>Submit on <strong>Canvas</strong>, one submission per team, as a single zip file
+  named <code>cs410_project_&lt;lastname1&gt;_&lt;lastname2&gt;.zip</code>
+  (CS 510: <code>cs510_project_&lt;lastname&gt;.zip</code>). It contains:</p>
+
+  <ul class="checklist">
+    <li><code>model.pdf</code> — ER/EER diagram, relational schema diagram, and design
+    notes (Part 1).</li>
+    <li><code>schema.sql</code> — DDL that creates the database from nothing (Part 2).</li>
+    <li><code>dump.sql</code> — a <code>mysqldump</code> of your database with realistic
+    sample data: at least three classes across at least two terms, one of which is this
+    class with plausible categories and assignments; at least 10 students; and enough
+    grades that <code>gradebook</code> shows variety, including at least one student with
+    ungraded work and one category with nothing attempted.</li>
+    <li><code>src/</code> — your source code, with a comment above each method saying what
+    it does. Include your build file. Do not include compiled classes, IDE folders, or
+    your real <code>config.properties</code>.</li>
+    <li><code>README.md</code> — see below.</li>
+    <li><code>video.txt</code> — a working link to your demonstration video.</li>
+  </ul>
+
+  <h3>README contents</h3>
+  <p>Markdown, and it must let a grader run your project without asking you anything:</p>
+  <ul>
+    <li>Team members, and who did what.</li>
+    <li>Exact setup steps: MySQL version, how to load <code>schema.sql</code> and
+    <code>dump.sql</code>, how to configure credentials, how to build, how to run.</li>
+    <li>Your two reporting queries, quoted in full, with a paragraph explaining how each
+    one implements §4 — especially the two edge cases about excluded categories.</li>
+    <li>Your indexes and what each is for.</li>
+    <li>How you enforce <span class="req-id">D7</span>.</li>
+    <li>Known limitations and anything not implemented. Saying so costs far less than
+    having us find it.</li>
+    <li>Your AI use statement (see §13).</li>
+  </ul>
+
+  <h3>Demonstration video</h3>
+  <p>Five to eight minutes, unlisted or link-shared, showing your program running live —
+  not slides. Cover: creating a class, adding categories and assignments, enrolling
+  students, recording grades including the over-maximum warning, and both reporting
+  commands. Spend the last two minutes on your two reporting queries and your schema.
+  Both partners must speak. Check the link works from a private browser window before
+  you submit it.</p>
+
+  <h2 id="s11">11 · Grading</h2>
+
+  <div class="scroll-x">
+  <table>
+    <caption>Point distribution. CS 510 students are graded out of 110; see §12.</caption>
+    <thead><tr><th scope="col">Component</th><th scope="col">What earns full marks</th>
+      <th scope="col" class="num">Points</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Milestone 1</th>
+        <td>Complete, on time, schema is a plausible foundation.</td><td class="num">10</td></tr>
+      <tr><th scope="row">Milestone 2</th>
+        <td>Listed commands work against MySQL; prepared statements throughout.</td><td class="num">10</td></tr>
+      <tr><th scope="row">Data model</th>
+        <td>ER/EER and relational diagrams are correct, complete, and consistent with
+        the delivered schema; design decisions are defended.</td><td class="num">10</td></tr>
+      <tr><th scope="row">Schema</th>
+        <td>Runs clean on a fresh server; constraints enforce
+        <span class="req-id">D1</span>–<span class="req-id">D7</span>; sensible types;
+        justified indexes.</td><td class="num">10</td></tr>
+      <tr><th scope="row">Commands</th>
+        <td>All commands in §5 present and behaving as specified, including the error
+        and warning cases.</td><td class="num">30</td></tr>
+      <tr><th scope="row">Grade reporting</th>
+        <td>Both figures correct, including the three edge cases in §4; output is
+        grouped, subtotaled, and readable.</td><td class="num">12</td></tr>
+      <tr><th scope="row">SQL-first &amp; safety</th>
+        <td>Reporting done in one query each; no computation in Java; every user value
+        passed as a statement parameter.</td><td class="num">10</td></tr>
+      <tr><th scope="row">Code quality</th>
+        <td>Separated concerns, no stack traces reaching the user, resources closed,
+        methods commented.</td><td class="num">4</td></tr>
+      <tr><th scope="row">README &amp; video</th>
+        <td>A grader can build and run it from the README alone; the video demonstrates
+        everything listed in §10.</td><td class="num">4</td></tr>
+    </tbody>
+    <tfoot><tr><th scope="row" colspan="2">Total (CS 410)</th><td class="num">100</td></tr></tfoot>
+  </table>
+  </div>
+
+  <div class="callout warn">
+    <h3>Late work</h3>
+    <p>Per the syllabus, <strong>the final project is not accepted late</strong>. The two
+    milestones follow the standard homework policy: 10% off for the first day, 25% for
+    the second, nothing accepted after that. Submit something on December 9 even if it is
+    incomplete — a partial submission is graded, a missing one is not.</p>
+  </div>
+
+  <h2 id="s12">12 · CS 510 addendum</h2>
+
+  <p>Graduate students work alone and complete two additional requirements, worth
+  10 further points. CS 510 projects are graded out of 110.</p>
+
+  <h3>Part 6a — Performance and indexing analysis (6 points)</h3>
+  <p>A section in your README, two to three pages, containing:</p>
+  <ul>
+    <li><code>EXPLAIN ANALYZE</code> output for your <code>gradebook</code> query against
+    your sample data, with the access paths read back in prose.</li>
+    <li>The same query with your secondary indexes dropped, and the difference explained
+    in terms of the I/O cost model from Unit 7 — not just the wall-clock numbers.</li>
+    <li>A short argument about how the plan would change at 500 students and 40
+    assignments per class, and which index you would add first.</li>
+  </ul>
+
+  <h3>Part 6b — In-class presentation (4 points)</h3>
+  <p>A six-minute presentation on <strong>Wednesday, December 9</strong>, during the
+  wrap-up session. Show your schema, your hardest query, and one thing that surprised
+  you. Slides optional; a terminal and your schema on screen is enough.</p>
+
+  <h2 id="s13">13 · Collaboration and AI use</h2>
+
+  <p>CS 410 students work in assigned pairs; the partner list is posted on Canvas. Both
+  partners must be able to explain the entire submission, and both must speak in the
+  video. CS 510 students work alone. Collaboration <em>between</em> teams on code,
+  schema, or queries is not permitted; discussing concepts is.</p>
+
+  <p>Per the course policy, generative AI tools may be used on this project for
+  scaffolding and debugging application code. They may not be used to produce your data
+  model, your schema design, or your grade-calculation queries — those are the
+  assessment. You and your partner must be able to explain every design decision and
+  every line of your submission, and you should expect to be asked.</p>
+
+  <p>If you use an AI tool, include a short statement in your README saying which tool,
+  for what, and roughly how much, with citations in MLA, APA, Chicago, or another
+  standard style. A specific, honest statement costs nothing. An undisclosed one that
+  we notice is an academic integrity matter under the
+  <a href="https://www.boisestate.edu/policy/student-affairs/code-of-conduct/">Student
+  Code of Conduct</a>, sections 7.B.1 and 7.B.2.</p>
+
+  <h2 id="s14" class="page-break">14 · Resources</h2>
+
+  <p>Everything below is free and runs on Windows, macOS, and Linux. You do not need all
+  of it — the first two groups are enough to finish the project.</p>
+
+  <h3>Database</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:30%">Tool</th><th scope="col">What it is and why you want it</th></tr></thead>
+    <tbody>
+      <tr><th scope="row"><a href="https://dev.mysql.com/downloads/mysql/">MySQL Community Server</a><span class="url">https://dev.mysql.com/downloads/mysql/</span></th>
+        <td>The database itself. Installers for all three platforms; pick 9.7 LTS or 8.4
+        LTS. On macOS, <code>brew install mysql</code> is faster; on Debian or Ubuntu,
+        use the APT repository linked from the same page.</td></tr>
+      <tr><th scope="row"><a href="https://dev.mysql.com/doc/refman/9.7/en/installing.html">MySQL installation guide</a><span class="url">https://dev.mysql.com/doc/refman/9.7/en/installing.html</span></th>
+        <td>The official per-platform walkthrough, including setting the root password
+        and starting the server as a service. Read the section for your OS before
+        installing rather than after it goes wrong.</td></tr>
+      <tr><th scope="row"><a href="https://hub.docker.com/_/mysql">MySQL on Docker Hub</a><span class="url">https://hub.docker.com/_/mysql</span></th>
+        <td>An alternative to installing: <code>docker run --name cs410-mysql -e
+        MYSQL_ROOT_PASSWORD=... -p 3306:3306 -d mysql:9.7</code> gives you a disposable
+        server in seconds. Useful if you want to prove your <code>schema.sql</code> runs
+        on a truly fresh database.</td></tr>
+      <tr><th scope="row"><a href="https://dev.mysql.com/doc/refman/9.7/en/">MySQL Reference Manual</a><span class="url">https://dev.mysql.com/doc/refman/9.7/en/</span></th>
+        <td>The authoritative answer to any SQL syntax question. The chapters on data
+        types, <code>CREATE TABLE</code>, and functions and operators are the ones you
+        will live in.</td></tr>
+      <tr><th scope="row"><a href="https://dev.mysql.com/doc/workbench/en/">MySQL Workbench</a><span class="url">https://dev.mysql.com/doc/workbench/en/</span></th>
+        <td>Oracle's GUI client. Browse tables, run queries, and — useful for Part 1 —
+        draw EER diagrams and reverse-engineer a diagram from an existing schema.</td></tr>
+      <tr><th scope="row"><a href="https://dbeaver.io/">DBeaver Community</a><span class="url">https://dbeaver.io/</span></th>
+        <td>A lighter, faster alternative GUI client that works with every database you
+        will meet later. Good result-grid and query history.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Java and JDBC</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:30%">Tool</th><th scope="col">What it is and why you want it</th></tr></thead>
+    <tbody>
+      <tr><th scope="row"><a href="https://adoptium.net/temurin/releases/">Eclipse Temurin JDK</a><span class="url">https://adoptium.net/temurin/releases/</span></th>
+        <td>A free, well-packaged OpenJDK build. Take version 25 (LTS) unless you have a
+        reason not to.</td></tr>
+      <tr><th scope="row"><a href="https://central.sonatype.com/artifact/com.mysql/mysql-connector-j">MySQL Connector/J</a><span class="url">https://central.sonatype.com/artifact/com.mysql/mysql-connector-j</span></th>
+        <td>The JDBC driver. Add <code>com.mysql:mysql-connector-j</code> to your Maven
+        or Gradle build; this page gives you the dependency snippet to paste. The old
+        <code>mysql:mysql-connector-java</code> artifact is deprecated — do not use it.</td></tr>
+      <tr><th scope="row"><a href="https://dev.mysql.com/doc/connector-j/en/">Connector/J developer guide</a><span class="url">https://dev.mysql.com/doc/connector-j/en/</span></th>
+        <td>Connection URL syntax, connection properties, and the JDBC API notes specific
+        to MySQL. Start with the "Connecting to MySQL Using the JDBC DriverManager
+        Interface" section.</td></tr>
+      <tr><th scope="row"><a href="https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html">Oracle JDBC Basics tutorial</a><span class="url">https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html</span></th>
+        <td>The canonical introduction to <code>Connection</code>,
+        <code>PreparedStatement</code>, <code>ResultSet</code>, and transactions. The
+        "Using Prepared Statements" page is directly relevant to Part 4.</td></tr>
+      <tr><th scope="row"><a href="https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html">Apache Maven in 5 minutes</a><span class="url">https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html</span></th>
+        <td>Enough Maven to create a project, declare the driver dependency, and build a
+        runnable JAR.</td></tr>
+      <tr><th scope="row"><a href="https://docs.gradle.org/current/userguide/building_java_applications.html">Building Java Applications with Gradle</a><span class="url">https://docs.gradle.org/current/userguide/building_java_applications.html</span></th>
+        <td>The same ground in Gradle, if your team already uses it. Either build tool is
+        fine; pick one and commit its build file.</td></tr>
+      <tr><th scope="row"><a href="https://github.com/jline/jline3">JLine 3</a><span class="url">https://github.com/jline/jline3</span></th>
+        <td>Optional. Gives your shell line editing, history, and tab completion in about
+        fifteen lines of code. Makes your demonstration video noticeably smoother.</td></tr>
+      <tr><th scope="row"><a href="https://picocli.info/">picocli</a><span class="url">https://picocli.info/</span></th>
+        <td>Optional. Annotation-driven command parsing, including quoted arguments and
+        generated help. An alternative to writing your own tokenizer.</td></tr>
+      <tr><th scope="row"><a href="https://junit.org/junit5/docs/current/user-guide/">JUnit 5</a><span class="url">https://junit.org/junit5/docs/current/user-guide/</span></th>
+        <td>Optional but recommended for the grade calculation. Encode the worked example
+        in §4 as a test and you will know immediately when a query change breaks it.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Modeling, safety, and submission</h3>
+  <div class="scroll-x">
+  <table>
+    <thead><tr><th scope="col" style="width:30%">Tool</th><th scope="col">What it is and why you want it</th></tr></thead>
+    <tbody>
+      <tr><th scope="row"><a href="https://app.diagrams.net/">diagrams.net (draw.io)</a><span class="url">https://app.diagrams.net/</span></th>
+        <td>Free browser-based diagram editor with an entity-relationship shape library.
+        Exports directly to PDF for <code>model.pdf</code>. Nothing to install.</td></tr>
+      <tr><th scope="row"><a href="https://mermaid.js.org/syntax/entityRelationshipDiagram.html">Mermaid ER diagrams</a><span class="url">https://mermaid.js.org/syntax/entityRelationshipDiagram.html</span></th>
+        <td>If you would rather write your diagram as text and keep it in version control.
+        Renders on GitHub and in most Markdown editors.</td></tr>
+      <tr><th scope="row"><a href="https://dev.mysql.com/doc/refman/9.7/en/mysqldump.html">mysqldump</a><span class="url">https://dev.mysql.com/doc/refman/9.7/en/mysqldump.html</span></th>
+        <td>How you produce <code>dump.sql</code>. The manual page covers the options that
+        matter for a portable dump.</td></tr>
+      <tr><th scope="row"><a href="https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html">OWASP SQL Injection Prevention Cheat Sheet</a><span class="url">https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html</span></th>
+        <td>Short, concrete, and exactly the standard Part 4 is graded against. Read the
+        "Defense Option 1: Prepared Statements" section at minimum.</td></tr>
+      <tr><th scope="row"><a href="https://www.dbfiddle.uk/">DB Fiddle</a><span class="url">https://www.dbfiddle.uk/</span></th>
+        <td>A scratchpad for trying a query against MySQL in the browser without touching
+        your own database. Handy for working out the grade-calculation SQL.</td></tr>
+      <tr><th scope="row"><a href="https://docs.github.com/en/get-started/quickstart/create-a-repo">GitHub</a><span class="url">https://docs.github.com/en/get-started/quickstart/create-a-repo</span></th>
+        <td>Use a private repository for team coordination, and add a
+        <code>.gitignore</code> that excludes <code>config.properties</code>,
+        <code>target/</code>, and <code>*.class</code>. Committing a database password is
+        a real-world incident, not just a lost point.</td></tr>
+      <tr><th scope="row"><a href="https://obsproject.com/">OBS Studio</a><span class="url">https://obsproject.com/</span></th>
+        <td>Free screen recorder for the demonstration video. Zoom's local recording works
+        just as well if your team already meets there.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <h3>Where to get help</h3>
+    <p>Office hours are Monday and Wednesday, 12:30–1:30 p.m. in CS 356 and on Zoom, and
+    by appointment. Bring your actual error message. For anything about the specification
+    itself, ask on the Canvas discussion board rather than by email, so the answer reaches
+    everyone.</p>
+  </div>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  document.documentElement.classList.add('js');
+  var chips  = Array.prototype.slice.call(document.querySelectorAll('.chip[data-gc]'));
+  var desc   = document.getElementById('gc-desc');
+  var panels = { total: document.getElementById('gc-total'),
+                 attempted: document.getElementById('gc-attempted') };
+  if (!chips.length || !panels.total || !panels.attempted) return;
+
+  function show(key){
+    chips.forEach(function(c){
+      c.setAttribute('aria-pressed', String(c.getAttribute('data-gc') === key));
+    });
+    Object.keys(panels).forEach(function(k){
+      if (k === key) { panels[k].removeAttribute('hidden'); }
+      else { panels[k].setAttribute('hidden',''); }
+    });
+    var chip = chips.filter(function(c){ return c.getAttribute('data-gc') === key; })[0];
+    if (desc && chip) desc.textContent = chip.getAttribute('data-desc') || '';
+  }
+
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){ show(chip.getAttribute('data-gc')); });
+  });
+
+  show('total');
+})();
+</script>
+</body>
+</html>
