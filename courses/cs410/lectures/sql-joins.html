@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL Joins — Inner, Outer, Left, and Right · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.02fr .98fr;gap:22px 30px;align-items:start}
+.two p,.two ul,.two ol{max-width:none}
+h3{font-family:var(--sans);font-size:1rem;color:var(--blue-ink);margin:0 0 6px}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:12px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px}
+.callout.warn h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+code{font-family:var(--mono);font-size:.86em;background:var(--tint);
+  border:1px solid #D8E1F2;border-radius:4px;padding:0 4px;color:var(--blue-ink)}
+pre{font-family:var(--mono);font-size:.8rem;line-height:1.45;background:#F8FAFD;
+  border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:8px;
+  padding:10px 13px;overflow-x:auto;margin:0 0 12px}
+pre code{background:none;border:none;padding:0;color:var(--ink);font-size:1em}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px}
+.fig svg{display:block;width:100%;height:auto}
+.fig.sm svg{width:auto;max-width:100%;max-height:196px;margin:0 auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0;max-width:none}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+table.res{border-collapse:collapse;font-size:.82rem;margin:0 0 6px;width:100%}
+table.res caption{caption-side:top;text-align:left;font-size:.78rem;font-weight:700;
+  color:var(--blue-ink);padding:0 0 4px;letter-spacing:.02em}
+table.res th,table.res td{border:1px solid var(--line);padding:4px 9px;text-align:left;
+  font-family:var(--mono);font-size:.94em}
+table.res thead th{background:var(--tint);color:var(--blue-ink);font-weight:700}
+table.res td.nul{color:var(--brown);font-style:italic}
+.restack{margin-top:12px;max-width:640px}
+
+.legendgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.gl{border:1px solid var(--line);border-radius:9px;padding:9px;text-align:center;background:#fff}
+.gl svg{display:block;margin:0 auto 5px;width:100%;height:auto}
+.gl b{display:block;color:var(--blue-ink);font-size:.82rem}
+.gl span{color:var(--muted);font-size:.78rem}
+
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:9px 14px;color:var(--ink);font-size:.92rem;max-width:none}
+html.js .demo-panel[hidden]{display:none}
+
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .legendgrid{grid-template-columns:1fr 1fr}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.gl,.fig,.callout,table.res th,table.res td{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@page{size:landscape;margin:12mm}
+@media print{
+  body{background:#fff;font-size:11pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:5mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.gl,pre,table.res{break-inside:avoid}
+  .demo-panel[hidden]{display:none!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 4 &#183; SQL</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Joins &#183; Elmasri &amp; Navathe, Ch. 6&#8211;7</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="SQL Joins — lecture slides">
+
+<section class="slide is-active" data-title="SQL Joins — inner, outer, left, and right" aria-roledescription="slide" aria-label="Title">
+
+    <p class="kicker">SQL &#183; combining tables</p>
+    <h2 class="slide-h" tabindex="-1">SQL Joins<br>Inner, outer, left, and right</h2>
+    <div class="two">
+      <div>
+        <p class="lead">A join is the operation that turns a normalized schema back
+        into the answers people actually asked for.</p>
+        <p style="color:var(--muted)">We will draw each join as an overlap diagram,
+        then look underneath the picture at what the database really does &#8212; because
+        the picture is a useful shorthand, not the definition.</p>
+      </div>
+      <div class="fig"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-title-t v-title-d">
+<title id="v-title-t">Two overlapping circles with the intersection shaded</title><desc id="v-title-d">Two overlapping circles labelled STUDENT s and DEPARTMENT d. Only the overlapping middle region is shaded, marked three rows.</desc>
+<defs>
+<pattern id="v-title-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-title-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="#ffffff"/>
+<path id="v-title-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="url(#v-title-hatch)"/>
+<path id="v-title-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="#ffffff"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-title-cL" visibility="hidden"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-title-cI" visibility="visible"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-title-cR" visibility="hidden"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg></div>
+    </div>
+</section>
+<section class="slide" data-title="Recap and today's roadmap" aria-roledescription="slide" aria-label="Recap and roadmap">
+
+    <p class="kicker">Where we are</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; today's roadmap</h2>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>You already met this</h3>
+          <p style="margin:0">In relational algebra we defined the theta join, the
+          equijoin, the natural join, and the outer joins. SQL is where you write them
+          down for a real engine.</p>
+        </div>
+        <p>Every join in this lecture is an equijoin on a foreign key &#8212; by far the
+        most common case, and the one the overlap diagrams describe honestly.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>By the end of this lecture you can</h3>
+          <ul class="objlist">
+            <li>Say what <span class="term">JOIN</span> alone means, and why it is the inner join.</li>
+            <li>Choose between <span class="term">LEFT</span> and <span class="term">RIGHT</span>
+            and explain which table is preserved.</li>
+            <li>Write the anti-join that finds unmatched rows.</li>
+            <li>Work around MySQL's missing <span class="term">FULL OUTER JOIN</span>.</li>
+            <li>Say where the Venn picture stops being true.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+</section>
+<section class="slide" data-title="The two tables we will join" aria-roledescription="slide" aria-label="The two tables we will join">
+
+    <p class="kicker">Setup</p>
+    <h2 class="slide-h" tabindex="-1">The two tables we will join</h2>
+    <p>Small enough to hold in your head, and deliberately built so that
+    <strong>each side has one row the other side cannot match</strong>. That is what makes
+    the difference between the join types visible at all.</p>
+    <div class="two">
+      <div><table class="res"><caption>STUDENT</caption><thead><tr><th scope="col">sid</th><th scope="col">name</th><th scope="col">dept_id</th></tr></thead><tbody><tr><td>1</td><td>Ana</td><td>10</td></tr><tr><td>2</td><td>Ben</td><td>10</td></tr><tr><td>3</td><td>Cleo</td><td>20</td></tr><tr><td>4</td><td>Dmitri</td><td class="nul">NULL</td></tr></tbody></table>
+        <p class="figcap">Dmitri's <code>dept_id</code> is NULL &#8212; he is not in any
+        department.</p>
+      </div>
+      <div><table class="res"><caption>DEPARTMENT</caption><thead><tr><th scope="col">dept_id</th><th scope="col">dname</th></tr></thead><tbody><tr><td>10</td><td>Computer Science</td></tr><tr><td>20</td><td>Mathematics</td></tr><tr><td>30</td><td>Physics</td></tr></tbody></table>
+        <p class="figcap">Physics exists, but no student is enrolled in it.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>The join condition, throughout</h3>
+      <p style="margin:0"><code>ON s.dept_id = d.dept_id</code> &#8212; a foreign key on the
+      many side matching a primary key on the one side.</p>
+    </div>
+</section>
+<section class="slide" data-title="What a join actually does" aria-roledescription="slide" aria-label="What a join actually does">
+
+    <p class="kicker">Under the picture</p>
+    <h2 class="slide-h" tabindex="-1">What a join actually does</h2>
+    <div class="two">
+      <div>
+        <p>Conceptually the engine forms <span class="term">every pair</span> of one row from
+        the left and one from the right &#8212; the Cartesian product &#8212; then keeps the pairs
+        for which the <code>ON</code> condition is true.</p>
+        <p>Four students &#215; three departments = 12 candidate pairs. Three survive.</p>
+        <p>Real engines do not literally build all 12; that is what indexes and join
+        algorithms are for, in Unit&nbsp;7. But the <em>meaning</em> is defined this way, and
+        every join type below is a rule about what to do with the pairs that
+        <em>fail</em>.</p>
+        <div class="callout warn">
+          <h3>NULL never matches</h3>
+          <p style="margin:0">Dmitri's row fails against all three departments, because
+          <code>NULL = 10</code> is not false &#8212; it is unknown, which is not true, so the
+          pair is dropped.</p>
+        </div>
+      </div>
+      <div class="fig"><svg viewBox="0 0 560 270" role="img" aria-labelledby="pg-t pg-d">
+<title id="pg-t">Every candidate pair of rows, and which ones match</title>
+<desc id="pg-d">A grid with one row per student and one column per department. Ana and Ben both match Computer Science; Cleo matches Mathematics. Dmitri, whose department is NULL, matches nothing in his row. The Physics column is empty, so no student matches it. Three of the twelve candidate pairs satisfy the join condition.</desc>
+<text x="14" y="26" font-family="system-ui" font-size="12" fill="#4A5160">12 candidate pairs &#183; 3 satisfy s.dept_id = d.dept_id</text>
+<text x="210.0" y="50" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Comp Sci</text>
+<text x="210.0" y="64" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">10</text>
+<text x="330.0" y="50" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Mathematics</text>
+<text x="330.0" y="64" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">20</text>
+<text x="450.0" y="50" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Physics</text>
+<text x="450.0" y="64" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">30</text>
+<text x="138" y="95" text-anchor="end" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Ana</text>
+<text x="34" y="95" font-family="ui-monospace,monospace" font-size="11" fill="#4A5160">10</text>
+<rect x="150" y="72" width="114" height="30" rx="5" fill="#CFE0FA" stroke="#0033A0" stroke-width="2.1"/>
+<path d="M194 89 l6 7 12 -14" fill="none" stroke="#0033A0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="270" y="72" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="318" y1="87" x2="332" y2="87" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="390" y="72" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="438" y1="87" x2="452" y2="87" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<text x="138" y="131" text-anchor="end" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Ben</text>
+<text x="34" y="131" font-family="ui-monospace,monospace" font-size="11" fill="#4A5160">10</text>
+<rect x="150" y="108" width="114" height="30" rx="5" fill="#CFE0FA" stroke="#0033A0" stroke-width="2.1"/>
+<path d="M194 125 l6 7 12 -14" fill="none" stroke="#0033A0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="270" y="108" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="318" y1="123" x2="332" y2="123" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="390" y="108" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="438" y1="123" x2="452" y2="123" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<text x="138" y="167" text-anchor="end" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Cleo</text>
+<text x="34" y="167" font-family="ui-monospace,monospace" font-size="11" fill="#4A5160">20</text>
+<rect x="150" y="144" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="198" y1="159" x2="212" y2="159" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="270" y="144" width="114" height="30" rx="5" fill="#CFE0FA" stroke="#0033A0" stroke-width="2.1"/>
+<path d="M314 161 l6 7 12 -14" fill="none" stroke="#0033A0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="390" y="144" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="438" y1="159" x2="452" y2="159" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<text x="138" y="203" text-anchor="end" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Dmitri</text>
+<text x="34" y="203" font-family="ui-monospace,monospace" font-size="11" fill="#7A2708">NULL</text>
+<rect x="150" y="180" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="198" y1="195" x2="212" y2="195" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="270" y="180" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="318" y1="195" x2="332" y2="195" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="390" y="180" width="114" height="30" rx="5" fill="#F7F9FD" stroke="#C9D2E0" stroke-width="1.2"/>
+<line x1="438" y1="195" x2="452" y2="195" stroke="#A9B4C6" stroke-width="2.4" stroke-linecap="round"/>
+<text x="14" y="248" font-family="system-ui" font-size="11.5" fill="#4A5160">Inner join keeps the three ticked cells.</text>
+<text x="14" y="264" font-family="system-ui" font-size="11.5" fill="#4A5160">Outer joins additionally keep the empty row and the empty column, padded with NULL.</text>
+</svg>
+        <p class="figcap">The 12 candidate pairs. Ticks are the pairs the ON condition
+        accepts.</p>
+      </div>
+    </div>
+</section>
+<section class="slide" data-title="Reading the overlap diagram" aria-roledescription="slide" aria-label="Reading the overlap diagram">
+
+    <p class="kicker">Vocabulary</p>
+    <h2 class="slide-h" tabindex="-1">Reading the overlap diagram</h2>
+    <div class="two">
+      <div>
+        <p>Each circle is one of the two tables. The three regions are the three fates a
+        row can meet:</p>
+        <ul>
+          <li><strong>Left crescent</strong> &#8212; left rows that matched nothing. Kept only by
+          a left or full join, padded with NULLs.</li>
+          <li><strong>Overlap</strong> &#8212; pairs that satisfied <code>ON</code>. Kept by every
+          join type except the anti-joins.</li>
+          <li><strong>Right crescent</strong> &#8212; right rows that matched nothing. Kept only by
+          a right or full join.</li>
+        </ul>
+        <p>Shading a region means <em>those rows appear in the result</em>. The badge in each
+        shaded region is how many rows it contributes for our data.</p>
+      </div>
+      <div class="fig"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-legend-t v-legend-d">
+<title id="v-legend-t">All three regions of the overlap diagram shaded</title><desc id="v-legend-d">The same two circles with all three regions shaded: the left crescent contributing one row, the overlap three rows, and the right crescent one row.</desc>
+<defs>
+<pattern id="v-legend-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-legend-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="url(#v-legend-hatch)"/>
+<path id="v-legend-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="url(#v-legend-hatch)"/>
+<path id="v-legend-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="url(#v-legend-hatch)"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-legend-cL" visibility="visible"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-legend-cI" visibility="visible"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-legend-cR" visibility="visible"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+        <p class="figcap">All three regions shaded &#8212; that is the full outer join, and the
+        most rows any of these joins can produce here.</p>
+      </div>
+    </div>
+</section>
+<section class="slide" data-title="INNER JOIN" aria-roledescription="slide" aria-label="INNER JOIN">
+
+        <p class="kicker">The default</p>
+        <h2 class="slide-h" tabindex="-1">JOIN and INNER JOIN are the same thing</h2>
+        <div class="two">
+          <div>
+            
+        <p>Writing <code>JOIN</code> on its own gives you an <strong>inner</strong> join.
+        <code>INNER</code> is optional noise; most style guides drop it.</p>
+        <p>Unmatched rows on <em>either</em> side are discarded silently. That silence is the
+        most common source of quietly wrong reports: a student with no department simply
+        vanishes from the count.</p>
+            <pre><code>SELECT s.name, d.dname
+FROM   student s
+JOIN   department d ON s.dept_id = d.dept_id;</code></pre>
+            <div class="callout warn"><h3>Ask yourself every time</h3>
+          <p style="margin:0">If a row on either side has no partner, should it disappear
+          from my answer? If the answer is no, you do not want an inner join.</p></div>
+          </div>
+          <div class="fig"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-inner-t v-inner-d">
+<title id="v-inner-t">INNER JOIN shown as an overlap diagram</title><desc id="v-inner-d">Inner join: only the pairs that satisfy the ON condition. Dmitri has no department and Physics has no students, so neither appears. Three rows.</desc>
+<defs>
+<pattern id="v-inner-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-inner-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="#ffffff"/>
+<path id="v-inner-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="url(#v-inner-hatch)"/>
+<path id="v-inner-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="#ffffff"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-inner-cL" visibility="hidden"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-inner-cI" visibility="visible"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-inner-cR" visibility="hidden"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+            <p class="figcap">Inner join: only the pairs that satisfy the ON condition. Dmitri has no department and Physics has no students, so neither appears. Three rows.</p>
+          </div>
+        </div>
+        <div class="restack"><table class="res "><caption>3 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr></tbody></table></div>
+</section>
+<section class="slide" data-title="LEFT OUTER JOIN" aria-roledescription="slide" aria-label="LEFT OUTER JOIN">
+
+        <p class="kicker">Preserve the left table</p>
+        <h2 class="slide-h" tabindex="-1">LEFT OUTER JOIN</h2>
+        <div class="two">
+          <div>
+            
+        <p><code>LEFT JOIN</code> keeps <strong>every row of the table named first</strong>,
+        whether or not it found a partner. Unmatched rows get NULLs in all the right-hand
+        columns.</p>
+        <p><code>OUTER</code> is optional here too: <code>LEFT JOIN</code> and
+        <code>LEFT OUTER JOIN</code> are identical.</p>
+            <pre><code>SELECT s.name, d.dname
+FROM   student s
+LEFT JOIN department d ON s.dept_id = d.dept_id;</code></pre>
+            <div class="callout"><h3>Read it as a promise</h3>
+          <p style="margin:0">"Every student appears in my result, department or not."
+          Left means the table on the left of the <code>JOIN</code> keyword &#8212; which is
+          the one in the <code>FROM</code> clause.</p></div>
+          </div>
+          <div class="fig"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-left-t v-left-d">
+<title id="v-left-t">LEFT OUTER JOIN shown as an overlap diagram</title><desc id="v-left-d">Left outer join: every matched pair, plus every left row that matched nothing, padded with NULLs on the right. Dmitri appears with a NULL department. Four rows.</desc>
+<defs>
+<pattern id="v-left-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-left-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="url(#v-left-hatch)"/>
+<path id="v-left-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="url(#v-left-hatch)"/>
+<path id="v-left-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="#ffffff"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-left-cL" visibility="visible"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-left-cI" visibility="visible"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-left-cR" visibility="hidden"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+            <p class="figcap">Left outer join: every matched pair, plus every left row that matched nothing, padded with NULLs on the right. Dmitri appears with a NULL department. Four rows.</p>
+          </div>
+        </div>
+        <div class="restack"><table class="res "><caption>4 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr><tr><td>Dmitri</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr></tbody></table></div>
+</section>
+<section class="slide" data-title="RIGHT OUTER JOIN" aria-roledescription="slide" aria-label="RIGHT OUTER JOIN">
+
+        <p class="kicker">Preserve the right table</p>
+        <h2 class="slide-h" tabindex="-1">RIGHT OUTER JOIN</h2>
+        <div class="two">
+          <div>
+            
+        <p><code>RIGHT JOIN</code> is the mirror image: every row of the
+        <strong>second</strong> table survives, and unmatched ones get NULLs on the left.</p>
+        <p>Note the result below has the same three matched rows as before, but Physics now
+        appears with no student attached.</p>
+            <pre><code>SELECT s.name, d.dname
+FROM   student s
+RIGHT JOIN department d ON s.dept_id = d.dept_id;</code></pre>
+            <div class="callout warn"><h3>You will rarely write one</h3>
+          <p style="margin:0">Any right join can be rewritten as a left join by swapping the
+          two tables, and most teams standardise on left joins so that the preserved table is
+          always the one you read first. Recognise <code>RIGHT</code>; prefer
+          <code>LEFT</code>.</p></div>
+          </div>
+          <div class="fig"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-right-t v-right-d">
+<title id="v-right-t">RIGHT OUTER JOIN shown as an overlap diagram</title><desc id="v-right-d">Right outer join: every matched pair, plus every right row that matched nothing, padded with NULLs on the left. Physics appears with a NULL student. Four rows.</desc>
+<defs>
+<pattern id="v-right-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-right-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="#ffffff"/>
+<path id="v-right-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="url(#v-right-hatch)"/>
+<path id="v-right-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="url(#v-right-hatch)"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-right-cL" visibility="hidden"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-right-cI" visibility="visible"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-right-cR" visibility="visible"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+            <p class="figcap">Right outer join: every matched pair, plus every right row that matched nothing, padded with NULLs on the left. Physics appears with a NULL student. Four rows.</p>
+          </div>
+        </div>
+        <div class="restack"><table class="res "><caption>4 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr><tr><td class="nul">NULL</td><td class="nul">NULL</td><td>30</td><td>Physics</td></tr></tbody></table></div>
+</section>
+<section class="slide" data-title="FULL OUTER JOIN" aria-roledescription="slide" aria-label="FULL OUTER JOIN">
+
+            <p class="kicker">Preserve both tables</p>
+            <h2 class="slide-h" tabindex="-1">FULL OUTER JOIN</h2>
+            <div class="two">
+              <div>
+                
+        <p>Keeps everything: matched pairs, unmatched left rows, unmatched right rows. All
+        three regions shaded.</p>
+        <p><strong>MySQL does not implement it.</strong> You build it from a left join and a
+        right join combined with <code>UNION</code>, which removes the duplicated matched
+        rows.</p>
+                <pre><code>-- Standard SQL; MySQL does not support it:
+SELECT s.name, d.dname
+FROM   student s
+FULL OUTER JOIN department d ON s.dept_id = d.dept_id;</code></pre>
+                <table class="res "><caption>5 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr><tr><td>Dmitri</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr><tr><td class="nul">NULL</td><td class="nul">NULL</td><td>30</td><td>Physics</td></tr></tbody></table>
+              </div>
+              <div>
+                <div class="fig sm"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-full-t v-full-d">
+<title id="v-full-t">FULL OUTER JOIN shown as an overlap diagram</title><desc id="v-full-d">Full outer join: everything. Matched pairs, unmatched left rows padded on the right, and unmatched right rows padded on the left. Five rows.</desc>
+<defs>
+<pattern id="v-full-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-full-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="url(#v-full-hatch)"/>
+<path id="v-full-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="url(#v-full-hatch)"/>
+<path id="v-full-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="url(#v-full-hatch)"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-full-cL" visibility="visible"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-full-cI" visibility="visible"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-full-cR" visibility="visible"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+                  <p class="figcap">All three regions shaded &#8212; five rows.</p>
+                </div>
+                <div class="callout"><h3>The MySQL idiom</h3>
+<pre><code>SELECT s.name, d.dname
+FROM   student s LEFT JOIN department d ON s.dept_id = d.dept_id
+UNION
+SELECT s.name, d.dname
+FROM   student s RIGHT JOIN department d ON s.dept_id = d.dept_id;</code></pre>
+          <p style="margin:0">Use <code>UNION</code>, not <code>UNION ALL</code> &#8212; the
+          matched rows appear in both halves.</p></div>
+              </div>
+            </div>
+</section>
+<section class="slide" data-title="Anti-joins: finding what is missing" aria-roledescription="slide" aria-label="Anti-joins">
+
+    <p class="kicker">The crescents on their own</p>
+    <h2 class="slide-h" tabindex="-1">Anti-joins: finding what is missing</h2>
+    <p>Shade only a crescent and you get the rows that failed to match. There is no
+    <code>ANTI JOIN</code> keyword &#8212; write an outer join, then filter for the padding.</p>
+    <div class="two">
+      <div class="fig sm"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-leftonly-t v-leftonly-d">
+<title id="v-leftonly-t">Only the left crescent shaded</title><desc id="v-leftonly-d">The two circles with only the left crescent shaded, contributing one row. The overlap and the right crescent are unshaded.</desc>
+<defs>
+<pattern id="v-leftonly-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-leftonly-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="url(#v-leftonly-hatch)"/>
+<path id="v-leftonly-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="#ffffff"/>
+<path id="v-leftonly-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="#ffffff"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-leftonly-cL" visibility="visible"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-leftonly-cI" visibility="hidden"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-leftonly-cR" visibility="hidden"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+        <p class="figcap">Students with no department.</p>
+        <pre><code>SELECT s.name
+FROM   student s
+LEFT JOIN department d ON s.dept_id = d.dept_id
+WHERE  d.dept_id IS NULL;</code></pre>
+      </div>
+      <div class="fig sm"><svg viewBox="0 0 520 278" role="img" aria-labelledby="v-rightonly-t v-rightonly-d">
+<title id="v-rightonly-t">Only the right crescent shaded</title><desc id="v-rightonly-d">The two circles with only the right crescent shaded, contributing one row. The overlap and the left crescent are unshaded.</desc>
+<defs>
+<pattern id="v-rightonly-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="v-rightonly-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="#ffffff"/>
+<path id="v-rightonly-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="#ffffff"/>
+<path id="v-rightonly-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="url(#v-rightonly-hatch)"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="v-rightonly-cL" visibility="hidden"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="v-rightonly-cI" visibility="hidden"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="v-rightonly-cR" visibility="visible"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+        <p class="figcap">Departments with no students.</p>
+        <pre><code>SELECT d.dname
+FROM   student s
+RIGHT JOIN department d ON s.dept_id = d.dept_id
+WHERE  s.sid IS NULL;</code></pre>
+      </div>
+    </div>
+    <div class="callout warn">
+      <h3>Test a column that cannot be NULL on its own</h3>
+      <p style="margin:0">Filter on the joined table's <em>primary key</em>
+      (<code>d.dept_id IS NULL</code>), never on a nullable data column. A real NULL in that
+      column would be indistinguishable from the padding.</p>
+    </div>
+</section>
+<section class="slide" data-title="Pick a join and watch the rows" aria-roledescription="slide" aria-label="Interactive join explorer">
+
+    <p class="kicker">Try it</p>
+    <h2 class="slide-h" tabindex="-1">Pick a join and watch the rows</h2>
+    <div class="hl-controls" role="group" aria-label="Choose a join type">
+      <button class="chip" type="button" data-join="inner" aria-pressed="true" data-regions="I" data-desc="Inner join: only the pairs that satisfy the ON condition. Dmitri has no department and Physics has no students, so neither appears. Three rows.">INNER JOIN</button><button class="chip" type="button" data-join="left" aria-pressed="false" data-regions="IL" data-desc="Left outer join: every matched pair, plus every left row that matched nothing, padded with NULLs on the right. Dmitri appears with a NULL department. Four rows.">LEFT OUTER JOIN</button><button class="chip" type="button" data-join="right" aria-pressed="false" data-regions="IR" data-desc="Right outer join: every matched pair, plus every right row that matched nothing, padded with NULLs on the left. Physics appears with a NULL student. Four rows.">RIGHT OUTER JOIN</button><button class="chip" type="button" data-join="full" aria-pressed="false" data-regions="ILR" data-desc="Full outer join: everything. Matched pairs, unmatched left rows padded on the right, and unmatched right rows padded on the left. Five rows.">FULL OUTER JOIN</button><button class="chip" type="button" data-join="leftonly" aria-pressed="false" data-regions="L" data-desc="Left anti-join: left rows with no match at all. The IS NULL test in the WHERE clause keeps only the padded rows. Answers 'which students have no department?'. One row.">LEFT ONLY</button><button class="chip" type="button" data-join="rightonly" aria-pressed="false" data-regions="R" data-desc="Right anti-join: right rows with no match. Answers 'which departments have no students?'. One row.">RIGHT ONLY</button><button class="chip" type="button" data-join="outer" aria-pressed="false" data-regions="LR" data-desc="Symmetric difference: the rows that failed to match on either side, and nothing that did match. Useful as a data-quality check. Two rows.">BOTH ONLY</button>
+    </div>
+    <p id="join-desc" class="live-desc" aria-live="polite"
+       data-default="Inner join: only the pairs that satisfy the ON condition. Dmitri has no department and Physics has no students, so neither appears. Three rows.">Inner join: only the pairs that satisfy the ON condition. Dmitri has no department and Physics has no students, so neither appears. Three rows.</p>
+    <div class="two">
+      <div class="fig"><svg viewBox="0 0 520 278" role="img" aria-labelledby="demo-t demo-d">
+<title id="demo-t">Interactive overlap diagram for the selected join</title><desc id="demo-d">Two overlapping circles labelled STUDENT s and DEPARTMENT d. The shaded regions and the row counts change to match the join type selected above; the paragraph above the diagram always states which regions are shaded and how many rows result.</desc>
+<defs>
+<pattern id="demo-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="demo-rL" d="M 260.00,45.16 A 100,100 0 1,0 260.00,198.84 A 100,100 0 0,1 260.00,45.16 Z" fill="#ffffff"/>
+<path id="demo-rI" d="M 260.00,45.16 A 100,100 0 0,0 260.00,198.84 A 100,100 0 0,0 260.00,45.16 Z" fill="url(#demo-hatch)"/>
+<path id="demo-rR" d="M 260.00,198.84 A 100,100 0 1,0 260.00,45.16 A 100,100 0 0,1 260.00,198.84 Z" fill="#ffffff"/>
+<circle cx="196" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="324" cy="122" r="100" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<g id="demo-cL" visibility="hidden"><rect x="111" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="144" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<g id="demo-cI" visibility="visible"><rect x="227.0" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="260.0" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">3 rows</text></g>
+<g id="demo-cR" visibility="hidden"><rect x="343" y="108" width="66" height="28" rx="6" fill="#fff" stroke="#0033A0" stroke-width="1.3"/><text x="376" y="127" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#00246B">1 row</text></g>
+<text x="166" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">STUDENT s</text>
+<text x="358" y="264" text-anchor="middle" font-family="system-ui" font-size="14" font-weight="700" fill="#00246B">DEPARTMENT d</text>
+<text x="260.0" y="20" text-anchor="middle" font-family="system-ui" font-size="12" fill="#4A5160">joined on s.dept_id = d.dept_id</text>
+</svg>
+      </div>
+      <div><div class="demo-panel" data-join="inner"><pre><code>SELECT s.name, d.dname
+FROM   student s
+JOIN   department d ON s.dept_id = d.dept_id;</code></pre><table class="res "><caption>3 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr></tbody></table></div><div class="demo-panel" data-join="left" hidden><pre><code>SELECT s.name, d.dname
+FROM   student s
+LEFT JOIN department d ON s.dept_id = d.dept_id;</code></pre><table class="res "><caption>4 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr><tr><td>Dmitri</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr></tbody></table></div><div class="demo-panel" data-join="right" hidden><pre><code>SELECT s.name, d.dname
+FROM   student s
+RIGHT JOIN department d ON s.dept_id = d.dept_id;</code></pre><table class="res "><caption>4 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr><tr><td class="nul">NULL</td><td class="nul">NULL</td><td>30</td><td>Physics</td></tr></tbody></table></div><div class="demo-panel" data-join="full" hidden><pre><code>-- Standard SQL; MySQL does not support it:
+SELECT s.name, d.dname
+FROM   student s
+FULL OUTER JOIN department d ON s.dept_id = d.dept_id;</code></pre><table class="res "><caption>5 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Ana</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Ben</td><td>10</td><td>10</td><td>Computer Science</td></tr><tr><td>Cleo</td><td>20</td><td>20</td><td>Mathematics</td></tr><tr><td>Dmitri</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr><tr><td class="nul">NULL</td><td class="nul">NULL</td><td>30</td><td>Physics</td></tr></tbody></table></div><div class="demo-panel" data-join="leftonly" hidden><pre><code>SELECT s.name
+FROM   student s
+LEFT JOIN department d ON s.dept_id = d.dept_id
+WHERE  d.dept_id IS NULL;</code></pre><table class="res "><caption>1 row</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Dmitri</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr></tbody></table></div><div class="demo-panel" data-join="rightonly" hidden><pre><code>SELECT d.dname
+FROM   student s
+RIGHT JOIN department d ON s.dept_id = d.dept_id
+WHERE  s.sid IS NULL;</code></pre><table class="res "><caption>1 row</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td class="nul">NULL</td><td class="nul">NULL</td><td>30</td><td>Physics</td></tr></tbody></table></div><div class="demo-panel" data-join="outer" hidden><pre><code>-- The unmatched rows from both sides:
+SELECT s.name, d.dname
+FROM   student s
+FULL OUTER JOIN department d ON s.dept_id = d.dept_id
+WHERE  s.sid IS NULL OR d.dept_id IS NULL;</code></pre><table class="res "><caption>2 rows</caption><thead><tr><th scope="col">s.name</th><th scope="col">s.dept_id</th><th scope="col">d.dept_id</th><th scope="col">d.dname</th></tr></thead><tbody><tr><td>Dmitri</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr><tr><td class="nul">NULL</td><td class="nul">NULL</td><td>30</td><td>Physics</td></tr></tbody></table></div></div>
+    </div>
+</section>
+<section class="slide" data-title="All seven at a glance" aria-roledescription="slide" aria-label="All seven joins at a glance">
+
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">All seven at a glance</h2>
+    <div class="legendgrid"><div class="gl"><svg viewBox="0 0 300 150" role="img" aria-labelledby="ref-inner-t ref-inner-d">
+<title id="ref-inner-t">INNER JOIN</title><desc id="ref-inner-d">Inner join: only the pairs that satisfy the ON condition. Dmitri has no department and Physics has no students, so neither appears. Three rows.</desc>
+<defs>
+<pattern id="ref-inner-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="ref-inner-rL" d="M 150.00,26.18 A 58,58 0 1,0 150.00,113.82 A 58,58 0 0,1 150.00,26.18 Z" fill="#ffffff"/>
+<path id="ref-inner-rI" d="M 150.00,26.18 A 58,58 0 0,0 150.00,113.82 A 58,58 0 0,0 150.00,26.18 Z" fill="url(#ref-inner-hatch)"/>
+<path id="ref-inner-rR" d="M 150.00,113.82 A 58,58 0 1,0 150.00,26.18 A 58,58 0 0,1 150.00,113.82 Z" fill="#ffffff"/>
+<circle cx="112" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="188" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+</svg><b>INNER JOIN</b><span>3 rows</span></div><div class="gl"><svg viewBox="0 0 300 150" role="img" aria-labelledby="ref-left-t ref-left-d">
+<title id="ref-left-t">LEFT OUTER JOIN</title><desc id="ref-left-d">Left outer join: every matched pair, plus every left row that matched nothing, padded with NULLs on the right. Dmitri appears with a NULL department. Four rows.</desc>
+<defs>
+<pattern id="ref-left-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="ref-left-rL" d="M 150.00,26.18 A 58,58 0 1,0 150.00,113.82 A 58,58 0 0,1 150.00,26.18 Z" fill="url(#ref-left-hatch)"/>
+<path id="ref-left-rI" d="M 150.00,26.18 A 58,58 0 0,0 150.00,113.82 A 58,58 0 0,0 150.00,26.18 Z" fill="url(#ref-left-hatch)"/>
+<path id="ref-left-rR" d="M 150.00,113.82 A 58,58 0 1,0 150.00,26.18 A 58,58 0 0,1 150.00,113.82 Z" fill="#ffffff"/>
+<circle cx="112" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="188" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+</svg><b>LEFT OUTER JOIN</b><span>4 rows</span></div><div class="gl"><svg viewBox="0 0 300 150" role="img" aria-labelledby="ref-right-t ref-right-d">
+<title id="ref-right-t">RIGHT OUTER JOIN</title><desc id="ref-right-d">Right outer join: every matched pair, plus every right row that matched nothing, padded with NULLs on the left. Physics appears with a NULL student. Four rows.</desc>
+<defs>
+<pattern id="ref-right-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="ref-right-rL" d="M 150.00,26.18 A 58,58 0 1,0 150.00,113.82 A 58,58 0 0,1 150.00,26.18 Z" fill="#ffffff"/>
+<path id="ref-right-rI" d="M 150.00,26.18 A 58,58 0 0,0 150.00,113.82 A 58,58 0 0,0 150.00,26.18 Z" fill="url(#ref-right-hatch)"/>
+<path id="ref-right-rR" d="M 150.00,113.82 A 58,58 0 1,0 150.00,26.18 A 58,58 0 0,1 150.00,113.82 Z" fill="url(#ref-right-hatch)"/>
+<circle cx="112" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="188" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+</svg><b>RIGHT OUTER JOIN</b><span>4 rows</span></div><div class="gl"><svg viewBox="0 0 300 150" role="img" aria-labelledby="ref-full-t ref-full-d">
+<title id="ref-full-t">FULL OUTER JOIN</title><desc id="ref-full-d">Full outer join: everything. Matched pairs, unmatched left rows padded on the right, and unmatched right rows padded on the left. Five rows.</desc>
+<defs>
+<pattern id="ref-full-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="ref-full-rL" d="M 150.00,26.18 A 58,58 0 1,0 150.00,113.82 A 58,58 0 0,1 150.00,26.18 Z" fill="url(#ref-full-hatch)"/>
+<path id="ref-full-rI" d="M 150.00,26.18 A 58,58 0 0,0 150.00,113.82 A 58,58 0 0,0 150.00,26.18 Z" fill="url(#ref-full-hatch)"/>
+<path id="ref-full-rR" d="M 150.00,113.82 A 58,58 0 1,0 150.00,26.18 A 58,58 0 0,1 150.00,113.82 Z" fill="url(#ref-full-hatch)"/>
+<circle cx="112" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="188" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+</svg><b>FULL OUTER JOIN</b><span>5 rows</span></div><div class="gl"><svg viewBox="0 0 300 150" role="img" aria-labelledby="ref-leftonly-t ref-leftonly-d">
+<title id="ref-leftonly-t">LEFT ONLY (anti-join)</title><desc id="ref-leftonly-d">Left anti-join: left rows with no match at all. The IS NULL test in the WHERE clause keeps only the padded rows. Answers 'which students have no department?'. One row.</desc>
+<defs>
+<pattern id="ref-leftonly-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="ref-leftonly-rL" d="M 150.00,26.18 A 58,58 0 1,0 150.00,113.82 A 58,58 0 0,1 150.00,26.18 Z" fill="url(#ref-leftonly-hatch)"/>
+<path id="ref-leftonly-rI" d="M 150.00,26.18 A 58,58 0 0,0 150.00,113.82 A 58,58 0 0,0 150.00,26.18 Z" fill="#ffffff"/>
+<path id="ref-leftonly-rR" d="M 150.00,113.82 A 58,58 0 1,0 150.00,26.18 A 58,58 0 0,1 150.00,113.82 Z" fill="#ffffff"/>
+<circle cx="112" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="188" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+</svg><b>LEFT ONLY</b><span>1 row</span></div><div class="gl"><svg viewBox="0 0 300 150" role="img" aria-labelledby="ref-rightonly-t ref-rightonly-d">
+<title id="ref-rightonly-t">RIGHT ONLY (anti-join)</title><desc id="ref-rightonly-d">Right anti-join: right rows with no match. Answers 'which departments have no students?'. One row.</desc>
+<defs>
+<pattern id="ref-rightonly-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="ref-rightonly-rL" d="M 150.00,26.18 A 58,58 0 1,0 150.00,113.82 A 58,58 0 0,1 150.00,26.18 Z" fill="#ffffff"/>
+<path id="ref-rightonly-rI" d="M 150.00,26.18 A 58,58 0 0,0 150.00,113.82 A 58,58 0 0,0 150.00,26.18 Z" fill="#ffffff"/>
+<path id="ref-rightonly-rR" d="M 150.00,113.82 A 58,58 0 1,0 150.00,26.18 A 58,58 0 0,1 150.00,113.82 Z" fill="url(#ref-rightonly-hatch)"/>
+<circle cx="112" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="188" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+</svg><b>RIGHT ONLY</b><span>1 row</span></div><div class="gl"><svg viewBox="0 0 300 150" role="img" aria-labelledby="ref-outer-t ref-outer-d">
+<title id="ref-outer-t">BOTH ONLY (symmetric difference)</title><desc id="ref-outer-d">Symmetric difference: the rows that failed to match on either side, and nothing that did match. Useful as a data-quality check. Two rows.</desc>
+<defs>
+<pattern id="ref-outer-hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+<rect width="9" height="9" fill="#CFE0FA"/>
+<line x1="0" y1="0" x2="0" y2="9" stroke="#0033A0" stroke-width="2.4"/></pattern>
+</defs>
+<path id="ref-outer-rL" d="M 150.00,26.18 A 58,58 0 1,0 150.00,113.82 A 58,58 0 0,1 150.00,26.18 Z" fill="url(#ref-outer-hatch)"/>
+<path id="ref-outer-rI" d="M 150.00,26.18 A 58,58 0 0,0 150.00,113.82 A 58,58 0 0,0 150.00,26.18 Z" fill="#ffffff"/>
+<path id="ref-outer-rR" d="M 150.00,113.82 A 58,58 0 1,0 150.00,26.18 A 58,58 0 0,1 150.00,113.82 Z" fill="url(#ref-outer-hatch)"/>
+<circle cx="112" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+<circle cx="188" cy="70" r="58" fill="none" stroke="#0033A0" stroke-width="2.4"/>
+</svg><b>BOTH ONLY</b><span>2 rows</span></div></div>
+    <p class="figcap">Row counts are for our four students and three departments. The three
+    on the bottom row are the anti-join family &#8212; an outer join plus an
+    <code>IS NULL</code> filter.</p>
+</section>
+<section class="slide" data-title="ON versus WHERE" aria-roledescription="slide" aria-label="ON versus WHERE">
+
+    <p class="kicker">The classic trap</p>
+    <h2 class="slide-h" tabindex="-1">ON versus WHERE on an outer join</h2>
+    <p>On an <em>inner</em> join it makes no difference where you put a condition. On an
+    <em>outer</em> join it changes the answer, and this is the single most common join bug.</p>
+    <div class="two">
+      <div>
+        <h3>Condition in WHERE</h3>
+<pre><code>SELECT s.name, d.dname
+FROM   student s
+LEFT JOIN department d ON s.dept_id = d.dept_id
+WHERE  d.dname = 'Computer Science';</code></pre>
+        <p>The join runs, padding Dmitri with NULLs &#8212; then <code>WHERE</code> throws his row
+        away, because <code>NULL = 'Computer Science'</code> is not true. You have silently
+        turned it back into an inner join.</p>
+      </div>
+      <div>
+        <h3>Condition in ON</h3>
+<pre><code>SELECT s.name, d.dname
+FROM   student s
+LEFT JOIN department d
+       ON s.dept_id = d.dept_id
+      AND d.dname = 'Computer Science';</code></pre>
+        <p>The condition is part of <em>what counts as a match</em>. Every student still
+        appears; Cleo and Dmitri simply come back with a NULL department.</p>
+      </div>
+    </div>
+    <div class="callout warn">
+      <h3>The rule</h3>
+      <p style="margin:0">Conditions on the <strong>preserved</strong> table belong in
+      <code>WHERE</code>. Conditions on the <strong>optional</strong> table belong in
+      <code>ON</code> &#8212; unless you deliberately want to drop the unmatched rows.</p>
+    </div>
+</section>
+<section class="slide" data-title="Where the overlap picture breaks down" aria-roledescription="slide" aria-label="Limits of the Venn picture">
+
+    <p class="kicker">Honesty about the model</p>
+    <h2 class="slide-h" tabindex="-1">Where the overlap picture breaks down</h2>
+    <p>The diagrams are a good map of <em>which rows survive</em> on a foreign-key equijoin.
+    They are not a definition of a join, and four things escape them:</p>
+    <ul>
+      <li><strong>Rows multiply.</strong> On an M:N join a left row matching three right rows
+      produces three result rows. A join of a 100-row and a 100-row table can return 10,000
+      rows &#8212; a Venn diagram can never show a region larger than its circle.</li>
+      <li><strong>The circles are not sets of the same things.</strong> STUDENT rows and
+      DEPARTMENT rows have different schemas; nothing is literally "in both". The overlap is
+      a set of <em>pairs</em>, not a set of shared members.</li>
+      <li><strong>Only equijoins fit.</strong> <code>ON s.gpa &gt; d.min_gpa</code> is a
+      perfectly good join with no meaningful circles at all.</li>
+      <li><strong>CROSS JOIN has no picture.</strong> There is no condition, so there is
+      nothing to overlap.</li>
+    </ul>
+    <div class="callout warn">
+      <h3>The version that is always true</h3>
+      <p style="margin:0">Pair every row with every row, keep the pairs that satisfy
+      <code>ON</code>, then add back the unmatched rows from whichever sides the join type
+      preserves, padded with NULL. Fall back to that sentence whenever the picture and the
+      result disagree.</p>
+    </div>
+</section>
+<section class="slide" data-title="CROSS, NATURAL, and USING" aria-roledescription="slide" aria-label="Cross natural and using">
+
+    <p class="kicker">The rest of the family</p>
+    <h2 class="slide-h" tabindex="-1">CROSS, NATURAL, and USING</h2>
+    <div class="two">
+      <div>
+        <h3>CROSS JOIN</h3>
+<pre><code>SELECT s.name, d.dname
+FROM   student s CROSS JOIN department d;</code></pre>
+        <p>No condition, so every pair survives: 4 &#215; 3 = 12 rows. Legitimate for
+        generating combinations &#8212; and what you accidentally get if you list two tables in
+        <code>FROM</code> and forget the <code>WHERE</code>.</p>
+        <h3>USING</h3>
+<pre><code>FROM student s JOIN department d
+     USING (dept_id)</code></pre>
+        <p>Shorthand when both columns have the same name. The joined column appears once in
+        the result instead of twice.</p>
+      </div>
+      <div>
+        <h3>NATURAL JOIN</h3>
+<pre><code>SELECT * FROM student NATURAL JOIN department;</code></pre>
+        <p>Joins on <em>every</em> pair of identically named columns, automatically.</p>
+        <div class="callout warn">
+          <h3>Do not use it in your project</h3>
+          <p style="margin:0">It is invisible: the join condition lives in your column names,
+          so adding a <code>created_at</code> column to both tables silently changes what the
+          query means. Write the <code>ON</code> clause out.</p>
+        </div>
+        <div class="callout">
+          <h3>Self joins</h3>
+          <p style="margin:0">Nothing special &#8212; join a table to itself with two aliases, as
+          in the supervisor/supervisee relationship from ER&nbsp;II.</p>
+        </div>
+      </div>
+    </div>
+</section>
+<section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what is next">
+
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li><code>JOIN</code> = <code>INNER JOIN</code>: matched pairs only.</li>
+          <li><code>LEFT</code> / <code>RIGHT</code> name the table that is
+          <span class="term">preserved</span>, padded with NULL.</li>
+          <li><code>FULL OUTER</code> keeps both sides; MySQL needs a
+          <code>UNION</code>.</li>
+          <li>Outer join + <code>IS NULL</code> = anti-join, for finding what is missing.</li>
+          <li><code>ON</code> and <code>WHERE</code> are not interchangeable on outer joins.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Which join answers "list every department and how many students it has,
+            including the empty ones"?</li>
+            <li>Why does moving <code>d.dname = 'Physics'</code> from <code>ON</code> to
+            <code>WHERE</code> change a left join's row count?</li>
+            <li>Two tables of 100 rows each, joined M:N. What is the largest result the Venn
+            picture would let you predict, and what is the real upper bound?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next &#8212; GROUP BY and HAVING</h3>
+          <p style="margin:0">Aggregation over joined tables, where the left join you chose
+          today decides whether <code>COUNT(*)</code> reports 0 or 1 for an empty
+          department.</p>
+        </div>
+      </div>
+    </div>
+</section>
+
+  </div>
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">&#8249; Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next &#8250;</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- join demonstrator ---
+  var jChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-join]'));
+  var jDesc  = document.getElementById('join-desc');
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.demo-panel'));
+  var HATCH  = 'url(#demo-hatch)';
+
+  function paint(regions){
+    ['L','I','R'].forEach(function(k){
+      var shape = document.getElementById('demo-r' + k);
+      var badge = document.getElementById('demo-c' + k);
+      var on = regions.indexOf(k) !== -1;
+      if (shape) shape.setAttribute('fill', on ? HATCH : '#ffffff');
+      if (badge) badge.setAttribute('visibility', on ? 'visible' : 'hidden');
+    });
+  }
+
+  if (jChips.length){
+    jChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var key = chip.getAttribute('data-join');
+        jChips.forEach(function(c){ c.setAttribute('aria-pressed', String(c === chip)); });
+        paint(chip.getAttribute('data-regions') || '');
+        panels.forEach(function(p){
+          if (p.getAttribute('data-join') === key) p.removeAttribute('hidden');
+          else p.setAttribute('hidden', '');
+        });
+        if (jDesc) jDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+    paint('I');
+  }
+
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>
