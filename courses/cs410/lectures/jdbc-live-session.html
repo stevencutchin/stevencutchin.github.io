@@ -1,0 +1,1264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java to the Database — JDBC Against the UNIVERSITY Schema · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB; --green:#1F6F43;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.two.even{grid-template-columns:1fr 1fr}
+.two > *{min-width:0}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.callout p:last-child,.callout ul:last-child,.callout ol:last-child{margin-bottom:0}
+.term{color:var(--blue-ink);font-weight:700}
+.mono{font-family:var(--mono);font-size:.93em;overflow-wrap:break-word}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- code typography ---- */
+.code{font-family:var(--mono);font-size:.84rem;line-height:1.6;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.code .kw{color:var(--blue-ink);font-weight:700}
+.code .ty{color:var(--brown);font-weight:700}
+.code .str{color:var(--green)}
+.code .cm{color:var(--muted);font-style:italic}
+.code.bad{border-left-color:var(--orange);background:#FFF8F5}
+.code.good{border-left-color:var(--green);background:#F4FAF6}
+.shell{font-family:var(--mono);font-size:.84rem;line-height:1.55;color:var(--ink);
+  background:#F7F8FA;border:1px solid var(--line);border-left:5px solid var(--muted);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.shell .pr{color:var(--muted)}
+.out{font-family:var(--mono);font-size:.8rem;line-height:1.5;color:var(--ink);
+  background:#fff;border:1px solid var(--line);border-radius:8px;
+  padding:10px 13px;margin:10px 0;overflow-x:auto;white-space:pre}
+.err{font-family:var(--mono);font-size:.82rem;line-height:1.55;
+  background:#FFF6F2;border:1px solid #F0C4B2;border-left:5px solid var(--orange);
+  border-radius:8px;padding:10px 13px;margin:10px 0;overflow-x:auto;white-space:pre-wrap;
+  color:var(--brown)}
+.err b{color:var(--brown)}
+
+/* ---- tables ---- */
+.tscroll{overflow-x:auto}
+.tscroll:focus-visible{outline:3px solid var(--orange);outline-offset:3px;border-radius:6px}
+table.inst{border-collapse:collapse;width:100%;font-size:.86rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left;
+  vertical-align:top}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.mono,table.inst th.mono{font-family:var(--mono)}
+table.inst td.num{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:var(--blue-ink);font-weight:700}
+.no{color:var(--brown);font-weight:700}
+.nullv{color:var(--muted);font-style:italic}
+
+/* ---- step list ---- */
+ol.steps{counter-reset:step;list-style:none;padding-left:0;max-width:64ch}
+ol.steps li{counter-increment:step;position:relative;padding-left:2.2rem;margin:9px 0}
+ol.steps li::before{content:counter(step);position:absolute;left:0;top:.08em;
+  width:1.55rem;height:1.55rem;border-radius:50%;background:var(--blue);color:#fff;
+  font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ---- cursor demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px;align-items:center}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px;font-family:var(--mono)}
+.chip:hover{border-color:var(--blue)}
+.chip[disabled]{color:#9aa2b1;border-color:var(--line);cursor:default}
+.chip.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip.primary[disabled]{background:#fff;color:#9aa2b1;border-color:var(--line)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.4em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.95rem;max-width:none}
+tr.cursor-on td{background:var(--tint);font-weight:700}
+td.cur{font-weight:700;white-space:nowrap;color:var(--blue-ink)}
+
+/* ---- chrome ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:5%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+a{color:var(--blue);text-underline-offset:2px}
+a:focus-visible{outline:3px solid var(--orange);outline-offset:2px;border-radius:3px}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two,.two.even{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.code,.shell,.out,.err{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:10.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:5mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.4rem;margin:0 0 10px}
+  .slide p{margin:0 0 9px}
+  .slide li{margin:4px 0}
+  .lead{font-size:1.04rem}
+  .two,.two.even{gap:16px 26px}
+  .code,.shell,.out,.err{margin:7px 0;padding:8px 11px;font-size:.78rem;line-height:1.45}
+  .callout{margin:9px 0;padding:9px 13px}
+  .callout h3{font-size:.95rem}
+  ol.steps li{margin:6px 0}
+  table.inst{font-size:.78rem}
+  table.inst th,table.inst td{padding:4px 7px}
+  .fig{padding:10px}
+  .fig,.callout,.code,.shell,.out,.err,table.inst{break-inside:avoid}
+  .fig.wide svg{width:72%;display:block;margin:0 auto}
+  a{color:var(--blue-ink);text-decoration:underline}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 5 · App access</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Java and JDBC · Elmasri &amp; Navathe, Ch. 10</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Java and JDBC — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Java to the database — JDBC against the UNIVERSITY schema"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">In-class live session · part two</p>
+    <h2 class="slide-h" tabindex="-1">Java to the database</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Same machine, same server, same UNIVERSITY database. The
+        only thing that changes is who is asking — a Java program instead of
+        you at a prompt.</p>
+        <p style="color:var(--muted)">Everything we ran this morning went through
+        the <span class="mono">mysql</span> client. That client is just a
+        program that opens a socket, sends SQL, and formats what comes back.
+        Now we write one of those ourselves, and discover that the gap between
+        a result set and a Java variable is wider than it looks.</p>
+        <div class="callout">
+          <h3>You already have the database</h3>
+          <p>Nothing new to create. If you ran
+          <span class="mono">university_bootstrap.sql</span>, the four tables and
+          their rows are sitting there waiting. We are only adding a second way
+          to reach them.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 258" role="img" aria-labelledby="t1 d1">
+          <title id="t1">Two clients reaching the same MySQL server</title>
+          <desc id="d1">On the left, the mysql command line client. On the right,
+          a Java program using JDBC and the Connector slash J driver. Both send
+          SQL over a TCP connection on port 3306 to the same MySQL server, which
+          holds the university database. The two clients are peers; neither goes
+          through the other.</desc>
+          <g font-family="system-ui" font-size="12">
+            <rect x="18" y="12" width="195" height="46" rx="5" fill="#F7F8FA" stroke="#8A93A3" stroke-width="1.8"/>
+            <text x="115" y="32" text-anchor="middle" fill="#4A5160" font-weight="700">mysql client</text>
+            <text x="115" y="48" text-anchor="middle" fill="#4A5160" font-size="11">you type SQL</text>
+
+            <rect x="307" y="12" width="195" height="46" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+            <text x="404" y="32" text-anchor="middle" fill="#00246B" font-weight="700">Your Java program</text>
+            <text x="404" y="48" text-anchor="middle" fill="#00246B" font-size="11">JDBC API</text>
+
+            <rect x="307" y="74" width="195" height="38" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="404" y="98" text-anchor="middle" fill="#00246B" font-size="11.5">Connector/J driver (.jar)</text>
+
+            <line x1="115" y1="58" x2="115" y2="150" stroke="#8A93A3" stroke-width="1.7"/>
+            <polygon points="115,156 110,147 120,147" fill="#8A93A3"/>
+            <line x1="404" y1="112" x2="404" y2="150" stroke="#0033A0" stroke-width="1.7"/>
+            <polygon points="404,156 399,147 409,147" fill="#0033A0"/>
+
+            <text x="128" y="128" fill="#4A5160" font-size="10.5">SQL over TCP</text>
+            <text x="417" y="136" fill="#00246B" font-size="10.5">SQL over TCP</text>
+            <text x="260" y="148" text-anchor="middle" fill="#7A2708" font-size="10.5" font-weight="700">port 3306</text>
+
+            <rect x="110" y="156" width="300" height="52" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+            <text x="260" y="177" text-anchor="middle" fill="#00246B" font-size="13.5" font-weight="700">MySQL server</text>
+            <text x="260" y="196" text-anchor="middle" fill="#4A5160" font-size="11">database: university</text>
+
+            <text x="260" y="232" text-anchor="middle" fill="#4A5160" font-size="10.5">two clients, one server — neither knows about the other</text>
+          </g>
+        </svg>
+        <p class="figcap">Your program is a peer of the <span class="mono">mysql</span>
+        client, not a layer on top of it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · THE MISMATCH -->
+  <section class="slide" data-title="What actually changes when a program asks" aria-roledescription="slide" aria-label="What actually changes when a program asks">
+    <p class="kicker">Why this is its own topic</p>
+    <h2 class="slide-h" tabindex="-1">What actually changes</h2>
+    <p class="lead">The SQL does not change at all. What changes is that the
+    answer now has to become Java objects — and the two languages disagree about
+    almost everything.</p>
+    <div class="two">
+      <div>
+        <table class="inst">
+          <caption>The <span class="term">impedance mismatch</span>, concretely.</caption>
+          <thead><tr><th scope="col">SQL thinks in</th><th scope="col">Java thinks in</th></tr></thead>
+          <tbody>
+            <tr><td>whole sets at once</td><td>one object at a time, in a loop</td></tr>
+            <tr><td>rows with named columns</td><td>fields, objects, getters</td></tr>
+            <tr><td><span class="mono">NULL</span> as a third truth value</td><td><span class="mono">null</span> refs, and primitives that cannot be null</td></tr>
+            <tr><td><span class="mono">DECIMAL(3,2)</span>, <span class="mono">CHAR(5)</span></td><td><span class="mono">double</span>, <span class="mono">String</span>, <span class="mono">BigDecimal</span></td></tr>
+            <tr><td>errors as numbered codes</td><td>exceptions you must catch</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>What JDBC is</h3>
+          <p>A standard Java API — interfaces like
+          <span class="mono">Connection</span>, <span class="mono">Statement</span>,
+          <span class="mono">ResultSet</span> — plus a vendor-written
+          <span class="term">driver</span> that implements them for one database.</p>
+          <p style="margin-bottom:0">Your code is written against the interfaces.
+          Swapping MySQL for PostgreSQL means a different jar and a different
+          URL, not different code. That is the entire promise, and it mostly
+          holds.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Two places this bites today</h3>
+          <p>A <span class="mono">ResultSet</span> is a cursor, not a list — you
+          walk it once, forward.</p>
+          <p style="margin-bottom:0">And SQL <span class="mono">NULL</span> read
+          into a Java primitive does not throw, does not warn, and does not give
+          you null. It gives you zero. We will watch that happen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHAT MUST BE INSTALLED -->
+  <section class="slide" data-title="What has to be installed" aria-roledescription="slide" aria-label="What has to be installed">
+    <p class="kicker">Setup · 1 of 3</p>
+    <h2 class="slide-h" tabindex="-1">What has to be installed</h2>
+    <p class="lead">Three things, and you already have two of them.</p>
+    <div class="tscroll" tabindex="0" role="region" aria-label="Required components table, scrollable">
+    <table class="inst">
+      <caption>Everything needed to run Java against the database on this machine.</caption>
+      <thead><tr>
+        <th scope="col">Component</th><th scope="col">What to install</th>
+        <th scope="col">How to check</th><th scope="col">Status</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="keycol">MySQL server</th>
+          <td>Done this morning — 9.7 LTS, running on port 3306</td>
+          <td class="mono">mysql -u root -p</td>
+          <td class="ok">already have it</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">JDK</th>
+          <td>A current LTS: <strong>JDK 21</strong> or <strong>JDK 25</strong>.
+          You need the <em>JDK</em>, not just a JRE — you are compiling.</td>
+          <td class="mono">javac -version<br>java -version</td>
+          <td class="ok">assumed installed</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Connector/J</th>
+          <td>MySQL's JDBC driver, as a single <span class="mono">.jar</span>.
+          <strong>This is the one you are missing.</strong> Version
+          <span class="mono">9.7.0</span> to match the 9.7 server.</td>
+          <td>the jar file exists where you put it</td>
+          <td class="no">install this</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="two">
+      <div>
+        <div class="callout">
+          <h3>Why both numbers are 9.7</h3>
+          <p style="margin-bottom:0">Connector/J now tracks the server's version
+          scheme, so 9.7.0 is the driver that pairs with MySQL 9.7 LTS. There is
+          also a 26.x innovation line, same calendar-versioning trap as the
+          server. Take 9.7.0.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>The driver is not fussy about Java</h3>
+          <p style="margin-bottom:0">Connector/J only requires JDK 8 or newer, so
+          your JDK choice is about this course, not about the driver. If
+          <span class="mono">javac -version</span> prints anything from 17
+          upward you are fine.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · GETTING CONNECTOR/J -->
+  <section class="slide" data-title="Setup — getting Connector/J" aria-roledescription="slide" aria-label="Getting Connector slash J">
+    <p class="kicker">Setup · 2 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Getting the driver</h2>
+    <div class="two">
+      <div>
+        <ol class="steps">
+          <li>Go to
+          <span class="mono">dev.mysql.com/downloads/connector/j/</span></li>
+          <li>For "Select Operating System", choose
+          <strong>Platform Independent</strong>. The driver is pure Java; there
+          is no Windows build and no Mac build.</li>
+          <li>Download the ZIP or TAR archive and unpack it.</li>
+          <li>Inside is one file that matters:<br>
+          <span class="mono">mysql-connector-j-9.7.0.jar</span></li>
+          <li>Put that jar somewhere stable and easy to type — a
+          <span class="mono">lib</span> folder next to your source is ideal.</li>
+        </ol>
+        <div class="shell">myproject/
+  Lab.java
+  lib/
+    mysql-connector-j-9.7.0.jar</div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>"Platform Independent" is not a trick question</h3>
+          <p style="margin-bottom:0">Connector/J is a <strong>Type 4</strong>
+          driver: pure Java, speaking the MySQL network protocol directly. It
+          does not wrap any native library, which is why one jar works on every
+          operating system. If you are being offered an MSI, you are on the
+          wrong download page.</p>
+        </div>
+        <div class="callout">
+          <h3>If you use Maven or Gradle</h3>
+          <p style="margin-bottom:0">Declare the dependency instead of
+          downloading anything, and the build tool handles the classpath for
+          you:</p>
+          <div class="code" style="margin-bottom:0"><span class="cm">&lt;!-- Maven --&gt;</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;com.mysql&lt;/groupId&gt;
+  &lt;artifactId&gt;mysql-connector-j&lt;/artifactId&gt;
+  &lt;version&gt;9.7.0&lt;/version&gt;
+&lt;/dependency&gt;</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · CLASSPATH -->
+  <section class="slide" data-title="Setup — the classpath, where everyone gets stuck" aria-roledescription="slide" aria-label="The classpath, where everyone gets stuck">
+    <p class="kicker">Setup · 3 of 3</p>
+    <h2 class="slide-h" tabindex="-1">The classpath</h2>
+    <p class="lead">This is where this lab goes wrong for most people, and it is
+    not a Java concept problem — it is a "where is the jar" problem.</p>
+    <div class="two">
+      <div>
+        <p style="margin-bottom:6px"><strong>macOS and Linux</strong> — separator is a colon:</p>
+        <div class="shell"><span class="pr">$</span> javac -cp lib/mysql-connector-j-9.7.0.jar Lab.java
+<span class="pr">$</span> java  -cp .:lib/mysql-connector-j-9.7.0.jar Lab</div>
+        <p style="margin-bottom:6px"><strong>Windows</strong> — separator is a semicolon:</p>
+        <div class="shell"><span class="pr">&gt;</span> javac -cp lib\mysql-connector-j-9.7.0.jar Lab.java
+<span class="pr">&gt;</span> java  -cp .;lib\mysql-connector-j-9.7.0.jar Lab</div>
+        <div class="callout warn">
+          <h3>Do not lose the dot</h3>
+          <p style="margin-bottom:0">The <span class="mono">.</span> in
+          <span class="mono">.:lib/...</span> is your own compiled class. Leave
+          it out and Java finds the driver but not your program:
+          <span class="mono">Could not find or load main class Lab</span>.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Compile time vs run time</h3>
+          <p style="margin-bottom:0"><span class="mono">javac</span> technically
+          does not need the driver at all — your code only mentions
+          <span class="mono">java.sql</span> interfaces. But
+          <span class="mono">java</span> absolutely does, because the driver has
+          to be found and loaded. Passing it to both is the habit that avoids
+          the confusing half-working state.</p>
+        </div>
+        <div class="callout">
+          <h3>In an IDE</h3>
+          <p style="margin-bottom:0">There is no command line to get right —
+          you add the jar to the project's libraries or build path instead.
+          <strong>IntelliJ:</strong> File → Project Structure → Libraries → +.
+          <strong>Eclipse:</strong> right-click project → Build Path → Add
+          External Archives. <strong>VS Code:</strong> add it under Java Project
+          → Referenced Libraries.</p>
+        </div>
+        <div class="callout warn">
+          <h3>The error you will get if you skip this</h3>
+          <div class="err" style="margin:6px 0 0"><b>java.sql.SQLException</b>
+No suitable driver found for
+jdbc:mysql://localhost:3306/university</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · THE URL -->
+  <section class="slide" data-title="The connection URL" aria-roledescription="slide" aria-label="The connection URL">
+    <p class="kicker">Connecting · 1 of 3</p>
+    <h2 class="slide-h" tabindex="-1">The connection URL</h2>
+    <p>One string carries the protocol, the machine, the port and the database.
+    Get it wrong and the error you get usually names which part.</p>
+    <div class="fig wide">
+      <svg viewBox="0 0 700 150" role="img" aria-labelledby="t6 d6">
+        <title id="t6">The parts of a JDBC connection URL</title>
+        <desc id="d6">The URL jdbc colon mysql colon slash slash localhost colon
+        3306 slash university, broken into four labeled parts: jdbc colon mysql
+        is the driver to use; localhost is the machine, meaning this computer;
+        3306 is the port MySQL listens on; and university is the database name,
+        the same one the USE statement selected.</desc>
+        <g font-family="ui-monospace, monospace" font-size="17" font-weight="700">
+          <text x="24"  y="44" fill="#00246B">jdbc:mysql:</text>
+          <text x="134" y="44" fill="#4A5160">//</text>
+          <text x="156" y="44" fill="#7A2708">localhost</text>
+          <text x="248" y="44" fill="#4A5160">:</text>
+          <text x="258" y="44" fill="#7A2708">3306</text>
+          <text x="300" y="44" fill="#4A5160">/</text>
+          <text x="310" y="44" fill="#1F6F43">university</text>
+        </g>
+        <g font-family="system-ui" font-size="11" fill="#4A5160">
+          <line x1="70"  y1="54" x2="70"  y2="76" stroke="#00246B" stroke-width="1.4"/>
+          <text x="70"  y="92" text-anchor="middle" fill="#00246B" font-weight="700">which driver</text>
+          <text x="70"  y="106" text-anchor="middle">always this, for MySQL</text>
+
+          <line x1="200" y1="54" x2="200" y2="76" stroke="#7A2708" stroke-width="1.4"/>
+          <text x="200" y="92" text-anchor="middle" fill="#7A2708" font-weight="700">which machine</text>
+          <text x="200" y="106" text-anchor="middle">this computer</text>
+
+          <line x1="278" y1="54" x2="278" y2="76" stroke="#7A2708" stroke-width="1.4"/>
+          <text x="290" y="92" text-anchor="middle" fill="#7A2708" font-weight="700">which port</text>
+          <text x="290" y="106" text-anchor="middle">MySQL's default</text>
+
+          <line x1="370" y1="54" x2="370" y2="76" stroke="#1F6F43" stroke-width="1.4"/>
+          <text x="400" y="92" text-anchor="middle" fill="#1F6F43" font-weight="700">which database</text>
+          <text x="400" y="106" text-anchor="middle">what USE selected this morning</text>
+        </g>
+      </svg>
+      <p class="figcap">On this machine, only the last part is a decision; the
+      rest is boilerplate.</p>
+    </div>
+    <div class="callout">
+      <h3>If the connection is refused over security settings</h3>
+      <p style="margin-bottom:0">A fresh MySQL uses strong password encryption,
+      and over a plain local connection the driver sometimes needs permission to
+      fetch the server's public key. If you hit that, append
+      <span class="mono">?allowPublicKeyRetrieval=true&amp;useSSL=false</span> to
+      the URL. That is acceptable for a local teaching database on your own
+      machine and <strong>not</strong> acceptable for anything real.</p>
+    </div>
+  </section>
+
+  <!-- 7 · FIRST PROGRAM -->
+  <section class="slide" data-title="Connecting — the smallest program that proves it works" aria-roledescription="slide" aria-label="The smallest program that proves it works">
+    <p class="kicker">Connecting · 2 of 3</p>
+    <h2 class="slide-h" tabindex="-1">The smallest useful program</h2>
+    <div class="two">
+      <div>
+        <div class="code"><span class="kw">import</span> java.sql.Connection;
+<span class="kw">import</span> java.sql.DriverManager;
+<span class="kw">import</span> java.sql.SQLException;
+
+<span class="kw">public class</span> <span class="ty">TestConnection</span> {
+  <span class="kw">static final</span> <span class="ty">String</span> URL  =
+      <span class="str">"jdbc:mysql://localhost:3306/university"</span>;
+  <span class="kw">static final</span> <span class="ty">String</span> USER = <span class="str">"root"</span>;
+  <span class="kw">static final</span> <span class="ty">String</span> PASS = <span class="str">"your-password"</span>;
+
+  <span class="kw">public static void</span> main(<span class="ty">String</span>[] args) {
+    <span class="kw">try</span> (<span class="ty">Connection</span> conn =
+           <span class="ty">DriverManager</span>.getConnection(URL, USER, PASS)) {
+      System.out.println(<span class="str">"Connected to: "</span> + conn.getCatalog());
+    } <span class="kw">catch</span> (<span class="ty">SQLException</span> e) {
+      System.err.println(<span class="str">"Failed: "</span> + e.getMessage());
+      System.err.println(<span class="str">"SQLState: "</span> + e.getSQLState());
+    }
+  }
+}</div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Three things worth noticing</h3>
+          <p><strong>No <span class="mono">Class.forName</span>.</strong> Older
+          tutorials open with
+          <span class="mono">Class.forName("com.mysql.cj.jdbc.Driver")</span>.
+          Since JDBC 4.0 the driver registers itself just by being on the
+          classpath. If you see that line, the tutorial predates 2007.</p>
+          <p><strong>The <span class="mono">try (...)</span> is doing work.</strong>
+          That is try-with-resources: the connection is closed when the block
+          ends, including when an exception is thrown. A leaked connection stays
+          open on the server until it times out.</p>
+          <p style="margin-bottom:0"><strong><span class="mono">SQLState</span> is
+          the useful part of a failure.</strong> It is a standard five-character
+          code. <span class="mono">08001</span> means the driver could not be
+          found; <span class="mono">28000</span> means your password was
+          rejected.</p>
+        </div>
+        <div class="callout warn">
+          <h3>About that password in the source</h3>
+          <p style="margin-bottom:0">Fine for a lab on your own machine, wrong
+          everywhere else — it ends up in version control. Real programs read
+          credentials from a config file or an environment variable.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · SHAPE OF EVERY JDBC PROGRAM -->
+  <section class="slide" data-title="Connecting — the shape every JDBC program has" aria-roledescription="slide" aria-label="The shape every JDBC program has">
+    <p class="kicker">Connecting · 3 of 3</p>
+    <h2 class="slide-h" tabindex="-1">The shape of all of them</h2>
+    <p class="lead">Every JDBC program you will ever write is these five steps.
+    Once you can see them, the API stops feeling large.</p>
+    <div class="two">
+      <div>
+        <ol class="steps">
+          <li><strong>Get a <span class="mono">Connection</span></strong> —
+          one TCP session to the server.</li>
+          <li><strong>Make a <span class="mono">Statement</span> or
+          <span class="mono">PreparedStatement</span></strong> — the thing that
+          carries SQL.</li>
+          <li><strong>Execute.</strong>
+          <span class="mono">executeQuery</span> for a SELECT, which hands back a
+          <span class="mono">ResultSet</span>;
+          <span class="mono">executeUpdate</span> for INSERT, UPDATE and DELETE,
+          which hands back a row count.</li>
+          <li><strong>Walk the <span class="mono">ResultSet</span></strong> —
+          a cursor, one row at a time, forward only by default.</li>
+          <li><strong>Close everything</strong>, in reverse order — or let
+          try-with-resources do it, which is why we nest the declarations.</li>
+        </ol>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Which execute method</h3>
+          <div class="code" style="margin-bottom:0"><span class="ty">ResultSet</span> rs = st.executeQuery(sql);   <span class="cm">// SELECT</span>
+<span class="kw">int</span>       n  = st.executeUpdate(sql);  <span class="cm">// INSERT/
+                                   //   UPDATE/
+                                   //   DELETE/DDL</span></div>
+        </div>
+        <div class="callout warn">
+          <h3>Closing is not optional</h3>
+          <p style="margin-bottom:0">Connections are a limited server resource.
+          A program that opens one per query and never closes them will run fine
+          on your laptop for about four minutes and then start collecting
+          <span class="mono">Too many connections</span>. Try-with-resources
+          makes this a non-issue, which is why it is the only form shown in this
+          deck.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · THE CURSOR LOOP -->
+  <section class="slide" data-title="Querying — Statement and ResultSet" aria-roledescription="slide" aria-label="Querying with Statement and ResultSet">
+    <p class="kicker">Querying · 1 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Walking a result set</h2>
+    <div class="two">
+      <div>
+        <div class="code"><span class="ty">String</span> sql =
+  <span class="str">"SELECT StudentID, Name, Major, GPA "</span> +
+  <span class="str">"FROM STUDENT ORDER BY StudentID"</span>;
+
+<span class="kw">try</span> (<span class="ty">Connection</span> conn = <span class="ty">DriverManager</span>.getConnection(URL, USER, PASS);
+     <span class="ty">Statement</span>  st   = conn.createStatement();
+     <span class="ty">ResultSet</span>  rs   = st.executeQuery(sql)) {
+
+  <span class="kw">while</span> (rs.next()) {
+    <span class="ty">String</span> id    = rs.getString(<span class="str">"StudentID"</span>);
+    <span class="ty">String</span> name  = rs.getString(<span class="str">"Name"</span>);
+    <span class="ty">String</span> major = rs.getString(<span class="str">"Major"</span>);
+    <span class="kw">double</span> gpa   = rs.getDouble(<span class="str">"GPA"</span>);
+    System.out.printf(<span class="str">"%-6s %-14s %-5s %.2f%n"</span>,
+                      id, name, major, gpa);
+  }
+}</div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3><span class="mono">rs.next()</span> does two jobs</h3>
+          <p style="margin-bottom:0">It moves the cursor forward <em>and</em>
+          reports whether there was anywhere to move to. A fresh
+          <span class="mono">ResultSet</span> sits <em>before</em> the first row,
+          which is why the loop is <span class="mono">while (rs.next())</span>
+          and not a do-while. Forget the call and you get an exception, not an
+          empty loop.</p>
+        </div>
+        <div class="callout">
+          <h3>Columns by name or by number</h3>
+          <p style="margin-bottom:0"><span class="mono">rs.getString("Name")</span>
+          and <span class="mono">rs.getString(2)</span> both work. Indexes start
+          at <strong>1</strong>, not 0 — JDBC predates the convention you are
+          used to. Use names; they survive someone editing the SELECT list.</p>
+        </div>
+        <div class="callout warn">
+          <h3>One pass, forward</h3>
+          <p style="margin-bottom:0">By default you cannot go back, and you
+          cannot read it twice. If you need the rows again, copy them into a
+          <span class="mono">List</span> as you go.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · INTERACTIVE CURSOR DEMONSTRATOR -->
+  <section class="slide" data-title="Demonstrator: step the cursor through the result set" aria-roledescription="slide" aria-label="Demonstrator, step the cursor through the result set">
+    <p class="kicker">Querying · 2 of 4 · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Step the cursor yourself</h2>
+    <p>Press <span class="mono">rs.next()</span> and watch what the cursor does
+    and what the getters return at each position. Note where it starts, and what
+    the last call gives back.</p>
+    <div class="hl-controls" role="group" aria-label="Result set cursor controls">
+      <button class="chip primary" id="cur-next" type="button">rs.next()</button>
+      <button class="chip" id="cur-reset" type="button">executeQuery() again</button>
+    </div>
+    <p id="cur-desc" class="live-desc" role="status" aria-live="polite">The result set is open and the cursor sits before the first row. No getter may be called yet. 8 rows are waiting.</p>
+    <div class="two even">
+      <div>
+        <div class="tscroll" tabindex="0" role="region" aria-label="Result set rows, scrollable">
+        <table class="inst" id="cur-table">
+          <caption>The result set, with the cursor position marked.</caption>
+          <thead><tr>
+            <th scope="col">Cursor</th><th scope="col" class="mono">StudentID</th>
+            <th scope="col">Name</th><th scope="col" class="mono">GPA</th>
+          </tr></thead>
+          <tbody>
+            <tr data-r="1"><td class="cur"></td><td class="mono">S1001</td><td>Ana Reyes</td><td class="mono num">3.72</td></tr>
+            <tr data-r="2"><td class="cur"></td><td class="mono">S1002</td><td>Ben Okafor</td><td class="mono num">3.15</td></tr>
+            <tr data-r="3"><td class="cur"></td><td class="mono">S1003</td><td>Chloe Nguyen</td><td class="mono num">3.95</td></tr>
+            <tr data-r="4"><td class="cur"></td><td class="mono">S1004</td><td>Diego Santos</td><td class="mono num">2.88</td></tr>
+            <tr data-r="5"><td class="cur"></td><td class="mono">S1005</td><td>Emma Larsen</td><td class="mono num">3.40</td></tr>
+            <tr data-r="6"><td class="cur"></td><td class="mono">S1006</td><td>Farid Haddad</td><td class="mono num">3.61</td></tr>
+            <tr data-r="7"><td class="cur"></td><td class="mono">S1007</td><td>Grace Kim</td><td class="mono num">3.33</td></tr>
+            <tr data-r="8"><td class="cur"></td><td class="mono">S1008</td><td>Henry Patel</td><td class="mono nullv">NULL</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+      <div>
+        <div class="out" id="cur-state">position : before first row
+rs.next(): not called yet
+
+rs.getString("Name") -> SQLException
+rs.getDouble("GPA")  -> SQLException</div>
+        <div class="callout">
+          <h3>Watch for two moments</h3>
+          <p>At <strong>row 8</strong>, <span class="mono">getDouble("GPA")</span>
+          returns <span class="mono">0.0</span> even though the stored value is
+          NULL. Henry has no GPA, and Java has just told you he has a zero.</p>
+          <p style="margin-bottom:0">At the <strong>ninth call</strong>,
+          <span class="mono">next()</span> returns <span class="mono">false</span>
+          and the loop ends. That false is the only thing that stops you.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · THE NULL TRAP -->
+  <section class="slide" data-title="The NULL trap — zero is not the same as unknown" aria-roledescription="slide" aria-label="The null trap, zero is not the same as unknown">
+    <p class="kicker">Querying · 3 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Henry Patel has a 0.00 GPA</h2>
+    <p class="lead">He does not, of course. But that is what the program on the
+    previous slide prints, and nothing anywhere warns you.</p>
+    <div class="two even">
+      <div>
+        <p style="margin-bottom:6px"><strong>What that code actually printed:</strong></p>
+        <div class="out">S1001  Ana Reyes      CS    3.72
+S1002  Ben Okafor     CS    3.15
+S1003  Chloe Nguyen   MATH  3.95
+S1004  Diego Santos   CS    2.88
+S1005  Emma Larsen    BIOL  3.40
+S1006  Farid Haddad   MATH  3.61
+S1007  Grace Kim      CS    3.33
+S1008  Henry Patel    null  0.00</div>
+        <div class="callout warn">
+          <h3>Why this happens</h3>
+          <p style="margin-bottom:0"><span class="mono">getDouble</span> returns
+          a primitive <span class="mono">double</span>, and a primitive cannot be
+          null. The JDBC specification says to return <strong>0</strong> for SQL
+          NULL. Same for <span class="mono">getInt</span>: you get 0. It is
+          behaving exactly as documented, and it is still a wrong answer in your
+          report.</p>
+        </div>
+      </div>
+      <div>
+        <p style="margin-bottom:6px"><strong>The fix —
+        <span class="mono">wasNull()</span>, asked straight after the get:</strong></p>
+        <div class="code good"><span class="ty">String</span> major = rs.getString(<span class="str">"Major"</span>);
+<span class="kw">if</span> (rs.wasNull()) major = <span class="str">"(undeclared)"</span>;
+
+<span class="kw">double</span> gpa    = rs.getDouble(<span class="str">"GPA"</span>);
+<span class="ty">String</span> gpaOut = rs.wasNull()
+                ? <span class="str">"  --  "</span>
+                : <span class="ty">String</span>.format(<span class="str">"%6.2f"</span>, gpa);</div>
+        <div class="out">S1007  Grace Kim      CS              3.33
+S1008  Henry Patel    (undeclared)    --</div>
+        <div class="callout">
+          <h3>The rule</h3>
+          <p style="margin-bottom:0"><span class="mono">wasNull()</span> reports
+          on the <em>most recent</em> getter call, so it must come immediately
+          after. For object types like <span class="mono">getString</span> you
+          can just test for <span class="mono">null</span> instead — the trap is
+          only with primitives. Or select
+          <span class="mono">getObject(…, Double.class)</span> and get a real
+          null back.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · PREPAREDSTATEMENT -->
+  <section class="slide" data-title="PreparedStatement — values that are not SQL" aria-roledescription="slide" aria-label="Prepared statement, values that are not SQL">
+    <p class="kicker">Querying · 4 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Values are not SQL</h2>
+    <p class="lead">The moment a query depends on something a user typed, stop
+    building strings. Put a <span class="mono">?</span> in the SQL and hand the
+    value over separately.</p>
+    <div class="two even">
+      <div>
+        <p style="margin-bottom:6px"><strong>Gluing strings — don't:</strong></p>
+        <div class="code bad"><span class="ty">String</span> sql =
+  <span class="str">"SELECT Name FROM STUDENT WHERE Major = '"</span>
+  + major + <span class="str">"'"</span>;
+
+<span class="ty">Statement</span> st = conn.createStatement();
+<span class="ty">ResultSet</span> rs = st.executeQuery(sql);</div>
+        <p style="margin-bottom:6px"><strong>Parameterized — do:</strong></p>
+        <div class="code good"><span class="ty">String</span> sql =
+  <span class="str">"SELECT Name FROM STUDENT WHERE Major = ?"</span>;
+
+<span class="kw">try</span> (<span class="ty">PreparedStatement</span> ps = conn.prepareStatement(sql)) {
+  ps.setString(<span class="str">1</span>, major);
+  <span class="kw">try</span> (<span class="ty">ResultSet</span> rs = ps.executeQuery()) {
+    <span class="kw">while</span> (rs.next()) { ... }
+  }
+}</div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>What the <span class="mono">?</span> actually does</h3>
+          <p style="margin-bottom:0">The SQL text and the values travel to the
+          server <strong>separately</strong>. The server parses the statement
+          once, with the <span class="mono">?</span> as a hole, and then fills
+          the hole with a value that is never parsed as SQL. A quote inside the
+          value is just a character. There is nothing to escape because nothing
+          is being assembled.</p>
+        </div>
+        <div class="callout">
+          <h3>Parameters are 1-indexed too</h3>
+          <p style="margin-bottom:0"><span class="mono">setString(1, …)</span> is
+          the first <span class="mono">?</span>. There is a typed setter for each
+          kind — <span class="mono">setInt</span>,
+          <span class="mono">setDouble</span>,
+          <span class="mono">setNull(n, Types.CHAR)</span> for a deliberate NULL.</p>
+        </div>
+        <div class="callout warn">
+          <h3>It is also faster</h3>
+          <p style="margin-bottom:0">A prepared statement reused in a loop is
+          parsed once and executed many times. The security argument is the one
+          that matters, but you are not paying for it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · INJECTION -->
+  <section class="slide" data-title="SQL injection, demonstrated" aria-roledescription="slide" aria-label="SQL injection demonstrated">
+    <p class="kicker">The reason it matters</p>
+    <h2 class="slide-h" tabindex="-1">Let's break it on purpose</h2>
+    <p>Same program, same database. The only thing that changes is what the user
+    types into the "major" box.</p>
+    <div class="two even">
+      <div>
+        <p style="margin-bottom:4px"><strong>1 · Honest input:</strong>
+        <span class="mono">CS</span></p>
+        <div class="out">SQL sent: SELECT Name, Major FROM STUDENT
+          WHERE Major = 'CS'
+  Ana Reyes
+  Ben Okafor
+  Diego Santos
+  Grace Kim
+-> 4 row(s)</div>
+        <p style="margin-bottom:4px"><strong>2 · Crafted input:</strong>
+        <span class="mono">' OR '1'='1</span></p>
+        <div class="err">SQL sent: SELECT Name, Major FROM STUDENT
+          WHERE Major = '' OR '1'='1'
+  Ana Reyes      Ben Okafor
+  Chloe Nguyen   Diego Santos
+  Emma Larsen    Farid Haddad
+  Grace Kim      Henry Patel
+-> 8 row(s)</div>
+      </div>
+      <div>
+        <p style="margin-bottom:4px"><strong>3 · Same crafted input, through a
+        <span class="mono">PreparedStatement</span>:</strong></p>
+        <div class="out">SQL sent: SELECT Name, Major FROM STUDENT
+          WHERE Major = ?
+   [param = ' OR '1'='1]
+-> 0 row(s)</div>
+        <div class="callout warn">
+          <h3>Read line 2 again</h3>
+          <p style="margin-bottom:0">The user's quote <em>closed</em> the string
+          the programmer opened, and everything after it became part of the
+          query. <span class="mono">'1'='1'</span> is true for every row, so the
+          WHERE clause stopped filtering. The whole table walked out — including
+          Henry, who has no major at all.</p>
+        </div>
+        <div class="callout">
+          <h3>And why the third one is safe</h3>
+          <p style="margin-bottom:0">It searched for students whose major is
+          literally the eleven-character string
+          <span class="mono">' OR '1'='1</span>. There are none, so it returned
+          nothing. That is the correct answer to a nonsense question — which is
+          precisely what you want.</p>
+          <p style="margin-top:8px;margin-bottom:0">A SELECT is the gentle
+          version. The same hole with <span class="mono">executeUpdate</span>
+          takes DELETE statements.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · WRITING -->
+  <section class="slide" data-title="Writing data, and the constraints you already met" aria-roledescription="slide" aria-label="Writing data and the constraints you already met">
+    <p class="kicker">Changing data</p>
+    <h2 class="slide-h" tabindex="-1">Writing, and being refused</h2>
+    <div class="two">
+      <div>
+        <div class="code"><span class="ty">String</span> sql = <span class="str">"INSERT INTO ENROLLED_IN "</span> +
+    <span class="str">"(StudentID, CourseID, Grade) VALUES (?, ?, ?)"</span>;
+
+<span class="kw">try</span> (<span class="ty">Connection</span> conn = <span class="ty">DriverManager</span>.getConnection(URL, USER, PASS);
+     <span class="ty">PreparedStatement</span> ps = conn.prepareStatement(sql)) {
+
+  ps.setString(<span class="str">1</span>, <span class="str">"S1008"</span>);
+  ps.setString(<span class="str">2</span>, <span class="str">"CS410"</span>);
+  ps.setNull(<span class="str">3</span>, <span class="ty">Types</span>.CHAR);   <span class="cm">// in progress</span>
+
+  <span class="kw">int</span> rows = ps.executeUpdate();
+  System.out.println(<span class="str">"Inserted "</span> + rows + <span class="str">" row(s)."</span>);
+
+  ps.executeUpdate();              <span class="cm">// run it a second time</span>
+
+} <span class="kw">catch</span> (<span class="ty">SQLException</span> e) {
+  System.out.println(<span class="str">"Refused : "</span> + e.getMessage());
+  System.out.println(<span class="str">"SQLState: "</span> + e.getSQLState()
+                   + <span class="str">"  code: "</span> + e.getErrorCode());
+}</div>
+      </div>
+      <div>
+        <div class="out">Inserted 1 row(s).</div>
+        <div class="err">Refused : Duplicate entry 'S1008-CS410'
+          for key 'PRIMARY'
+SQLState: 23000  code: 1062</div>
+        <div class="callout">
+          <h3>You have seen this error before</h3>
+          <p style="margin-bottom:0">That is the same <strong>1062</strong> that
+          refused you at the <span class="mono">mysql&gt;</span> prompt this
+          morning, printing the same hyphenated pair. The constraint does not
+          care who is asking. It arrives in Java as a
+          <span class="mono">SQLException</span> you can catch and act on —
+          which is the point of putting the rule in the database rather than in
+          every program that touches it.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Autocommit is on by default</h3>
+          <p style="margin-bottom:0">Each statement commits as it runs. For
+          several writes that must succeed or fail together, turn it off and
+          take control — <span class="mono">conn.setAutoCommit(false)</span>,
+          then <span class="mono">conn.commit()</span> or
+          <span class="mono">conn.rollback()</span>. That is Unit 8, and the
+          reason transactions get three lectures.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · TROUBLESHOOTING -->
+  <section class="slide" data-title="When it does not work" aria-roledescription="slide" aria-label="When it does not work">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">When it does not work</h2>
+    <p>Read the <span class="mono">SQLState</span> and the vendor code before you
+    read anything else. They identify the problem precisely; the message text
+    varies between driver versions.</p>
+    <div class="tscroll" tabindex="0" role="region" aria-label="JDBC troubleshooting table, scrollable">
+    <table class="inst">
+      <caption>The five failures that account for nearly every stuck student.</caption>
+      <thead><tr>
+        <th scope="col" class="mono">SQLState</th><th scope="col" class="mono">Code</th>
+        <th scope="col">What it says</th><th scope="col">What is actually wrong</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="keycol mono">08001</th><td class="mono">—</td>
+          <td>No suitable driver found</td>
+          <td>The jar is not on the run-time classpath. This is a
+          <span class="mono">-cp</span> problem, not a code problem.</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">08S01</th><td class="mono">—</td>
+          <td>Communications link failure / connection refused</td>
+          <td>Nothing is listening. The server is stopped, or the port in the URL
+          is wrong.</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">28000</th><td class="mono">1045</td>
+          <td>Access denied for user … (using password: YES)</td>
+          <td>Wrong username or password. The server was reached, so the URL is
+          fine.</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">42000</th><td class="mono">1049</td>
+          <td>Unknown database 'universty'</td>
+          <td>Typo in the database name at the end of the URL.</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">42000</th><td class="mono">1044</td>
+          <td>Access denied for user … to database …</td>
+          <td>The database exists but this user has no rights on it. A grant
+          problem, not a password problem.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="callout">
+      <h3>Reading an exception properly</h3>
+      <p style="margin-bottom:0">Three calls tell you nearly everything:
+      <span class="mono">e.getSQLState()</span> for the standard class of
+      failure, <span class="mono">e.getErrorCode()</span> for MySQL's own number,
+      and <span class="mono">e.getMessage()</span> for the human sentence. Print
+      all three while you are learning; a stack trace alone usually hides the one
+      line that matters.</p>
+    </div>
+  </section>
+
+  <!-- 16 · CLOSING -->
+  <section class="slide" data-title="Closing notes" aria-roledescription="slide" aria-label="Closing notes">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Closing notes</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">What today added</h3>
+        <ul>
+          <li><strong>A driver is just a jar on the classpath.</strong> Most
+          first-time failures are <span class="mono">-cp</span>, not code.</li>
+          <li><strong>Five steps, always:</strong> connect, prepare, execute,
+          walk the results, close.</li>
+          <li><strong>A <span class="mono">ResultSet</span> is a cursor</strong>,
+          starting before row one, going forward once.</li>
+          <li><strong>SQL NULL read into a primitive is zero.</strong>
+          <span class="mono">wasNull()</span> is the only thing standing between
+          you and a wrong number.</li>
+          <li><strong>Never concatenate a value into SQL.</strong> One quote in
+          the wrong place emptied the table in front of you.</li>
+          <li><strong>Constraints follow you.</strong> The same 1062 refuses the
+          prompt and the program.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Try these before next class</h3>
+          <ol style="margin:0">
+            <li>Change the query to the CS410 roster — a join across STUDENT and
+            ENROLLED_IN — and print it.</li>
+            <li>Make it take the course ID as a command-line argument, through a
+            <span class="mono">PreparedStatement</span>.</li>
+            <li>Then try to break your own program with
+            <span class="mono">' OR '1'='1</span> and satisfy yourself that you
+            cannot.</li>
+            <li>Delete the jar from your <span class="mono">-cp</span> and read
+            the error, so you recognize it instantly later.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Where this is going</h3>
+          <p style="margin-bottom:0">Unit 5 continues with stored procedures and
+          with the deeper version of the injection story. The Final Project needs
+          an application talking to your schema, and this is that connection —
+          the code on these slides is close to what you will start from.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 · RESOURCES -->
+  <section class="slide" data-title="Resources" aria-roledescription="slide" aria-label="Resources">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">Resources</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 4px">Downloads</h3>
+        <ul style="margin-bottom:12px">
+          <li><strong>Connector/J</strong> —
+          <a href="https://dev.mysql.com/downloads/connector/j/">dev.mysql.com/downloads/connector/j/</a><br>
+          <span style="color:var(--muted);font-size:.92rem">Choose "Platform Independent". Version 9.7.0 pairs with MySQL 9.7 LTS.</span></li>
+          <li><strong>A JDK</strong>, if you need one —
+          <a href="https://adoptium.net/">adoptium.net</a><br>
+          <span style="color:var(--muted);font-size:.92rem">Free builds of JDK 21 and 25, both LTS. Take the JDK, not the JRE.</span></li>
+        </ul>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 4px">Documentation</h3>
+        <ul style="margin-bottom:12px">
+          <li><strong>Connector/J Developer Guide</strong> —
+          <a href="https://dev.mysql.com/doc/connector-j/en/">dev.mysql.com/doc/connector-j/en/</a></li>
+          <li><strong>Oracle's JDBC tutorial</strong> —
+          <a href="https://docs.oracle.com/javase/tutorial/jdbc/">docs.oracle.com/javase/tutorial/jdbc/</a><br>
+          <span style="color:var(--muted);font-size:.92rem">Dated in places, but the best free walkthrough of the API itself.</span></li>
+        </ul>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 4px">Course materials</h3>
+        <ul style="margin:0">
+          <li><span class="mono">university_bootstrap.sql</span> — rebuilds the
+          database these programs query.</li>
+          <li>Elmasri &amp; Navathe, <strong>Ch. 10</strong> — database access
+          from applications.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The commands, in one place</h3>
+          <div class="shell" style="margin:6px 0 0"><span class="pr">$</span> javac -cp lib/mysql-connector-j-9.7.0.jar \
+      Lab.java
+<span class="pr">$</span> java -cp .:lib/mysql-connector-j-9.7.0.jar \
+      Lab</div>
+          <p style="margin:6px 0 0;font-size:.92rem">On Windows, swap
+          <span class="mono">:</span> for <span class="mono">;</span> and
+          <span class="mono">/</span> for <span class="mono">\</span>.</p>
+        </div>
+        <div class="callout">
+          <h3>The URL, for copying</h3>
+          <div class="shell" style="margin:6px 0 0">jdbc:mysql://localhost:3306/university</div>
+          <p style="margin:6px 0 0;font-size:.92rem">Add
+          <span class="mono">?allowPublicKeyRetrieval=true&amp;useSSL=false</span>
+          only if the connection is refused over key retrieval, and only
+          locally.</p>
+        </div>
+        <div class="callout warn">
+          <h3>One question to take away</h3>
+          <p style="margin-bottom:0">Your program asked for eight students and
+          got eight rows. Where did those rows live between
+          <span class="mono">executeQuery</span> and your loop reading them — on
+          the server, or in your program's memory? The answer decides what
+          happens when the table has ten million rows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 17</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- ResultSet cursor demonstrator ---
+  var curNext  = document.getElementById('cur-next');
+  var curReset = document.getElementById('cur-reset');
+  var curDesc  = document.getElementById('cur-desc');
+  var curState = document.getElementById('cur-state');
+  var curTable = document.getElementById('cur-table');
+
+  if (curNext && curTable){
+    var rows = Array.prototype.slice.call(curTable.querySelectorAll('tbody tr'));
+    var N    = rows.length;
+    var pos  = 0;                     // 0 = before first; 1..N = on a row; N+1 = after last
+
+    var data = [
+      {id:'S1001', name:'Ana Reyes',    gpa:'3.72', isNull:false},
+      {id:'S1002', name:'Ben Okafor',   gpa:'3.15', isNull:false},
+      {id:'S1003', name:'Chloe Nguyen', gpa:'3.95', isNull:false},
+      {id:'S1004', name:'Diego Santos', gpa:'2.88', isNull:false},
+      {id:'S1005', name:'Emma Larsen',  gpa:'3.40', isNull:false},
+      {id:'S1006', name:'Farid Haddad', gpa:'3.61', isNull:false},
+      {id:'S1007', name:'Grace Kim',    gpa:'3.33', isNull:false},
+      {id:'S1008', name:'Henry Patel',  gpa:'0.0',  isNull:true }
+    ];
+
+    function paint(){
+      rows.forEach(function(tr, i){
+        var on = (i + 1 === pos);
+        tr.classList.toggle('cursor-on', on);
+        var c = tr.querySelector('.cur');
+        if (c) c.textContent = on ? '← cursor' : '';
+      });
+
+      var s, d;
+      if (pos === 0){
+        s = 'position : before first row\n' +
+            'rs.next(): not called yet\n\n' +
+            'rs.getString("Name") -> SQLException\n' +
+            'rs.getDouble("GPA")  -> SQLException';
+        d = 'The result set is open and the cursor sits before the first row. ' +
+            'No getter may be called yet. 8 rows are waiting.';
+      } else if (pos > N){
+        s = 'position : after last row\n' +
+            'rs.next(): false   <- the loop ends here\n\n' +
+            'rs.getString("Name") -> SQLException\n' +
+            'rs.getDouble("GPA")  -> SQLException';
+        d = 'Call number 9 returned false. The cursor is past the last row, the ' +
+            'while loop ends, and try-with-resources closes the result set. ' +
+            'Getters throw again from here.';
+      } else {
+        var r = data[pos - 1];
+        s = 'position : row ' + pos + ' of ' + N + '\n' +
+            'rs.next(): true\n\n' +
+            'rs.getString("Name") -> "' + r.name + '"\n' +
+            'rs.getDouble("GPA")  -> ' + r.gpa +
+            (r.isNull ? '\nrs.wasNull()         -> true   <- the value is NULL' : '');
+        d = 'Call number ' + pos + ' returned true. The cursor is on row ' + pos +
+            ', ' + r.name + '. getDouble on GPA returns ' + r.gpa +
+            (r.isNull
+              ? '. The stored value is NULL, but a primitive double cannot hold null, so JDBC returns zero. Only wasNull() reveals it.'
+              : '.');
+      }
+      if (curState) curState.textContent = s;
+      if (curDesc)  curDesc.textContent  = d;
+      curNext.disabled = (pos > N);
+    }
+
+    curNext.addEventListener('click', function(){ if (pos <= N){ pos++; paint(); } });
+    curReset.addEventListener('click', function(){ pos = 0; paint(); });
+    paint();
+  }
+
+  // deep link (#s3) support, on load and on later hash changes
+  function fromHash(moveFocus){
+    var m = (location.hash || '').match(/^#s(\d+)$/);
+    render(m ? (parseInt(m[1], 10) - 1) : 0, moveFocus);
+  }
+  window.addEventListener('hashchange', function(){ fromHash(true); });
+  fromHash(false);
+})();
+</script>
+</body>
+</html>
