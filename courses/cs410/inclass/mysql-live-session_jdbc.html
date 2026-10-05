@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL, Live — Installing MySQL and Running Your First Queries · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.two.even{grid-template-columns:1fr 1fr}
+.two > *{min-width:0}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.callout p:last-child,.callout ul:last-child,.callout ol:last-child{margin-bottom:0}
+.term{color:var(--blue-ink);font-weight:700}
+.mono{font-family:var(--mono);font-size:.93em;overflow-wrap:break-word}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- code / SQL typography ---- */
+.sql{font-family:var(--mono);font-size:.88rem;line-height:1.65;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.sql .kw{color:var(--blue-ink);font-weight:700}
+.sql .id{color:var(--brown);font-weight:700}
+.sql .cm{color:var(--muted);font-style:italic}
+.sql .str{color:#1F6F43}
+.shell{font-family:var(--mono);font-size:.86rem;line-height:1.6;color:var(--ink);
+  background:#F7F8FA;border:1px solid var(--line);border-left:5px solid var(--muted);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.shell .pr{color:var(--muted)}
+.err{font-family:var(--mono);font-size:.86rem;line-height:1.6;
+  background:#FFF6F2;border:1px solid #F0C4B2;border-left:5px solid var(--orange);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap;
+  color:var(--brown)}
+.err b{color:var(--brown)}
+.out{font-family:var(--mono);font-size:.82rem;line-height:1.5;color:var(--ink);
+  background:#fff;border:1px solid var(--line);border-radius:8px;
+  padding:10px 13px;margin:10px 0;overflow-x:auto;white-space:pre}
+
+/* ---- tables ---- */
+.tscroll{overflow-x:auto}
+.tscroll:focus-visible{outline:3px solid var(--orange);outline-offset:3px;border-radius:6px}
+table.inst{border-collapse:collapse;width:100%;font-size:.88rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.mono,table.inst th.mono{font-family:var(--mono)}
+table.inst td.num{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:var(--blue-ink);font-weight:700}
+.no{color:var(--brown);font-weight:700}
+.nullv{color:var(--muted);font-style:italic}
+
+/* ---- timing strip ---- */
+.timing{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;font-size:.93rem;
+  border:1px solid var(--line);border-radius:9px;padding:12px 16px;background:var(--surface)}
+.timing dt{font-family:var(--mono);font-weight:700;color:var(--blue-ink);
+  font-variant-numeric:tabular-nums}
+.timing dd{margin:0 0 2px}
+
+/* ---- step list ---- */
+ol.steps{counter-reset:step;list-style:none;padding-left:0;max-width:64ch}
+ol.steps li{counter-increment:step;position:relative;padding-left:2.2rem;margin:10px 0}
+ol.steps li::before{content:counter(step);position:absolute;left:0;top:.08em;
+  width:1.55rem;height:1.55rem;border-radius:50%;background:var(--blue);color:#fff;
+  font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 13px;font-family:var(--mono)}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.95rem;max-width:none}
+/* match marking: text label + weight + opacity, never color alone */
+tr.drop td{opacity:.55;text-decoration:line-through;text-decoration-thickness:1px}
+td.verdict{font-weight:700;white-space:nowrap}
+tr.keep td.verdict{color:var(--blue-ink)}
+tr.drop td.verdict{color:var(--brown);text-decoration:none;opacity:1}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:5%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+a{color:var(--blue);text-underline-offset:2px}
+a:focus-visible{outline:3px solid var(--orange);outline-offset:2px;border-radius:3px}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two,.two.even{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.sql,.shell,.out,.err{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:10.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:5mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.4rem;margin:0 0 10px}
+  .slide p{margin:0 0 9px}
+  .slide li{margin:4px 0}
+  .lead{font-size:1.04rem}
+  .two,.two.even{gap:16px 26px}
+  .sql,.shell,.out,.err{margin:7px 0;padding:8px 11px;font-size:.82rem;line-height:1.5}
+  .callout{margin:9px 0;padding:9px 13px}
+  .callout h3{font-size:.95rem}
+  .timing{padding:9px 13px;font-size:.88rem}
+  ol.steps li{margin:6px 0}
+  table.inst{font-size:.8rem}
+  table.inst th,table.inst td{padding:4px 7px}
+  .fig{padding:10px}
+  .fig,.callout,.sql,.shell,.out,.err,table.inst,.timing{break-inside:avoid}
+  .fig.wide svg{width:72%;display:block;margin:0 auto}
+  a{color:var(--blue-ink);text-decoration:underline}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 4 · SQL</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">In-class live session · Mon Oct 5 · Elmasri &amp; Navathe, Ch. 6</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="SQL live session — lecture slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="SQL, live — installing MySQL and running your first queries"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">In-class live session</p>
+    <h2 class="slide-h" tabindex="-1">SQL, live</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Today we install MySQL, build the UNIVERSITY database
+        from an empty server, and run queries against it — on screen, in real
+        time, mistakes included.</p>
+        <p style="color:var(--muted)">Everything you have seen so far has been on
+        paper: diagrams, relations, algebra. By the end of this session there is
+        a real server on a real machine answering real questions. HW2 asks you to
+        do exactly this on your own, and it is due Wednesday.</p>
+        <div class="callout">
+          <h3>Follow along if you can</h3>
+          <p>If you have a laptop, install alongside me. If you would rather
+          watch, watch — every command is in these slides and in the companion
+          script, and nothing today is lost by watching first.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 272" role="img" aria-labelledby="t1 d1">
+          <title id="t1">The path from an empty machine to an answered query</title>
+          <desc id="d1">Five stacked stages connected by downward arrows:
+          Install the server, Connect a client, CREATE TABLE which is the DDL step,
+          INSERT rows which is the DML step, and SELECT which returns an answer.
+          The first two stages are one-time setup; the last three are SQL.</desc>
+          <g font-family="system-ui" font-size="13">
+            <rect x="110" y="10" width="300" height="34" rx="5" fill="#F7F8FA" stroke="#8A93A3" stroke-width="1.8"/>
+            <text x="260" y="32" text-anchor="middle" fill="#4A5160">1 · Install the server</text>
+            <line x1="260" y1="44" x2="260" y2="57" stroke="#8A93A3" stroke-width="1.6"/>
+            <polygon points="260,64 255,55 265,55" fill="#8A93A3"/>
+
+            <rect x="110" y="64" width="300" height="34" rx="5" fill="#F7F8FA" stroke="#8A93A3" stroke-width="1.8"/>
+            <text x="260" y="86" text-anchor="middle" fill="#4A5160">2 · Connect a client</text>
+            <line x1="260" y1="98" x2="260" y2="111" stroke="#0033A0" stroke-width="1.6"/>
+            <polygon points="260,118 255,109 265,109" fill="#0033A0"/>
+
+            <rect x="110" y="118" width="300" height="34" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+            <text x="260" y="140" text-anchor="middle" fill="#00246B" font-weight="700">3 · CREATE TABLE — DDL</text>
+            <line x1="260" y1="152" x2="260" y2="165" stroke="#0033A0" stroke-width="1.6"/>
+            <polygon points="260,172 255,163 265,163" fill="#0033A0"/>
+
+            <rect x="110" y="172" width="300" height="34" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+            <text x="260" y="194" text-anchor="middle" fill="#00246B" font-weight="700">4 · INSERT rows — DML</text>
+            <line x1="260" y1="206" x2="260" y2="219" stroke="#0033A0" stroke-width="1.6"/>
+            <polygon points="260,226 255,217 265,217" fill="#0033A0"/>
+
+            <rect x="110" y="226" width="300" height="34" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.6"/>
+            <text x="260" y="248" text-anchor="middle" fill="#00246B" font-weight="700">5 · SELECT — an answer</text>
+          </g>
+        </svg>
+        <p class="figcap">Two setup steps, then three SQL steps. Only the last
+        three are the course; the first two are the toll you pay once.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · PLAN AND TIME BUDGET -->
+  <section class="slide" data-title="The plan, and what it costs in minutes" aria-roledescription="slide" aria-label="The plan and the time budget">
+    <p class="kicker">Introduction</p>
+    <h2 class="slide-h" tabindex="-1">The plan, and the clock</h2>
+    <div class="two">
+      <div>
+        <p>Five things happen today, in this order. The install is the only part
+        that can go badly, so it goes first and it gets a hard stop.</p>
+        <dl class="timing">
+          <dt>1:30</dt><dd>Why a live server, and what we are building</dd>
+          <dt>1:35</dt><dd><strong>Install MySQL</strong> — hard stop at 1:55</dd>
+          <dt>1:55</dt><dd>Connect; <span style="font-family:var(--mono)">CREATE DATABASE</span></dd>
+          <dt>2:05</dt><dd><strong>DDL</strong> — four tables, keys, foreign keys</dd>
+          <dt>2:20</dt><dd><strong>DML</strong> — insert rows; break the constraints on purpose</dd>
+          <dt>2:30</dt><dd><strong>SELECT–FROM–WHERE</strong> — the exercise ladder</dd>
+          <dt>2:45</dt><dd>Close</dd>
+        </dl>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>The hard stop is real</h3>
+          <p>If your install is not finished at 1:55, stop installing and start
+          watching. A half-finished install is not worth the rest of the
+          period, and office hours exist. You will not fall behind: the
+          companion script rebuilds everything in one command whenever you do
+          get it running.</p>
+        </div>
+        <div class="callout">
+          <h3>What you walk out with</h3>
+          <ul>
+            <li>A running MySQL server, or a clear idea of where yours stuck.</li>
+            <li>A four-table database you built by hand.</li>
+            <li>Roughly fifteen queries you have seen run.</li>
+            <li>Most of the mechanical work of HW2, already rehearsed.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHICH MYSQL -->
+  <section class="slide" data-title="Installation — which MySQL to install" aria-roledescription="slide" aria-label="Installation, which MySQL to install">
+    <p class="kicker">Installation · 1 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Which MySQL?</h2>
+    <p class="lead">This is the step most people get wrong, and the error does
+    not show up until later. Oracle changed both the version scheme and the
+    Windows installer recently, so a lot of what you will find online is stale.</p>
+    <div class="two">
+      <div>
+        <table class="inst">
+          <caption>What you will see offered on the download page.</caption>
+          <thead><tr><th scope="col">Track</th><th scope="col">Version</th><th scope="col">For this course</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row" class="keycol">LTS</th>
+              <td class="mono">9.7</td>
+              <td><span class="ok">Install this.</span> Current long-term release.</td>
+            </tr>
+            <tr>
+              <th scope="row" class="keycol">LTS</th>
+              <td class="mono">8.4</td>
+              <td>Fine. Everything today works unchanged.</td>
+            </tr>
+            <tr>
+              <th scope="row" class="keycol">Innovation</th>
+              <td class="mono">26.x</td>
+              <td><span class="no">Avoid.</span> Ships fast, breaks fast.</td>
+            </tr>
+            <tr>
+              <th scope="row" class="keycol">—</th>
+              <td class="mono">8.0</td>
+              <td><span class="no">Do not.</span> Support ended April 2026.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Two traps worth naming out loud</h3>
+          <p><strong>The tutorial trap.</strong> Almost every MySQL tutorial
+          online was written against 8.0 and describes a bundled "MySQL
+          Installer" that no longer drives the current install. If the
+          screenshots do not match what you see, the tutorial is old, not you.</p>
+          <p><strong>The version-number trap.</strong> MySQL now numbers its
+          innovation track by calendar year, so <span class="mono">26.x</span> is
+          <em>newer</em> than <span class="mono">9.7</span> but less stable.
+          Bigger number is not better here.</p>
+        </div>
+        <div class="callout">
+          <h3>Nothing today is version-specific</h3>
+          <p>Every statement in this deck is ordinary SQL. It runs on 8.4, on
+          9.7, and on MariaDB. Pick a version and stop thinking about it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · INSTALL WINDOWS -->
+  <section class="slide" data-title="Installation — Windows" aria-roledescription="slide" aria-label="Installation on Windows">
+    <p class="kicker">Installation · 2 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Windows</h2>
+    <div class="two">
+      <div>
+        <ol class="steps">
+          <li>Download the <strong>MySQL Community Server MSI</strong> for
+          Windows from <span class="mono">dev.mysql.com/downloads/mysql/</span>.
+          Take the LTS release.</li>
+          <li>Run the MSI. It installs the server, then hands off to
+          <strong>MySQL Configurator</strong>.</li>
+          <li>In Configurator, accept the defaults, with two exceptions below.</li>
+          <li>Set a <strong>root password</strong> you will actually remember.
+          Write it down. There is no recovery path worth your Monday.</li>
+          <li>Leave <strong>"Configure MySQL Server as a Windows Service"</strong>
+          checked and set to start automatically.</li>
+          <li>Let it apply the configuration. Watch for every step to go green.</li>
+        </ol>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The two settings that matter</h3>
+          <p><strong>Port 3306</strong> — keep it unless something else already
+          owns it. If Configurator complains, something else does.</p>
+          <p><strong>Authentication method</strong> — take the default (strong
+          password encryption). The "legacy" option exists only for old client
+          software, and you have none.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Where this usually stalls</h3>
+          <ul>
+            <li><strong>Missing Visual C++ Redistributable</strong> — Configurator
+            will say so and link it. Install, then continue.</li>
+            <li><strong>Port 3306 in use</strong> — an old MySQL, or XAMPP, is
+            already running. Uninstall it or change the port.</li>
+            <li><strong>A previous install's data directory</strong> — the most
+            common cause of a server that installs but will not start.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · INSTALL MAC / LINUX -->
+  <section class="slide" data-title="Installation — macOS and Linux" aria-roledescription="slide" aria-label="Installation on macOS and Linux">
+    <p class="kicker">Installation · 3 of 4</p>
+    <h2 class="slide-h" tabindex="-1">macOS and Linux</h2>
+    <div class="two even">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">macOS</h3>
+        <p style="margin-bottom:6px">The DMG from the same download page works
+        and is the path of least surprise. With Homebrew already installed:</p>
+        <div class="shell"><span class="pr">$</span> brew install mysql
+<span class="pr">$</span> brew services start mysql
+<span class="pr">$</span> mysql_secure_installation</div>
+        <p style="font-size:.93rem;color:var(--muted)">Homebrew installs with an
+        empty root password; <span class="mono">mysql_secure_installation</span>
+        is where you set one. Do not skip it.</p>
+      </div>
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Linux (Debian / Ubuntu)</h3>
+        <div class="shell"><span class="pr">$</span> sudo apt update
+<span class="pr">$</span> sudo apt install mysql-server
+<span class="pr">$</span> sudo systemctl start mysql
+<span class="pr">$</span> sudo mysql_secure_installation</div>
+        <p style="font-size:.93rem;color:var(--muted)">Your distribution's
+        packaged version may lag the LTS release. For this course that is
+        fine.</p>
+        <div class="callout" style="margin-top:12px">
+          <h3>On the lab machines</h3>
+          <p>MySQL is already installed in CCP. You do not need to install
+          anything to finish HW2 — the lab is a complete fallback.</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout warn">
+      <h3>If you install nothing today</h3>
+      <p>You can still do every exercise on this deck. Read the companion
+      script, predict each result, then check yourself once you have a server —
+      in the lab, in office hours, or at home. Understanding the queries is the
+      graded skill; installing a server is a one-time errand.</p>
+    </div>
+  </section>
+
+  <!-- 6 · FIRST CONTACT -->
+  <section class="slide" data-title="Installation — first contact with the server" aria-roledescription="slide" aria-label="First contact with the server">
+    <p class="kicker">Installation · 4 of 4</p>
+    <h2 class="slide-h" tabindex="-1">First contact</h2>
+    <p class="lead">Before any SQL, prove the server is alive and that you can
+    reach it. Thirty seconds here saves twenty minutes of confusion later.</p>
+    <div class="two">
+      <div>
+        <p style="margin-bottom:6px">Open a terminal and connect as root:</p>
+        <div class="shell"><span class="pr">$</span> mysql -u root -p</div>
+        <p style="margin-bottom:6px">It asks for the password you set. You should land here:</p>
+        <div class="shell">Welcome to the MySQL monitor.
+Your MySQL connection id is 8
+Server version: 9.7.x MySQL Community Server
+
+mysql&gt;</div>
+        <p style="margin-bottom:6px">Confirm you are really talking to a server:</p>
+        <div class="sql"><span class="kw">SELECT</span> VERSION();</div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>"command not found: mysql"</h3>
+          <p>The server installed, but its <span class="mono">bin</span> folder
+          is not on your PATH. On Windows, either add
+          <span class="mono">C:\Program Files\MySQL\MySQL Server 9.7\bin</span>
+          to PATH, or use the <strong>MySQL Command Line Client</strong> from the
+          Start menu, which sets it for you.</p>
+        </div>
+        <div class="callout warn">
+          <h3>"Can't connect to local MySQL server"</h3>
+          <p>The client is fine; the server is not running. On Windows, start
+          the <strong>MySQL</strong> service in Services. On macOS,
+          <span class="mono">brew services start mysql</span>. On Linux,
+          <span class="mono">sudo systemctl start mysql</span>.</p>
+        </div>
+        <div class="callout">
+          <h3>A GUI, if you want one</h3>
+          <p><strong>MySQL Workbench</strong> is the official graphical client
+          and is worth having. We will stay in the terminal today, because the
+          terminal is what shows you the errors plainly — and the errors are
+          half of today's lesson.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · WHAT WE ARE BUILDING -->
+  <section class="slide" data-title="What we are building — the UNIVERSITY mini-world" aria-roledescription="slide" aria-label="What we are building, the university mini-world">
+    <p class="kicker">The target</p>
+    <h2 class="slide-h" tabindex="-1">What we are building</h2>
+    <p class="lead">The same UNIVERSITY mini-world from the ER lectures, now as
+    actual tables. Four relations, two of them pointing at a third.</p>
+    <div class="fig wide">
+      <svg viewBox="0 0 700 290" role="img" aria-labelledby="t7 d7">
+        <title id="t7">The four-table UNIVERSITY schema with its foreign keys</title>
+        <desc id="d7">DEPARTMENT sits at the top with primary key DeptCode.
+        STUDENT and COURSE each hold a foreign key pointing at DeptCode:
+        STUDENT through its Major column and COURSE through its DeptCode column.
+        ENROLLED underscore IN sits at the bottom with a two-column primary key,
+        StudentID and CourseID, each of which is also a foreign key pointing at
+        STUDENT and COURSE respectively.</desc>
+        <g font-family="system-ui">
+          <!-- DEPARTMENT -->
+          <rect x="255" y="12" width="190" height="62" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="350" y="31" text-anchor="middle" font-size="13.5" font-weight="700" fill="#00246B">DEPARTMENT</text>
+          <text x="350" y="48" text-anchor="middle" font-size="11" fill="#7A2708" font-weight="700" text-decoration="underline">DeptCode</text>
+          <text x="350" y="64" text-anchor="middle" font-size="10.5" fill="#4A5160">DeptName · Building</text>
+
+          <!-- arrows up to DEPARTMENT -->
+          <line x1="130" y1="120" x2="130" y2="52" stroke="#7A2708" stroke-width="1.7"/>
+          <line x1="130" y1="52" x2="249" y2="52" stroke="#7A2708" stroke-width="1.7"/>
+          <polygon points="255,52 247,48 247,56" fill="#7A2708"/>
+          <line x1="570" y1="120" x2="570" y2="52" stroke="#7A2708" stroke-width="1.7"/>
+          <line x1="570" y1="52" x2="451" y2="52" stroke="#7A2708" stroke-width="1.7"/>
+          <polygon points="445,52 453,48 453,56" fill="#7A2708"/>
+
+          <!-- STUDENT -->
+          <rect x="35" y="120" width="190" height="76" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="130" y="139" text-anchor="middle" font-size="13.5" font-weight="700" fill="#00246B">STUDENT</text>
+          <text x="130" y="156" text-anchor="middle" font-size="11" fill="#7A2708" font-weight="700" text-decoration="underline">StudentID</text>
+          <text x="130" y="172" text-anchor="middle" font-size="10.5" fill="#4A5160">Name · GradYear · GPA</text>
+          <text x="130" y="188" text-anchor="middle" font-size="10.5" fill="#7A2708">Major → DEPARTMENT</text>
+
+          <!-- COURSE -->
+          <rect x="475" y="120" width="190" height="76" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="570" y="139" text-anchor="middle" font-size="13.5" font-weight="700" fill="#00246B">COURSE</text>
+          <text x="570" y="156" text-anchor="middle" font-size="11" fill="#7A2708" font-weight="700" text-decoration="underline">CourseID</text>
+          <text x="570" y="172" text-anchor="middle" font-size="10.5" fill="#4A5160">Title · Credits</text>
+          <text x="570" y="188" text-anchor="middle" font-size="10.5" fill="#7A2708">DeptCode → DEPARTMENT</text>
+
+          <!-- ENROLLED_IN -->
+          <rect x="245" y="218" width="210" height="62" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="350" y="237" text-anchor="middle" font-size="13.5" font-weight="700" fill="#00246B">ENROLLED_IN</text>
+          <text x="350" y="254" text-anchor="middle" font-size="11" fill="#7A2708" font-weight="700" text-decoration="underline">StudentID, CourseID</text>
+          <text x="350" y="270" text-anchor="middle" font-size="10.5" fill="#4A5160">Grade</text>
+
+          <!-- arrows from ENROLLED_IN -->
+          <line x1="245" y1="249" x2="175" y2="249" stroke="#7A2708" stroke-width="1.7"/>
+          <line x1="175" y1="249" x2="175" y2="202" stroke="#7A2708" stroke-width="1.7"/>
+          <polygon points="175,196 171,204 179,204" fill="#7A2708"/>
+          <line x1="455" y1="249" x2="525" y2="249" stroke="#7A2708" stroke-width="1.7"/>
+          <line x1="525" y1="249" x2="525" y2="202" stroke="#7A2708" stroke-width="1.7"/>
+          <polygon points="525,196 521,204 529,204" fill="#7A2708"/>
+
+          <text x="350" y="208" text-anchor="middle" font-size="10" fill="#4A5160">arrows point from foreign key to the key it references</text>
+        </g>
+      </svg>
+      <p class="figcap">Underlined attributes are primary keys. ENROLLED_IN is the
+      M:N relationship from the Sep 16 lecture, carrying the pair as its key.</p>
+    </div>
+  </section>
+
+  <!-- 8 · DDL: DATABASE -->
+  <section class="slide" data-title="DDL — creating the database" aria-roledescription="slide" aria-label="DDL, creating the database">
+    <p class="kicker">DDL · 1 of 4</p>
+    <h2 class="slide-h" tabindex="-1">A database to put tables in</h2>
+    <div class="two">
+      <div>
+        <p>A fresh MySQL server has no database of yours on it. Make one, then
+        step into it.</p>
+        <div class="sql"><span class="kw">CREATE DATABASE</span> university;
+<span class="kw">USE</span> university;</div>
+        <p><span class="mono">USE</span> is not SQL doing anything to the data —
+        it sets which database unqualified table names resolve against, for this
+        connection only. Open a second terminal and you start over in no
+        database at all.</p>
+        <div class="sql"><span class="cm">-- where am I?</span>
+<span class="kw">SELECT</span> DATABASE();
+<span class="kw">SHOW</span> DATABASES;</div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Vocabulary that trips people</h3>
+          <p>MySQL uses <strong>database</strong> and <strong>schema</strong> as
+          synonyms — <span class="mono">CREATE SCHEMA</span> is an alias for
+          <span class="mono">CREATE DATABASE</span>. In the textbook, and in
+          other systems like PostgreSQL, a schema is a namespace
+          <em>inside</em> a database. Same word, two meanings; MySQL picked the
+          looser one.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Running this a second time</h3>
+          <p><span class="mono">CREATE DATABASE university</span> fails if it
+          already exists. To start clean, drop it first — and notice that MySQL
+          will not ask you twice:</p>
+          <div class="sql" style="margin-bottom:0"><span class="kw">DROP DATABASE IF EXISTS</span> university;</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · DDL: FIRST TABLES -->
+  <section class="slide" data-title="DDL — the first two tables" aria-roledescription="slide" aria-label="DDL, the first two tables">
+    <p class="kicker">DDL · 2 of 4</p>
+    <h2 class="slide-h" tabindex="-1">CREATE TABLE, line by line</h2>
+    <div class="two">
+      <div>
+        <div class="sql"><span class="kw">CREATE TABLE</span> <span class="id">DEPARTMENT</span> (
+    DeptCode   <span class="kw">CHAR</span>(4)       <span class="kw">NOT NULL</span>,
+    DeptName   <span class="kw">VARCHAR</span>(40)   <span class="kw">NOT NULL</span>,
+    Building   <span class="kw">VARCHAR</span>(20),
+    <span class="kw">PRIMARY KEY</span> (DeptCode)
+);</div>
+        <div class="sql"><span class="kw">CREATE TABLE</span> <span class="id">STUDENT</span> (
+    StudentID  <span class="kw">CHAR</span>(5)       <span class="kw">NOT NULL</span>,
+    Name       <span class="kw">VARCHAR</span>(40)   <span class="kw">NOT NULL</span>,
+    Major      <span class="kw">CHAR</span>(4),
+    GradYear   <span class="kw">SMALLINT</span>,
+    GPA        <span class="kw">DECIMAL</span>(3,2),
+    <span class="kw">PRIMARY KEY</span> (StudentID),
+    <span class="kw">FOREIGN KEY</span> (Major) <span class="kw">REFERENCES</span> <span class="id">DEPARTMENT</span>(DeptCode)
+);</div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Three decisions in every column</h3>
+          <ol style="margin:0">
+            <li><strong>Type.</strong> <span class="mono">CHAR(4)</span> is fixed
+            width, <span class="mono">VARCHAR(40)</span> is up to 40. Codes are
+            CHAR; names are VARCHAR.</li>
+            <li><strong>Nullability.</strong> <span class="mono">NOT NULL</span>
+            means the column must have a value. Here
+            <span class="mono">Major</span> is nullable on purpose — an
+            undeclared student has no major, and that is different from having
+            a blank one.</li>
+            <li><strong>Constraints.</strong> PRIMARY KEY and FOREIGN KEY are
+            promises the server will enforce on every future write.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Why DEPARTMENT first</h3>
+          <p>STUDENT references DEPARTMENT, so DEPARTMENT must already exist.
+          Reverse the order and you get <span class="mono">ERROR 1824</span>,
+          failed to open the referenced table. Create parents before children —
+          the same rule will bite again when we insert rows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · DDL: REMAINING TABLES -->
+  <section class="slide" data-title="DDL — the remaining tables and the composite key" aria-roledescription="slide" aria-label="DDL, the remaining tables and the composite key">
+    <p class="kicker">DDL · 3 of 4</p>
+    <h2 class="slide-h" tabindex="-1">The relationship table</h2>
+    <div class="two">
+      <div>
+        <div class="sql"><span class="kw">CREATE TABLE</span> <span class="id">COURSE</span> (
+    CourseID   <span class="kw">VARCHAR</span>(8)    <span class="kw">NOT NULL</span>,
+    Title      <span class="kw">VARCHAR</span>(50)   <span class="kw">NOT NULL</span>,
+    Credits    <span class="kw">TINYINT</span>       <span class="kw">NOT NULL DEFAULT</span> 3,
+    DeptCode   <span class="kw">CHAR</span>(4)       <span class="kw">NOT NULL</span>,
+    <span class="kw">PRIMARY KEY</span> (CourseID),
+    <span class="kw">FOREIGN KEY</span> (DeptCode) <span class="kw">REFERENCES</span> <span class="id">DEPARTMENT</span>(DeptCode)
+);</div>
+        <div class="sql"><span class="kw">CREATE TABLE</span> <span class="id">ENROLLED_IN</span> (
+    StudentID  <span class="kw">CHAR</span>(5)       <span class="kw">NOT NULL</span>,
+    CourseID   <span class="kw">VARCHAR</span>(8)    <span class="kw">NOT NULL</span>,
+    Grade      <span class="kw">CHAR</span>(2),
+    <span class="kw">PRIMARY KEY</span> (StudentID, CourseID),
+    <span class="kw">FOREIGN KEY</span> (StudentID) <span class="kw">REFERENCES</span> <span class="id">STUDENT</span>(StudentID),
+    <span class="kw">FOREIGN KEY</span> (CourseID)  <span class="kw">REFERENCES</span> <span class="id">COURSE</span>(CourseID)
+);</div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>This is the M:N mapping, in SQL</h3>
+          <p>Three weeks ago we said a cardinality ratio survives into the
+          relational schema as a <span class="term">uniqueness constraint</span>,
+          and nowhere else. Here is that claim as executable code.</p>
+          <p style="margin-bottom:0"><span class="mono">PRIMARY KEY (StudentID,
+          CourseID)</span> — the <em>pair</em> is unique. Either column alone may
+          repeat. That one line is the entire difference between M:N and the
+          other three ratios.</p>
+        </div>
+        <div class="callout">
+          <h3>DEFAULT earns its keep</h3>
+          <p><span class="mono">Credits TINYINT NOT NULL DEFAULT 3</span> means
+          an INSERT that omits Credits gets a 3 rather than an error. NOT NULL
+          and DEFAULT together are how you say "this must have a value, and
+          here is the value when you don't say."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · DDL: INSPECT -->
+  <section class="slide" data-title="DDL — inspecting what you built" aria-roledescription="slide" aria-label="DDL, inspecting what you built">
+    <p class="kicker">DDL · 4 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Look at what you built</h2>
+    <p>The server now holds a schema. Three commands read it back — and reading
+    it back is how you catch a typo before it costs you an hour.</p>
+    <div class="two">
+      <div>
+        <div class="sql"><span class="kw">SHOW TABLES</span>;</div>
+        <div class="out">+----------------------+
+| Tables_in_university |
++----------------------+
+| COURSE               |
+| DEPARTMENT           |
+| ENROLLED_IN          |
+| STUDENT              |
++----------------------+</div>
+        <div class="sql"><span class="kw">SHOW CREATE TABLE</span> <span class="id">ENROLLED_IN</span>;</div>
+        <p style="font-size:.93rem;color:var(--muted);margin-bottom:0">Prints the
+        full definition the server actually stored, including everything it
+        filled in for you. The most useful of the three, and the least known.</p>
+      </div>
+      <div>
+        <div class="sql"><span class="kw">DESCRIBE</span> <span class="id">STUDENT</span>;</div>
+        <div class="out" style="font-size:.78rem">+-----------+--------------+------+-----+---------+
+| Field     | Type         | Null | Key | Default |
++-----------+--------------+------+-----+---------+
+| StudentID | char(5)      | NO   | PRI | NULL    |
+| Name      | varchar(40)  | NO   |     | NULL    |
+| Major     | char(4)      | YES  | MUL | NULL    |
+| GradYear  | smallint     | YES  |     | NULL    |
+| GPA       | decimal(3,2) | YES  |     | NULL    |
++-----------+--------------+------+-----+---------+</div>
+        <p style="font-size:.86rem;color:var(--muted);margin:-4px 0 10px">A
+        sixth column, <span class="mono">Extra</span>, is omitted here — it is
+        empty for every column of this table.</p>
+        <div class="callout">
+          <h3>Read the Key column</h3>
+          <p style="margin-bottom:0"><span class="mono">PRI</span> is the primary
+          key. <span class="mono">MUL</span> means the column starts an index
+          whose values may repeat — here, the foreign key on Major. Empty means
+          unindexed. This column is the fastest way to confirm your constraints
+          actually landed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · DML: INSERT -->
+  <section class="slide" data-title="DML — putting data in" aria-roledescription="slide" aria-label="DML, putting data in">
+    <p class="kicker">DML · 1 of 2</p>
+    <h2 class="slide-h" tabindex="-1">Putting data in</h2>
+    <div class="two">
+      <div>
+        <p>One <span class="mono">INSERT</span> can carry many rows. Naming the
+        columns is optional and you should do it anyway — it survives someone
+        adding a column later.</p>
+        <div class="sql"><span class="kw">INSERT INTO</span> <span class="id">DEPARTMENT</span> (DeptCode, DeptName, Building) <span class="kw">VALUES</span>
+    (<span class="str">'CS'</span>,   <span class="str">'Computer Science'</span>, <span class="str">'CCP'</span>),
+    (<span class="str">'MATH'</span>, <span class="str">'Mathematics'</span>,      <span class="str">'MB'</span>),
+    (<span class="str">'BIOL'</span>, <span class="str">'Biology'</span>,          <span class="str">'SCI'</span>),
+    (<span class="str">'ENGL'</span>, <span class="str">'English'</span>,          <span class="str">'LA'</span>);</div>
+        <div class="sql"><span class="kw">INSERT INTO</span> <span class="id">STUDENT</span> (StudentID, Name, Major, GradYear, GPA) <span class="kw">VALUES</span>
+    (<span class="str">'S1001'</span>, <span class="str">'Ana Reyes'</span>,    <span class="str">'CS'</span>,   2027, 3.72),
+    (<span class="str">'S1003'</span>, <span class="str">'Chloe Nguyen'</span>, <span class="str">'MATH'</span>, 2027, 3.95),
+    <span class="cm">-- ... six more ...</span>
+    (<span class="str">'S1008'</span>, <span class="str">'Henry Patel'</span>,  <span class="kw">NULL</span>,   2029, <span class="kw">NULL</span>);</div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Parents before children, again</h3>
+          <p>DEPARTMENT, then STUDENT and COURSE, then ENROLLED_IN. Insert an
+          enrollment before its student exists and the foreign key rejects it.
+          The ordering rule you met in DDL is the same rule here, for the same
+          reason.</p>
+        </div>
+        <div class="callout">
+          <h3>Henry Patel is deliberate</h3>
+          <p>A first-semester student: no declared major, no GPA yet. Both are
+          <span class="mono">NULL</span> — which is not zero, not an empty
+          string, and not a blank. It is the absence of a value.</p>
+          <p style="margin-bottom:0">He is in this data because he is going to
+          embarrass a query in about ten minutes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · DML: WHAT THE DB REFUSES -->
+  <section class="slide" data-title="DML — what the database refuses to do" aria-roledescription="slide" aria-label="DML, what the database refuses to do">
+    <p class="kicker">DML · 2 of 2</p>
+    <h2 class="slide-h" tabindex="-1">Now let's break it on purpose</h2>
+    <p class="lead">A constraint you have never seen fire is a constraint you do
+    not believe in. Four statements, four refusals — this is the whole argument
+    for putting rules in the database instead of in application code.</p>
+    <div class="two">
+      <div>
+        <div class="sql"><span class="cm">-- 1. duplicate primary key</span>
+<span class="kw">INSERT INTO</span> <span class="id">STUDENT</span> <span class="kw">VALUES</span>
+  (<span class="str">'S1001'</span>, <span class="str">'Imposter Reyes'</span>, <span class="str">'CS'</span>, 2027, 3.00);</div>
+        <div class="err"><b>ERROR 1062 (23000)</b>
+Duplicate entry 'S1001' for key 'STUDENT.PRIMARY'</div>
+        <div class="sql"><span class="cm">-- 2. foreign key with no parent</span>
+<span class="kw">INSERT INTO</span> <span class="id">STUDENT</span> <span class="kw">VALUES</span>
+  (<span class="str">'S9999'</span>, <span class="str">'Test Student'</span>, <span class="str">'ZZZZ'</span>, 2027, 3.00);</div>
+        <div class="err"><b>ERROR 1452 (23000)</b>
+Cannot add or update a child row: a foreign key
+constraint fails ... FOREIGN KEY (`Major`)
+REFERENCES `DEPARTMENT` (`DeptCode`)</div>
+      </div>
+      <div>
+        <div class="sql"><span class="cm">-- 3. delete a parent that has children</span>
+<span class="kw">DELETE FROM</span> <span class="id">DEPARTMENT</span> <span class="kw">WHERE</span> DeptCode = <span class="str">'CS'</span>;</div>
+        <div class="err"><b>ERROR 1451 (23000)</b>
+Cannot delete or update a parent row: a foreign
+key constraint fails</div>
+        <div class="sql"><span class="cm">-- 4. the composite key, proving itself</span>
+<span class="kw">INSERT INTO</span> <span class="id">ENROLLED_IN</span> <span class="kw">VALUES</span>
+  (<span class="str">'S1001'</span>, <span class="str">'CS410'</span>, <span class="str">'C'</span>);</div>
+        <div class="err"><b>ERROR 1062 (23000)</b>
+Duplicate entry 'S1001-CS410' for key
+'ENROLLED_IN.PRIMARY'</div>
+        <div class="callout">
+          <h3>Look closely at the last one</h3>
+          <p style="margin-bottom:0">The server printed the <em>pair</em>,
+          hyphenated. Ana may take many courses and CS410 may hold many students
+          — but not this pair twice. That error message is the M:N constraint
+          telling you its own name.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · SELECT ANATOMY -->
+  <section class="slide" data-title="SELECT–FROM–WHERE — the anatomy" aria-roledescription="slide" aria-label="Select from where, the anatomy">
+    <p class="kicker">Queries · 1 of 5</p>
+    <h2 class="slide-h" tabindex="-1">SELECT · FROM · WHERE</h2>
+    <div class="two">
+      <div>
+        <p>Three clauses, and they do not execute in the order you read them.</p>
+        <div class="sql"><span class="kw">SELECT</span>  Name, GPA      <span class="cm">-- 3. which columns</span>
+<span class="kw">FROM</span>    STUDENT        <span class="cm">-- 1. which table</span>
+<span class="kw">WHERE</span>   GPA &gt; 3.5;     <span class="cm">-- 2. which rows</span></div>
+        <p>Read it as: start with a table, throw away the rows that fail the
+        condition, then keep only the columns asked for.</p>
+        <p style="margin-bottom:0">In the algebra from Unit 3 this is
+        <span class="mono">π<sub>Name,GPA</sub>(σ<sub>GPA&gt;3.5</sub>(STUDENT))</span>
+        — SELECT is the projection π, and WHERE is the selection σ. The names
+        collide unhelpfully; the operations do not.</p>
+      </div>
+      <div>
+        <div class="tscroll" tabindex="0" role="region" aria-label="STUDENT table data, scrollable">
+        <table class="inst">
+          <caption>STUDENT — the eight rows we will query all period.</caption>
+          <thead><tr>
+            <th scope="col" class="mono">StudentID</th><th scope="col">Name</th>
+            <th scope="col" class="mono">Major</th><th scope="col" class="mono">GradYear</th>
+            <th scope="col" class="mono">GPA</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="mono">S1001</td><td>Ana Reyes</td><td class="mono">CS</td><td class="mono num">2027</td><td class="mono num">3.72</td></tr>
+            <tr><td class="mono">S1002</td><td>Ben Okafor</td><td class="mono">CS</td><td class="mono num">2026</td><td class="mono num">3.15</td></tr>
+            <tr><td class="mono">S1003</td><td>Chloe Nguyen</td><td class="mono">MATH</td><td class="mono num">2027</td><td class="mono num">3.95</td></tr>
+            <tr><td class="mono">S1004</td><td>Diego Santos</td><td class="mono">CS</td><td class="mono num">2028</td><td class="mono num">2.88</td></tr>
+            <tr><td class="mono">S1005</td><td>Emma Larsen</td><td class="mono">BIOL</td><td class="mono num">2026</td><td class="mono num">3.40</td></tr>
+            <tr><td class="mono">S1006</td><td>Farid Haddad</td><td class="mono">MATH</td><td class="mono num">2028</td><td class="mono num">3.61</td></tr>
+            <tr><td class="mono">S1007</td><td>Grace Kim</td><td class="mono">CS</td><td class="mono num">2027</td><td class="mono num">3.33</td></tr>
+            <tr><td class="mono">S1008</td><td>Henry Patel</td><td class="mono nullv">NULL</td><td class="mono num">2029</td><td class="mono nullv">NULL</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · INTERACTIVE DEMONSTRATOR -->
+  <section class="slide" data-title="Demonstrator: change the WHERE clause, watch the rows go" aria-roledescription="slide" aria-label="Demonstrator, change the where clause and watch the rows go">
+    <p class="kicker">Queries · 2 of 5 · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Change the WHERE. Watch the rows go.</h2>
+    <p>Same table, same SELECT, same FROM. Only the condition moves. Pick one
+    and see which of the eight rows survive it.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a WHERE condition">
+      <button class="chip" data-w="none" aria-pressed="true"
+        data-sql="(no WHERE clause)"
+        data-keep="S1001,S1002,S1003,S1004,S1005,S1006,S1007,S1008"
+        data-desc="No WHERE clause at all: every row of the table is returned. All 8 students match.">no WHERE</button>
+      <button class="chip" data-w="cs" aria-pressed="false"
+        data-sql="WHERE Major = 'CS'"
+        data-keep="S1001,S1002,S1004,S1007"
+        data-desc="Major = 'CS' keeps the four computer science majors: Ana Reyes, Ben Okafor, Diego Santos and Grace Kim. 4 of 8 match.">Major = 'CS'</button>
+      <button class="chip" data-w="gpa" aria-pressed="false"
+        data-sql="WHERE GPA &gt; 3.5"
+        data-keep="S1001,S1003,S1006"
+        data-desc="GPA greater than 3.5 keeps Ana Reyes at 3.72, Chloe Nguyen at 3.95 and Farid Haddad at 3.61. 3 of 8 match. Henry Patel has no GPA, so the comparison is unknown and he is dropped.">GPA &gt; 3.5</button>
+      <button class="chip" data-w="year" aria-pressed="false"
+        data-sql="WHERE GradYear = 2027"
+        data-keep="S1001,S1003,S1007"
+        data-desc="GradYear = 2027 keeps Ana Reyes, Chloe Nguyen and Grace Kim. 3 of 8 match.">GradYear = 2027</button>
+      <button class="chip" data-w="and" aria-pressed="false"
+        data-sql="WHERE Major = 'CS' AND GradYear = 2027"
+        data-keep="S1001,S1007"
+        data-desc="Both conditions must hold. Ana Reyes and Grace Kim are computer science majors graduating in 2027. Chloe Nguyen graduates in 2027 but majors in mathematics, so she is dropped. 2 of 8 match.">… AND …</button>
+      <button class="chip" data-w="null" aria-pressed="false"
+        data-sql="WHERE GPA IS NULL"
+        data-keep="S1008"
+        data-desc="GPA IS NULL keeps only Henry Patel, the one student with no GPA recorded. 1 of 8 matches. This is the only way to find him; an equality test against NULL would return nothing.">GPA IS NULL</button>
+    </div>
+    <p class="sql" id="w-sql" style="margin-top:0"><span class="kw">SELECT</span> * <span class="kw">FROM</span> STUDENT;</p>
+    <p id="w-desc" class="live-desc" role="status" aria-live="polite">No WHERE clause at all: every row of the table is returned. All 8 students match.</p>
+    <div class="tscroll" tabindex="0" role="region" aria-label="Query result table, scrollable">
+    <table class="inst" id="w-table">
+      <caption>Rows marked <strong>dropped</strong> fail the condition and do not appear in the result.</caption>
+      <thead><tr>
+        <th scope="col">Result</th>
+        <th scope="col" class="mono">StudentID</th><th scope="col">Name</th>
+        <th scope="col" class="mono">Major</th><th scope="col" class="mono">GradYear</th>
+        <th scope="col" class="mono">GPA</th>
+      </tr></thead>
+      <tbody>
+        <tr class="keep" data-id="S1001"><td class="verdict">kept</td><td class="mono">S1001</td><td>Ana Reyes</td><td class="mono">CS</td><td class="mono num">2027</td><td class="mono num">3.72</td></tr>
+        <tr class="keep" data-id="S1002"><td class="verdict">kept</td><td class="mono">S1002</td><td>Ben Okafor</td><td class="mono">CS</td><td class="mono num">2026</td><td class="mono num">3.15</td></tr>
+        <tr class="keep" data-id="S1003"><td class="verdict">kept</td><td class="mono">S1003</td><td>Chloe Nguyen</td><td class="mono">MATH</td><td class="mono num">2027</td><td class="mono num">3.95</td></tr>
+        <tr class="keep" data-id="S1004"><td class="verdict">kept</td><td class="mono">S1004</td><td>Diego Santos</td><td class="mono">CS</td><td class="mono num">2028</td><td class="mono num">2.88</td></tr>
+        <tr class="keep" data-id="S1005"><td class="verdict">kept</td><td class="mono">S1005</td><td>Emma Larsen</td><td class="mono">BIOL</td><td class="mono num">2026</td><td class="mono num">3.40</td></tr>
+        <tr class="keep" data-id="S1006"><td class="verdict">kept</td><td class="mono">S1006</td><td>Farid Haddad</td><td class="mono">MATH</td><td class="mono num">2028</td><td class="mono num">3.61</td></tr>
+        <tr class="keep" data-id="S1007"><td class="verdict">kept</td><td class="mono">S1007</td><td>Grace Kim</td><td class="mono">CS</td><td class="mono num">2027</td><td class="mono num">3.33</td></tr>
+        <tr class="keep" data-id="S1008"><td class="verdict">kept</td><td class="mono">S1008</td><td>Henry Patel</td><td class="mono nullv">NULL</td><td class="mono num">2029</td><td class="mono nullv">NULL</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- 16 · EXERCISE LADDER -->
+  <section class="slide" data-title="The exercise ladder" aria-roledescription="slide" aria-label="The exercise ladder">
+    <p class="kicker">Queries · 3 of 5</p>
+    <h2 class="slide-h" tabindex="-1">The ladder</h2>
+    <p>Call out the answer before I press enter. Row counts are from the data we
+    just loaded.</p>
+    <div class="two even">
+      <div>
+        <div class="sql"><span class="cm">-- 1. everything                  → 8</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> STUDENT;
+
+<span class="cm">-- 2. just two columns            → 8</span>
+<span class="kw">SELECT</span> Name, Major <span class="kw">FROM</span> STUDENT;
+
+<span class="cm">-- 3. one condition               → 4</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> Major = <span class="str">'CS'</span>;
+
+<span class="cm">-- 4. a comparison                → 3</span>
+<span class="kw">SELECT</span> Name, GPA <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> GPA &gt; 3.5;
+
+<span class="cm">-- 5. two conditions              → 2</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> Major = <span class="str">'CS'</span> <span class="kw">AND</span> GradYear = 2027;
+
+<span class="cm">-- 6. a set of values             → 3</span>
+<span class="kw">SELECT</span> Name, Major <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> Major <span class="kw">IN</span> (<span class="str">'MATH'</span>, <span class="str">'BIOL'</span>);</div>
+      </div>
+      <div>
+        <div class="sql"><span class="cm">-- 7. a range, endpoints included  → 3</span>
+<span class="kw">SELECT</span> Name, GPA <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> GPA <span class="kw">BETWEEN</span> 3.0 <span class="kw">AND</span> 3.5;
+
+<span class="cm">-- 8. pattern match; % is any text → 1</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT
+<span class="kw">WHERE</span> Name <span class="kw">LIKE</span> <span class="str">'A%'</span>;
+
+<span class="cm">-- 9. sort it                      → 8</span>
+<span class="kw">SELECT</span> Name, GPA <span class="kw">FROM</span> STUDENT
+<span class="kw">ORDER BY</span> GPA <span class="kw">DESC</span>;
+
+<span class="cm">-- 10. drop duplicates             → 4</span>
+<span class="kw">SELECT DISTINCT</span> Major <span class="kw">FROM</span> STUDENT;</div>
+        <div class="callout">
+          <h3>Two things to notice when these run</h3>
+          <p><strong>Exercise 8.</strong> <span class="mono">LIKE 'A%'</span> and
+          <span class="mono">LIKE 'a%'</span> return the same row. MySQL's default
+          collation ignores case. That is a MySQL choice, not an SQL one.</p>
+          <p style="margin-bottom:0"><strong>Exercise 9.</strong> Henry sorts
+          last. NULL is not low, not high, not zero — the sort just has to put
+          it somewhere, and MySQL puts it last when descending.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 · NULL -->
+  <section class="slide" data-title="The NULL trap — six plus one is not eight" aria-roledescription="slide" aria-label="The null trap, six plus one is not eight">
+    <p class="kicker">Queries · 4 of 5</p>
+    <h2 class="slide-h" tabindex="-1">Six plus one is not eight</h2>
+    <p class="lead">Here is the promised embarrassment. Two queries that look
+    like exact opposites, run against eight students.</p>
+    <div class="two">
+      <div>
+        <div class="sql"><span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT <span class="kw">WHERE</span> GPA &gt; 3.0;</div>
+        <div class="out">6 rows: Ana, Ben, Chloe, Emma, Farid, Grace</div>
+        <div class="sql"><span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT <span class="kw">WHERE</span> GPA &lt;= 3.0;</div>
+        <div class="out">1 row:  Diego</div>
+        <p style="font-size:1.05rem;font-weight:600;color:var(--brown);margin-top:14px">
+        6 + 1 = 7. There are eight students. Where is Henry?</p>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Three-valued logic</h3>
+          <p>Henry's GPA is NULL — unknown. <span class="mono">NULL &gt; 3.0</span>
+          is not true. It is not false either. It evaluates to
+          <strong>UNKNOWN</strong>, and WHERE keeps a row only when the condition
+          is <em>true</em>. Unknown is discarded, both times.</p>
+          <p style="margin-bottom:0">So Henry falls out of a query and out of its
+          complement. Nothing is broken; this is the defined behavior, and it is
+          the single most common source of silently wrong answers in SQL.</p>
+        </div>
+        <div class="sql"><span class="cm">-- this returns nothing at all, ever</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT <span class="kw">WHERE</span> GPA = <span class="kw">NULL</span>;
+
+<span class="cm">-- this is how you ask</span>
+<span class="kw">SELECT</span> Name <span class="kw">FROM</span> STUDENT <span class="kw">WHERE</span> GPA <span class="kw">IS NULL</span>;</div>
+        <div class="callout">
+          <h3>The habit to build</h3>
+          <p style="margin-bottom:0">Every time you write a WHERE clause on a
+          nullable column, ask what it does to the NULLs. <span class="mono">DESCRIBE</span>
+          tells you which columns those are — it is the <span class="mono">Null:
+          YES</span> column.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 · JOINS VIA WHERE -->
+  <section class="slide" data-title="Two tables at once — the join as a WHERE condition" aria-roledescription="slide" aria-label="Two tables at once, the join as a where condition">
+    <p class="kicker">Queries · 5 of 5</p>
+    <h2 class="slide-h" tabindex="-1">Two tables at once</h2>
+    <div class="two">
+      <div>
+        <p>Put two tables in FROM and you get every pairing of their rows — the
+        cross product from Unit 3. Eight students times fifteen enrollments:</p>
+        <div class="sql"><span class="kw">SELECT COUNT</span>(*) <span class="kw">FROM</span> STUDENT, ENROLLED_IN;</div>
+        <div class="out">120</div>
+        <p>Nonsense rows, pairing every student with every enrollment including
+        other people's. The WHERE clause is what makes it meaningful:</p>
+        <div class="sql"><span class="kw">SELECT COUNT</span>(*) <span class="kw">FROM</span> STUDENT, ENROLLED_IN
+<span class="kw">WHERE</span> STUDENT.StudentID = ENROLLED_IN.StudentID;</div>
+        <div class="out">15</div>
+        <p style="margin-bottom:0">A join is a cross product plus a condition.
+        That is not a metaphor — it is what the engine is doing.</p>
+      </div>
+      <div>
+        <p style="margin-bottom:6px">With aliases, asking a real question:</p>
+        <div class="sql"><span class="kw">SELECT</span> S.Name, E.Grade
+<span class="kw">FROM</span>   STUDENT S, ENROLLED_IN E
+<span class="kw">WHERE</span>  S.StudentID = E.StudentID
+  <span class="kw">AND</span>  E.CourseID  = <span class="str">'CS410'</span>;</div>
+        <div class="out">+--------------+-------+
+| Name         | Grade |
++--------------+-------+
+| Ana Reyes    | A     |
+| Ben Okafor   | B     |
+| Chloe Nguyen | A-    |
+| Diego Santos | NULL  |
+| Grace Kim    | A-    |
++--------------+-------+</div>
+        <div class="callout warn">
+          <h3>Forget the join condition and you get 120 rows</h3>
+          <p style="margin-bottom:0">With <em>n</em> tables in FROM you need
+          <em>n</em>−1 join conditions. Miss one and the result explodes rather
+          than erroring — it is a perfectly legal query returning garbage. Count
+          your conditions before you trust the output.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 · CLOSING NOTES -->
+  <section class="slide" data-title="Closing notes" aria-roledescription="slide" aria-label="Closing notes">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Closing notes</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">What today established</h3>
+        <ul>
+          <li><strong>DDL writes the rules; DML moves the data.</strong> CREATE
+          defines what may exist; INSERT, UPDATE and DELETE work inside those
+          limits.</li>
+          <li><strong>Constraints are the database's job.</strong> You saw four
+          bad writes refused with no application code involved.</li>
+          <li><strong>Order follows the references.</strong> Parents before
+          children, in DDL and in DML both.</li>
+          <li><strong>WHERE is selection σ; SELECT is projection π.</strong> The
+          algebra from Unit 3, with worse names.</li>
+          <li><strong>NULL is not a value.</strong> It breaks complements, and
+          <span class="mono">= NULL</span> never matches anything.</li>
+          <li><strong>A join is a cross product plus a condition.</strong></li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>HW2 is due Wednesday</h3>
+          <p style="margin-bottom:0">Its setup section is what we just did. If
+          your install worked, you are through the part that takes unpredictable
+          time. If it did not, use the lab machines or come to office hours
+          tomorrow — do not spend Tuesday night fighting an installer.</p>
+        </div>
+        <div class="callout">
+          <h3>Before Wednesday</h3>
+          <ol style="margin:0">
+            <li>Get a server running somewhere you can reach.</li>
+            <li>Run the companion script end to end.</li>
+            <li>Work the ladder on slide 16 without looking at the counts.</li>
+            <li>Write one query the deck does not contain, and see if it does
+            what you expected.</li>
+          </ol>
+        </div>
+        <div class="callout">
+          <h3>Next</h3>
+          <p style="margin-bottom:0">Grouping and aggregation —
+          <span class="mono">GROUP BY</span> and <span class="mono">HAVING</span>
+          — then views, assertions and triggers. The last query on the resources
+          slide is a preview.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20 · RESOURCES -->
+  <section class="slide" data-title="Resources" aria-roledescription="slide" aria-label="Resources">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">Resources</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 4px">Downloads</h3>
+        <ul style="margin-bottom:14px">
+          <li><strong>MySQL Community Server</strong> —
+          <a href="https://dev.mysql.com/downloads/mysql/">dev.mysql.com/downloads/mysql/</a><br>
+          <span style="color:var(--muted);font-size:.92rem">Take an LTS release (9.7 or 8.4), not the innovation track.</span></li>
+          <li><strong>MySQL Workbench</strong> —
+          <a href="https://dev.mysql.com/downloads/workbench/">dev.mysql.com/downloads/workbench/</a><br>
+          <span style="color:var(--muted);font-size:.92rem">Optional graphical client. The current generation is a rewrite; expect it to look unlike older screenshots.</span></li>
+        </ul>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 4px">Documentation</h3>
+        <ul style="margin-bottom:14px">
+          <li><strong>MySQL Reference Manual</strong> —
+          <a href="https://dev.mysql.com/doc/refman/9.7/en/">dev.mysql.com/doc/refman/9.7/en/</a><br>
+          <span style="color:var(--muted);font-size:.92rem">Chapter 2 is installation; Chapter 3, "Tutorial," covers today's material at more length.</span></li>
+        </ul>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 4px">Course materials</h3>
+        <ul style="margin:0">
+          <li><span class="mono">university_bootstrap.sql</span> — rebuilds
+          everything from today in one command. On Canvas with these slides.</li>
+          <li>Elmasri &amp; Navathe, <strong>Ch. 6</strong> — SQL data definition
+          and basic retrieval. Ch. 7 for what comes Wednesday.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Running the companion script</h3>
+          <div class="shell" style="margin:6px 0 0">mysql&gt; SOURCE university_bootstrap.sql</div>
+          <p style="margin:6px 0 0;font-size:.92rem">From a shell instead:
+          <span class="mono">mysql -u root -p &lt; university_bootstrap.sql</span></p>
+        </div>
+        <div class="callout">
+          <h3>Getting unstuck</h3>
+          <ul style="margin:0">
+            <li><strong>Office hours</strong> — bring the laptop and the exact
+            error text, not a description of it.</li>
+            <li><strong>The lab machines in CCP</strong> — MySQL is installed;
+            nothing in HW2 requires your own machine.</li>
+            <li><strong>Error numbers are searchable.</strong> "MySQL 1452"
+            beats a sentence describing the problem.</li>
+          </ul>
+        </div>
+        <div class="callout warn">
+          <h3>A preview of Wednesday</h3>
+          <div class="sql" style="margin:6px 0 0"><span class="kw">SELECT</span>   C.Title, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> Enrollment
+<span class="kw">FROM</span>     COURSE C, ENROLLED_IN E
+<span class="kw">WHERE</span>    C.CourseID = E.CourseID
+<span class="kw">GROUP BY</span> C.Title;</div>
+          <p style="margin:6px 0 0;font-size:.92rem">Run it. Databases comes back
+          with 5. Work out why before Wednesday.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 20</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- WHERE-clause demonstrator ---
+  var wChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-w]'));
+  var wDesc  = document.getElementById('w-desc');
+  var wSql   = document.getElementById('w-sql');
+  var wTable = document.getElementById('w-table');
+
+  if (wChips.length && wTable){
+    var wRows = Array.prototype.slice.call(wTable.querySelectorAll('tbody tr'));
+
+    function applyPredicate(chip){
+      var keep = (chip.getAttribute('data-keep') || '').split(',');
+      wRows.forEach(function(tr){
+        var on = keep.indexOf(tr.getAttribute('data-id')) !== -1;
+        tr.classList.toggle('keep', on);
+        tr.classList.toggle('drop', !on);
+        var v = tr.querySelector('.verdict');
+        if (v) v.textContent = on ? 'kept' : 'dropped';
+      });
+      if (wSql){
+        var clause = chip.getAttribute('data-sql') || '';
+        wSql.innerHTML = '<span class="kw">SELECT</span> * <span class="kw">FROM</span> STUDENT' +
+          (chip.getAttribute('data-w') === 'none' ? ';' : '\n' + clause + ';');
+      }
+      if (wDesc) wDesc.textContent = chip.getAttribute('data-desc') || '';
+    }
+
+    wChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        wChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        applyPredicate(chip);
+      });
+    });
+  }
+
+  // deep link (#s3) support, on load and on later hash changes
+  function fromHash(moveFocus){
+    var m = (location.hash || '').match(/^#s(\d+)$/);
+    render(m ? (parseInt(m[1], 10) - 1) : 0, moveFocus);
+  }
+  window.addEventListener('hashchange', function(){ fromHash(true); });
+  fromHash(false);
+})();
+</script>
+</body>
+</html>
