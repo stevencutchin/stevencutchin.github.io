@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In-Class Exercise — Siege 1618: ER → Relational → SQL · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.two.even{grid-template-columns:1fr 1fr}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.alt{border-left-color:var(--brown)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.alt h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- schema / SQL typography ---- */
+.rel{font-family:var(--mono);font-size:.88rem;line-height:1.7;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.rel .k{color:var(--brown);font-weight:700}
+.rel .r{color:var(--blue-ink);font-weight:700}
+.rel .c{color:var(--muted)}
+.sqlline{font-family:var(--mono);font-size:.88rem;background:#fff;border:1px solid var(--line);
+  border-radius:8px;padding:10px 13px;color:var(--brown);font-weight:700;overflow-x:auto;
+  white-space:pre-wrap;margin:10px 0}
+code{font-family:var(--mono);font-size:.92em;background:var(--tint);
+  border-radius:4px;padding:1px 5px;color:var(--blue-ink)}
+
+/* ---- task blocks ---- */
+.task{border:1px solid var(--line);border-top:4px solid var(--blue);border-radius:10px;
+  background:#fff;padding:14px 18px;margin:12px 0}
+.task h3{margin:0 0 6px;font-family:var(--serif);font-size:1.12rem;color:var(--blue-ink)}
+.task .meta{font-size:.82rem;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.04em;margin:0 0 8px}
+.task ol,.task ul{margin:0}
+.minutes{display:inline-block;font-size:.76rem;font-weight:700;color:#fff;
+  background:var(--blue);border-radius:999px;padding:2px 9px;vertical-align:.12em}
+
+/* ---- query list ---- */
+ol.queries{counter-reset:none;max-width:none;padding-left:0;list-style:none}
+ol.queries li{display:grid;grid-template-columns:3.1rem 1fr;gap:0 12px;
+  border-bottom:1px solid var(--line);padding:9px 2px;margin:0}
+ol.queries li:last-child{border-bottom:none}
+ol.queries .qid{font-family:var(--mono);font-weight:700;color:var(--blue-ink)}
+ol.queries .qtext{margin:0}
+ol.queries .qhint{display:block;color:var(--muted);font-size:.85rem;margin-top:3px}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.mono,table.inst th.mono{font-family:var(--mono)}
+.ok{color:var(--blue-ink);font-weight:700}
+.no{color:var(--brown);font-weight:700}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:3.2em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.variant-label{font-weight:700;color:var(--blue-ink);font-size:.9rem;margin:0 0 4px}
+.variant{margin-bottom:14px}
+html.js .variant{display:none}
+html.js .variant.is-on{display:block;margin-bottom:0}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two,.two.even,.demo{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  ol.queries li{grid-template-columns:2.6rem 1fr}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.rel,.sqlline,.task{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.rel,.sqlline,.task,table.inst{break-inside:avoid}
+  .fig.wide svg{width:62%;display:block;margin:0 auto}
+  .demo{grid-template-columns:1fr 1fr}
+  .variant{display:block!important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the exercise</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 2 · in-class exercise</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Siege 1618 — design document to running queries · Elmasri &amp; Navathe, Ch. 3, 4, 6–7, 9</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Siege 1618 in-class exercise — ER to relational to SQL">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Siege 1618 — from a design document to a database"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">In-class exercise · one session</p>
+    <h2 class="slide-h" tabindex="-1">Siege 1618:<br>design document → database</h2>
+    <div class="two">
+      <div>
+        <p class="lead">You have been handed a game design document. It is informal,
+        incomplete, and ambiguous in exactly the places that matter. This is what a
+        real specification looks like.</p>
+        <p style="color:var(--muted)">By the end of the session you will have taken it
+        through the whole pipeline — ER model, relational schema, DDL, and the queries
+        the team will actually run against it — and you will have had to make three
+        design decisions the document does not make for you.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 210" role="img" aria-labelledby="t1 d1">
+          <title id="t1">The pipeline for this session</title>
+          <desc id="d1">Four stages in sequence: the design document, an ER model,
+          a relational schema, and SQL queries. Each stage feeds the next, and the
+          last stage sends feedback back to the ER model.</desc>
+          <rect x="14" y="56" width="118" height="54" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="73" y="79" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Design doc</text>
+          <text x="73" y="96" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">informal prose</text>
+          <rect x="156" y="56" width="118" height="54" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="215" y="79" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">ER model</text>
+          <text x="215" y="96" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">Part 1</text>
+          <rect x="298" y="56" width="118" height="54" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="357" y="79" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">Relations</text>
+          <text x="357" y="96" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">Parts 2–3</text>
+          <rect x="440" y="56" width="110" height="54" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="495" y="79" text-anchor="middle" font-family="system-ui" font-size="12.5" font-weight="700" fill="#00246B">SQL</text>
+          <text x="495" y="96" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">Part 4</text>
+          <line x1="132" y1="83" x2="152" y2="83" stroke="#8A93A3" stroke-width="1.8"/>
+          <polygon points="156,83 148,79 148,87" fill="#8A93A3"/>
+          <line x1="274" y1="83" x2="294" y2="83" stroke="#8A93A3" stroke-width="1.8"/>
+          <polygon points="298,83 290,79 290,87" fill="#8A93A3"/>
+          <line x1="416" y1="83" x2="436" y2="83" stroke="#8A93A3" stroke-width="1.8"/>
+          <polygon points="440,83 432,79 432,87" fill="#8A93A3"/>
+          <path d="M495 110 L495 150 L215 150 L215 114" fill="none" stroke="#7A2708" stroke-width="1.8" stroke-dasharray="5 4"/>
+          <polygon points="215,110 211,118 219,118" fill="#7A2708"/>
+          <text x="355" y="168" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7A2708">the queries you need decide the model you build</text>
+        </svg>
+        <p class="figcap">The dashed arrow is the part most courses leave out — and the
+        part you will feel most sharply today.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · HOW THE SESSION RUNS -->
+  <section class="slide" data-title="How this session runs" aria-roledescription="slide" aria-label="How this session runs">
+    <p class="kicker">Logistics</p>
+    <h2 class="slide-h" tabindex="-1">How this session runs</h2>
+    <div class="two">
+      <div>
+        <p>Work in pairs. One of you drives the diagram, the other argues with it;
+        swap at Part 3. Everything is on paper until Part 4, when you move to the
+        MySQL instance you installed on Monday.</p>
+        <table class="inst">
+          <caption>Timing — adjust as the room needs it.</caption>
+          <thead><tr><th scope="col">Part</th><th scope="col">What you produce</th><th scope="col">Time</th></tr></thead>
+          <tbody>
+            <tr><th scope="row" class="keycol">1</th><td>ER diagram — entities, keys, relationships, cardinality</td><td>20 min</td></tr>
+            <tr><th scope="row" class="keycol">2</th><td>Relational schema from your diagram</td><td>15 min</td></tr>
+            <tr><th scope="row" class="keycol">3</th><td><code>CREATE TABLE</code> for three relations</td><td>10 min</td></tr>
+            <tr><th scope="row" class="keycol">4</th><td>SQL for the question set</td><td>25 min</td></tr>
+            <tr><th scope="row" class="keycol">—</th><td>Debrief: whose model made Part 4 easier?</td><td>5 min</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>What you hand in</h3>
+          <p style="margin:0">One sheet per pair: the ER diagram, the relational schema,
+          and your three <code>CREATE TABLE</code> statements. Part 4 is submitted as a
+          <code>.sql</code> file. Credit is for the <em>model</em>, not for having every
+          query run — but a model that makes the queries impossible is the thing we are
+          testing for.</p>
+        </div>
+        <div class="callout alt">
+          <h3>The one rule</h3>
+          <p style="margin:0">Do not look at the reference schema on slide 11 until you
+          have finished Part 2. The point of this exercise is the gap between what you
+          build and what you needed to have built.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE SOURCE DOCUMENT -->
+  <section class="slide" data-title="What the design document gives you" aria-roledescription="slide" aria-label="What the design document gives you">
+    <p class="kicker">The mini-world</p>
+    <h2 class="slide-h" tabindex="-1">What the document gives you</h2>
+    <p class="lead">Siege 1618 is a two-player, two-screen siege game. Each player holds
+    a terrain map, raises a castle, harvests resources, trains units, and attacks the
+    other side.</p>
+    <div class="two even">
+      <div>
+        <div class="callout">
+          <h3>Stated in the document</h3>
+          <ul style="margin:0">
+            <li><strong>Resources</strong> — wood, stone, crops, gold. Each sits at a
+            tile position and has an amount remaining. Serfs harvest them.</li>
+            <li><strong>Units</strong> — serf, archer, cannon. Each has a position, hit
+            points, attack damage, speed in tiles per second, and a range.</li>
+            <li><strong>Structures</strong> — castle, tower, wall. Each has a position,
+            hit points, attack damage, rate of fire, and a range.</li>
+            <li><strong>Terrain</strong> — a map of tiles, some holding resources, some
+            open plain. Shipped as a level file.</li>
+            <li><strong>Production</strong> — a structure can be told to produce a serf
+            or an archer.</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="callout alt">
+          <h3>Not stated — and you must decide</h3>
+          <ul style="margin:0">
+            <li>There are <strong>players</strong> and there are <strong>matches</strong>.
+            The document never mentions either. Nothing in it tells you who owns a unit
+            or which game it is in.</li>
+            <li>Attack damage and speed are listed as properties of <em>a unit</em>. Are
+            they really?</li>
+            <li>An attack has an attacker and a target. Either one can be a unit
+            <em>or</em> a structure.</li>
+            <li>Nothing records history — only current state. Can you answer "how much
+            damage did she deal last match?" from that?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE TYPE/INSTANCE SPLIT -->
+  <section class="slide" data-title="Decision 1 — the type and instance split" aria-roledescription="slide" aria-label="Decision one, the type and instance split">
+    <p class="kicker">Decision 1 of 3 · worked for you</p>
+    <h2 class="slide-h" tabindex="-1">"Speed: tiles per second" — whose property is that?</h2>
+    <div class="two">
+      <div>
+        <p>The document lists <code>speed</code>, <code>attack</code> and
+        <code>range</code> under <strong>Units</strong>. Read it literally and you get
+        one entity, <span class="term">UNIT</span>, carrying all of them.</p>
+        <p>But every archer in the game moves at the same speed. That number belongs to
+        <em>archers</em>, not to <em>this archer</em>. Store it per instance and you have
+        written the same value into ten thousand rows, and a balance patch that nerfs
+        archer speed becomes a mass update that can go half-finished.</p>
+        <div class="callout">
+          <h3>The split</h3>
+          <p style="margin:0"><span class="term">UNIT_TYPE</span> holds what is true of
+          every archer: max HP, attack, speed, range, build cost.
+          <span class="term">UNIT</span> holds what is true of this one: which type it is,
+          where it stands, its current HP, who owns it, when it died.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 215" role="img" aria-labelledby="t4 d4">
+          <title id="t4">UNIT_TYPE and UNIT separated by an is-of relationship</title>
+          <desc id="d4">A UNIT_TYPE rectangle on the left holds TypeCode, MaxHP, Attack,
+          Speed, Range and Cost. A UNIT rectangle on the right holds UnitID, X, Y and
+          CurrentHP. They are joined by a diamond labeled Is of, with cardinality one on
+          the UNIT_TYPE side and N on the UNIT side: one type, many units.</desc>
+          <rect x="16" y="52" width="150" height="56" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="91" y="76" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">UNIT_TYPE</text>
+          <text x="91" y="94" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">the catalog</text>
+          <polygon points="214,80 282,47 350,80 282,113" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.1"/>
+          <text x="282" y="84" text-anchor="middle" font-family="system-ui" font-size="12" fill="#00246B">Is_of</text>
+          <rect x="398" y="52" width="146" height="56" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="471" y="76" text-anchor="middle" font-family="system-ui" font-size="13" font-weight="700" fill="#00246B">UNIT</text>
+          <text x="471" y="94" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">the battlefield</text>
+          <line x1="166" y1="80" x2="214" y2="80" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="350" y1="80" x2="398" y2="80" stroke="#8A93A3" stroke-width="1.7"/>
+          <text x="190" y="70" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#7A2708">1</text>
+          <text x="374" y="70" text-anchor="middle" font-family="system-ui" font-size="15" font-weight="700" fill="#7A2708">N</text>
+          <text x="91" y="134" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">MaxHP · Attack · Speed</text>
+          <text x="91" y="150" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">Range · build cost</text>
+          <text x="471" y="134" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">X · Y · CurrentHP</text>
+          <text x="471" y="150" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">Owner · DestroyedAt</text>
+          <text x="282" y="180" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">changes on a balance patch</text>
+          <text x="282" y="196" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">changes sixty times a second</text>
+          <line x1="196" y1="176" x2="176" y2="176" stroke="#8A93A3" stroke-width="1.4"/>
+          <line x1="368" y1="192" x2="390" y2="192" stroke="#8A93A3" stroke-width="1.4"/>
+        </svg>
+        <p class="figcap">Two different clocks. Anything on the left changes when a
+        designer edits a balance file; anything on the right changes during play.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · PART 1A -->
+  <section class="slide" data-title="Part 1a — entities, attributes and keys" aria-roledescription="slide" aria-label="Part one a, entities, attributes and keys">
+    <p class="kicker">Part 1 · your turn</p>
+    <h2 class="slide-h" tabindex="-1">Entities, attributes, keys <span class="minutes">10 min</span></h2>
+    <div class="task">
+      <p class="meta">Task 1.1</p>
+      <h3>Name your entity types</h3>
+      <p style="margin:0 0 8px">Apply the type/instance split from the last slide across
+      the whole document. Expect somewhere between nine and thirteen entity types — if you
+      have four, you have collapsed something; if you have twenty-five, you have promoted
+      an attribute.</p>
+      <ol>
+        <li>For each entity type, list its attributes and <strong>underline the primary
+        key</strong>. Mark any composite, multivalued or derived attributes with the Chen
+        notation from the Ch. 3 lecture.</li>
+        <li>Two of your entity types will have no natural key in the document. Say what
+        you are using instead and why.</li>
+        <li><strong>Position is a trap.</strong> <code>X</code> and <code>Y</code> appear
+        on resources, on units, and on structures. Decide: is position a composite
+        attribute, or is a tile an entity in its own right? Write down one sentence
+        justifying your choice — you will be held to it in Part 2.</li>
+      </ol>
+    </div>
+    <div class="callout alt">
+      <h3>Prompt if you are stuck</h3>
+      <p style="margin:0">Ask of every noun in the document: <em>would I ever need to
+      ask a question about this thing on its own?</em> If yes, it is probably an entity.
+      If it only ever appears as a detail of something else, it is an attribute.</p>
+    </div>
+  </section>
+
+  <!-- 6 · PART 1B -->
+  <section class="slide" data-title="Part 1b — relationships, cardinality, participation" aria-roledescription="slide" aria-label="Part one b, relationships, cardinality and participation">
+    <p class="kicker">Part 1 · your turn</p>
+    <h2 class="slide-h" tabindex="-1">Relationships and cardinality <span class="minutes">10 min</span></h2>
+    <div class="task">
+      <p class="meta">Task 1.2</p>
+      <h3>Connect them, and label every edge</h3>
+      <p style="margin:0 0 8px">Every relationship gets a cardinality ratio
+      <em>and</em> a participation constraint. Say both out loud in each direction before
+      you write them down.</p>
+      <ol>
+        <li>A <strong>player</strong> and a <strong>match</strong>. What ratio? What does
+        the relationship itself need to carry that neither entity can hold?</li>
+        <li>A <strong>serf</strong> and a <strong>resource node</strong>. A serf harvests
+        the same node repeatedly, and a node is worked by many serfs over a match. What
+        does that force, and what does the relationship carry?</li>
+        <li>A <strong>structure</strong> and the <strong>units it produces</strong>.</li>
+        <li>A <strong>level</strong> and its <strong>terrain tiles</strong>. Does a tile
+        have an identity of its own, independent of the level it sits in?</li>
+        <li>A <strong>match</strong> and a <strong>level</strong>. Which direction is
+        total?</li>
+      </ol>
+    </div>
+    <div class="callout">
+      <h3>Watch for</h3>
+      <p style="margin:0">Two of the relationships above have an attribute that belongs
+      to the <em>relationship</em> and not to either entity. If you cannot find them, you
+      have probably hidden them inside one of the entities — which will cost you in Part 4
+      when you try to total them up.</p>
+    </div>
+  </section>
+
+  <!-- 7 · WEAK ENTITY -->
+  <section class="slide" data-title="Decision 2 — the terrain tile" aria-roledescription="slide" aria-label="Decision two, the terrain tile">
+    <p class="kicker">Decision 2 of 3 · guided</p>
+    <h2 class="slide-h" tabindex="-1">Does a tile exist without its level?</h2>
+    <div class="two">
+      <div>
+        <p>Tile (12, 7) is meaningless on its own. There is a (12, 7) on every level in
+        the game, and they are different places. The tile is identified only
+        <em>within</em> a level.</p>
+        <p>That is the definition of a <span class="term">weak entity</span>: no key of
+        its own, identified by a partial key plus the key of an owner, through an
+        identifying relationship with total participation.</p>
+        <div class="callout">
+          <h3>Partial key</h3>
+          <p style="margin:0">The pair <code>(X, Y)</code> is the partial key of
+          TERRAIN_TILE. It becomes a full key only once <code>LevelID</code> is carried
+          in from LEVEL. Draw it with the double rectangle and the double diamond.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout alt">
+          <h3>Now the harder half</h3>
+          <p style="margin:0 0 8px">A <strong>resource node</strong> sits at a tile. A
+          <strong>unit</strong> stands at a tile. Should those also be relationships to
+          TERRAIN_TILE, or should units and resources just carry <code>X</code> and
+          <code>Y</code> as plain attributes?</p>
+          <p style="margin:0">Argue it both ways in your pair, then commit. The honest
+          answer depends on a question nobody has asked you yet: <em>does anything need
+          to query by tile?</em> Hold that thought until Part 4 — question Q2 will
+          settle it.</p>
+        </div>
+        <p style="color:var(--muted);font-size:.92rem;margin:0">This is the dashed arrow
+        from slide 1. You cannot finish the model without knowing the workload, and you
+        rarely know the workload before you have a model. Real projects iterate; you are
+        iterating in one class period.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · THE POLYMORPHIC PROBLEM -->
+  <section class="slide" data-title="Decision 3 — who attacked whom?" aria-roledescription="slide" aria-label="Decision three, who attacked whom">
+    <p class="kicker">Decision 3 of 3 · the interesting one</p>
+    <h2 class="slide-h" tabindex="-1">Who attacked whom?</h2>
+    <p class="lead">An archer shoots a wall. A tower shoots a serf. A cannon shells a
+    castle. The attacker may be a unit or a structure; so may the target.</p>
+    <div class="two">
+      <div>
+        <p>You need to record attacks — the design document asks for damage numbers and
+        the team will want to know who dealt them. So you need a relationship whose
+        endpoints are "a unit <em>or</em> a structure."</p>
+        <p>ER notation has no such thing. A relationship connects named entity types. This
+        is the moment where a clean diagram meets an awkward reality, and there are three
+        standard answers.</p>
+        <div class="callout alt">
+          <h3>Why it matters more than it looks</h3>
+          <p style="margin:0">Every telemetry question the designers will ask — damage by
+          player, kill attribution, which tower is doing the work — runs through this one
+          relationship. Choose badly and those queries become four-way unions.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The three candidates</h3>
+          <ol style="margin:0">
+            <li><strong>Nullable foreign-key pairs.</strong> One ATTACK relation with
+            <code>AttackerUnitID</code>, <code>AttackerStructureID</code>,
+            <code>TargetUnitID</code>, <code>TargetStructureID</code>; exactly one of
+            each pair is non-null.</li>
+            <li><strong>Split the relation.</strong> Four relations — unit-on-unit,
+            unit-on-structure, structure-on-unit, structure-on-structure.</li>
+            <li><strong>A shared supertype.</strong> Generalize UNIT and STRUCTURE into
+            GAME_OBJECT; ATTACK points at GAME_OBJECT twice.</li>
+          </ol>
+        </div>
+        <p style="margin:0;color:var(--muted);font-size:.92rem">The next slide lets you
+        see what each one does to the schema and to the query.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · INTERACTIVE DEMONSTRATOR -->
+  <section class="slide" data-title="Demonstrator: three ways to record an attack" aria-roledescription="slide" aria-label="Demonstrator, three ways to record an attack">
+    <p class="kicker">Interactive · compare before you commit</p>
+    <h2 class="slide-h" tabindex="-1">Three ways to record an attack</h2>
+    <p>Each design is correct. They differ in what the DBMS can enforce for you, and in
+    what the most common query costs. Pick one and read the query it produces.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a design for the attack relationship">
+      <button class="chip" data-design="nullable" aria-pressed="true"
+        data-desc="Design A, nullable foreign-key pairs. One ATTACK relation with four optional foreign keys. The database cannot enforce 'exactly one of each pair is non-null' with a foreign key alone — it takes a CHECK constraint, and most of the integrity burden falls on application code. Totaling damage per player means coalescing two columns and joining twice.">Nullable FK pairs</button>
+      <button class="chip" data-design="split" aria-pressed="false"
+        data-desc="Design B, four separate relations. Every foreign key is NOT NULL and fully enforced, and each relation is easy to read. But the number of relations grows as the product of the kinds of attacker and target, and every cross-cutting question becomes a UNION ALL over all four.">Four relations</button>
+      <button class="chip" data-design="super" aria-pressed="false"
+        data-desc="Design C, a shared GAME_OBJECT supertype. UNIT and STRUCTURE are specializations sharing one ObjectID space, so ATTACK needs just two NOT NULL foreign keys, both fully enforced. The cost is one extra join whenever you need the type-specific attributes, and the supertype must own anything common to both — position, hit points, owner, match.">GAME_OBJECT supertype</button>
+    </div>
+    <p id="design-desc" class="live-desc">Design A, nullable foreign-key pairs. One ATTACK relation with four optional foreign keys. The database cannot enforce 'exactly one of each pair is non-null' with a foreign key alone — it takes a CHECK constraint, and most of the integrity burden falls on application code. Totaling damage per player means coalescing two columns and joining twice.</p>
+    <div class="demo">
+      <div>
+        <p class="variant-label">The schema it produces</p>
+        <div class="variant is-on" data-variant="nullable">
+          <div class="rel"><span class="r">ATTACK</span>(<span class="k">AttackID</span>, AttackerUnitID → UNIT,
+       AttackerStructID → STRUCTURE,
+       TargetUnitID → UNIT,
+       TargetStructID → STRUCTURE,
+       Damage, OccurredAt)
+<span class="c">CHECK (exactly one attacker FK is non-null)</span>
+<span class="c">CHECK (exactly one target FK is non-null)</span></div>
+        </div>
+        <div class="variant" data-variant="split">
+          <div class="rel"><span class="r">ATTACK_U_ON_U</span>(<span class="k">AttackID</span>, AttackerID → UNIT,
+             TargetID → UNIT, Damage, OccurredAt)
+<span class="r">ATTACK_U_ON_S</span>(<span class="k">AttackID</span>, AttackerID → UNIT,
+             TargetID → STRUCTURE, Damage, OccurredAt)
+<span class="r">ATTACK_S_ON_U</span>(<span class="k">AttackID</span>, AttackerID → STRUCTURE,
+             TargetID → UNIT, Damage, OccurredAt)
+<span class="r">ATTACK_S_ON_S</span>(<span class="k">AttackID</span>, AttackerID → STRUCTURE,
+             TargetID → STRUCTURE, Damage, OccurredAt)</div>
+        </div>
+        <div class="variant" data-variant="super">
+          <div class="rel"><span class="r">GAME_OBJECT</span>(<span class="k">ObjectID</span>, MatchID → MATCH,
+            OwnerID → PLAYER, X, Y,
+            CurrentHP, CreatedAt, DestroyedAt)
+<span class="r">UNIT</span>(<span class="k">ObjectID</span> → GAME_OBJECT,
+     TypeCode → UNIT_TYPE)
+<span class="r">STRUCTURE</span>(<span class="k">ObjectID</span> → GAME_OBJECT,
+          TypeCode → STRUCTURE_TYPE)
+<span class="r">ATTACK</span>(<span class="k">AttackID</span>, AttackerID → GAME_OBJECT,
+       TargetID → GAME_OBJECT, Damage, OccurredAt)</div>
+        </div>
+      </div>
+      <div>
+        <p class="variant-label">"Total damage dealt by each player in match 7"</p>
+        <div class="variant is-on" data-variant="nullable">
+          <div class="sqlline">SELECT p.Handle, SUM(a.Damage)
+FROM   ATTACK a
+  LEFT JOIN UNIT      u ON a.AttackerUnitID   = u.UnitID
+  LEFT JOIN STRUCTURE s ON a.AttackerStructID = s.StructureID
+  JOIN PLAYER p
+    ON p.PlayerID = COALESCE(u.OwnerID, s.OwnerID)
+WHERE COALESCE(u.MatchID, s.MatchID) = 7
+GROUP BY p.Handle;</div>
+          <p class="figcap">Two outer joins and a COALESCE to recover one owner.</p>
+        </div>
+        <div class="variant" data-variant="split">
+          <div class="sqlline">SELECT p.Handle, SUM(d.Damage)
+FROM (
+  SELECT AttackerID AS aid, Damage FROM ATTACK_U_ON_U
+  UNION ALL
+  SELECT AttackerID, Damage FROM ATTACK_U_ON_S
+) d JOIN UNIT u ON u.UnitID = d.aid
+    JOIN PLAYER p ON p.PlayerID = u.OwnerID
+WHERE u.MatchID = 7
+GROUP BY p.Handle;
+<span class="c">-- and the same again for the two structure relations</span></div>
+          <p class="figcap">Half the answer. The structure attacks need a second,
+          parallel query unioned on.</p>
+        </div>
+        <div class="variant" data-variant="super">
+          <div class="sqlline">SELECT p.Handle, SUM(a.Damage)
+FROM   ATTACK a
+  JOIN GAME_OBJECT g ON g.ObjectID = a.AttackerID
+  JOIN PLAYER      p ON p.PlayerID = g.OwnerID
+WHERE  g.MatchID = 7
+GROUP BY p.Handle;</div>
+          <p class="figcap">Two inner joins, no nulls, no union. Every foreign key is
+          enforced by the DBMS.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · PART 2 -->
+  <section class="slide" data-title="Part 2 — ER to relational" aria-roledescription="slide" aria-label="Part two, ER to relational">
+    <p class="kicker">Part 2 · your turn</p>
+    <h2 class="slide-h" tabindex="-1">Map it to relations <span class="minutes">15 min</span></h2>
+    <div class="task">
+      <p class="meta">Task 2.1</p>
+      <h3>Run the mapping algorithm on your own diagram</h3>
+      <p style="margin:0 0 8px">Use the seven-step algorithm from Ch. 9. Write each
+      relation as <code>NAME(<u>key</u>, attr, FK → TARGET)</code>.</p>
+      <ol>
+        <li>Map your regular entity types. Map your weak entity — remember the owner's key
+        joins the partial key to form the primary key.</li>
+        <li>Map your relationships. For each 1:N, state which side absorbed the foreign
+        key and why. For each M:N, name the cross-reference relation and say what
+        relationship attributes it carries.</li>
+        <li>Handle the multivalued attribute if you have one. (If you do not think you
+        have one, look again at a player's resource stockpile across four resource types.)</li>
+        <li>If you chose the supertype design on slide 9, map the specialization. Which
+        of the four EER mapping options from the Ch. 4 lecture did you use, and is your
+        specialization total or partial, disjoint or overlapping?</li>
+      </ol>
+    </div>
+    <div class="callout alt">
+      <h3>Before you move on</h3>
+      <p style="margin:0">Count your relations. Count your foreign keys. Every foreign key
+      should name the relation it points at — if you have a column you cannot trace to a
+      primary key somewhere, that is a bug, not a shortcut.</p>
+    </div>
+  </section>
+
+  <!-- 11 · REFERENCE SCHEMA -->
+  <section class="slide" data-title="The reference schema for Parts 3 and 4" aria-roledescription="slide" aria-label="The reference schema for parts three and four">
+    <p class="kicker">Compare — then we all work from this</p>
+    <h2 class="slide-h" tabindex="-1">The reference schema</h2>
+    <p>One defensible answer, taking the supertype design. Hold yours next to it: where
+    you differ, decide whether you were wrong or merely different.</p>
+    <div class="rel"><span class="r">PLAYER</span>(<span class="k">PlayerID</span>, Handle, JoinedOn)
+<span class="r">LEVEL</span>(<span class="k">LevelID</span>, Name, Width, Height)
+<span class="r">TERRAIN_TILE</span>(<span class="k">LevelID</span> → LEVEL, <span class="k">X</span>, <span class="k">Y</span>, TerrainType)
+<span class="r">RESOURCE_NODE</span>(<span class="k">NodeID</span>, LevelID → LEVEL, X, Y, ResourceType, InitialAmount)
+<span class="r">MATCH</span>(<span class="k">MatchID</span>, LevelID → LEVEL, StartedAt, EndedAt)
+<span class="r">PLAYS_IN</span>(<span class="k">MatchID</span> → MATCH, <span class="k">PlayerID</span> → PLAYER, Side, FinalScore, Outcome)
+<span class="r">UNIT_TYPE</span>(<span class="k">TypeCode</span>, Name, MaxHP, Attack, Speed, Range,
+          CostWood, CostStone, CostCrops, CostGold)
+<span class="r">STRUCTURE_TYPE</span>(<span class="k">TypeCode</span>, Name, MaxHP, Attack, RateOfFire, Range,
+               CostWood, CostStone, CostCrops, CostGold)
+<span class="r">GAME_OBJECT</span>(<span class="k">ObjectID</span>, MatchID → MATCH, OwnerID → PLAYER, X, Y,
+            CurrentHP, CreatedAt, DestroyedAt)
+<span class="r">UNIT</span>(<span class="k">ObjectID</span> → GAME_OBJECT, TypeCode → UNIT_TYPE)
+<span class="r">STRUCTURE</span>(<span class="k">ObjectID</span> → GAME_OBJECT, TypeCode → STRUCTURE_TYPE)
+<span class="r">STOCKPILE</span>(<span class="k">MatchID</span>, <span class="k">PlayerID</span>, <span class="k">ResourceType</span>, Amount)   <span class="c">FK (MatchID, PlayerID) → PLAYS_IN</span>
+<span class="r">HARVEST</span>(<span class="k">HarvestID</span>, ObjectID → UNIT, NodeID → RESOURCE_NODE, Amount, HarvestedAt)
+<span class="r">ATTACK</span>(<span class="k">AttackID</span>, AttackerID → GAME_OBJECT, TargetID → GAME_OBJECT, Damage, OccurredAt)
+<span class="r">PRODUCTION_ORDER</span>(<span class="k">OrderID</span>, StructureID → STRUCTURE, TypeCode → UNIT_TYPE,
+                 OrderedAt, CompletedAt)</div>
+    <div class="callout">
+      <h3>Three things to notice</h3>
+      <p style="margin:0"><code>DestroyedAt</code> and <code>CompletedAt</code> are null
+      while the thing is alive or pending — that is how current state and history live in
+      one relation. <code>STOCKPILE</code> is the multivalued attribute, mapped out. And
+      <code>PLAYS_IN</code> carries <code>Side</code>, <code>FinalScore</code> and
+      <code>Outcome</code>, none of which belong to a player or to a match alone.</p>
+    </div>
+  </section>
+
+  <!-- 12 · PART 3 -->
+  <section class="slide" data-title="Part 3 — DDL" aria-roledescription="slide" aria-label="Part three, DDL">
+    <p class="kicker">Part 3 · your turn</p>
+    <h2 class="slide-h" tabindex="-1">Write the DDL <span class="minutes">10 min</span></h2>
+    <div class="two">
+      <div>
+        <div class="task">
+          <p class="meta">Task 3.1</p>
+          <h3>Three <code>CREATE TABLE</code> statements</h3>
+          <p style="margin:0 0 8px">Write DDL for <strong>TERRAIN_TILE</strong>,
+          <strong>PLAYS_IN</strong> and <strong>ATTACK</strong>. They were chosen because
+          each one forces a different decision.</p>
+          <ul style="margin:0">
+            <li>TERRAIN_TILE — a composite primary key that includes a foreign key.</li>
+            <li>PLAYS_IN — a cross-reference relation with its own attributes, and a
+            domain constraint on <code>Outcome</code>.</li>
+            <li>ATTACK — two foreign keys into the <em>same</em> relation, which means
+            you must name the constraints.</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Checklist for each table</h3>
+          <ul style="margin:0">
+            <li>Sensible types and widths — not <code>VARCHAR(255)</code> for everything.</li>
+            <li><code>NOT NULL</code> wherever participation is total.</li>
+            <li>Primary key, and any additional <code>UNIQUE</code> the cardinality
+            demands.</li>
+            <li>Foreign keys with a deliberate <code>ON DELETE</code> action. Deleting a
+            match should not silently orphan its attacks.</li>
+            <li>A <code>CHECK</code> where a domain is genuinely restricted —
+            <code>Damage &gt;= 0</code>, <code>Outcome IN (…)</code>.</li>
+          </ul>
+        </div>
+        <div class="callout alt">
+          <h3>Think about</h3>
+          <p style="margin:0">Can a <code>CHECK</code> constraint stop an archer from
+          attacking a target in a different match? Try to write it. What does the attempt
+          tell you about where that rule has to live instead?</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · PART 4 TIER 1 -->
+  <section class="slide" data-title="Part 4 — warm-up queries" aria-roledescription="slide" aria-label="Part four, warm-up queries">
+    <p class="kicker">Part 4 · the questions the team actually asks</p>
+    <h2 class="slide-h" tabindex="-1">Tier 1 — reading the catalog <span class="minutes">6 min</span></h2>
+    <p class="lead">These are the balance-designer's questions. One or two relations, no
+    grouping yet.</p>
+    <ol class="queries">
+      <li><span class="qid">Q1</span><p class="qtext">List every unit type with a range of
+      4 or more, showing name, attack and speed, cheapest first by gold cost.
+      <span class="qhint">Single relation · WHERE · ORDER BY</span></p></li>
+      <li><span class="qid">Q2</span><p class="qtext">For the level named 'Highland Pass',
+      how many tiles are there of each terrain type?
+      <span class="qhint">Join · GROUP BY — and the query that settles the tile question from slide 7</span></p></li>
+      <li><span class="qid">Q3</span><p class="qtext">List all gold nodes on that same
+      level, richest first, with their tile coordinates.
+      <span class="qhint">Join · WHERE on two conditions · ORDER BY DESC</span></p></li>
+      <li><span class="qid">Q4</span><p class="qtext">Which structure types can attack at
+      all, and what is the ratio of their attack to their rate of fire?
+      <span class="qhint">Computed column · a thought about division by zero</span></p></li>
+    </ol>
+    <div class="callout">
+      <h3>Before you type</h3>
+      <p style="margin:0">For each one, say out loud which relations it touches. If a
+      query needs a relation your Part 2 schema does not have, write that down — it is the
+      most valuable thing you will produce today.</p>
+    </div>
+  </section>
+
+  <!-- 14 · PART 4 TIER 2 -->
+  <section class="slide" data-title="Part 4 — match telemetry" aria-roledescription="slide" aria-label="Part four, match telemetry">
+    <p class="kicker">Part 4 · continued</p>
+    <h2 class="slide-h" tabindex="-1">Tier 2 — match telemetry <span class="minutes">10 min</span></h2>
+    <ol class="queries">
+      <li><span class="qid">Q5</span><p class="qtext">In match 7, how many units does each
+      player still have alive?
+      <span class="qhint">Three-way join · GROUP BY · the NULL test that means "not dead"</span></p></li>
+      <li><span class="qid">Q6</span><p class="qtext">Total damage dealt by each player in
+      match 7, highest first.
+      <span class="qhint">Join through the attacker · SUM · this is the query from slide 9</span></p></li>
+      <li><span class="qid">Q7</span><p class="qtext">For every unit type in the catalog,
+      how many have ever been built across all matches — <strong>including types that have
+      never been built at all</strong>.
+      <span class="qhint">Outer join · the zero-row trap: an inner join silently drops the
+      answer you most wanted</span></p></li>
+      <li><span class="qid">Q8</span><p class="qtext">The five resource nodes worked
+      hardest across the whole database: number of harvest events and total amount taken.
+      <span class="qhint">GROUP BY · two aggregates · LIMIT</span></p></li>
+      <li><span class="qid">Q9</span><p class="qtext">Every player's record — matches
+      played, won, and lost.
+      <span class="qhint">Conditional aggregation: SUM over a CASE, or COUNT of a filtered expression</span></p></li>
+      <li><span class="qid">Q10</span><p class="qtext">Which players hold more than 500
+      gold in any match currently in progress?
+      <span class="qhint">Join STOCKPILE · a NULL test on the match end · HAVING or WHERE — decide which and know why</span></p></li>
+    </ol>
+  </section>
+
+  <!-- 15 · PART 4 TIER 3 -->
+  <section class="slide" data-title="Part 4 — the designer's questions" aria-roledescription="slide" aria-label="Part four, the designer's questions">
+    <p class="kicker">Part 4 · the hard half</p>
+    <h2 class="slide-h" tabindex="-1">Tier 3 — the designer's questions <span class="minutes">9 min</span></h2>
+    <p>These are the ones that get asked in a balance meeting. Each needs a subquery, an
+    anti-join, or a window function.</p>
+    <ol class="queries">
+      <li><span class="qid">Q11</span><p class="qtext">Damage per gold spent, by unit
+      type, across all matches. Which type is the outlier the designers need to look at?
+      <span class="qhint">Aggregate divided by a catalog value · ORDER BY an expression</span></p></li>
+      <li><span class="qid">Q12</span><p class="qtext">Win rate by starting side. Is one
+      side of the map favored?
+      <span class="qhint">Conditional aggregation as a percentage — the question that ships a patch</span></p></li>
+      <li><span class="qid">Q13</span><p class="qtext">Units that dealt damage but never
+      took any.
+      <span class="qhint">NOT EXISTS or a left-join-is-null anti-join · say which one you expect to be faster and why</span></p></li>
+      <li><span class="qid">Q14</span><p class="qtext">Average time from the start of a
+      match to that player's first completed castle.
+      <span class="qhint">A correlated MIN · timestamp arithmetic · an aggregate over an aggregate</span></p></li>
+      <li><span class="qid">Q15</span><p class="qtext">For each match, the structure that
+      stood longest before it was destroyed.
+      <span class="qhint">Greatest-n-per-group: a window function, or a correlated subquery · what do you do about structures still standing?</span></p></li>
+      <li><span class="qid">Q16</span><p class="qtext">Players whose average final score
+      beats the average final score of all players.
+      <span class="qhint">Nested aggregation · the classic "aggregate of an aggregate" that cannot be written in one GROUP BY</span></p></li>
+    </ol>
+  </section>
+
+  <!-- 16 · CS 510 ADDENDUM -->
+  <section class="slide" data-title="CS 510 addendum" aria-roledescription="slide" aria-label="CS 510 addendum">
+    <p class="kicker">Graduate section</p>
+    <h2 class="slide-h" tabindex="-1">CS 510 addendum</h2>
+    <div class="two">
+      <div>
+        <div class="task">
+          <p class="meta">Task G.1</p>
+          <h3>Relational algebra</h3>
+          <p style="margin:0">Express <strong>Q5</strong>, <strong>Q7</strong> and
+          <strong>Q13</strong> in relational algebra as well as SQL. For Q7, name the
+          operator that does the work an outer join does, and say what the algebra gives
+          you for the types with no units built.</p>
+        </div>
+        <div class="task">
+          <p class="meta">Task G.2</p>
+          <h3>Justify the attack design</h3>
+          <p style="margin:0">You have three candidate designs from slide 9 and a stated
+          workload: Q6, Q13 and Q15 run on every match-end screen. Argue for one design
+          against that workload. Your answer must name what each alternative costs you —
+          in enforced integrity, in query complexity, and in what happens when a third
+          kind of attacker is added next release.</p>
+        </div>
+      </div>
+      <div>
+        <div class="task">
+          <p class="meta">Task G.3</p>
+          <h3>The schema that already exists</h3>
+          <p style="margin:0 0 8px">The rendering client was written before any of this
+          and reads a flat level file: one row per tile, with resource type and amount
+          folded into the tile row, and no notion of a match.</p>
+          <p style="margin:0">You may not change it — it ships on consoles. Specify the
+          <strong>proxy layer</strong> that lets the client keep reading its shape while
+          the server writes to yours: which views, which materialized views, which bridge
+          tables. Justify each choice against the workload above.</p>
+        </div>
+        <div class="callout alt">
+          <h3>Note</h3>
+          <p style="margin:0">G.3 is a miniature of the integration exercise that closes
+          the course. Both schemas stay intact; the proxy layer is the deliverable, and
+          the justification is what gets graded.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 · DEBRIEF -->
+  <section class="slide" data-title="Debrief and what to hand in" aria-roledescription="slide" aria-label="Debrief and what to hand in">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Debrief</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">The three decisions</h3>
+        <ul>
+          <li><strong>Type vs. instance.</strong> Attack and speed describe archers, not
+          this archer. Getting this wrong costs you a mass update on every balance patch
+          and makes Q11 unanswerable.</li>
+          <li><strong>Weak entities.</strong> A tile has no identity without its level.
+          Whether units point at tiles depends on whether anything queries by tile — and
+          Q2 is the thing that does.</li>
+          <li><strong>Polymorphic endpoints.</strong> ER has no "unit or structure." You
+          buy enforced integrity with a supertype and pay for it with a join.</li>
+        </ul>
+        <div class="callout">
+          <h3>The question to take away</h3>
+          <p style="margin:0">Which pair's Part 2 schema made Part 4 shortest? Why? That
+          relationship — workload shaping schema — is most of what database design is in
+          practice.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout alt">
+          <h3>Hand in</h3>
+          <ol style="margin:0">
+            <li>ER diagram, with every edge labeled for cardinality and participation.</li>
+            <li>Relational schema, keys underlined, foreign keys named with their targets.</li>
+            <li>DDL for TERRAIN_TILE, PLAYS_IN and ATTACK.</li>
+            <li>A <code>.sql</code> file with as many of Q1–Q16 as you reached, in order,
+            each preceded by the question as a comment.</li>
+            <li>One paragraph: the query you could not write against your own Part 2
+            schema, and what you would change.</li>
+          </ol>
+        </div>
+        <p style="color:var(--muted);font-size:.92rem;margin:0">Item 5 is worth as much as
+        the rest. Finding the question your model cannot answer is the skill; writing the
+        model that answers it was never going to happen on the first try.</p>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 17</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // --- attack-design demonstrator: swap schema block, query block, description ---
+  var designChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-design]'));
+  var designDesc  = document.getElementById('design-desc');
+  var variants    = Array.prototype.slice.call(document.querySelectorAll('.variant[data-variant]'));
+
+  if (designChips.length && variants.length){
+    designChips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var want = chip.getAttribute('data-design');
+        designChips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+        chip.setAttribute('aria-pressed','true');
+        variants.forEach(function(v){
+          v.classList.toggle('is-on', v.getAttribute('data-variant') === want);
+        });
+        if (designDesc) designDesc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>
