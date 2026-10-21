@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why this ER diagram looks like this — the OpenPipe asset schema · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- relation schema block ---- */
+.rel{font-family:var(--mono);font-size:.94rem;background:#fff;border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;margin:12px 0;line-height:1.9}
+.rel .row{white-space:nowrap;overflow-x:auto}
+.rel .rname{color:var(--blue-ink);font-weight:700}
+.rel .pk{border-bottom:2px solid var(--blue-ink)}
+.rel .fk{color:var(--brown);font-weight:600}
+.rel .cap{font-family:var(--sans);color:var(--muted);font-size:.84rem;white-space:normal;
+  line-height:1.5;margin-top:8px}
+
+/* ---- instance table ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.88rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 9px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.tag{font-family:var(--mono);font-size:.85rem}
+
+/* ---- ledger grid ---- */
+.ledger{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ledger h3{font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px;font-size:1.08rem}
+.ledger ul{margin:0;padding-left:1.1rem}
+.ledger .cost{border:1px solid var(--line);border-top:4px solid var(--brown);
+  border-radius:9px;padding:12px 14px;background:#fff}
+.ledger .gain{border:1px solid var(--line);border-top:4px solid var(--blue);
+  border-radius:9px;padding:12px 14px;background:#fff}
+
+/* ---- interactive chips ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+#hl-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+
+/* graph demonstrator */
+#graph-figure .edge{opacity:0;transition:opacity .18s}
+#graph-figure .edge.on{opacity:1}
+html:not(.js) #graph-figure .edge{opacity:1}
+#graph-figure g[data-asset]{transition:opacity .18s}
+#graph-figure g[data-asset].dim{opacity:.26}
+#graph-figure g[data-asset].lit rect{stroke:var(--brown);stroke-width:3.6}
+#graph-figure g[data-asset].lit .aname{fill:var(--brown)}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:7%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:980px){
+  .two,.ledger{grid-template-columns:1fr;gap:18px}
+}
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.rel{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.rel,table.inst,.ledger>div{break-inside:avoid}
+  #graph-figure .edge{opacity:1}
+  #er-figure{width:52%;display:block;margin:0 auto}
+  #graph-figure{width:62%;display:block;margin:0 auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Research case study · Units 1–2</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">OpenPipe — Cutchin, Boise State · relates to Elmasri &amp; Navathe, Ch. 3, 5, 9</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="OpenPipe asset schema — slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="Why this ER diagram looks like this"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">A schema from live research</p>
+    <h2 class="slide-h" tabindex="-1">Why this ER diagram<br>looks like this</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Three relations hold every claim about every artwork in
+        the system — and none of them name an artist, a period, or a medium.</p>
+        <p style="color:var(--muted)">The OpenPipe asset schema is a deliberate
+        departure from the modeling we have been practicing. This is the argument
+        for the departure, built from the rules of the domain it serves.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 340 210" role="img" aria-labeledby="t1 d1">
+          <title id="t1">The three-relation chain</title>
+          <desc id="d1">Three stacked rectangles labeled ASSET, METADATA, and
+          METATAG, each joined to the one below it by a line.</desc>
+          <line x1="170" y1="56" x2="170" y2="86" stroke="#8A93A3" stroke-width="1.8"/>
+          <line x1="170" y1="132" x2="170" y2="162" stroke="#8A93A3" stroke-width="1.8"/>
+          <rect x="100" y="16" width="140" height="40" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="170" y="41" text-anchor="middle" font-family="system-ui"
+                font-size="14" font-weight="700" fill="#00246B">ASSET</text>
+          <rect x="100" y="92" width="140" height="40" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="170" y="117" text-anchor="middle" font-family="system-ui"
+                font-size="14" font-weight="700" fill="#00246B">METADATA</text>
+          <rect x="100" y="168" width="140" height="40" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="170" y="193" text-anchor="middle" font-family="system-ui"
+                font-size="14" font-weight="700" fill="#00246B">METATAG</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · MOTIVATION -->
+  <section class="slide" data-title="What OpenPipe is" aria-roledescription="slide" aria-label="What OpenPipe is">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">What OpenPipe is</h2>
+    <div class="two">
+      <div>
+        <p>An open-source content management and production pipeline for
+        high-resolution digital art collections, built at Boise State with the
+        School of Arts and community museum partners.</p>
+        <ul>
+          <li>Captures panoramic and stereo imagery of artworks and sites, then
+          stitches, tiles, and analyzes it on campus clusters and AWS.</li>
+          <li>Delivers any tracked asset by URI to a laptop, phone, desktop, or
+          the CAVE.</li>
+          <li><span class="term">Federates</span> across external collections —
+          the Cleveland Museum of Art, the Getty — alongside locally captured work.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Scale</h3>
+          <p style="margin:0">One panoramic collection is about 1.5&nbsp;GB. A
+          single capture trip produced 300&nbsp;GB; eleven trips total roughly
+          3.3&nbsp;TB. A class of fifteen students would generate 4.5&nbsp;TB.
+          Medium scale — large enough that design mistakes are expensive to undo.</p>
+        </div>
+        <div class="callout warn">
+          <h3>The question for today</h3>
+          <p style="margin:0">Not how the pipeline works, but why the database
+          underneath it is modeled the way it is — and why that model breaks the
+          habits of Unit&nbsp;1 on purpose.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE HARDEST CASE -->
+  <section class="slide" data-title="The hardest case: identity itself" aria-roledescription="slide" aria-label="The hardest case, identity itself">
+    <p class="kicker">The rule the schema serves · 1 of 4</p>
+    <h2 class="slide-h" tabindex="-1">The hardest case: identity itself</h2>
+    <div class="two">
+      <div>
+        <p>Consider cataloging a collection of Hindu devotional sculpture.</p>
+        <ul>
+          <li>A devi is known by <strong>dozens of names</strong>. The thousand-name
+          stotras treat that multiplicity as the subject, not as ambiguity awaiting
+          resolution.</li>
+          <li>Whether Durga, Kali, Parvati, Uma, and Gauri are one goddess in many
+          forms or distinct goddesses is answered <strong>differently by different
+          traditions, regions, and texts</strong> — and each answer is correct
+          within its own frame.</li>
+          <li>Avatar relations compound it. Vaishnava traditions disagree among
+          themselves about whether Krishna is an avatar of Vishnu or the source of
+          whom Vishnu is an expansion.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Why this is worse than missing data</h3>
+          <p style="margin:0">There is no hidden fact that settles it. A
+          <em>Name</em> column assumes a thing has <em>a</em> name; a primary key
+          assumes a thing <em>is one thing</em>. Both assumptions fail here —
+          not from lack of evidence, but because the question has no
+          frame-independent answer.</p>
+        </div>
+        <p style="color:var(--muted);font-size:.95rem">A conventional schema is not
+        merely lossy against this domain. It is category-mismatched: it cannot
+        express the situation even in principle. And this is the normal condition
+        of digital humanities work, not an exotic corner of it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE APPLIED CASE -->
+  <section class="slide" data-title="The everyday case: galleries disagree" aria-roledescription="slide" aria-label="The everyday case, galleries disagree">
+    <p class="kicker">The rule the schema serves · 2 of 4</p>
+    <h2 class="slide-h" tabindex="-1">The everyday case: galleries disagree</h2>
+    <p class="lead">The same structure appears in ordinary cataloging, in a milder
+    form that every federated collection hits immediately.</p>
+    <ul>
+      <li>Every gallery maintains <strong>its own tag set</strong> — its own
+      vocabulary for period, school, medium, and form.</li>
+      <li>A work can genuinely <strong>belong to several schools or periods</strong>
+      at once. Scholars disagree in good faith about the artist and the date.</li>
+      <li>A medium is wood, glass, steel, acrylic, oil, chalk — or several of
+      them, described differently by each institution that holds the piece.</li>
+    </ul>
+    <div class="callout">
+      <h3>Two kinds of disagreement, one solution</h3>
+      <p style="margin:0">Here the disagreement is <strong>epistemic</strong>:
+      someone made the reliquary, and the institutions have different evidence. On
+      the previous slide it was <strong>ontological</strong>: there is no fact to
+      be right about. A schema that handles the second handles the first for
+      free — so we design for the harder one.</p>
+    </div>
+  </section>
+
+  <!-- 5 · WHAT A CONVENTIONAL SCHEMA DOES -->
+  <section class="slide" data-title="What the conventional design costs" aria-roledescription="slide" aria-label="What the conventional design costs">
+    <p class="kicker">The rule the schema serves · 3 of 4</p>
+    <h2 class="slide-h" tabindex="-1">What the conventional design costs</h2>
+    <div class="two">
+      <div>
+        <p>Model this the way we modeled STUDENT and it looks reasonable:</p>
+        <div class="rel">
+          <div class="row"><span class="rname">ARTWORK</span>(<span class="pk">ArtworkID</span>, Title, Artist, Period, School, Medium, Date)</div>
+        </div>
+        <p>One column per property. One value per column. A student who has
+        finished Unit&nbsp;1 would draw exactly this.</p>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Two failures, both fatal</h3>
+          <ul style="margin:0">
+            <li><strong>It adjudicates on write.</strong> One <em>Artist</em> column
+            forces someone to pick a winner at ingest. The dissenting attribution
+            is destroyed — not flagged, not stored, gone.</li>
+            <li><strong>It cannot hold the vocabulary.</strong> The Getty returns
+            terms we do not control, a curator invents a field mid-collection, and
+            a new partner museum arrives with its own scheme. Each one is a DDL
+            change.</li>
+          </ul>
+        </div>
+        <p style="color:var(--muted);font-size:.95rem">The first failure is the
+        serious one. Adding columns is tedious; losing a scholarly claim is
+        <em>lossy against the domain</em>, and no amount of column-adding repairs it.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · RECORD, DON'T ADJUDICATE -->
+  <section class="slide" data-title="Record claims, do not adjudicate" aria-roledescription="slide" aria-label="Record claims, do not adjudicate">
+    <p class="kicker">The rule the schema serves · 4 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Record claims, don't adjudicate</h2>
+    <p class="lead">The design decision that drives everything else: the database
+    stores what each institution <em>says</em>, and resolves nothing.</p>
+    <ul>
+      <li>We do not surrender an external gallery's tag set. We keep it intact and
+      maintain our own internal tag set alongside it, filled at ingest.</li>
+      <li>An asset carrying two conflicting attributions is not an error state. It
+      is the correct record of a real disagreement.</li>
+      <li>Resolution, where anyone wants it, is a <strong>post-processing</strong>
+      question for tools that sweep the data — never a constraint enforced at write time.</li>
+    </ul>
+    <div class="callout">
+      <h3>Reframing</h3>
+      <p style="margin:0">Disagreement stops being a conflict to clean up and
+      becomes <span class="term">data</span> — and, as we will see, the most
+      valuable data in the system.</p>
+    </div>
+  </section>
+
+  <!-- 6 · METADATA AS VOCABULARY BOUNDARY -->
+  <section class="slide" data-title="Whose claims? The vocabulary group" aria-roledescription="slide" aria-label="Whose claims, the vocabulary group">
+    <p class="kicker">Mechanism · 1 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Whose claims? The vocabulary group</h2>
+    <div class="two">
+      <div>
+        <p>If claims come from institutions, every claim needs to carry whose it
+        is. That is the entire job of the middle entity.</p>
+        <p>A <span class="term">METADATA</span> record is one vocabulary's
+        statement about one asset. The Getty's tag set is one group, Cleveland's
+        is another, our internal normalized set is a third — all attached to the
+        same artwork, each internally coherent, none overwriting the others.</p>
+        <div class="callout">
+          <h3>Why groups are never shared between assets</h3>
+          <p style="margin:0">A group is a specific institution's statement about
+          a specific work. Sharing one across two assets would mean two different
+          works had literally the same claim — which is not what we mean. Assets
+          relate through <em>matching values</em>, not through shared groups.</p>
+        </div>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>One asset, three vocabulary groups, no overwriting.</caption>
+          <thead><tr><th scope="col">Group</th><th scope="col">TagName</th><th scope="col">Value</th></tr></thead>
+          <tbody>
+            <tr><td class="keycol">M-41</td><td class="tag">getty:attributedTo</td><td class="tag">Bellini, Giovanni</td></tr>
+            <tr><td class="keycol">M-41</td><td class="tag">getty:period</td><td class="tag">Early Renaissance</td></tr>
+            <tr><td class="keycol">M-58</td><td class="tag">cma:artist</td><td class="tag">Workshop of Bellini</td></tr>
+            <tr><td class="keycol">M-58</td><td class="tag">cma:school</td><td class="tag">Venetian</td></tr>
+            <tr><td class="keycol">M-77</td><td class="tag">period</td><td class="tag">Renaissance</td></tr>
+            <tr><td class="keycol">M-77</td><td class="tag">school</td><td class="tag">Venetian</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">M-41 is the Getty's claim, M-58 Cleveland's, M-77 our
+        internal set written at ingest. The attributions disagree. All three survive.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · INDIVIDUATION IS DATA TOO -->
+  <section class="slide" data-title="Individuation is data too" aria-roledescription="slide" aria-label="Individuation is data too">
+    <p class="kicker">Mechanism · 2 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Individuation is data too</h2>
+    <div class="two">
+      <div>
+        <p>Return to the devi. Are Durga and Kali one subject or two? The system
+        does not answer — and does not have to, because
+        <span class="term">AssetID identifies a record, not a referent</span>.
+        Nothing in the schema claims an ASSET row corresponds to exactly one thing
+        in the world.</p>
+        <p>So both readings can exist at once:</p>
+        <ul>
+          <li>a <strong>merged</strong> asset carrying <em>name = Durga</em> and
+          <em>name = Kali</em>, with the traditions that treat them as one
+          attached to it;</li>
+          <li><strong>two separate</strong> assets, one name each, with the
+          traditions that hold them distinct attached to each.</li>
+        </ul>
+        <p>Three records, no contradiction, because none of them asserts
+        exclusivity. Curators argue in the data rather than before it.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>And they stay connected</h3>
+          <p style="margin:0">The merged record shares <em>name = Durga</em> with
+          one separate record and <em>name = Kali</em> with the other. Traversal
+          finds all three as a cluster without anyone declaring the relationship —
+          the competing individuations are themselves discoverable.</p>
+        </div>
+        <div class="callout warn">
+          <h3>What the system declines to know</h3>
+          <p style="margin:0">Nothing distinguishes "two records, competing views
+          of one subject" from "two records, genuinely different subjects." That is
+          a discovery question answered by traversal, never a constraint. The
+          design consistently refuses to encode an answer it would have to guess.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · THE UNIFORM SHAPE -->
+  <section class="slide" data-title="Every claim has the same shape" aria-roledescription="slide" aria-label="Every claim has the same shape">
+    <p class="kicker">Mechanism · 3 of 4</p>
+    <h2 class="slide-h" tabindex="-1">Every claim has the same shape</h2>
+    <div class="two">
+      <div>
+        <p>The standard mapping turns a multivalued attribute into its own
+        relation. With an open attribute set, that gives you an open set of relations:</p>
+        <div class="rel">
+          <div class="row"><span class="rname">ASSET_ARTIST</span>(<span class="fk">AssetID</span>, Artist)</div>
+          <div class="row"><span class="rname">ASSET_PERIOD</span>(<span class="fk">AssetID</span>, Period)</div>
+          <div class="row"><span class="rname">ASSET_MEDIUM</span>(<span class="fk">AssetID</span>, Medium)</div>
+          <div class="row" style="color:var(--muted)">… one more every time a vocabulary arrives</div>
+        </div>
+        <p>Look closely and they are the <strong>same relation three times</strong>:
+        a key back to the asset, a name, a value. Once you see that, you collapse them.</p>
+      </div>
+      <div>
+        <div class="rel">
+          <div class="row"><span class="rname">METATAG</span>(<span class="pk">MetaTagID</span>, <span class="fk">MetaDataID</span>, TagName, Value)</div>
+          <div class="cap">One relation for every attribute of every asset. The
+          attribute's name becomes data.</div>
+        </div>
+        <div class="callout">
+          <h3>Multivalued falls out for free</h3>
+          <p style="margin:0">Three names for one asset is three rows sharing a
+          <em>TagName</em>. Nothing special is required — the list is the base
+          case, not the exception. This is what lets a work belong to many schools
+          at once.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · THE ER DIAGRAM -->
+  <section class="slide" data-title="The ER diagram" aria-roledescription="slide" aria-label="The ER diagram">
+    <p class="kicker">Mechanism · 4 of 4</p>
+    <h2 class="slide-h" tabindex="-1">The ER diagram</h2>
+    <p>Four entity types, three relationships, no many-to-many anywhere. Every
+    double line marks total participation. ASSET is a <strong>record handle</strong>,
+    not a claim about what exists.</p>
+    <div class="fig">
+      <svg id="er-figure" viewBox="0 0 900 625" role="img" aria-labeledby="t8 d8">
+        <title id="t8">The OpenPipe asset management ER diagram in Chen notation</title>
+        <desc id="d8">Four entity rectangles in a vertical chain. SOURCE, with key
+        SourceID and attribute Name, connects through the relationship Provides to
+        ASSET, one to many, with ASSET totally participating. ASSET has key AssetID
+        and attributes ShortName and ExternalAssetID. ASSET connects through Has to
+        METADATA, one to many, with METADATA totally participating. METADATA has key
+        MetaDataID. METADATA connects through Contains to METATAG, one to many, with
+        METATAG totally participating. METATAG has key MetaTagID and attributes
+        TagName and Value.</desc>
+
+        <g stroke="#8A93A3" stroke-width="1.7" fill="none">
+          <line x1="390" y1="68" x2="290" y2="68"/>
+          <line x1="510" y1="68" x2="620" y2="68"/>
+          <line x1="375" y1="212" x2="232" y2="192"/>
+          <line x1="375" y1="246" x2="238" y2="264"/>
+          <line x1="525" y1="228" x2="645" y2="228"/>
+          <line x1="370" y1="388" x2="270" y2="388"/>
+          <line x1="375" y1="532" x2="235" y2="502"/>
+          <line x1="375" y1="566" x2="232" y2="574"/>
+          <line x1="525" y1="548" x2="675" y2="548"/>
+        </g>
+
+        <g stroke="#0033A0" stroke-width="1.9" fill="none">
+          <line x1="450" y1="96" x2="450" y2="120"/>
+          <line x1="446" y1="180" x2="446" y2="200"/>
+          <line x1="454" y1="180" x2="454" y2="200"/>
+          <line x1="450" y1="256" x2="450" y2="280"/>
+          <line x1="446" y1="340" x2="446" y2="360"/>
+          <line x1="454" y1="340" x2="454" y2="360"/>
+          <line x1="450" y1="416" x2="450" y2="440"/>
+          <line x1="446" y1="500" x2="446" y2="520"/>
+          <line x1="454" y1="500" x2="454" y2="520"/>
+        </g>
+
+        <g fill="#fff" stroke="#0033A0" stroke-width="2">
+          <polygon points="380,150 450,120 520,150 450,180"/>
+          <polygon points="380,310 450,280 520,310 450,340"/>
+          <polygon points="380,470 450,440 520,470 450,500"/>
+        </g>
+        <g font-family="system-ui" font-size="13" fill="#00246B" text-anchor="middle">
+          <text x="450" y="155">Provides</text>
+          <text x="450" y="315">Has</text>
+          <text x="450" y="475">Contains</text>
+        </g>
+
+        <g font-family="system-ui" font-size="14" font-weight="700" fill="#7A2708">
+          <text x="466" y="113">1</text>
+          <text x="466" y="196">N</text>
+          <text x="466" y="273">1</text>
+          <text x="466" y="356">N</text>
+          <text x="466" y="433">1</text>
+          <text x="466" y="516">N</text>
+        </g>
+
+        <g fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4">
+          <rect x="390" y="40" width="120" height="56" rx="4"/>
+          <rect x="375" y="200" width="150" height="56" rx="4"/>
+          <rect x="370" y="360" width="160" height="56" rx="4"/>
+          <rect x="375" y="520" width="150" height="56" rx="4"/>
+        </g>
+        <g font-family="system-ui" font-size="16" font-weight="700" fill="#00246B" text-anchor="middle">
+          <text x="450" y="74">SOURCE</text>
+          <text x="450" y="234">ASSET</text>
+          <text x="450" y="394">METADATA</text>
+          <text x="450" y="554">METATAG</text>
+        </g>
+
+        <g font-family="system-ui" font-size="14" fill="#14181F" text-anchor="middle">
+          <ellipse cx="230" cy="68" rx="60" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="230" y="72">SourceID</text>
+          <line x1="190" y1="82" x2="270" y2="82" stroke="#00246B" stroke-width="1.7"/>
+
+          <ellipse cx="670" cy="68" rx="50" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="670" y="72">Name</text>
+
+          <ellipse cx="170" cy="190" rx="62" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="170" y="194">AssetID</text>
+          <line x1="128" y1="204" x2="212" y2="204" stroke="#00246B" stroke-width="1.7"/>
+
+          <ellipse cx="170" cy="266" rx="68" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="170" y="270">ShortName</text>
+
+          <ellipse cx="730" cy="228" rx="85" ry="25" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="730" y="232" font-size="13">ExternalAssetID</text>
+
+          <ellipse cx="200" cy="388" rx="70" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="200" y="392">MetaDataID</text>
+          <line x1="152" y1="402" x2="248" y2="402" stroke="#00246B" stroke-width="1.7"/>
+
+          <ellipse cx="170" cy="500" rx="65" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="170" y="504">MetaTagID</text>
+          <line x1="127" y1="514" x2="213" y2="514" stroke="#00246B" stroke-width="1.7"/>
+
+          <ellipse cx="170" cy="576" rx="62" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="170" y="580">TagName</text>
+
+          <ellipse cx="730" cy="548" rx="55" ry="24" fill="#fff" stroke="#0033A0" stroke-width="1.7"/>
+          <text x="730" y="552">Value</text>
+        </g>
+      </svg>
+      <p class="figcap">ShortName is a second candidate key — unique, but AssetID
+      is the primary key, so only AssetID is underlined. Every entity also carries
+      a creation timestamp, omitted here to keep the chain readable.</p>
+    </div>
+  </section>
+
+  <!-- 9 · THE RELATIONAL MAPPING -->
+  <section class="slide" data-title="The relational schema" aria-roledescription="slide" aria-label="The relational schema">
+    <p class="kicker">Mapping</p>
+    <h2 class="slide-h" tabindex="-1">Four relations, unbounded attributes</h2>
+    <div class="two">
+      <div>
+        <p>The 7-step mapping applies unchanged. Three 1:N relationships become
+        three foreign keys on the N side. Nothing exotic happens:</p>
+        <div class="rel">
+          <div class="row"><span class="rname">SOURCE</span>(<span class="pk">SourceID</span>, Name)</div>
+          <div class="row"><span class="rname">ASSET</span>(<span class="pk">AssetID</span>, ShortName, <span class="fk">SourceID</span>, ExternalAssetID)</div>
+          <div class="row"><span class="rname">METADATA</span>(<span class="pk">MetaDataID</span>, <span class="fk">AssetID</span>)</div>
+          <div class="row"><span class="rname">METATAG</span>(<span class="pk">MetaTagID</span>, <span class="fk">MetaDataID</span>, TagName, Value)</div>
+          <div class="cap">Underline marks the primary key; brown marks a foreign key.</div>
+        </div>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>"Internal" is a real source row</h3>
+          <p style="margin:0">Locally captured work is not a NULL special case —
+          the file system is a source like the Getty is a source. Every asset
+          resolves by the same path, and no federation query needs three-valued
+          logic.</p>
+        </div>
+        <div class="callout warn">
+          <h3>ExternalAssetID means nothing alone</h3>
+          <p style="margin:0">It identifies the asset <em>at that source</em>, so
+          it is only meaningful paired with SourceID. That pairing is exactly what
+          the Provides relationship supplies.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · ONE PATH -->
+  <section class="slide" data-title="One path from tag to asset" aria-roledescription="slide" aria-label="One path from tag to asset">
+    <p class="kicker">A design choice worth defending</p>
+    <h2 class="slide-h" tabindex="-1">One path from tag to asset</h2>
+    <p class="lead">METATAG carries no AssetID. Every traversal goes through the
+    group — and that restraint buys two things.</p>
+    <ul>
+      <li><strong>Re-pointing is atomic.</strong> Changing one METADATA row
+      relocates its entire cluster of tags. One row update moves a hundred claims;
+      a denormalized AssetID would make that a hundred updates.</li>
+      <li><strong>There is one source of truth.</strong> A duplicated AssetID can
+      disagree with the group it hangs from. Nothing in the schema could then say
+      which is right.</li>
+    </ul>
+    <div class="callout warn">
+      <h3>The honest counterpoint</h3>
+      <p style="margin:0">You are trained to denormalize for read speed, and this
+      is a case where that instinct is wrong. The extra join is cheap and indexed.
+      The second source of truth is not.</p>
+    </div>
+  </section>
+
+  <!-- 11 · INTERACTIVE: SHARED TAGS AS EDGES -->
+  <section class="slide" data-title="Shared values are edges" aria-roledescription="slide" aria-label="Shared values are edges">
+    <p class="kicker">The payoff · 1 of 2</p>
+    <h2 class="slide-h" tabindex="-1">Shared values are edges</h2>
+    <p>Two assets that carry the same <em>(TagName, Value)</em> pair are connected
+    by that fact. Nobody declared the relationship — it is discovered. Select a
+    tag to light the assets that share it.</p>
+    <div class="hl-controls" role="group" aria-label="Highlight a shared tag">
+      <button class="chip" data-tag="steel" aria-pressed="false"
+        data-desc="medium = steel connects the Reliquary casket, claimed by Cleveland, to the locally captured Steel maquette. Different collections, different vocabularies, one matching value.">medium = steel</button>
+      <button class="chip" data-tag="baroque" aria-pressed="false"
+        data-desc="period = Baroque connects the Croatia chapel panorama to the Getty's Votive panel. The panorama is a site capture and the panel is an artwork, and they are related anyway.">period = Baroque</button>
+      <button class="chip" data-tag="venetian" aria-pressed="false"
+        data-desc="school = Venetian connects the Reliquary casket to the Votive panel — an edge between a Cleveland holding and a Getty holding, discovered without either institution asserting it.">school = Venetian</button>
+    </div>
+    <p id="hl-desc" data-default="Four assets from three sources. Select a tag above to see which assets share it and the edges that result.">Four assets from three sources. Select a tag above to see which assets share it and the edges that result.</p>
+    <div class="fig">
+      <svg id="graph-figure" viewBox="0 0 760 350" role="img" aria-labeledby="t11 d11">
+        <title id="t11">Assets connected by shared tag values</title>
+        <desc id="d11">Four asset boxes. The Croatia chapel panorama and the Getty
+        Votive panel share period equals Baroque. The Reliquary casket and the
+        Steel maquette share medium equals steel. The Reliquary casket and the
+        Votive panel share school equals Venetian.</desc>
+
+        <g class="edge" data-edge="baroque">
+          <line x1="150" y1="110" x2="150" y2="220" stroke="#7A2708" stroke-width="3"/>
+          <text x="140" y="170" text-anchor="end" font-family="system-ui" font-size="12.5" fill="#7A2708">period = Baroque</text>
+        </g>
+        <g class="edge" data-edge="steel">
+          <line x1="580" y1="110" x2="580" y2="220" stroke="#7A2708" stroke-width="3"/>
+          <text x="594" y="170" font-family="system-ui" font-size="12.5" fill="#7A2708">medium = steel</text>
+        </g>
+        <g class="edge" data-edge="venetian">
+          <line x1="487" y1="106" x2="243" y2="224" stroke="#7A2708" stroke-width="3"/>
+          <text x="330" y="140" text-anchor="middle" font-family="system-ui" font-size="12.5" fill="#7A2708">school = Venetian</text>
+        </g>
+
+        <g data-asset="a1">
+          <rect x="55" y="54" width="190" height="56" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text class="aname" x="150" y="78" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">Chapel panorama</text>
+          <text x="150" y="96" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">source: Internal</text>
+        </g>
+        <g data-asset="a2">
+          <rect x="485" y="54" width="190" height="56" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text class="aname" x="580" y="78" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">Reliquary casket</text>
+          <text x="580" y="96" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">source: Cleveland</text>
+        </g>
+        <g data-asset="a3">
+          <rect x="55" y="224" width="190" height="56" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text class="aname" x="150" y="248" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">Votive panel</text>
+          <text x="150" y="266" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">source: Getty</text>
+        </g>
+        <g data-asset="a4">
+          <rect x="485" y="224" width="190" height="56" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text class="aname" x="580" y="248" text-anchor="middle" font-family="system-ui" font-size="13.5" font-weight="700" fill="#00246B">Steel maquette</text>
+          <text x="580" y="266" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#4A5160">source: Internal</text>
+        </g>
+
+        <text x="380" y="320" text-anchor="middle" font-family="system-ui" font-size="12"
+              fill="#4A5160">METATAG is an edge list. One index on (TagName, Value) answers every one of these.</text>
+      </svg>
+      <p class="figcap">A graph embedded in a relational database — compact,
+      indexed, and queryable with ordinary SQL.</p>
+    </div>
+  </section>
+
+  <!-- 12 · INSTITUTION-LEVEL DISCOVERY -->
+  <section class="slide" data-title="From artworks to institutions" aria-roledescription="slide" aria-label="From artworks to institutions">
+    <p class="kicker">The payoff · 2 of 2</p>
+    <h2 class="slide-h" tabindex="-1">From artworks to institutions</h2>
+    <div class="two">
+      <div>
+        <p>Every asset has <strong>exactly one source</strong>. So the source is a
+        property of each node in that graph — which means the graph can be
+        aggregated by institution.</p>
+        <p>Edges between assets become edges between museums, weighted by how much
+        vocabulary their holdings actually share. You can measure that two
+        collections overlap heavily on period but diverge on school.</p>
+        <div class="callout">
+          <h3>The point</h3>
+          <p style="margin:0">Measured from what they <em>hold</em> — not from what
+          their public pages claim about themselves.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Nothing was designed for this</h3>
+          <p style="margin:0">No part of the schema anticipates institutional
+          comparison. It falls out because claims, vocabulary, and provenance all
+          live in the same uniform structure. Uniformity is what makes questions
+          possible that nobody modeled for.</p>
+        </div>
+        <p>Simpler queries use the same machinery: find every medium whose value
+        contains <em>steel</em>, with no type system to fight and no column to
+        have declared in advance.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · THE FAN-OUT IS A GRAPH PROBLEM -->
+  <section class="slide" data-title="The fan-out is a graph problem" aria-roledescription="slide" aria-label="The fan-out is a graph problem">
+    <p class="kicker">How discovery actually runs</p>
+    <h2 class="slide-h" tabindex="-1">The fan-out is a graph problem</h2>
+    <p class="lead">Finding every commonality cluster by repeated self-joins in SQL
+    would be expensive. So we don't do it in SQL.</p>
+    <div class="fig">
+      <svg viewBox="0 0 760 124" role="img" aria-labelledby="t15 d15">
+        <title id="t15">The discovery pipeline</title>
+        <desc id="d15">Four stages left to right: Project the METATAG edge list in
+        one scan; Cluster the whole graph in one pass; Write the results back as
+        tags; Query them as an ordinary index range scan.</desc>
+        <g stroke="#8A93A3" stroke-width="1.8" fill="none">
+          <line x1="178" y1="58" x2="202" y2="58"/>
+          <line x1="368" y1="58" x2="392" y2="58"/>
+          <line x1="558" y1="58" x2="582" y2="58"/>
+        </g>
+        <g fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2">
+          <rect x="15" y="30" width="160" height="56" rx="5"/>
+          <rect x="205" y="30" width="160" height="56" rx="5"/>
+          <rect x="395" y="30" width="160" height="56" rx="5"/>
+          <rect x="585" y="30" width="160" height="56" rx="5"/>
+        </g>
+        <g font-family="system-ui" text-anchor="middle">
+          <g font-size="14" font-weight="700" fill="#00246B">
+            <text x="95" y="54">Project</text>
+            <text x="285" y="54">Cluster</text>
+            <text x="475" y="54">Write back</text>
+            <text x="665" y="54">Query</text>
+          </g>
+          <g font-size="11" fill="#4A5160">
+            <text x="95" y="72">edge list, one scan</text>
+            <text x="285" y="72">all groups, one pass</text>
+            <text x="475" y="72">results become tags</text>
+            <text x="665" y="72">index range scan</text>
+          </g>
+        </g>
+        <text x="380" y="110" text-anchor="middle" font-family="system-ui"
+              font-size="11.5" fill="#4A5160">Pay once per sweep; read cheaply thereafter.</text>
+      </svg>
+    </div>
+    <div class="two">
+      <div class="callout">
+        <h3>Why the projection is free</h3>
+        <p style="margin:0">METATAG is already an edge list — two assets sharing a
+        <em>(TagName, Value)</em> pair are an edge. That is a graph engine's native
+        input, so handing it over is a scan, not a transformation. Connected
+        components or community detection then finds <em>every</em> cluster in one
+        pass, rather than one self-join per question.</p>
+      </div>
+      <div class="callout">
+        <h3>And the results become claims</h3>
+        <p style="margin:0">Cluster assignments are written back as ordinary tags,
+        so a clustering run is just another source and its output just another
+        vocabulary group — adopt it or ignore it exactly like a museum's
+        attribution. Storage is cheap, so materializing them costs nothing that
+        matters.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 · INDEXES -->
+  <section class="slide" data-title="Performance is an index question" aria-roledescription="slide" aria-label="Performance is an index question">
+    <p class="kicker">Tuning</p>
+    <h2 class="slide-h" tabindex="-1">Performance is an index question</h2>
+    <div class="two">
+      <div>
+        <p>The schema has one hot table, so speed is mostly a question of which
+        indexes sit on METATAG — and they are cheap in the currency this system
+        spends, so you build several.</p>
+        <div class="rel">
+          <div class="row"><span class="rname">METATAG</span> (TagName, Value)</div>
+          <div class="row"><span class="rname">METATAG</span> (TagName, Value, <span class="fk">MetaDataID</span>)</div>
+          <div class="row"><span class="rname">METATAG</span> (<span class="fk">MetaDataID</span>, TagName)</div>
+          <div class="row"><span class="rname">METATAG</span> (Value)</div>
+          <div class="row"><span class="rname">METADATA</span> (<span class="fk">AssetID</span>)</div>
+          <div class="row"><span class="rname">ASSET</span> (<span class="fk">SourceID</span>, ExternalAssetID)</div>
+          <div class="cap">Each line is an access path the workload actually uses.</div>
+        </div>
+      </div>
+      <div>
+        <ul>
+          <li><strong>(TagName, Value)</strong> is the discovery index — every
+          "find everything where medium = steel" is one range scan on it.</li>
+          <li>Adding <strong>MetaDataID</strong> makes that index
+          <span class="term">covering</span>: the query is answered from the index
+          alone, never touching the table.</li>
+          <li><strong>(MetaDataID, TagName)</strong> walks the other direction —
+          pull one group's attributes, or one named attribute of a group.</li>
+          <li><strong>(Value)</strong> alone covers search that does not know the
+          attribute name.</li>
+        </ul>
+        <p style="color:var(--muted);font-size:.95rem">A covering index duplicates
+        columns to avoid reading the table: more storage for less I/O — the whole
+        strategy, at the physical level.</p>
+      </div>
+    </div>
+    <div class="two">
+      <div class="callout warn">
+        <h3>Why Value stays bounded</h3>
+        <p style="margin:0">A bounded <code>VARCHAR</code> keeps rows packing
+        cleanly into pages and index keys short — high fanout, a shallow tree, two
+        or three page reads whatever the corpus size. Anything long is a link:
+        <code>TagName = documentlink</code>, <code>Value =</code> the URI. The note
+        then becomes an asset in its own right, with its own provenance. The real
+        trade is a reference that can break with nothing to detect it — so
+        link-checking becomes one more sweep, reporting back as tags.</p>
+      </div>
+      <div class="callout">
+        <h3>And JSON is an output, not a storage choice</h3>
+        <p style="margin:0">One grouped traversal with <code>JSON_OBJECTAGG</code>
+        emits the document view whenever anyone wants it. Storing rows costs
+        nothing in representation; storing documents costs the index everything
+        runs on — and leaves no edge list to cluster.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 · VIEWS -->
+  <section class="slide" data-title="Where correctness lives: views" aria-roledescription="slide" aria-label="Where correctness lives, views">
+    <p class="kicker">Extension · 1 of 2 — designed for, not yet built</p>
+    <h2 class="slide-h" tabindex="-1">Where correctness lives: views</h2>
+    <div class="two">
+      <div>
+        <p>If the database never adjudicates, who decides what is correct? The
+        answer is: whoever is reading, at the moment they read.</p>
+        <p>A <span class="term">view</span> is a signed declaration that a
+        particular reading — this individuation, these claims — is the one its
+        notarizer stands behind. Many views can exist over the same data, and an
+        end user chooses which standard to treat as correct.</p>
+        <div class="callout">
+          <h3>Nothing new is required</h3>
+          <p style="margin:0">A view is just another record whose tags point at
+          other records. A claim about claims, stored exactly like a claim about a
+          sculpture — which is the strongest evidence that the uniform shape was
+          the right call.</p>
+        </div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>The separation this achieves</h3>
+          <p style="margin:0">No adjudication at <strong>write</strong> time;
+          correctness selected at <strong>read</strong> time. The database records
+          what was claimed; the reader supplies the frame.</p>
+        </div>
+        <p>You have seen this shape already. A database view is a named, reusable
+        perspective over base data — the difference here is that it lives in the
+        data rather than in DDL, so curators create one at runtime instead of a
+        DBA writing a migration.</p>
+        <p>And because a view records the criteria rather than just the verdict, it
+        is an <span class="term">executable specification</span> — something that
+        can be applied to material its author never saw. The next slide is what
+        that makes possible.</p>
+        <p style="color:var(--muted);font-size:.95rem">This layer is not built yet.
+        It is on this slide because the architecture already supports it without
+        a schema change.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 · LLM REFERENCE DATABASE -->
+  <section class="slide" data-title="A reference database for an LLM" aria-roledescription="slide" aria-label="A reference database for an LLM">
+    <p class="kicker">Extension · 2 of 2 — designed for, not yet built</p>
+    <h2 class="slide-h" tabindex="-1">A reference database for an LLM</h2>
+    <p class="lead">Posit a hypothesis, then examine as much material as possible
+    against it. That is already what curators and archivists do — the limit has
+    never been the method, only how much one person can read.</p>
+    <div class="fig">
+      <svg viewBox="0 0 760 124" role="img" aria-labelledby="t18 d18">
+        <title id="t18">The reference-database pipeline</title>
+        <desc id="d18">Five stages left to right: the corpus of texts; LLM
+        extraction into claims with locus; a graph clustering pass; graph-aware
+        retrieval; and the model's analysis, returned as its own opinion.</desc>
+        <g stroke="#8A93A3" stroke-width="1.8" fill="none">
+          <line x1="141" y1="58" x2="163" y2="58"/>
+          <line x1="293" y1="58" x2="315" y2="58"/>
+          <line x1="445" y1="58" x2="467" y2="58"/>
+          <line x1="597" y1="58" x2="619" y2="58"/>
+        </g>
+        <g fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2">
+          <rect x="11" y="30" width="130" height="56" rx="5"/>
+          <rect x="163" y="30" width="130" height="56" rx="5"/>
+          <rect x="315" y="30" width="130" height="56" rx="5"/>
+          <rect x="467" y="30" width="130" height="56" rx="5"/>
+          <rect x="619" y="30" width="130" height="56" rx="5"/>
+        </g>
+        <g font-family="system-ui" text-anchor="middle">
+          <g font-size="14" font-weight="700" fill="#00246B">
+            <text x="76" y="54">Texts</text>
+            <text x="228" y="54">Extract</text>
+            <text x="380" y="54">Cluster</text>
+            <text x="532" y="54">Retrieve</text>
+            <text x="684" y="54">Analyze</text>
+          </g>
+          <g font-size="11" fill="#4A5160">
+            <text x="76" y="72">the corpus</text>
+            <text x="228" y="72">claims + locus</text>
+            <text x="380" y="72">graph pass</text>
+            <text x="532" y="72">graph-aware RAG</text>
+            <text x="684" y="72">the model's opinion</text>
+          </g>
+        </g>
+        <text x="380" y="110" text-anchor="middle" font-family="system-ui"
+              font-size="11.5" fill="#4A5160">Every stage writes claims back, attributed to the run that made them.</text>
+      </svg>
+    </div>
+    <div class="two">
+      <div class="callout">
+        <h3>What this store gives RAG that chunks don't</h3>
+        <p style="margin:0">Retrieval returns <em>attributed claims</em>, not
+        anonymous passages — provenance is structural rather than reconstructed.
+        And because conflicts survive, the model can reason about a disagreement
+        instead of being handed a dataset where the dispute has been quietly
+        settled.</p>
+      </div>
+      <div class="callout warn">
+        <h3>It applies the curator's method, not its own</h3>
+        <p style="margin:0">Hand it a curator's preferred view and it executes
+        <em>their</em> criteria across a corpus no one could read — so the
+        methodology itself becomes testable, and two schools' criteria can be run
+        over the same material and their disagreement measured. The model supplies
+        reach and consistency; the scholar supplies the method. Extraction and
+        analysis stay separate sources, and every extracted tag carries document
+        and locus, so any of it can be checked.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 · THE LEDGER -->
+  <section class="slide" data-title="Where the cost goes" aria-roledescription="slide" aria-label="Where the cost goes">
+    <p class="kicker">Judgment</p>
+    <h2 class="slide-h" tabindex="-1">Where the cost goes</h2>
+    <p class="lead">Every design pays somewhere. This one pays in storage and
+    keeps compute cheap — a deliberate choice, not a side effect.</p>
+    <div class="ledger">
+      <div class="cost">
+        <h3>Paid in storage</h3>
+        <ul>
+          <li>A trip tag written once per asset — 300 times for 300 panoramas.</li>
+          <li>Parallel individuations duplicate whole claim sets.</li>
+          <li>Indexes over a very large METATAG are themselves substantial.</li>
+          <li>Nothing is ever deleted; views would add more records still.</li>
+        </ul>
+      </div>
+      <div class="gain">
+        <h3>Kept off compute</h3>
+        <ul>
+          <li>Lookups are index range scans on (TagName, Value).</li>
+          <li>Joins are key equality down a 1:N chain — no full scans.</li>
+          <li>Point lookups never need a traversal; wide fan-out is one graph pass,
+          not a self-join per question.</li>
+          <li>A new federated source in hours, with no schema migration.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>Why the trade is free here</h3>
+      <p style="margin:0">One panoramic collection is 1.5&nbsp;GB; the archive is
+      3.3&nbsp;TB of media. Against that, the whole metadata store — duplication,
+      indexes and all — is rounding error. The redundancy that sounds alarming in
+      the abstract is not detectable here.</p>
+    </div>
+    <div class="callout warn">
+      <h3>What is left over</h3>
+      <p style="margin:0">Nothing computational. A graph engine to operate, and
+      materialized clusters that go stale as assets arrive — so the open question
+      is sweep cadence, not query cost.</p>
+    </div>
+  </section>
+
+  <!-- 14 · RECAP -->
+  <section class="slide" data-title="Recap and connections" aria-roledescription="slide" aria-label="Recap and connections">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; connections</h2>
+    <p class="lead">Digital humanities scholarship is built on disagreement. This
+    design records it rather than forcing the field into a model that discards
+    it — a compact <span class="term">glue database</span> where the conflicts
+    live.</p>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">The argument</h3>
+        <ol class="objlist">
+          <li>Some domains have no single truth — identity itself can be undefined,
+          and a conventional schema cannot express that.</li>
+          <li>Claims cluster by whose vocabulary they are — that is METADATA.</li>
+          <li>Individuation is data too: competing readings coexist as records.</li>
+          <li>One uniform (TagName, Value) shape for every claim.</li>
+          <li>Shared pairs are edges — a graph embedded in SQL.</li>
+          <li>One source per asset lifts the graph to institutions.</li>
+          <li>Correctness is a view the reader chooses, not a write-time constraint.</li>
+        </ol>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Where this touches the course</h3>
+          <ul style="margin:0">
+            <li><strong>Unit 1.</strong> Multivalued attributes, and what happens
+            when the attribute set itself is open.</li>
+            <li><strong>Unit 2.</strong> The 7-step mapping, applied without
+            modification to an unusual diagram.</li>
+            <li><strong>Units 6–7.</strong> The update anomalies here are real —
+            name them, then decide what they are worth; and the index choice is
+            what makes the design viable at all.</li>
+          </ul>
+        </div>
+        <div class="callout warn">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why is there no M:N relationship here, despite the branching?</li>
+            <li>What breaks if two assets could share a METADATA group?</li>
+            <li>If AssetID identifies a record and not a thing, what does the
+            primary key actually guarantee?</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 20</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // shared-tag discovery demonstrator
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-tag]'));
+  var desc  = document.getElementById('hl-desc');
+  var fig   = document.getElementById('graph-figure');
+  if (chips.length && fig){
+    var edges  = Array.prototype.slice.call(fig.querySelectorAll('.edge'));
+    var assets = Array.prototype.slice.call(fig.querySelectorAll('g[data-asset]'));
+    var members = {
+      steel:    ['a2','a4'],
+      baroque:  ['a1','a3'],
+      venetian: ['a2','a3']
+    };
+    function clearFig(){
+      chips.forEach(function(c){ c.setAttribute('aria-pressed', 'false'); });
+      edges.forEach(function(e){ e.classList.remove('on'); });
+      assets.forEach(function(a){ a.classList.remove('lit'); a.classList.remove('dim'); });
+      if (desc) desc.textContent = desc.getAttribute('data-default');
+    }
+    chips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var on  = chip.getAttribute('aria-pressed') === 'true';
+        var key = chip.getAttribute('data-tag');
+        if (on){ clearFig(); return; }
+        chips.forEach(function(c){ c.setAttribute('aria-pressed', 'false'); });
+        chip.setAttribute('aria-pressed', 'true');
+        edges.forEach(function(e){
+          e.classList.toggle('on', e.getAttribute('data-edge') === key);
+        });
+        var inSet = members[key] || [];
+        assets.forEach(function(a){
+          var match = inSet.indexOf(a.getAttribute('data-asset')) !== -1;
+          a.classList.toggle('lit', match);
+          a.classList.toggle('dim', !match);
+        });
+        if (desc) desc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>

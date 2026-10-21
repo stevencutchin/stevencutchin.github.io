@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The EAV antipattern — when rows become columns · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- relation + SQL blocks ---- */
+.rel{font-family:var(--mono);font-size:.94rem;background:#fff;border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;margin:12px 0;line-height:1.9}
+.rel .row{white-space:nowrap;overflow-x:auto}
+.rel .rname{color:var(--blue-ink);font-weight:700}
+.rel .pk{border-bottom:2px solid var(--blue-ink)}
+.rel .fk{color:var(--brown);font-weight:600}
+.rel .cap{font-family:var(--sans);color:var(--muted);font-size:.84rem;white-space:normal;
+  line-height:1.5;margin-top:8px}
+pre.sql{font-family:var(--mono);font-size:.86rem;line-height:1.5;background:#fff;
+  border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:0 9px 9px 0;
+  padding:12px 14px;margin:10px 0;overflow-x:auto}
+pre.sql .kw{color:var(--blue-ink);font-weight:700}
+pre.sql .cm{color:var(--muted)}
+pre.sql.bad{border-left-color:var(--brown)}
+
+/* ---- tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.86rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 8px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.nul{background:#F6F1EE;color:var(--brown);font-style:italic}
+table.inst td.mono{font-family:var(--mono);font-size:.83rem}
+
+/* ---- ledger grid ---- */
+.ledger{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ledger h3{font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px;font-size:1.08rem}
+.ledger ul{margin:0;padding-left:1.1rem}
+.ledger .cost{border:1px solid var(--line);border-top:4px solid var(--brown);
+  border-radius:9px;padding:12px 14px;background:#fff}
+.ledger .gain{border:1px solid var(--line);border-top:4px solid var(--blue);
+  border-radius:9px;padding:12px 14px;background:#fff}
+
+/* ---- interactive chips ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+#rep-desc{min-height:2.6em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+.panel-label{font-weight:700;color:var(--blue-ink);font-size:.95rem;margin:0 0 6px}
+html.js [data-rep-panel]{display:none}
+html.js [data-rep-panel].on{display:block}
+html.js [data-rep-panel] .panel-label{display:none}
+[data-rep-panel]+[data-rep-panel]{margin-top:18px}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:7%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:980px){
+  .two,.ledger{grid-template-columns:1fr;gap:18px}
+}
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.rel,pre.sql{border-color:#000}
+  .chip{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.rel,pre.sql,table.inst,.ledger>div{break-inside:avoid}
+  [data-rep-panel]{display:block!important}
+  [data-rep-panel] .panel-label{display:block!important}
+  #shape-figure{width:56%;display:block;margin:0 auto}
+  #rep-figure{padding:8px 10px;display:grid;grid-template-columns:1.25fr 1fr;
+    gap:6mm;align-items:start}
+  #rep-figure table.inst{font-size:7.6pt;margin-top:2px}
+  #rep-figure table.inst th,#rep-figure table.inst td{padding:1.5px 5px}
+  #rep-figure table.inst caption{font-size:7.2pt;padding-bottom:2px}
+  #rep-figure .panel-label{font-size:8.5pt;margin:0 0 2px}
+  #rep-figure .figcap{font-size:7.2pt;margin-top:3px}
+  #rep-figure [data-rep-panel]+[data-rep-panel]{margin-top:0}
+  #rep-desc{font-size:8.5pt;padding:6px 10px;min-height:0}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Design judgment · near Unit 6</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Entity–Attribute–Value · relates to Elmasri &amp; Navathe, Ch. 14–15</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="The EAV antipattern — slides">
+
+  <!-- 1 · TITLE -->
+  <section class="slide is-active" data-title="The EAV antipattern"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Design judgment</p>
+    <h2 class="slide-h" tabindex="-1">The EAV antipattern<br>When rows become columns</h2>
+    <div class="two">
+      <div>
+        <p class="lead">A design that stores the <em>name</em> of an attribute as
+        data rather than declaring it in the schema. Famous, common, usually
+        wrong — and occasionally the only thing that works.</p>
+        <p style="color:var(--muted)">The goal here is not to forbid it. It is to
+        let you recognize it, state its costs precisely, and defend a decision
+        either way.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 340 170" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A wide table beside an EAV table</title>
+          <desc id="d1">On the left, a table with many columns. On the right, a
+          narrow three-column table with many more rows.</desc>
+          <g font-family="system-ui" font-size="11" fill="#00246B" text-anchor="middle">
+            <text x="78" y="20" font-weight="700">Wide</text>
+            <text x="252" y="20" font-weight="700">EAV</text>
+          </g>
+          <g fill="#EAF0FB" stroke="#0033A0" stroke-width="1.4">
+            <rect x="14" y="32" width="128" height="20" rx="2"/>
+            <rect x="14" y="56" width="128" height="20" rx="2"/>
+            <rect x="14" y="80" width="128" height="20" rx="2"/>
+          </g>
+          <g stroke="#0033A0" stroke-width="1" opacity=".55">
+            <line x1="46" y1="32" x2="46" y2="100"/>
+            <line x1="78" y1="32" x2="78" y2="100"/>
+            <line x1="110" y1="32" x2="110" y2="100"/>
+          </g>
+          <g fill="#EAF0FB" stroke="#0033A0" stroke-width="1.4">
+            <rect x="200" y="32" width="104" height="14" rx="2"/>
+            <rect x="200" y="50" width="104" height="14" rx="2"/>
+            <rect x="200" y="68" width="104" height="14" rx="2"/>
+            <rect x="200" y="86" width="104" height="14" rx="2"/>
+            <rect x="200" y="104" width="104" height="14" rx="2"/>
+            <rect x="200" y="122" width="104" height="14" rx="2"/>
+          </g>
+          <g stroke="#0033A0" stroke-width="1" opacity=".55">
+            <line x1="234" y1="32" x2="234" y2="136"/>
+            <line x1="270" y1="32" x2="270" y2="136"/>
+          </g>
+          <text x="78" y="118" text-anchor="middle" font-family="system-ui"
+                font-size="10.5" fill="#4A5160">few rows, many columns</text>
+          <text x="252" y="154" text-anchor="middle" font-family="system-ui"
+                font-size="10.5" fill="#4A5160">many rows, three columns</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · MOTIVATION -->
+  <section class="slide" data-title="Why this topic exists" aria-roledescription="slide" aria-label="Why this topic exists">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">Where disagreement is the data</h2>
+    <div class="two">
+      <div>
+        <p>Everything in this course so far assumes two things: that you know your
+        attributes, and that each one has a right value. Business systems earn both
+        assumptions — somebody has the authority to declare what an order total
+        is.</p>
+        <p>The digital humanities have neither. Consider:</p>
+        <ul>
+          <li>A manuscript dated to the 11th century by one paleographer and the
+          13th by another, on competing evidence.</li>
+          <li>Authorship contested for three hundred years, with no prospect of
+          settlement.</li>
+          <li>Prosopography — is the <em>Johannes</em> in this charter the same
+          Johannes as in that one? Often genuinely unknowable.</li>
+          <li>A place with five names across four languages and three periods, none
+          of them the "correct" one.</li>
+          <li>Contested provenance, where the disagreement itself carries legal and
+          ethical weight.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The inversion</h3>
+          <p style="margin:0">In a business system, conflicting records are an
+          error to reconcile. In humanities scholarship, <strong>who claimed what,
+          when, and on what evidence is the research object itself</strong>.
+          Resolving the conflict destroys the thing being studied.</p>
+        </div>
+        <div class="callout warn">
+          <h3>And this field gets the least help</h3>
+          <p style="margin:0">Relational modeling grew up serving transactions,
+          where one party has authority to declare the answer. Humanities projects
+          have no such authority and the smallest budgets, so they are most often
+          handed tooling designed for inventory. TEI's apparatus for variant
+          readings and CIDOC-CRM for cultural heritage exist precisely because the
+          ordinary approach does not fit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE SHAPE -->
+  <section class="slide" data-title="The shape" aria-roledescription="slide" aria-label="The shape">
+    <p class="kicker">Definition</p>
+    <h2 class="slide-h" tabindex="-1">The shape</h2>
+    <div class="two">
+      <div>
+        <p>Three columns carry every fact in the database:</p>
+        <div class="rel">
+          <div class="row"><span class="rname">ATTRIBUTE</span>(<span class="pk">AttrID</span>, <span class="fk">EntityID</span>, AttrName, Value)</div>
+          <div class="cap">Entity — which thing. Attribute — which property, as a
+          string. Value — the property's value, almost always as text.</div>
+        </div>
+        <p>The schema no longer says what a product <em>has</em>. The data says it.
+        Adding a property is an <code>INSERT</code>, not an
+        <code>ALTER TABLE</code> — which is precisely the appeal, and precisely
+        the problem.</p>
+        <div class="callout">
+          <h3>The one-sentence test</h3>
+          <p style="margin:0">If a column holds the <em>name of a field</em>, you
+          are looking at EAV.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg id="shape-figure" viewBox="0 0 360 240" role="img" aria-labelledby="t3 d3">
+          <title id="t3">The EAV relation shape</title>
+          <desc id="d3">An ENTITY rectangle connected one-to-many to an ATTRIBUTE
+          rectangle holding AttrName and Value columns.</desc>
+          <line x1="180" y1="70" x2="180" y2="104" stroke="#8A93A3" stroke-width="1.8"/>
+          <text x="194" y="92" font-family="system-ui" font-size="13"
+                font-weight="700" fill="#7A2708">N</text>
+          <rect x="110" y="28" width="140" height="42" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="180" y="54" text-anchor="middle" font-family="system-ui"
+                font-size="15" font-weight="700" fill="#00246B">ENTITY</text>
+          <text x="166" y="92" text-anchor="end" font-family="system-ui" font-size="13"
+                font-weight="700" fill="#7A2708">1</text>
+          <rect x="70" y="104" width="220" height="104" rx="4" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="180" y="128" text-anchor="middle" font-family="system-ui"
+                font-size="15" font-weight="700" fill="#00246B">ATTRIBUTE</text>
+          <g font-family="ui-monospace,Menlo,monospace" font-size="12" fill="#14181F">
+            <text x="92" y="152">EntityID</text>
+            <text x="92" y="172">AttrName</text>
+            <text x="92" y="192">Value</text>
+          </g>
+          <g font-family="system-ui" font-size="11" fill="#4A5160">
+            <text x="188" y="152">which thing</text>
+            <text x="188" y="172">which field</text>
+            <text x="188" y="192">the data, as text</text>
+          </g>
+        </svg>
+        <p class="figcap">The field name has moved from the schema into a column.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · WHERE YOU HAVE MET IT -->
+  <section class="slide" data-title="Where you have already met it" aria-roledescription="slide" aria-label="Where you have already met it">
+    <p class="kicker">Recognition</p>
+    <h2 class="slide-h" tabindex="-1">Where you've already met it</h2>
+    <p class="lead">EAV is not exotic. You have almost certainly used software
+    built on it this week.</p>
+    <ul>
+      <li><strong>WordPress.</strong> The <code>postmeta</code> table is
+      <code>(post_id, meta_key, meta_value)</code> — textbook EAV, powering a large
+      share of the web.</li>
+      <li><strong>E-commerce catalogs.</strong> Magento's product model is the
+      best-known commercial example; products across categories share almost no
+      specifications.</li>
+      <li><strong>Clinical and laboratory systems.</strong> Observation stores hold
+      thousands of possible measurements, any patient having a handful.</li>
+      <li><strong>SaaS custom fields.</strong> Any product where the customer
+      defines their own fields is storing those values somewhere, and it is usually
+      here.</li>
+      <li><strong>RDF and triple stores.</strong> Subject–predicate–object is EAV
+      done deliberately, with a standard and a query language on top.</li>
+    </ul>
+    <div class="callout warn">
+      <h3>Disguises</h3>
+      <p style="margin:0">Columns named <code>field_1</code> through
+      <code>field_40</code>, a <code>properties</code> text column holding
+      delimited pairs, or a "flexible" audit table — same idea, fewer of the
+      benefits.</p>
+    </div>
+  </section>
+
+  <!-- 5 · WHY PEOPLE REACH FOR IT -->
+  <section class="slide" data-title="Why people reach for it" aria-roledescription="slide" aria-label="Why people reach for it">
+    <p class="kicker">The appeal</p>
+    <h2 class="slide-h" tabindex="-1">Why people reach for it</h2>
+    <div class="ledger">
+      <div class="gain">
+        <h3>Real problems it answers</h3>
+        <ul>
+          <li><strong>Irreducible disagreement.</strong> One attribute carries
+          several conflicting values, each needing attribution, none allowed to win.
+          A column can hold exactly one value — this is a structural impossibility,
+          not an inconvenience.</li>
+          <li><strong>Unknowable attributes.</strong> The set is not yours to
+          know — it arrives from customers, partners, or external systems.</li>
+          <li><strong>Extreme sparsity.</strong> Nine hundred possible columns,
+          twenty used per row.</li>
+          <li><strong>Runtime extension.</strong> Users add fields without a
+          migration, a deploy, or a DBA.</li>
+          <li><strong>Heterogeneous entities.</strong> A laptop and a bedsheet
+          share a catalog and almost no properties.</li>
+        </ul>
+      </div>
+      <div class="cost">
+        <h3>Bad reasons that look like good ones</h3>
+        <ul>
+          <li>"We might need more fields later." You will — that is what
+          <code>ALTER TABLE</code> is for.</li>
+          <li>"Migrations are painful here." Fix the deployment process, not the
+          data model.</li>
+          <li>"It is more flexible." Flexibility is not free, and this slide deck
+          is mostly about the bill.</li>
+          <li>"We do not know the domain yet." Then you are not ready to design a
+          schema; EAV will not supply the understanding.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>The distinguishing question</h3>
+      <p style="margin:0">Can you, in principle, enumerate the attributes — or does
+      someone outside your control invent them? Only the second is a real case
+      for EAV.</p>
+    </div>
+  </section>
+
+  <!-- 6 · INTERACTIVE: SAME DATA, TWO SHAPES -->
+  <section class="slide" data-title="Same data, two shapes" aria-roledescription="slide" aria-label="Same data, two shapes">
+    <p class="kicker">Demonstrator</p>
+    <h2 class="slide-h" tabindex="-1">Same data, two shapes</h2>
+    <p>Three products from one catalog, holding identical information. Switch
+    representations and watch what moves.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a representation">
+      <button class="chip" data-rep="wide" aria-pressed="true"
+        data-desc="Wide table: 3 rows by 6 attribute columns = 18 cells, of which 9 are NULL. Half the table is absence. Add a product category and you add columns that every existing row leaves NULL.">Wide table</button>
+      <button class="chip" data-rep="eav" aria-pressed="false"
+        data-desc="EAV: the same facts as 9 rows of 3 columns, with no NULLs at all — absent attributes are simply absent rows. But the column types are gone: 1299, 14.2 and cotton all sit in one text column.">EAV</button>
+    </div>
+    <p id="rep-desc" data-default="Wide table: 3 rows by 6 attribute columns = 18 cells, of which 9 are NULL. Half the table is absence. Add a product category and you add columns that every existing row leaves NULL.">Wide table: 3 rows by 6 attribute columns = 18 cells, of which 9 are NULL. Half the table is absence. Add a product category and you add columns that every existing row leaves NULL.</p>
+    <div class="fig" id="rep-figure">
+      <div data-rep-panel="wide" class="on">
+        <p class="panel-label">Wide table</p>
+        <table class="inst">
+          <caption>PRODUCT — one column per possible specification.</caption>
+          <thead><tr>
+            <th scope="col">id</th><th scope="col">name</th><th scope="col">price</th>
+            <th scope="col">screen_in</th><th scope="col">battery_mah</th>
+            <th scope="col">weight_kg</th><th scope="col">material</th><th scope="col">thread_ct</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="keycol">1</td><td>Laptop</td><td>1299</td><td>14.2</td>
+                <td class="nul">NULL</td><td>1.6</td><td class="nul">NULL</td><td class="nul">NULL</td></tr>
+            <tr><td class="keycol">2</td><td>Phone</td><td>899</td><td>6.1</td>
+                <td>4400</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr>
+            <tr><td class="keycol">3</td><td>Bedsheet</td><td>89</td><td class="nul">NULL</td>
+                <td class="nul">NULL</td><td class="nul">NULL</td><td>cotton</td><td>400</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">Nine of eighteen attribute cells are NULL — and a real
+        catalog has hundreds of specifications, not six.</p>
+      </div>
+      <div data-rep-panel="eav">
+        <p class="panel-label">EAV</p>
+        <table class="inst">
+          <caption>PRODUCT_ATTR — one row per fact that actually exists.</caption>
+          <thead><tr>
+            <th scope="col">entity_id</th><th scope="col">attr_name</th><th scope="col">value</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="keycol">1</td><td class="mono">price</td><td class="mono">1299</td></tr>
+            <tr><td class="keycol">1</td><td class="mono">screen_in</td><td class="mono">14.2</td></tr>
+            <tr><td class="keycol">1</td><td class="mono">weight_kg</td><td class="mono">1.6</td></tr>
+            <tr><td class="keycol">2</td><td class="mono">price</td><td class="mono">899</td></tr>
+            <tr><td class="keycol">2</td><td class="mono">screen_in</td><td class="mono">6.1</td></tr>
+            <tr><td class="keycol">2</td><td class="mono">battery_mah</td><td class="mono">4400</td></tr>
+            <tr><td class="keycol">3</td><td class="mono">price</td><td class="mono">89</td></tr>
+            <tr><td class="keycol">3</td><td class="mono">material</td><td class="mono">cotton</td></tr>
+            <tr><td class="keycol">3</td><td class="mono">thread_ct</td><td class="mono">400</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">No NULLs — absence is just an absent row. But every value
+        shares one text column, whatever its real type.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · COST 1: CONSTRAINTS -->
+  <section class="slide" data-title="Cost 1: the constraints you lose" aria-roledescription="slide" aria-label="Cost one, the constraints you lose">
+    <p class="kicker">The bill · 1 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Cost 1: the constraints you lose</h2>
+    <p class="lead">Every guarantee the DBMS was giving you moves into application
+    code, where it is optional and unenforced.</p>
+    <ul>
+      <li><strong>No types.</strong> <code>price</code> and <code>material</code>
+      share one <code>VARCHAR</code>. Nothing stops <code>price = 'tomorrow'</code>.</li>
+      <li><strong>No NOT NULL.</strong> A required attribute is a missing row, and
+      a missing row looks exactly like an attribute that does not apply.</li>
+      <li><strong>No CHECK, no domains.</strong> No range on a measurement, no
+      enumeration on a status.</li>
+      <li><strong>No foreign key from a value.</strong> If <code>material</code>
+      should reference a materials table, it cannot.</li>
+      <li><strong>No defense against typos.</strong> <code>color</code> and
+      <code>colour</code> are two different attributes, silently, forever.</li>
+    </ul>
+    <div class="callout warn">
+      <h3>The underrated one</h3>
+      <p style="margin:0">A wide table's NULL at least records that the column
+      <em>exists</em> and is empty. In EAV, "we never measured it" and "it does not
+      apply" and "someone forgot" are the same absence.</p>
+    </div>
+  </section>
+
+  <!-- 8 · COST 2: QUERIES -->
+  <section class="slide" data-title="Cost 2: queries get worse" aria-roledescription="slide" aria-label="Cost two, queries get worse">
+    <p class="kicker">The bill · 2 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Cost 2: queries get worse</h2>
+    <div class="two">
+      <div>
+        <p>Reconstructing one logical row of <em>n</em> attributes costs
+        <em>n</em> joins, or a pivot:</p>
+<pre class="sql bad"><span class="cm">-- EAV: one product, three fields</span>
+<span class="kw">SELECT</span> p.id, p.name,
+  <span class="kw">MAX</span>(<span class="kw">CASE WHEN</span> a.attr_name=<span class="cm">'price'</span>
+       <span class="kw">THEN</span> a.value <span class="kw">END</span>) <span class="kw">AS</span> price,
+  <span class="kw">MAX</span>(<span class="kw">CASE WHEN</span> a.attr_name=<span class="cm">'screen_in'</span>
+       <span class="kw">THEN</span> a.value <span class="kw">END</span>) <span class="kw">AS</span> screen_in
+<span class="kw">FROM</span> product p
+<span class="kw">JOIN</span> product_attr a <span class="kw">ON</span> a.entity_id = p.id
+<span class="kw">WHERE</span> p.id = 2
+<span class="kw">GROUP BY</span> p.id, p.name;</pre>
+<pre class="sql"><span class="cm">-- Wide table: the same answer</span>
+<span class="kw">SELECT</span> id, name, price, screen_in
+<span class="kw">FROM</span> product <span class="kw">WHERE</span> id = 2;</pre>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>The string-comparison trap</h3>
+          <p style="margin:0">Values live in a text column, so
+          <code>WHERE value &gt; '500'</code> compares strings. On the catalog two
+          slides back it returns the <strong>$899 phone and the $89
+          bedsheet</strong>, and misses the <strong>$1299 laptop</strong> — wrong
+          in both directions at once. You must cast, and a cast in a predicate
+          usually discards the index you were counting on.</p>
+        </div>
+        <ul>
+          <li>Sorting by an attribute requires joining to it first.</li>
+          <li>Two-attribute filters mean two joins against the same table.</li>
+          <li>Reporting tools that expect columns cannot read it without a view
+          per entity type.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · COST 3: THE OPTIMIZER -->
+  <section class="slide" data-title="Cost 3: the optimizer goes blind" aria-roledescription="slide" aria-label="Cost three, the optimizer goes blind">
+    <p class="kicker">The bill · 3 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Cost 3: the optimizer goes blind</h2>
+    <p class="lead">This is the cost students miss, and it grows with the table
+    rather than staying constant.</p>
+    <ul>
+      <li><strong>Statistics stop meaning anything.</strong> The planner keeps
+      histograms per column. One <code>value</code> column mixing prices, dates,
+      and materials produces a distribution that describes nothing.</li>
+      <li><strong>Cardinality estimates go wrong.</strong> The planner cannot know
+      that <code>attr_name = 'price'</code> selects a different fraction than
+      <code>attr_name = 'material'</code>, so it guesses — and a wrong guess at the
+      bottom of a plan multiplies all the way up.</li>
+      <li><strong>Every entity read is a range scan.</strong> One row becomes
+      <em>n</em> index entries plus <em>n</em> lookups, where a wide table had a
+      single page fetch.</li>
+      <li><strong>Index bloat.</strong> You will need several composite indexes on
+      a table holding every fact in the system, and each one is substantial.</li>
+    </ul>
+    <div class="callout">
+      <h3>Why it is worth naming</h3>
+      <p style="margin:0">The constraint losses are visible on day one. This cost
+      arrives in year two, when the table is large and the query that was fast in
+      development is not.</p>
+    </div>
+  </section>
+
+  <!-- 10 · WHAT TO TRY FIRST -->
+  <section class="slide" data-title="What to try first" aria-roledescription="slide" aria-label="What to try first">
+    <p class="kicker">Alternatives · 1 of 2</p>
+    <h2 class="slide-h" tabindex="-1">What to try first</h2>
+    <p class="lead">Most situations that look like they need EAV are better served
+    by something less drastic.</p>
+    <ul>
+      <li><strong>Just add the columns.</strong> Sparsity is cheaper than you
+      think — modern engines store NULLs compactly, and sixty mostly-empty columns
+      beat EAV for almost every query you will write.</li>
+      <li><strong>Class-table inheritance.</strong> A shared <code>PRODUCT</code>
+      table plus <code>LAPTOP</code>, <code>PHONE</code>, and
+      <code>BEDDING</code> tables for the specifics. You met this as the EER
+      specialization mapping in Unit 2 — it is the right answer whenever the
+      entity types are known and few.</li>
+      <li><strong>The hybrid.</strong> Real columns for the attributes everything
+      has — price, name, dates, anything you filter or sort on — and an EAV tail
+      only for the genuinely open remainder. This is usually the correct design
+      when EAV is tempting at all.</li>
+    </ul>
+    <div class="callout warn">
+      <h3>The hybrid deserves emphasis</h3>
+      <p style="margin:0">Pure EAV is rarely necessary. If even a third of your
+      attributes are known and queried, pulling those into columns recovers most of
+      what EAV costs you while keeping the flexibility where it is needed.</p>
+    </div>
+  </section>
+
+  <!-- 11 · JSON -->
+  <section class="slide" data-title="The modern competitor: JSON columns" aria-roledescription="slide" aria-label="The modern competitor, JSON columns">
+    <p class="kicker">Alternatives · 2 of 2</p>
+    <h2 class="slide-h" tabindex="-1">The modern competitor: JSON columns</h2>
+    <div class="two">
+      <div>
+        <p>The real decision today is rarely EAV versus wide tables. It is EAV
+        versus a document column on the row:</p>
+<pre class="sql"><span class="kw">ALTER TABLE</span> product
+  <span class="kw">ADD</span> specs <span class="kw">JSON</span>;
+
+<span class="cm">-- MySQL: index a path via a generated column</span>
+<span class="kw">ALTER TABLE</span> product
+  <span class="kw">ADD</span> material <span class="kw">VARCHAR</span>(40)
+    <span class="kw">AS</span> (specs-&gt;&gt;<span class="cm">'$.material'</span>) <span class="kw">STORED</span>,
+  <span class="kw">ADD INDEX</span> (material);</pre>
+        <p style="color:var(--muted);font-size:.95rem">PostgreSQL goes further:
+        <code>JSONB</code> with a GIN index searches arbitrary keys without
+        declaring each one.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The decision rule</h3>
+          <p style="margin:0">Ask which query dominates. <em>"Give me everything
+          about entity N"</em> favors JSON — the whole record is one page fetch.
+          <em>"Find every entity where some attribute equals X"</em>, across the
+          whole corpus, favors EAV — those are rows, and rows join and index
+          naturally.</p>
+        </div>
+        <p>JSON keeps the entity together and loses the cross-entity view. EAV
+        scatters the entity and gains it. Neither restores type safety or
+        constraints — on that, both are equally undeclared.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · WHEN IT IS RIGHT -->
+  <section class="slide" data-title="When EAV is actually right" aria-roledescription="slide" aria-label="When EAV is actually right">
+    <p class="kicker">The diagnostic</p>
+    <h2 class="slide-h" tabindex="-1">When EAV is actually right</h2>
+    <p class="lead">Four questions. If you do not answer all four in EAV's favor,
+    use something from the previous two slides.</p>
+    <ol class="objlist">
+      <li><strong>Who controls the vocabulary?</strong> If you do, declare it. EAV
+      earns its place only when attributes arrive from systems or people you do not
+      control.</li>
+      <li><strong>Which way do you query?</strong> Mostly <em>across</em> entities
+      hunting for attribute values, rather than pulling one entity's full record.</li>
+      <li><strong>Who enforces correctness?</strong> There must be an application
+      layer that already owns validation, because the database will not be doing
+      it.</li>
+      <li><strong>Is the openness essential or convenient?</strong> If a migration
+      would solve it, a migration should solve it.</li>
+    </ol>
+    <div class="callout">
+      <h3>Where all four line up</h3>
+      <p style="margin:0">Digital humanities projects recording contested
+      scholarship; federated catalogs ingesting external vocabularies; clinical
+      observation stores; scientific instrument data; customer-defined fields in
+      multi-tenant SaaS; and RDF triple stores, which are EAV promoted to a
+      standard.</p>
+    </div>
+  </section>
+
+  <!-- 13 · A WORKED CASE -->
+  <section class="slide" data-title="A worked case" aria-roledescription="slide" aria-label="A worked case">
+    <p class="kicker">In the wild</p>
+    <h2 class="slide-h" tabindex="-1">A worked case</h2>
+    <div class="two">
+      <div>
+        <p>OpenPipe — a federated art-collection pipeline built here at Boise
+        State — answers all four questions in EAV's favor:</p>
+        <ul>
+          <li>Vocabularies arrive from the Getty, the Cleveland Museum of Art, and
+          individual curators. Nobody at Boise State controls them.</li>
+          <li>The dominant query is cross-entity: find everything sharing a value,
+          and discover which holdings connect.</li>
+          <li>Validation and signing live in the application layer.</li>
+          <li>The openness is essential — the whole point is recording conflicting
+          claims rather than adjudicating them.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>What it trades</h3>
+          <p style="margin:0">Storage, deliberately. Duplication and indexes are
+          rounding error against terabytes of captured media, and every discovery
+          query stays a simple index range scan.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Note the direction of the argument</h3>
+          <p style="margin:0">The case is made from the domain's requirements
+          toward the design — not from the design toward a justification. That is
+          what separates a defensible EAV from a lazy one.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · RECAP -->
+  <section class="slide" data-title="Recap and check yourself" aria-roledescription="slide" aria-label="Recap and check yourself">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; check yourself</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>EAV stores the <em>name</em> of a field as data.</li>
+          <li>It buys an open attribute set and runtime extension.</li>
+          <li>It costs types, constraints, query simplicity, and the optimizer's
+          ability to plan.</li>
+          <li>Try columns, class-table inheritance, a hybrid, or a JSON column
+          first.</li>
+          <li>It is right when the vocabulary is not yours and the queries run
+          across entities.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout warn">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why does <code>WHERE value &gt; '500'</code> return the wrong rows,
+            and what does fixing it cost?</li>
+            <li>A table has columns <code>field_1</code> … <code>field_30</code>.
+            Is it EAV? What does it share, and what does it lack?</li>
+            <li>Your catalog has 40 attributes; 8 are on every product and queried
+            constantly. What do you build?</li>
+            <li>Name a case where a JSON column beats EAV, and one where it loses.</li>
+          </ol>
+        </div>
+        <div class="callout">
+          <h3>Connections</h3>
+          <p style="margin:0">Unit&nbsp;2 for the EER specialization mapping behind
+          class-table inheritance; Unit&nbsp;6 for the normalization vocabulary that
+          names these anomalies; Unit&nbsp;7 for why the index and optimizer
+          arguments decide it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">‹ Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 14</span>
+      <button class="btn" id="next" type="button">Next ›</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // representation switcher
+  var chips  = Array.prototype.slice.call(document.querySelectorAll('.chip[data-rep]'));
+  var panels = Array.prototype.slice.call(document.querySelectorAll('[data-rep-panel]'));
+  var desc   = document.getElementById('rep-desc');
+  if (chips.length && panels.length){
+    chips.forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var key = chip.getAttribute('data-rep');
+        chips.forEach(function(c){
+          c.setAttribute('aria-pressed', String(c === chip));
+        });
+        panels.forEach(function(p){
+          p.classList.toggle('on', p.getAttribute('data-rep-panel') === key);
+        });
+        if (desc) desc.textContent = chip.getAttribute('data-desc') || '';
+      });
+    });
+  }
+
+  // deep link (#s3) support
+  var m = (location.hash || '').match(/^#s(\d+)$/);
+  render(m ? (parseInt(m[1], 10) - 1) : 0, false);
+})();
+</script>
+</body>
+</html>
