@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homework 3 — Bookmark Site — Normalization and Physical Design · CS 410/510</title>
+<style>
+/* =============================================================================
+   CS 410/510 Databases — homework stylesheet
+   Shared by every hw*.yaml build. build_hw.py inlines this into each output
+   HTML so the deliverable is a single self-contained file for Canvas.
+
+   House tokens match the lecture decks. Orange (--orange) is reserved for exam
+   accents and is deliberately NOT used on homework sheets.
+   ============================================================================= */
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Code",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+
+.wrap{max-width:820px;margin:0 auto;padding:18px 20px 56px}
+
+/* ---- masthead ---- */
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+.sheet{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px}
+
+h1{font-family:var(--serif);font-weight:700;font-size:2.05rem;line-height:1.1;
+  margin:0 0 6px;color:var(--ink)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;
+  color:var(--muted);font-size:.96rem;margin:0 0 18px;
+  padding-bottom:16px;border-bottom:2px solid var(--line)}
+.meta .pts{font-weight:700;color:var(--blue-ink)}
+.meta .due{font-weight:600;color:var(--ink)}
+
+h2{font-family:var(--serif);font-weight:700;font-size:1.5rem;line-height:1.15;
+  margin:34px 0 4px;color:var(--ink);
+  display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+h2 .badge{flex:none;font-family:var(--sans);font-weight:700;font-size:.8rem;
+  color:#fff;background:var(--blue);border-radius:999px;padding:3px 12px;
+  white-space:nowrap}
+h3{font-family:var(--sans);font-weight:700;font-size:1.06rem;margin:22px 0 6px;
+  color:var(--blue-ink)}
+h3 .sub-pts{font-weight:600;color:var(--muted);font-size:.9rem}
+
+p{max-width:66ch;margin:0 0 12px}
+ul,ol{max-width:66ch;margin:0 0 12px;padding-left:1.25rem}
+li{margin:7px 0}
+li ul,li ol{margin:6px 0}
+.lead{font-size:1.1rem;color:var(--muted);max-width:62ch}
+.term{color:var(--blue-ink);font-weight:700}
+code{font-family:var(--mono);
+  font-size:.92em;background:var(--tint);border:1px solid var(--line);
+  border-radius:4px;padding:.5px 5px}
+.scenario{border-left:5px solid var(--blue);background:var(--surface);
+  border-radius:0 9px 9px 0;padding:2px 18px;margin:12px 0;font-style:italic;
+  color:var(--ink)}
+.scenario p{max-width:60ch}
+
+/* ---- block-level code (DDL, SQL listings) ---------------------------------
+   New in HW2. A `code` block renders here. Unlike inline `code`, the text is
+   escaped but NOT run through the **term** / *emph* markup, so SQL wildcards
+   (SELECT *) and operators survive verbatim. Scrolls, never wraps, and stays
+   whole across a page break. --------------------------------------------- */
+pre.codeblock{font-family:var(--mono);font-size:.86rem;line-height:1.5;
+  background:var(--surface);color:var(--ink);border:1px solid var(--line);
+  border-left:4px solid var(--blue);border-radius:8px;padding:12px 16px;
+  margin:12px 0;overflow-x:auto;white-space:pre;tab-size:2}
+pre.codeblock code{background:none;border:none;padding:0;font-size:1em}
+
+.callout{background:var(--surface);border:1px solid var(--line);
+  border-left:5px solid var(--blue);border-radius:9px;padding:12px 16px;margin:16px 0}
+.callout h4{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout p:last-child,.callout ul:last-child,.callout ol:last-child{margin-bottom:0}
+
+.deliver{display:flex;gap:10px;align-items:flex-start;
+  background:var(--tint);border:1px solid var(--blue);border-radius:9px;
+  padding:11px 15px;margin:14px 0}
+.deliver .lbl{flex:none;font-weight:700;color:var(--blue-ink);font-size:.82rem;
+  border-right:1px solid var(--blue);padding-right:12px}
+.deliver p{margin:0;color:var(--ink);font-size:.96rem}
+
+/* ---- points summary ---- */
+table.pts-tbl{border-collapse:collapse;width:100%;font-size:.95rem;margin:6px 0 4px}
+table.pts-tbl caption{text-align:left}
+table.pts-tbl th,table.pts-tbl td{border:1px solid var(--line);padding:8px 12px;text-align:left}
+table.pts-tbl thead th{background:var(--blue);color:#fff;font-weight:600}
+table.pts-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.pts-tbl tfoot td{font-weight:700;background:var(--tint);color:var(--blue-ink)}
+
+.figcap{color:var(--muted);font-size:.86rem;margin:6px 2px 0}
+
+@media (max-width:640px){
+  body{font-size:16px}
+  .sheet{padding:22px 18px}
+  h2{flex-direction:column;gap:4px}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.callout,.deliver,pre.codeblock,table.pts-tbl th,table.pts-tbl td{border-color:#000}
+}
+
+@page{size:letter;margin:18mm}
+@media print{
+  body{background:#fff;font-size:11pt}
+  .skip{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .sheet{border:none;border-radius:0;padding:0}
+  h2{break-after:avoid}
+  .callout,.deliver,.scenario,pre.codeblock,table.pts-tbl{break-inside:avoid}
+  a{color:inherit;text-decoration:none}
+}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the assignment</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 6–7 · Normalization &amp; physical design</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Fall 2026 · Elmasri &amp; Navathe, Ch. 14–17</span>
+  </div>
+
+  <main id="main" class="sheet">
+    <h1>Homework 3</h1>
+    <p class="meta">
+      <span class="pts">100 points</span>
+      <span class="due">Due: Wednesday, November 18, 2026 · 11:59 PM</span>
+      <span>Submit as a single PDF via Canvas</span>
+    </p>
+
+    <p class="lead">Take a deliberately bad bookmark-site schema apart with functional dependencies, rebuild it in 3NF and BCNF, then decide how it should actually sit on disk to serve a real query workload.</p>
+
+    <p>In HW1 you drew a schema from a description, and in HW2 you recovered one from DDL. This time you are handed a schema that already exists and is <em>wrong</em>, and the job is to prove exactly how it is wrong and repair it — then take the repaired schema down to the level of blocks, files, and indexes.</p>
+      <p>Everything below concerns one <span class="term">universal relation</span>, <code>BOOKMARK_FEED</code>, holding the entire contents of a social bookmarking site in a single table. Show your work throughout: a correct answer with no derivation earns little credit, and a derivation with an arithmetic slip earns most of it.</p>
+
+    <table class="pts-tbl">
+      <caption class="figcap">What each part is worth.</caption>
+      <thead>
+        <tr><th scope="col">Part</th><th scope="col">Task</th><th scope="col" class="num">Points</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td>Anomalies</td><td class="num">12</td></tr>
+        <tr><td>2</td><td>Functional Dependencies</td><td class="num">22</td></tr>
+        <tr><td>3</td><td>Normalization</td><td class="num">26</td></tr>
+        <tr><td>4</td><td>Storage and Index Selection</td><td class="num">28</td></tr>
+        <tr><td>5</td><td>Denormalizing Against the Workload</td><td class="num">12</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td colspan="2">Total</td><td class="num">100</td></tr>
+      </tfoot>
+    </table>
+
+    <div class="callout"><h4>What to hand in</h4><ul><li><span class="term">Parts 1–3:</span> written work. Closures, candidate keys, covers, and decompositions must each show the steps that produced them.</li><li><span class="term">Part 4:</span> your arithmetic, including the intermediate values (blocking factors, fanouts, level counts) — not just the final I/O numbers.</li><li><span class="term">Part 5:</span> prose. Roughly 300–500 words; no diagrams required.</li><li>State any assumption you make. If a question seems underdetermined, say what you assumed and carry on — a defended assumption is worth full credit.</li></ul></div>
+
+    <h2>Part 1 &nbsp;·&nbsp; Anomalies <span class="badge">12 points</span></h2>
+      <p>The site stores everything in one relation:</p>
+      <pre class="codeblock"><code>BOOKMARK_FEED(
+  username, email, joined,
+  url, title, description, saved_on, private,
+  tag,
+  cached_on, cache_status, page_bytes
+)</code></pre><p class="figcap">The universal relation used throughout this assignment.</p>
+      <div class="scenario"><p>Each row records one tag applied to one bookmark. A user has an email address and a join date. A bookmark belongs to a user, has a title, description, save date, and a private flag, and carries zero or more tags — one row per tag. The cache is a single shared copy of each web page: whatever the URL, there is one cache attempt, with one date, one status (success, not found, server failed), and one page size.</p></div>
+      <p>Using this relation, give a <span class="term">concrete example</span> of each of the three update anomalies below. An example means naming the specific attributes and rows involved — not a general description of the anomaly type. For each, name the informal design guideline from Ch. 14 that the schema violates.</p>
+      <ol><li>An <span class="term">insertion anomaly</span>: something true about the world that this schema cannot record.</li><li>A <span class="term">deletion anomaly</span>: a deletion that destroys unrelated information as a side effect.</li><li>A <span class="term">modification anomaly</span>: a single real-world change that forces many rows to be updated, and what goes wrong if one is missed.</li></ol>
+      <p>Then state, in one sentence each, which two of the four informal guidelines (clear semantics, no redundant updates, few NULLs, no spurious tuples) this schema most clearly violates.</p>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Three worked anomaly examples with named attributes, each tied to a guideline, plus the two-sentence summary.</p></div>
+
+      <h2>Part 2 &nbsp;·&nbsp; Functional Dependencies <span class="badge">22 points</span></h2>
+      <p>The following functional dependencies hold on <code>BOOKMARK_FEED</code>:</p>
+      <pre class="codeblock"><code>F1.  username            →  email, joined
+F2.  email               →  username
+F3.  email               →  joined
+F4.  username, url       →  title, description, saved_on, private
+F5.  url                 →  cached_on, cache_status, page_bytes
+F6.  username, url       →  page_bytes</code></pre><p class="figcap">The given FD set F. Email addresses are unique to one account.</p>
+      <h3>2.1 &nbsp; Closures and Candidate Keys <span class="sub-pts">— 10 points</span></h3>
+      <p>Compute the following attribute closures under F, showing which FD you applied at each step:</p>
+      <ul><li><code>{username}</code> +</li><li><code>{url, tag}</code> +</li><li><code>{email, url}</code> +</li></ul>
+      <p>Then find <span class="term">every</span> candidate key of <code>BOOKMARK_FEED</code>. For each one, show that it is a superkey and that no proper subset of it is. State which attributes are <span class="term">prime</span>.</p>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Three closures with justified steps, all candidate keys with minimality arguments, and the set of prime attributes.</p></div>
+      <h3>2.2 &nbsp; Minimal Cover <span class="sub-pts">— 8 points</span></h3>
+      <p>Compute a <span class="term">minimal cover</span> of F. Work in the standard three stages and show the result of each: put every FD in canonical form with a single attribute on the right; remove extraneous attributes from left-hand sides; remove redundant FDs.</p>
+      <div class="callout"><h4>There is slack in F, and more than one right answer</h4><p>F has redundancy built into it deliberately. Written in canonical form it runs to twelve dependencies; a correct minimal cover has ten. If nothing dropped out, recheck the redundancy stage — and for each FD you remove, say which surviving FDs make it redundant.</p>
+      <p>Minimal covers are <em>not</em> unique. Two students can remove different dependencies and both be right, so the justification is what is being graded, not a match against a specific answer.</p></div>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>The minimal cover, with the three stages shown separately and each removal justified.</p></div>
+      <h3>2.3 &nbsp; Armstrong's Axioms <span class="sub-pts">— 4 points</span></h3>
+      <p>Prove that <code>username, url → cache_status</code> follows from F using <span class="term">Armstrong's axioms</span> alone. Name the axiom — reflexivity, augmentation, or transitivity — used at every step. Derived rules such as union or decomposition are allowed only if you first derive them from the three axioms.</p>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>A step-by-step derivation with each axiom named.</p></div>
+
+      <h2>Part 3 &nbsp;·&nbsp; Normalization <span class="badge">26 points</span></h2>
+      <h3>3.1 &nbsp; Highest Normal Form <span class="sub-pts">— 6 points</span></h3>
+      <p>State the highest normal form <code>BOOKMARK_FEED</code> satisfies, and prove it. Your proof must name a specific dependency that violates the next normal form up, and say whether that violation is a <span class="term">partial</span> or a <span class="term">transitive</span> dependency.</p>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>The normal form, the violating dependency, and its classification.</p></div>
+      <h3>3.2 &nbsp; Decomposition to 3NF <span class="sub-pts">— 10 points</span></h3>
+      <p>Using the <span class="term">3NF synthesis algorithm</span> and the minimal cover from 2.2, decompose <code>BOOKMARK_FEED</code> into a set of 3NF relations. For each resulting relation give its attributes, its primary key, and any foreign keys. State explicitly where the algorithm required you to add a relation to preserve a candidate key, and where one relation was subsumed by another and dropped.</p>
+      <div class="callout"><h4>Check the result against your instincts</h4><p>When you are done, compare your schema to the one you would have drawn straight from the description in Part 1 — the four entities a reasonable designer would have picked in HW1. If the algorithm did its job, you should recognize the output. Say in a sentence or two whether it matches, and note any difference.</p></div>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>The 3NF schema with keys and foreign keys, the two algorithm notes, and the comparison.</p></div>
+      <h3>3.3 &nbsp; BCNF <span class="sub-pts">— 6 points</span></h3>
+      <p>Tags on the site are organized into categories — <code>python</code> and <code>rust</code> are in the <code>language</code> category, <code>tutorial</code> and <code>reference</code> are in the <code>kind</code> category. Every tag belongs to exactly one category, and a user applies at most one tag from any given category to any given bookmark. That gives:</p>
+      <pre class="codeblock"><code>BOOKMARK_TAG(username, url, tag, tag_category)
+
+G1.  tag                            →  tag_category
+G2.  username, url, tag_category    →  tag</code></pre><p class="figcap">A focused relation for the BCNF question. Treat G as its complete FD set.</p>
+      <p>Answer each of the following:</p>
+      <ol><li>Find both candidate keys of <code>BOOKMARK_TAG</code>.</li><li>Show that this relation <span class="term">is</span> in 3NF.</li><li>Show that it is <span class="term">not</span> in BCNF, naming the offending dependency.</li><li>Decompose it into BCNF relations.</li><li>Name the functional dependency your decomposition no longer preserves, and explain what the database can no longer enforce without a join.</li></ol>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Both keys, the 3NF and BCNF arguments, the decomposition, and the lost dependency with its practical consequence.</p></div>
+      <h3>3.4 &nbsp; Lossless Join <span class="sub-pts">— 4 points</span></h3>
+      <p>Here are two proposed decompositions of <code>BOOKMARK_FEED</code> into two relations each. Exactly one is lossless.</p>
+      <pre class="codeblock"><code>Decomposition A
+  A1(username, email, joined, url, title, description, saved_on, private)
+  A2(url, tag, cached_on, cache_status, page_bytes)
+
+Decomposition B
+  B1(username, email, joined)
+  B2(username, url, title, description, saved_on, private,
+     tag, cached_on, cache_status, page_bytes)</code></pre>
+      <p>For each decomposition, apply the binary lossless-join test: find the common attributes, compute their closure, and determine whether they form a superkey of at least one of the two relations. State which decomposition is lossless and which is lossy. For the lossy one, describe the <span class="term">spurious tuples</span> a join would produce — what false fact about the world would appear in the result.</p>
+      <div class="callout"><h4>Graduate students (CS 510)</h4><p>Also show the lossy case formally with the <span class="term">chase test</span>: build the tableau, apply the FDs in F until no further change is possible, and state what the final tableau proves.</p></div>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Both tests worked through, the verdict on each decomposition, and a described spurious tuple. CS 510 students also give the chase tableau for the lossy decomposition.</p></div>
+
+      <h2>Part 4 &nbsp;·&nbsp; Storage and Index Selection <span class="badge">28 points</span></h2>
+      <p>Work from your <span class="term">3NF schema from 3.2</span> for the rest of the assignment. The site runs on a single disk with the following parameters, and the relations have the following statistics:</p>
+      <pre class="codeblock"><code>Block size                        4,096 bytes
+Block pointer                         6 bytes
+Record pointer                        8 bytes
+
+BOOKMARK    8,000,000 records     record size  200 bytes
+USER          200,000 records     record size   80 bytes
+CACHE       3,000,000 records     record size  120 bytes
+SUBSCRIPTION 2,000,000 records    record size   40 bytes
+
+username is 20 bytes.  saved_on is 8 bytes.</code></pre><p class="figcap">Assume unspanned record organization and fully packed nodes unless a question says otherwise.</p>
+      <p><code>SUBSCRIPTION(subscriber, publisher)</code> records that one user follows another; both attributes reference <code>USER</code>. The site serves this workload, which is the same set of questions the bookmark site has to answer for its users:</p>
+      <pre class="codeblock"><code>W1.  For one user, their bookmarks ordered by save date, newest first.
+W2.  The 10 users with the most bookmarks.
+W3.  The number of new users in each year.
+W4.  The users with more than 2 bookmarks.
+W5.  The number of users having more than 1,000 subscribers.
+W6.  For one user, each tag they have used and how many bookmarks carry it.
+W7.  Users with no followers.</code></pre><p class="figcap">The query workload. W1 and W6 run constantly; W2–W5 run once a night; W7 runs monthly.</p>
+      <h3>4.1 &nbsp; File Sizing <span class="sub-pts">— 4 points</span></h3>
+      <p>Compute the <span class="term">blocking factor</span> and the <span class="term">number of blocks</span> for <code>BOOKMARK</code> and for <code>USER</code>. Show the division and state how you rounded at each step, and why that rounding direction is the correct one.</p>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Blocking factor and block count for both relations, with rounding justified.</p></div>
+      <h3>4.2 &nbsp; The Cost of W1 <span class="sub-pts">— 10 points</span></h3>
+      <p>Query W1 retrieves the bookmarks of one specific user. Estimate the number of <span class="term">block accesses</span> required under each of these three file organizations, stating your assumptions:</p>
+      <ol><li><code>BOOKMARK</code> as an unordered <span class="term">heap file</span>, with no index.</li><li><code>BOOKMARK</code> as a file <span class="term">sorted on</span> <code>username</code>, searched with binary search.</li><li><code>BOOKMARK</code> as a heap file with a <span class="term">secondary B+-tree index</span> on <code>username</code>. Assume the index has 3 levels and that each matching record sits in a different block.</li></ol>
+      <p>The average user has 40 bookmarks. Rank the three organizations by cost. One of the results is likely to surprise you: explain in two or three sentences <span class="term">why the index loses</span> to the organization it loses to, and name the one change to the index that would make it the clear winner.</p>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Three cost estimates with assumptions, a ranking, and the explanation of the surprising result.</p></div>
+      <h3>4.3 &nbsp; B+-Tree Fanout and Height <span class="sub-pts">— 8 points</span></h3>
+      <p>Build the secondary B+-tree index on <code>BOOKMARK(username)</code> from the parameters above.</p>
+      <ol><li>Compute the <span class="term">order</span> <code>p</code> of an internal node — the largest number of block pointers that fits in one block alongside its keys. Give the inequality you solved.</li><li>Compute the <span class="term">leaf order</span> <code>p_leaf</code>, remembering that a leaf holds key/record-pointer pairs plus one pointer to the next leaf.</li><li>There are 200,000 distinct usernames. Compute the number of <span class="term">levels</span> in the tree, assuming nodes are fully packed, and show the block count at each level.</li><li>Recompute the number of levels assuming the more realistic <span class="term">69% node occupancy</span>. Does the height change?</li></ol>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>Both orders with their inequalities, the level counts at full and 69% occupancy, and whether the height changed.</p></div>
+      <h3>4.4 &nbsp; Index Selection <span class="sub-pts">— 6 points</span></h3>
+      <p>Propose an index set for the whole workload W1–W7. For each index you propose, give the relation and attributes, the <span class="term">type</span> (primary, clustering, or secondary), which queries it serves, and a one-sentence justification. You may propose at most <span class="term">five</span> indexes in total.</p>
+      <p>Then name one index that looks obviously useful but which you have deliberately <span class="term">not</span> proposed, and explain the cost that rules it out.</p>
+      <div class="callout"><h4>Graduate students (CS 510)</h4><p>Also estimate the block accesses for W7 (users with no followers) under two strategies: a nested-loop anti-join against <code>SUBSCRIPTION</code>, and a scan of a secondary index on <code>SUBSCRIPTION(publisher)</code>. State which wins and by roughly what factor.</p></div>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>At most five indexes with type and justification, plus the rejected index with its cost. CS 510 students also give the two W7 estimates with a verdict.</p></div>
+
+      <h2>Part 5 &nbsp;·&nbsp; Denormalizing Against the Workload <span class="badge">12 points</span></h2>
+      <p>W2, W4, and W5 all count things: bookmarks per user, and subscribers per user. On the 3NF schema every one of them requires aggregating a multi-million-row relation. A colleague proposes adding two attributes to <code>USER</code>:</p>
+      <pre class="codeblock"><code>USER(username, email, joined, bookmark_count, subscriber_count)</code></pre>
+      <p>Write a short analysis — roughly 300–500 words — arguing for or against this change. A good answer is specific about this schema and this workload, not about denormalization in general. Address all four of the following:</p>
+      <ol><li>Whether the change breaks a <span class="term">normal form</span> at all. State the functional dependencies that now hold on <code>USER</code>, decide whether it is still in BCNF, and — if no normal form is violated — say precisely what kind of constraint <em>is</em> being violated and why FD-based normalization cannot express it.</li><li>Which <span class="term">anomaly</span> from Part 1 it reintroduces, with a concrete example of the database going wrong.</li><li>What it <span class="term">costs to maintain</span>: name every operation that must now update these attributes, and say what has to be true of those updates for the counts to stay correct.</li><li>Under what <span class="term">workload mix</span> you would ship it anyway. Give the rough read/write ratio or query frequency at which your answer flips, and say which of W1–W7 pushed you there.</li></ol>
+      <div class="callout"><h4>There is no expected verdict</h4><p>Both conclusions earn full marks. What is being graded is whether the argument is grounded in the dependencies you derived in Part 2 and the costs you computed in Part 4 — a defended "yes" beats an undefended "no".</p></div>
+      <div class="deliver"><span class="lbl">Deliverable</span><p>A 300–500 word analysis addressing all four points, with a stated verdict.</p></div>
+  </main>
+</div>
+</body>
+</html>
