@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Normalization Practice — CS 410/510</title>
+<style>
+  :root{
+    --bsu-blue:#0033A0;
+    --ink-blue:#00246B;
+    --brown:#7A2708;
+    --rule:#c9d2e4;
+    --panel:#f4f6fb;
+    --paper:#ffffff;
+    --text:#1b1f27;
+    --muted:#4a556b;
+    --display:Charter,"Bitstream Charter",Georgia,"Times New Roman",serif;
+    --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;padding:2.2rem 1.5rem 4rem;
+    background:var(--paper);color:var(--text);
+    font-family:var(--body);font-size:16px;line-height:1.55;
+    max-width:52rem;margin-inline:auto;
+  }
+  header.sheet{border-bottom:3px solid var(--bsu-blue);padding-bottom:1rem;margin-bottom:1.6rem;}
+  .course-line{
+    font-family:var(--body);font-size:.82rem;font-weight:600;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--bsu-blue);margin:0 0 .35rem;
+  }
+  h1{font-family:var(--display);font-size:2rem;line-height:1.15;margin:0 0 .4rem;color:var(--ink-blue);}
+  .subtitle{margin:0;color:var(--muted);font-size:1rem;}
+  .meta{margin:.7rem 0 0;font-size:.9rem;color:var(--muted);}
+  h2{
+    font-family:var(--display);font-size:1.35rem;color:var(--ink-blue);
+    margin:0 0 .2rem;line-height:1.25;
+  }
+  h3{font-family:var(--body);font-size:.95rem;letter-spacing:.04em;text-transform:uppercase;
+     color:var(--bsu-blue);margin:1.3rem 0 .45rem;}
+  .how-to{
+    background:var(--panel);border-left:4px solid var(--bsu-blue);
+    padding:.9rem 1.1rem;margin:0 0 2rem;border-radius:0 4px 4px 0;
+  }
+  .how-to p{margin:.4rem 0;}
+  .how-to ol{margin:.5rem 0 .2rem;padding-left:1.3rem;}
+  .how-to li{margin:.25rem 0;}
+  section.ex{
+    border:1px solid var(--rule);border-radius:6px;
+    padding:1.2rem 1.3rem 1.4rem;margin:0 0 1.8rem;
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  section.ex.walkthrough{border-color:var(--bsu-blue);border-width:2px;background:#fbfcfe;}
+  .ex-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.6rem;margin-bottom:.1rem;}
+  .tag{
+    font-family:var(--body);font-size:.72rem;font-weight:700;letter-spacing:.07em;
+    text-transform:uppercase;padding:.2rem .55rem;border-radius:3px;
+    background:var(--bsu-blue);color:#fff;white-space:nowrap;
+  }
+  .tag.secondary{background:var(--brown);}
+  .budget{font-size:.85rem;color:var(--muted);margin:.1rem 0 .9rem;}
+  .relation{
+    font-family:var(--mono);font-size:.9rem;line-height:1.5;
+    background:var(--panel);border:1px solid var(--rule);border-radius:4px;
+    padding:.75rem .9rem;margin:.6rem 0 .9rem;overflow-x:auto;white-space:pre-wrap;
+    color:var(--ink-blue);
+  }
+  .relation .attr-key{text-decoration:underline;font-weight:700;}
+  table.data{
+    border-collapse:collapse;width:100%;font-size:.84rem;margin:.6rem 0 .9rem;
+    font-family:var(--mono);
+  }
+  table.data caption{
+    caption-side:top;text-align:left;font-family:var(--body);font-size:.85rem;
+    color:var(--muted);padding-bottom:.35rem;
+  }
+  table.data th,table.data td{
+    border:1px solid var(--rule);padding:.4rem .55rem;text-align:left;vertical-align:top;
+  }
+  table.data th{background:var(--panel);color:var(--ink-blue);font-family:var(--body);font-size:.8rem;}
+  ul.fds{list-style:none;margin:.5rem 0 .9rem;padding:0;font-family:var(--mono);font-size:.88rem;}
+  ul.fds li{padding:.22rem 0 .22rem .2rem;}
+  ul.fds .label{color:var(--brown);font-weight:700;display:inline-block;min-width:2.4rem;}
+  .arrow{color:var(--brown);font-weight:700;padding:0 .25rem;}
+  ol.tasks{margin:.4rem 0 0;padding-left:1.35rem;}
+  ol.tasks li{margin:.4rem 0;}
+  .workspace{
+    border:1px dashed var(--rule);border-radius:4px;min-height:5.5rem;
+    margin-top:.9rem;padding:.5rem .7rem;color:var(--muted);font-size:.8rem;
+  }
+  footer.sheet{
+    margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--rule);
+    font-size:.85rem;color:var(--muted);
+  }
+  @media print{
+    body{padding:0;font-size:11.5pt;max-width:none;}
+    section.ex{break-inside:avoid;page-break-inside:avoid;}
+    .workspace{min-height:1.3in;}
+  }
+  @page{size:letter portrait;margin:0.7in;}
+</style>
+</head>
+<body>
+
+<header class="sheet">
+  <p class="course-line">CS 410/510 &middot; Databases &middot; Fall 2026</p>
+  <h1>Normalization Practice</h1>
+  <p class="subtitle">First Normal Form, Second Normal Form, and Third Normal Form</p>
+  <p class="meta">Monday, November 2 &middot; In-class practice &middot; Elmasri &amp; Navathe, Chapter 14</p>
+</header>
+
+<div class="how-to">
+  <p><strong>How to work each exercise.</strong> Every problem below yields to the same four steps. Use them even when the answer looks obvious &mdash; the habit is what carries you through the exam.</p>
+  <ol>
+    <li>Write down the functional dependencies. If they are given, confirm you can read each one aloud as a sentence about the mini-world.</li>
+    <li>Find the candidate key by attribute closure. Check that no proper subset of it is also a key.</li>
+    <li>Name the violation precisely: a non-atomic attribute, a <em>partial</em> dependency on part of the key, or a <em>transitive</em> dependency through a non-prime attribute.</li>
+    <li>Decompose, then state what the decomposition bought you &mdash; which insert, update, or delete anomaly is now impossible.</li>
+  </ol>
+</div>
+
+<section class="ex walkthrough" id="ex0">
+  <div class="ex-head">
+    <span class="tag">Walkthrough</span>
+    <h2>Exercise 0 &mdash; Student advising records</h2>
+  </div>
+  <p class="budget">Worked together at the start of class &middot; target 1NF</p>
+
+  <p>The registrar keeps one row per student, in a spreadsheet exported to the following relation.</p>
+
+  <div class="relation">STUDENT_ADVISING(<span class="attr-key">StudentID</span>, StudentName, Address, Phones, Courses)</div>
+
+  <table class="data">
+    <caption>Two sample rows as currently stored.</caption>
+    <thead>
+      <tr><th scope="col">StudentID</th><th scope="col">StudentName</th><th scope="col">Address</th><th scope="col">Phones</th><th scope="col">Courses</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>S1042</td><td>Marisol Vega</td>
+        <td>1910 University Dr, Boise, ID 83725</td>
+        <td>{208-426-1000, 208-426-5555}</td>
+        <td>{(CS 410, Fall 2026, A), (CS 321, Spring 2026, B)}</td>
+      </tr>
+      <tr>
+        <td>S1198</td><td>Theo Blackfoot</td>
+        <td>455 Lusk St, Boise, ID 83706</td>
+        <td>{208-426-3317}</td>
+        <td>{(CS 410, Fall 2026, B)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ol class="tasks">
+    <li>Identify every reason this relation fails First Normal Form. There are three distinct reasons, and they are not all the same kind of problem.</li>
+    <li>Elmasri and Navathe give three standard remedies for a multivalued attribute. State all three and say what each costs.</li>
+    <li>Produce a 1NF schema. Mark the primary key of every relation and every foreign key.</li>
+  </ol>
+  <div class="workspace" aria-hidden="true">Work space</div>
+</section>
+
+<section class="ex" id="ex1">
+  <div class="ex-head">
+    <span class="tag secondary">1NF</span>
+    <h2>Exercise 1 &mdash; Senior design projects</h2>
+  </div>
+  <p class="budget">About 8 minutes</p>
+
+  <div class="relation">STUDENT_PROJECT(<span class="attr-key">ProjectID</span>, ProjectTitle, Sponsor, SponsorContact, TeamMembers, Milestones)</div>
+
+  <table class="data">
+    <caption>One sample row as currently stored.</caption>
+    <thead>
+      <tr><th scope="col">ProjectID</th><th scope="col">ProjectTitle</th><th scope="col">Sponsor</th><th scope="col">SponsorContact</th><th scope="col">TeamMembers</th><th scope="col">Milestones</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>P-17</td><td>Campus Energy Dashboard</td><td>Idaho Power</td>
+        <td>Dana Ruiz / druiz@idahopower.com / 208-555-0144</td>
+        <td>{S1042, S1198, S1307}</td>
+        <td>{(Proposal, 2026-09-15), (Prototype, 2026-10-20), (Demo, 2026-12-02)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ol class="tasks">
+    <li>Name each attribute that violates 1NF and classify it: composite, multivalued, or a nested relation.</li>
+    <li>Decompose into 1NF. Mark all primary and foreign keys.</li>
+    <li>TeamMembers and Milestones are both multivalued. Explain why they must go into two separate relations rather than one.</li>
+  </ol>
+  <div class="workspace" aria-hidden="true">Work space</div>
+</section>
+
+<section class="ex" id="ex2">
+  <div class="ex-head">
+    <span class="tag secondary">1NF</span>
+    <h2>Exercise 2 &mdash; Advisor load</h2>
+  </div>
+  <p class="budget">About 8 minutes &middot; read the question carefully</p>
+
+  <div class="relation">ADVISOR_LOAD(<span class="attr-key">AdvisorID</span>, AdvisorName,
+             Advisee1, Advisee1Major,
+             Advisee2, Advisee2Major,
+             Advisee3, Advisee3Major)</div>
+
+  <table class="data">
+    <caption>Two sample rows as currently stored.</caption>
+    <thead>
+      <tr><th scope="col">AdvisorID</th><th scope="col">AdvisorName</th><th scope="col">Advisee1</th><th scope="col">Advisee1Major</th><th scope="col">Advisee2</th><th scope="col">Advisee2Major</th><th scope="col">Advisee3</th><th scope="col">Advisee3Major</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>A-08</td><td>Cutchin</td><td>S1042</td><td>CS</td><td>S1198</td><td>CS</td><td>S1307</td><td>Math</td></tr>
+      <tr><td>A-12</td><td>Nakamura</td><td>S1455</td><td>CS</td><td>NULL</td><td>NULL</td><td>NULL</td><td>NULL</td></tr>
+    </tbody>
+  </table>
+
+  <ol class="tasks">
+    <li>Is this relation in First Normal Form? Answer yes or no, and defend the answer against the formal definition &mdash; not against your instinct.</li>
+    <li>Whatever your answer to (1), this is a poor design. Give four specific problems it causes. At least one should be about writing queries.</li>
+    <li>Fix it. Your fix should not introduce a bridge table; explain why one is not needed here.</li>
+  </ol>
+  <div class="workspace" aria-hidden="true">Work space</div>
+</section>
+
+<section class="ex" id="ex3">
+  <div class="ex-head">
+    <span class="tag secondary">2NF</span>
+    <h2>Exercise 3 &mdash; Enrollment</h2>
+  </div>
+  <p class="budget">About 10 minutes</p>
+
+  <div class="relation">ENROLLMENT(StudentID, CourseNum, StudentName, StudentMajor, CourseTitle, Credits, Term, Grade)</div>
+
+  <h3>Functional dependencies</h3>
+  <ul class="fds">
+    <li><span class="label">F1</span> StudentID <span class="arrow">&rarr;</span> StudentName, StudentMajor</li>
+    <li><span class="label">F2</span> CourseNum <span class="arrow">&rarr;</span> CourseTitle, Credits</li>
+    <li><span class="label">F3</span> {StudentID, CourseNum} <span class="arrow">&rarr;</span> Term, Grade</li>
+  </ul>
+
+  <ol class="tasks">
+    <li>Find the candidate key. Show the attribute closure that proves it, and show why neither attribute alone is a key.</li>
+    <li>Is the relation in 2NF? If not, list every partial dependency by name.</li>
+    <li>Give one insert anomaly, one update anomaly, and one delete anomaly this schema permits. Be concrete &mdash; use the mini-world, not the abstract definitions.</li>
+    <li>Decompose into 2NF. Mark all keys.</li>
+  </ol>
+  <div class="workspace" aria-hidden="true">Work space</div>
+</section>
+
+<section class="ex" id="ex4">
+  <div class="ex-head">
+    <span class="tag secondary">2NF</span>
+    <h2>Exercise 4 &mdash; Section roster</h2>
+  </div>
+  <p class="budget">About 10 minutes &middot; harder than Exercise 3</p>
+
+  <div class="relation">SECTION_ROSTER(CourseNum, SectionNum, Semester, CourseTitle, Credits,
+               InstructorID, InstructorName, Room, RoomCapacity, SeatsTaken)</div>
+
+  <h3>Functional dependencies</h3>
+  <ul class="fds">
+    <li><span class="label">F1</span> CourseNum <span class="arrow">&rarr;</span> CourseTitle, Credits</li>
+    <li><span class="label">F2</span> {CourseNum, SectionNum, Semester} <span class="arrow">&rarr;</span> InstructorID, Room, SeatsTaken</li>
+    <li><span class="label">F3</span> InstructorID <span class="arrow">&rarr;</span> InstructorName</li>
+    <li><span class="label">F4</span> Room <span class="arrow">&rarr;</span> RoomCapacity</li>
+  </ul>
+
+  <ol class="tasks">
+    <li>Find the candidate key. Show the closure, and show that no two-attribute subset of it is a key.</li>
+    <li>Exactly one of these dependencies is a partial dependency. Which one? For each of the other three, say in one sentence why it is not partial.</li>
+    <li>Decompose into 2NF &mdash; 2NF only. Do not go further.</li>
+    <li>Your result still violates 3NF. Say which dependencies are responsible. You will fix them in Exercise 5.</li>
+  </ol>
+  <div class="workspace" aria-hidden="true">Work space</div>
+</section>
+
+<section class="ex" id="ex5">
+  <div class="ex-head">
+    <span class="tag secondary">3NF</span>
+    <h2>Exercise 5 &mdash; Section roster, continued</h2>
+  </div>
+  <p class="budget">About 12 minutes</p>
+
+  <p>The relation below is already in 2NF. It is the Exercise 4 result with one attribute added, and it stands on its own &mdash; you do not need your Exercise 4 answer to work it.</p>
+
+  <div class="relation">SECTION_ROSTER(CourseNum, SectionNum, Semester, InstructorID, InstructorName,
+               InstructorDept, Room, RoomCapacity, SeatsTaken)</div>
+
+  <h3>Functional dependencies</h3>
+  <ul class="fds">
+    <li><span class="label">F2</span> {CourseNum, SectionNum, Semester} <span class="arrow">&rarr;</span> InstructorID, Room, SeatsTaken</li>
+    <li><span class="label">F3</span> InstructorID <span class="arrow">&rarr;</span> InstructorName, InstructorDept</li>
+    <li><span class="label">F4</span> Room <span class="arrow">&rarr;</span> RoomCapacity</li>
+  </ul>
+
+  <ol class="tasks">
+    <li>Confirm the relation is in 2NF but not 3NF. Write out each transitive dependency in the form <span style="font-family:var(--mono)">key &rarr; X &rarr; Y</span>.</li>
+    <li>Give one insert anomaly and one delete anomaly that follow from the Room dependency specifically.</li>
+    <li>Decompose into 3NF. Mark every primary key and every foreign key.</li>
+    <li>Argue that your decomposition is lossless: name the join attribute for each pair and say why it is enough.</li>
+    <li>Is every original dependency still enforceable on a single relation? Name the relation that enforces each one.</li>
+  </ol>
+  <div class="workspace" aria-hidden="true">Work space</div>
+</section>
+
+<footer class="sheet">
+  <p>CS 410/510 Databases &middot; Boise State University &middot; Fall 2026 &middot; Dr. Steve Cutchin. Related assessment: HW3 (normalization and physical design), due Monday, November 9.</p>
+</footer>
+
+</body>
+</html>

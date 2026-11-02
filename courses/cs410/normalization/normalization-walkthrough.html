@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First Normal Form — Walkthrough — CS 410/510</title>
+<style>
+  :root{
+    --bsu-blue:#0033A0;
+    --ink-blue:#00246B;
+    --brown:#7A2708;
+    --rule:#c9d2e4;
+    --panel:#f4f6fb;
+    --good:#eef3ea;
+    --good-rule:#5a7a4a;
+    --paper:#ffffff;
+    --text:#1b1f27;
+    --muted:#4a556b;
+    --display:Charter,"Bitstream Charter",Georgia,"Times New Roman",serif;
+    --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#e8ecf4;color:var(--text);font-family:var(--body);}
+  .deck{max-width:66rem;margin:0 auto;padding:1rem;}
+  .slide{
+    background:var(--paper);border-radius:8px;
+    box-shadow:0 2px 14px rgba(0,30,90,.12);
+    padding:2.4rem 3rem 2.8rem;margin:0 0 1.2rem;
+    min-height:34rem;display:flex;flex-direction:column;
+  }
+  .js-on .slide{display:none;}
+  .js-on .slide.current{display:flex;}
+  .slide-num{
+    font-family:var(--body);font-size:.75rem;font-weight:700;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--bsu-blue);margin:0 0 .6rem;
+  }
+  h1{font-family:var(--display);font-size:2.6rem;line-height:1.1;margin:0 0 .8rem;color:var(--ink-blue);}
+  h2{font-family:var(--display);font-size:2rem;line-height:1.15;margin:0 0 1rem;color:var(--ink-blue);}
+  .lede{font-size:1.25rem;line-height:1.5;color:var(--muted);margin:0 0 1.4rem;max-width:46rem;}
+  p{font-size:1.05rem;line-height:1.6;margin:0 0 .9rem;max-width:50rem;}
+  ul,ol{font-size:1.05rem;line-height:1.6;max-width:50rem;padding-left:1.4rem;margin:0 0 1rem;}
+  li{margin:.45rem 0;}
+  .relation{
+    font-family:var(--mono);font-size:1rem;line-height:1.55;
+    background:var(--panel);border:1px solid var(--rule);border-radius:5px;
+    padding:1rem 1.2rem;margin:.4rem 0 1.1rem;white-space:pre-wrap;
+    color:var(--ink-blue);overflow-x:auto;
+  }
+  table.data{border-collapse:collapse;width:100%;font-size:.88rem;margin:.4rem 0 1rem;font-family:var(--mono);}
+  table.data th,table.data td{border:1px solid var(--rule);padding:.45rem .6rem;text-align:left;vertical-align:top;}
+  table.data th{background:var(--panel);color:var(--ink-blue);font-family:var(--body);font-size:.82rem;}
+  td.flag{background:#fdf1ea;}
+  td.flag::after{content:" \25C6";color:var(--brown);font-weight:700;}
+  .legend{font-size:.9rem;color:var(--muted);margin:-.4rem 0 1rem;}
+  .legend .mark{color:var(--brown);font-weight:700;}
+  .callout{
+    border-left:4px solid var(--bsu-blue);background:var(--panel);
+    padding:.9rem 1.2rem;margin:.4rem 0 1.1rem;border-radius:0 5px 5px 0;max-width:50rem;
+  }
+  .callout.warn{border-left-color:var(--brown);background:#fdf6f2;}
+  .callout.good{border-left-color:var(--good-rule);background:var(--good);}
+  .callout p:last-child{margin-bottom:0;}
+  .callout .head{
+    font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--bsu-blue);display:block;margin-bottom:.4rem;
+  }
+  .callout.warn .head{color:var(--brown);}
+  .callout.good .head{color:var(--good-rule);}
+  .spacer{flex:1;}
+  .reveal-btn{
+    font-family:var(--body);font-size:.95rem;font-weight:600;
+    background:var(--bsu-blue);color:#fff;border:2px solid var(--bsu-blue);
+    border-radius:5px;padding:.55rem 1.1rem;cursor:pointer;margin:.2rem 0 1rem;
+  }
+  .reveal-btn:hover{background:var(--ink-blue);border-color:var(--ink-blue);}
+  .reveal-btn:focus-visible{outline:3px solid var(--brown);outline-offset:2px;}
+  .reveal-btn[aria-expanded="true"]{background:#fff;color:var(--ink-blue);}
+  [data-reveal][hidden]{display:none;}
+  nav.deck-nav{
+    position:sticky;bottom:0;background:#e8ecf4;padding:.7rem 1rem 1rem;
+    display:flex;align-items:center;gap:.8rem;justify-content:center;
+    border-top:1px solid var(--rule);
+  }
+  nav.deck-nav button{
+    font-family:var(--body);font-size:.95rem;font-weight:600;
+    background:#fff;color:var(--ink-blue);border:2px solid var(--bsu-blue);
+    border-radius:5px;padding:.45rem 1rem;cursor:pointer;
+  }
+  nav.deck-nav button:hover{background:var(--bsu-blue);color:#fff;}
+  nav.deck-nav button:focus-visible{outline:3px solid var(--brown);outline-offset:2px;}
+  nav.deck-nav button[disabled]{opacity:.4;cursor:default;}
+  nav.deck-nav button[disabled]:hover{background:#fff;color:var(--ink-blue);}
+  .counter{font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums;min-width:6rem;text-align:center;}
+  .sr-only{
+    position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+  }
+  footer.deck-foot{text-align:center;font-size:.85rem;color:var(--muted);padding:.4rem 1rem 1.6rem;}
+  @media print{
+    html,body{background:#fff;}
+    .deck{max-width:none;padding:0;}
+    .js-on .slide,.slide{
+      display:flex !important;box-shadow:none;border:none;margin:0;
+      min-height:0;height:100vh;page-break-after:always;break-after:page;padding:0.4in;
+    }
+    .slide:last-of-type{page-break-after:auto;break-after:auto;}
+    nav.deck-nav,.reveal-btn,footer.deck-foot{display:none !important;}
+    [data-reveal][hidden]{display:block !important;}
+  }
+  @page{size:letter landscape;margin:0.45in;}
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <section class="slide" id="s1">
+    <p class="slide-num">CS 410/510 &middot; Normalization &middot; Walkthrough</p>
+    <h1>First Normal Form</h1>
+    <p class="lede">The registrar hands you a spreadsheet. It answers every question anyone has ever asked of it. It is also not a relation.</p>
+    <p>We are going to take one real-looking table apart, slowly, and name every reason it fails the weakest normal form there is. Then we will rebuild it three different ways and argue about which rebuild is right.</p>
+    <div class="callout">
+      <span class="head">Why this matters</span>
+      <p>1NF is the easiest normal form to satisfy and the easiest to violate accidentally, because spreadsheets encourage exactly the habits it forbids. Everything in Chapter 14 assumes you have already cleared it.</p>
+    </div>
+    <div class="spacer"></div>
+    <p class="legend">Use the arrow keys or the buttons to advance. Each slide has its own link: this one is <span style="font-family:var(--mono)">#s1</span>.</p>
+  </section>
+
+  <section class="slide" id="s2">
+    <p class="slide-num">Slide 2 &middot; The relation as given</p>
+    <h2>STUDENT_ADVISING</h2>
+    <div class="relation">STUDENT_ADVISING(StudentID, StudentName, Address, Phones, Courses)</div>
+    <table class="data">
+      <caption class="sr-only">Two rows of STUDENT_ADVISING as currently stored, showing composite and multivalued cells.</caption>
+      <thead>
+        <tr><th scope="col">StudentID</th><th scope="col">StudentName</th><th scope="col">Address</th><th scope="col">Phones</th><th scope="col">Courses</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>S1042</td><td>Marisol Vega</td>
+          <td>1910 University Dr, Boise, ID 83725</td>
+          <td>{208-426-1000, 208-426-5555}</td>
+          <td>{(CS 410, Fall 2026, A), (CS 321, Spring 2026, B)}</td>
+        </tr>
+        <tr>
+          <td>S1198</td><td>Theo Blackfoot</td>
+          <td>455 Lusk St, Boise, ID 83706</td>
+          <td>{208-426-3317}</td>
+          <td>{(CS 410, Fall 2026, B)}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>One row per student. Every fact about a student is right there, no joins required. This is what a well-meaning spreadsheet looks like.</p>
+    <div class="spacer"></div>
+    <p class="legend"><strong>Question for the room:</strong> how many distinct things are wrong with this, and are they the same kind of wrong?</p>
+  </section>
+
+  <section class="slide" id="s3">
+    <p class="slide-num">Slide 3 &middot; Step 1 &mdash; name the violations</p>
+    <h2>Three failures, three kinds</h2>
+    <p>1NF requires every attribute value to be <strong>atomic</strong> and <strong>single-valued</strong>. Three attributes break that, and they break it differently.</p>
+    <button class="reveal-btn" type="button" data-target="r3" aria-expanded="false" aria-controls="r3">Reveal the three</button>
+    <div data-reveal id="r3" hidden>
+      <ol>
+        <li><strong style="color:var(--brown)">Address is composite.</strong> Street, city, state, and zip packed into one string. You cannot ask for every student in Boise without parsing text.</li>
+        <li><strong style="color:var(--brown)">Phones is multivalued.</strong> A set in a single cell, and the number of elements varies row to row.</li>
+        <li><strong style="color:var(--brown)">Courses is a nested relation.</strong> Worse still &mdash; each element is itself a tuple with its own internal structure.</li>
+      </ol>
+      <div class="callout warn">
+        <span class="head">The distinction is not pedantry</span>
+        <p>Composite gets fixed by splitting columns. Multivalued and nested need a new relation. Conflate them and you will either over-decompose an address or under-decompose a course list.</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section class="slide" id="s4">
+    <p class="slide-num">Slide 4 &middot; Step 2 &mdash; the remedies</p>
+    <h2>Three ways to fix a multivalued attribute</h2>
+    <p>Elmasri and Navathe give three. All three are legal. Only one of them is right here, and the reason why is the actual content of this walkthrough.</p>
+    <ul>
+      <li><strong>R1</strong> &mdash; expand the key and flatten.</li>
+      <li><strong>R2</strong> &mdash; move the attribute into its own relation.</li>
+      <li><strong>R3</strong> &mdash; replace it with a fixed number of atomic columns.</li>
+    </ul>
+    <div class="callout">
+      <span class="head">How to choose</span>
+      <p>Ask what each one asserts about the mini-world that the mini-world does not actually say. The wrong remedy always invents a fact.</p>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section class="slide" id="s5">
+    <p class="slide-num">Slide 5 &middot; Remedy R1</p>
+    <h2>Expand the key</h2>
+    <p>Repeat the other attributes until every cell is atomic. The key becomes <span style="font-family:var(--mono)">{StudentID, Phone, CourseNum, Term}</span>.</p>
+    <table class="data">
+      <caption class="sr-only">Marisol Vega's single row expanded to four rows, pairing each phone number with each course.</caption>
+      <thead>
+        <tr><th scope="col">StudentID</th><th scope="col">StudentName</th><th scope="col">Phone</th><th scope="col">CourseNum</th><th scope="col">Term</th><th scope="col">Grade</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>S1042</td><td>Marisol Vega</td><td class="flag">208-426-1000</td><td class="flag">CS 410</td><td>Fall 2026</td><td>A</td></tr>
+        <tr><td>S1042</td><td>Marisol Vega</td><td class="flag">208-426-1000</td><td class="flag">CS 321</td><td>Spring 2026</td><td>B</td></tr>
+        <tr><td>S1042</td><td>Marisol Vega</td><td class="flag">208-426-5555</td><td class="flag">CS 410</td><td>Fall 2026</td><td>A</td></tr>
+        <tr><td>S1042</td><td>Marisol Vega</td><td class="flag">208-426-5555</td><td class="flag">CS 321</td><td>Spring 2026</td><td>B</td></tr>
+      </tbody>
+    </table>
+    <p class="legend">Cells marked with <span class="mark">&#9670;</span> are the ones being multiplied: two phones &times; two courses = four rows.</p>
+    <p>Every cell is now atomic. The relation is, strictly, in 1NF.</p>
+    <div class="spacer"></div>
+  </section>
+
+  <section class="slide" id="s6">
+    <p class="slide-num">Slide 6 &middot; Why R1 is wrong</p>
+    <h2>It invents a fact</h2>
+    <button class="reveal-btn" type="button" data-target="r6" aria-expanded="false" aria-controls="r6">Reveal the problem</button>
+    <div data-reveal id="r6" hidden>
+      <p>Row three asserts a connection between the phone number 208-426-5555 and the course CS 410. <strong>There is no such connection.</strong> Marisol's phones and Marisol's courses are independent facts that happen to share a student.</p>
+      <ul>
+        <li>The row count is a <strong>cross product</strong>, not data. Four phones and five courses would give twenty rows for one student.</li>
+        <li>Her grade in CS 410 is now stored twice. Change it once and the database contradicts itself.</li>
+        <li>Deleting a phone number deletes course enrollments.</li>
+      </ul>
+      <div class="callout warn">
+        <span class="head">Looking ahead</span>
+        <p>If this smells like something with a name, it is. Two independent multivalued facts in one relation is a <em>multivalued dependency</em> &mdash; we get to it later today under 4NF. For now the lesson is simpler: never flatten two independent lists into one table.</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section class="slide" id="s7">
+    <p class="slide-num">Slide 7 &middot; Remedy R3</p>
+    <h2>Fixed columns &mdash; the repeating group</h2>
+    <p>If we know a student has at most three phones, replace the attribute with <span style="font-family:var(--mono)">Phone1, Phone2, Phone3</span>.</p>
+    <div class="relation">STUDENT(StudentID, StudentName, Address, Phone1, Phone2, Phone3, ...)</div>
+    <p>Every cell atomic. Technically 1NF. And still a bad design:</p>
+    <ul>
+      <li>A fourth phone requires altering the table &mdash; the schema encodes a limit that is not a real rule.</li>
+      <li>Theo has one phone and carries two NULLs.</li>
+      <li>"Which student has 208-426-5555?" becomes three equality tests joined by OR.</li>
+    </ul>
+    <div class="callout warn">
+      <span class="head">Remember this one</span>
+      <p>A repeating group passes 1NF and fails common sense. Normal forms are a floor, not a ceiling. You will meet this pattern again in about twenty minutes.</p>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section class="slide" id="s8">
+    <p class="slide-num">Slide 8 &middot; Remedy R2</p>
+    <h2>One relation per multivalued fact</h2>
+    <button class="reveal-btn" type="button" data-target="r8" aria-expanded="false" aria-controls="r8">Reveal the schema</button>
+    <div data-reveal id="r8" hidden>
+      <div class="relation">STUDENT(StudentID, StudentName, Street, City, State, Zip)
+    PK  StudentID
+
+STUDENT_PHONE(StudentID, Phone)
+    PK  {StudentID, Phone}
+    FK  StudentID &rarr; STUDENT
+
+ENROLLMENT(StudentID, CourseNum, Term, Grade)
+    PK  {StudentID, CourseNum, Term}
+    FK  StudentID &rarr; STUDENT</div>
+      <ul>
+        <li><strong>Address</strong> was composite, so it became columns &mdash; no new relation needed.</li>
+        <li><strong>Phones</strong> and <strong>Courses</strong> were independent multivalued facts, so each got its own relation. Two facts, two relations.</li>
+        <li><strong>Term</strong> is in the ENROLLMENT key because a student may retake a course.</li>
+      </ul>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section class="slide" id="s9">
+    <p class="slide-num">Slide 9 &middot; What it bought us</p>
+    <h2>The anomalies are now impossible</h2>
+    <div class="callout good">
+      <span class="head">Before and after</span>
+      <ul style="margin-bottom:0;">
+        <li><strong>No cross product.</strong> Marisol is one STUDENT row, two STUDENT_PHONE rows, two ENROLLMENT rows &mdash; five rows holding five facts, instead of four rows holding four copies of two facts.</li>
+        <li><strong>Grades stored once.</strong> No way to contradict yourself.</li>
+        <li><strong>Phones and enrollments move independently.</strong> Dropping a phone cannot touch a transcript.</li>
+        <li><strong>No arbitrary cap.</strong> Six phones, one phone, none at all &mdash; all representable without schema changes.</li>
+      </ul>
+    </div>
+    <p>The cost is joins. That is the trade normalization always makes, and it is almost always worth it.</p>
+    <div class="spacer"></div>
+  </section>
+
+  <section class="slide" id="s10">
+    <p class="slide-num">Slide 10 &middot; Your turn</p>
+    <h2>The method, in four steps</h2>
+    <ol>
+      <li>Write down the functional dependencies, or confirm you can read the given ones aloud as sentences about the mini-world.</li>
+      <li>Find the candidate key by attribute closure, then check that no proper subset is also a key.</li>
+      <li>Name the violation precisely: non-atomic attribute, <em>partial</em> dependency, or <em>transitive</em> dependency.</li>
+      <li>Decompose, then say which anomaly you just made impossible.</li>
+    </ol>
+    <div class="callout">
+      <span class="head">Five exercises</span>
+      <p>Two more on 1NF &mdash; one of which is a trap &mdash; then two on 2NF and one on 3NF. Exercises 4 and 5 are a chain over the same mini-world, so the second builds on the first.</p>
+    </div>
+    <div class="spacer"></div>
+    <p class="legend">HW3 is due Monday, November 9. Everything in these exercises is directly on it.</p>
+  </section>
+
+</div>
+
+<nav class="deck-nav" aria-label="Slide navigation">
+  <button type="button" id="prev">&larr; Previous</button>
+  <span class="counter" id="counter">Slide 1 of 10</span>
+  <button type="button" id="next">Next &rarr;</button>
+</nav>
+<p class="sr-only" id="liveRegion" role="status" aria-live="polite"></p>
+<footer class="deck-foot">CS 410/510 Databases &middot; Boise State University &middot; Fall 2026 &middot; Dr. Steve Cutchin</footer>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  if(!slides.length) return;
+  document.body.classList.add('js-on');
+
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+  var counter = document.getElementById('counter');
+  var live    = document.getElementById('liveRegion');
+  var idx = 0;
+
+  function heading(i){
+    var h = slides[i].querySelector('h1, h2');
+    return h ? h.textContent.trim() : ('Slide ' + (i+1));
+  }
+
+  function render(announce){
+    slides.forEach(function(s,i){
+      s.classList.toggle('current', i === idx);
+      s.setAttribute('aria-hidden', i === idx ? 'false' : 'true');
+    });
+    counter.textContent = 'Slide ' + (idx+1) + ' of ' + slides.length;
+    prevBtn.disabled = (idx === 0);
+    nextBtn.disabled = (idx === slides.length - 1);
+    if(announce){
+      live.textContent = 'Slide ' + (idx+1) + ' of ' + slides.length + '. ' + heading(idx);
+    }
+  }
+
+  function go(i, announce){
+    if(i < 0 || i >= slides.length) return;
+    idx = i;
+    if(history.replaceState){
+      history.replaceState(null, '', '#' + slides[idx].id);
+    }else{
+      location.hash = slides[idx].id;
+    }
+    render(announce);
+  }
+
+  function fromHash(){
+    var id = (location.hash || '').replace('#','');
+    var found = slides.findIndex(function(s){ return s.id === id; });
+    return found >= 0 ? found : 0;
+  }
+
+  prevBtn.addEventListener('click', function(){ go(idx-1, true); });
+  nextBtn.addEventListener('click', function(){ go(idx+1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target.tagName;
+    if(t === 'INPUT' || t === 'TEXTAREA') return;
+    if(e.key === 'ArrowRight' || e.key === 'PageDown'){ e.preventDefault(); go(idx+1, true); }
+    else if(e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); go(idx-1, true); }
+    else if(e.key === 'Home'){ e.preventDefault(); go(0, true); }
+    else if(e.key === 'End'){ e.preventDefault(); go(slides.length-1, true); }
+  });
+
+  window.addEventListener('hashchange', function(){ go(fromHash(), true); });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.reveal-btn'), function(btn){
+    var panel = document.getElementById(btn.getAttribute('data-target'));
+    if(!panel) return;
+    btn.addEventListener('click', function(){
+      var open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      panel.hidden = open;
+      btn.textContent = open ? btn.textContent.replace('Hide','Reveal') : btn.textContent.replace('Reveal','Hide');
+      live.textContent = open ? 'Details hidden.' : 'Details revealed. ' + (panel.textContent || '').trim().slice(0,140);
+    });
+  });
+
+  go(fromHash(), false);
+})();
+</script>
+
+</body>
+</html>
