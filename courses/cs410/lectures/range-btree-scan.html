@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Range Queries — One Descent, One Walk, One Stop · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+
+/* ---- schema / SQL typography ---- */
+.rel{font-family:var(--mono);font-size:.9rem;line-height:1.7;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.rel .k{color:var(--brown);font-weight:700}
+.rel .r{color:var(--blue-ink);font-weight:700}
+.sqlline{font-family:var(--mono);font-size:.9rem;background:#fff;border:1px solid var(--line);
+  border-radius:8px;padding:10px 13px;color:var(--brown);font-weight:700;overflow-x:auto}
+.code{font-family:var(--mono);font-size:.86rem;line-height:1.65;background:var(--surface);
+  border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:8px;
+  padding:11px 14px;margin:10px 0;white-space:pre-wrap;overflow-x:auto}
+.code .cm{color:var(--muted)}
+.code .kw{color:var(--brown);font-weight:700}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.mono,table.inst th.mono{font-family:var(--mono)}
+table.inst tr.is-hit td{background:var(--tint)}
+table.inst tr.is-hit td:first-child{font-weight:700}
+.ok{color:var(--blue-ink);font-weight:700}
+.no{color:var(--brown);font-weight:700}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px;align-items:center}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.86rem;font-weight:600;cursor:pointer;font-family:var(--mono);
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.live-desc{min-height:3.4em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+
+/* ---- leaf nodes and entries ---- */
+.leafnodes{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.leafnode{border:2px solid var(--line);border-radius:10px;background:#fff;padding:7px 8px 9px;
+  flex:1 1 0}
+.leafnode h4{margin:0 0 7px;font-family:var(--sans);font-size:.78rem;font-weight:700;
+  color:var(--blue-ink);letter-spacing:.02em}
+.leafnode h4 .st{font-weight:400;color:var(--muted)}
+/* a skipped page: dashed border, faded, and the word "skipped" in its heading */
+.leafnode.skipped{border-style:dashed;background:var(--surface)}
+.leafnode.skipped h4{color:var(--muted)}
+.leafstrip{list-style:none;display:flex;flex-wrap:nowrap;gap:5px;margin:0;padding:1px 0}
+.leafstrip li{font-family:var(--mono);font-size:.8rem;line-height:1.25;flex:0 0 auto;
+  border:2px solid var(--line);border-radius:7px;padding:5px 6px;background:#fff;
+  min-width:54px;text-align:center}
+.leafstrip li .key{display:block;font-weight:700;color:var(--blue-ink)}
+.leafstrip li .pay{display:block;color:var(--muted);font-size:.95em}
+/* every entry reserves the badge line so all entries keep the same height */
+.leafstrip li::after{content:"\00a0";display:block;font-size:.62rem;line-height:1.3;
+  font-weight:700;color:var(--blue-ink);letter-spacing:.03em}
+/* qualifies: thick solid border + tint + the word "in" */
+.leafstrip li.is-in{border-style:solid;border-width:3px;border-color:var(--blue);
+  background:var(--tint);padding:4px 6px}
+.leafstrip li.is-in::after{content:"in"}
+/* the one comparison that ends the walk: dashed brown + the word "stop" */
+.leafstrip li.is-stop{border-style:dashed;border-width:3px;border-color:var(--brown);
+  padding:4px 6px}
+.leafstrip li.is-stop::after{content:"stop";color:var(--brown)}
+/* never read at all: faded + struck through */
+.leafstrip li.faded{opacity:.5}
+.leafstrip li.faded .key{text-decoration:line-through}
+
+/* ---- stats readout ---- */
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.stat{border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  padding:7px 13px;min-width:112px}
+.stat .n{display:block;font-family:var(--mono);font-size:1.12rem;font-weight:700;
+  color:var(--blue-ink)}
+.stat .l{display:block;font-size:.74rem;color:var(--muted);line-height:1.25}
+.verdict{margin:12px 0 0;border:1px solid var(--line);border-left:5px solid var(--brown);
+  border-radius:9px;background:#fff;padding:10px 15px;font-size:.93rem}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+  .leafnode{flex:1 1 100%}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.rel,.sqlline,.code,.leafnode,.stat,.verdict{border-color:#000}
+  .chip,.leafstrip li{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.rel,.sqlline,.code,table.inst,.leafnode,.verdict{break-inside:avoid}
+  .fig.wide svg{width:62%;display:block;margin:0 auto}
+  .leafstrip li{min-width:54px;font-size:.74rem}
+  table.inst.trace{font-size:.74rem;line-height:1.3}
+  table.inst.trace th,table.inst.trace td{padding:2.5px 7px}
+  table.inst.trace + .callout{margin-top:9px;padding:8px 14px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 7 · Query processing</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">Range queries — one descent, one walk, one stop · Elmasri &amp; Navathe, Ch. 17 &amp; 18</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="Range queries over a B+tree — lecture slides">
+
+  <!-- 1 · TITLE / MOTIVATION -->
+  <section class="slide is-active" data-title="A range query is a descent and a walk"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Query processing · what the engine actually does</p>
+    <h2 class="slide-h" tabindex="-1">A range query is<br>a descent and a walk</h2>
+    <div class="two">
+      <div>
+        <p class="lead">A <code>WHERE</code> clause with a range in it looks like a
+        test the engine has to apply to every row. It isn't. With a B+tree it is
+        three motions: fall to the bottom of the tree at the low end, walk forward
+        along the leaves, and stop one comparison past the high end.</p>
+        <p style="color:var(--muted)">The reason it works is the same property that
+        made the join cheap: the leaf level of a B+tree is a sorted linked list. A
+        range is a <em>contiguous stretch</em> of that list. Find where it starts,
+        and the rest is reading forward until you fall off the end of the range.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 200" role="img" aria-labelledby="t1 d1">
+          <title id="t1">A contiguous window inside a sorted sequence of keys</title>
+          <desc id="d1">Twelve GPA values in ascending order drawn as a row of
+          boxes. A bracket above spans the five middle values from 3.05 to 3.50,
+          labeled as the range the query asks for, showing that the answer is one
+          unbroken stretch of the sequence rather than scattered rows.</desc>
+          <g font-family="ui-monospace,monospace" font-size="10" fill="#00246B">
+            <rect x="10" y="78" width="40" height="30" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.7"/><text x="30" y="97" text-anchor="middle">2.10</text>
+            <rect x="54" y="78" width="40" height="30" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.7"/><text x="74" y="97" text-anchor="middle">2.45</text>
+            <rect x="98" y="78" width="40" height="30" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.7"/><text x="118" y="97" text-anchor="middle">2.80</text>
+            <rect x="142" y="78" width="40" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.6"/><text x="162" y="97" text-anchor="middle" font-weight="700">3.05</text>
+            <rect x="186" y="78" width="40" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.6"/><text x="206" y="97" text-anchor="middle" font-weight="700">3.20</text>
+            <rect x="230" y="78" width="40" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.6"/><text x="250" y="97" text-anchor="middle" font-weight="700">3.30</text>
+            <rect x="274" y="78" width="40" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.6"/><text x="294" y="97" text-anchor="middle" font-weight="700">3.45</text>
+            <rect x="318" y="78" width="40" height="30" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.6"/><text x="338" y="97" text-anchor="middle" font-weight="700">3.50</text>
+            <rect x="362" y="78" width="40" height="30" rx="4" fill="#fff" stroke="#7A2708" stroke-width="2.4" stroke-dasharray="4 3"/><text x="382" y="97" text-anchor="middle">3.60</text>
+            <rect x="406" y="78" width="40" height="30" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.7"/><text x="426" y="97" text-anchor="middle">3.75</text>
+            <rect x="450" y="78" width="40" height="30" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.7"/><text x="470" y="97" text-anchor="middle">3.90</text>
+            <rect x="494" y="78" width="40" height="30" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.7"/><text x="514" y="97" text-anchor="middle">4.00</text>
+          </g>
+          <path d="M142 68 L142 58 L358 58 L358 68" fill="none" stroke="#0033A0" stroke-width="2"/>
+          <text x="250" y="48" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">everything the query wants</text>
+          <text x="250" y="30" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#7A2708">GPA BETWEEN 3.05 AND 3.50</text>
+          <text x="382" y="130" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708">one look past</text>
+          <text x="382" y="143" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708">the end &#8212; stop</text>
+          <text x="272" y="176" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">the answer is a contiguous stretch, never scattered</text>
+        </svg>
+        <p class="figcap">Sorted order is what turns a test into a window.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · WHY THIS MATTERS -->
+  <section class="slide" data-title="Why this is worth an hour" aria-roledescription="slide" aria-label="Why this is worth an hour">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">Why this is worth an hour</h2>
+    <p class="lead">Range predicates are most of what real <code>WHERE</code> clauses
+    contain — dates, prices, scores, timestamps. Nearly every "why is this query
+    slow" question is about one.</p>
+    <div class="two">
+      <div>
+        <ul>
+          <li><strong>You will be able to explain why an index was ignored.</strong>
+          A perfectly good index gets skipped when the range is wide, and that is
+          the optimizer being right, not broken.</li>
+          <li><strong>You will know which column order to index.</strong> Range
+          scans are why a composite index on <code>(a, b)</code> is not the same
+          thing as one on <code>(b, a)</code>.</li>
+          <li><strong>You will recognize the mistakes that silently disable an
+          index</strong> — wrapping the column in a function is the classic one,
+          and it turns a walk back into a full scan.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The claim we are going to defend</h3>
+          <p style="margin:0">Answering a range predicate from a B+tree costs
+          <strong>one root-to-leaf descent plus a forward walk of exactly the
+          matching stretch</strong>, plus a single extra comparison to learn where
+          to stop. The work is proportional to the size of the
+          <em>answer</em>, not the size of the table.</p>
+        </div>
+        <div class="callout warn">
+          <h3>And the catch</h3>
+          <p style="margin:0">That is only a win while the answer is small. When the
+          range covers much of the table, walking the index and fetching rows one at
+          a time is <em>slower</em> than reading the whole table sequentially. The
+          crossover is the interesting part, and the demonstrator later makes you
+          watch it happen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE QUERY AND THE DATA -->
+  <section class="slide" data-title="The query and the data" aria-roledescription="slide" aria-label="The query and the data">
+    <p class="kicker">The running example</p>
+    <h2 class="slide-h" tabindex="-1">One table, one range</h2>
+    <p>Our UNIVERSITY mini-world, trimmed to twelve students so the whole thing
+    fits on a slide. There is a B+tree index on <code>GPA</code>.</p>
+    <div class="rel"><span class="r">STUDENT</span>(<span class="k">StudentID</span>, Name, Major, GPA)
+<span class="cm">INDEX</span> student_gpa_idx <span class="cm">ON</span> STUDENT(<span class="k">GPA</span>)</div>
+    <p class="sqlline">SELECT StudentID, Name, GPA FROM STUDENT WHERE GPA BETWEEN 3.05 AND 3.50;</p>
+    <div class="two" style="margin-top:14px">
+      <div>
+        <table class="inst trace">
+          <caption>STUDENT, listed in GPA order. The five shaded rows are the answer.</caption>
+          <thead><tr><th scope="col" class="mono">GPA</th><th scope="col" class="mono">StudentID</th><th scope="col">Name</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">2.10</td><td class="mono">S1009</td><td>Alvarez</td></tr>
+            <tr><td class="mono">2.45</td><td class="mono">S1002</td><td>Boateng</td></tr>
+            <tr><td class="mono">2.80</td><td class="mono">S1011</td><td>Chen</td></tr>
+            <tr class="is-hit"><td class="mono">3.05</td><td class="mono">S1004</td><td>Duarte</td></tr>
+            <tr class="is-hit"><td class="mono">3.20</td><td class="mono">S1001</td><td>Ellis</td></tr>
+            <tr class="is-hit"><td class="mono">3.30</td><td class="mono">S1007</td><td>Fontaine</td></tr>
+            <tr class="is-hit"><td class="mono">3.45</td><td class="mono">S1003</td><td>Gharbi</td></tr>
+            <tr class="is-hit"><td class="mono">3.50</td><td class="mono">S1012</td><td>Haddad</td></tr>
+            <tr><td class="mono">3.60</td><td class="mono">S1005</td><td>Ibarra</td></tr>
+            <tr><td class="mono">3.75</td><td class="mono">S1008</td><td>Jarvis</td></tr>
+            <tr><td class="mono">3.90</td><td class="mono">S1006</td><td>Kaur</td></tr>
+            <tr><td class="mono">4.00</td><td class="mono">S1010</td><td>Lindqvist</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Two things to notice now</h3>
+          <p style="margin:0">The table is <em>listed</em> in GPA order here for
+          our convenience, but it is not <em>stored</em> that way — rows sit on disk
+          in whatever order they were inserted. The index is the only thing that
+          knows the sorted order.</p>
+        </div>
+        <div class="callout">
+          <h3>And the shape of the answer</h3>
+          <p style="margin:0">Five rows out of twelve. In GPA order they are
+          <strong>adjacent</strong>: once you find 3.05, the other four are the next
+          four entries. Nothing in the query says that — it falls out of sorting on
+          the column the predicate names.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE NAIVE WAY -->
+  <section class="slide" data-title="The naive way — read it all, test it all" aria-roledescription="slide" aria-label="The naive way">
+    <p class="kicker">The baseline</p>
+    <h2 class="slide-h" tabindex="-1">Read it all, test it all</h2>
+    <div class="two">
+      <div>
+        <p>With no index, there is exactly one plan: a
+        <span class="term">full table scan</span>. Read every data page, and for
+        every row on it, evaluate the predicate.</p>
+        <div class="code"><span class="kw">for each</span> page p <span class="kw">in</span> STUDENT:
+    <span class="kw">for each</span> row r <span class="kw">on</span> p:
+        <span class="kw">if</span> 3.05 &lt;= r.GPA &lt;= 3.50:
+            emit r</div>
+        <p>Twelve rows read, twelve comparisons, four pages. Five rows survive. The
+        other seven were read and discarded, and the engine had no way to know in
+        advance which seven they were.</p>
+        <div class="callout warn">
+          <h3>Why it does not scale</h3>
+          <p style="margin:0">The cost is the size of the <strong>table</strong>, not
+          the size of the answer. Finding five students out of twelve is cheap;
+          finding five out of five million means reading five million. The query is
+          identical &#8212; only the table grew.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 250" role="img" aria-labelledby="t4 d4">
+          <title id="t4">A full table scan reading all four data pages</title>
+          <desc id="d4">Four data pages drawn as stacked boxes, each holding three
+          rows in no particular GPA order. Every page is marked as read and every
+          row is marked as tested, with five of the twelve rows marked as
+          qualifying.</desc>
+          <g font-family="ui-monospace,monospace" font-size="9.5">
+            <rect x="24" y="24" width="300" height="42" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="38" y="50" fill="#00246B">3.90 &#183; 2.10 &#183; 3.45</text>
+            <rect x="24" y="76" width="300" height="42" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="38" y="102" fill="#00246B">2.80 &#183; 3.75 &#183; 3.20</text>
+            <rect x="24" y="128" width="300" height="42" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="38" y="154" fill="#00246B">4.00 &#183; 3.30 &#183; 2.45</text>
+            <rect x="24" y="180" width="300" height="42" rx="5" fill="#F4F6FB" stroke="#0033A0" stroke-width="2"/>
+            <text x="38" y="206" fill="#00246B">3.60 &#183; 3.50 &#183; 3.05</text>
+          </g>
+          <g font-family="system-ui" font-size="10" fill="#7A2708" font-weight="700">
+            <text x="336" y="50">page 1 &#183; read</text>
+            <text x="336" y="102">page 2 &#183; read</text>
+            <text x="336" y="154">page 3 &#183; read</text>
+            <text x="336" y="206">page 4 &#183; read</text>
+          </g>
+          <text x="24" y="16" font-family="system-ui" font-size="10" fill="#4A5160">rows sit in insertion order, not GPA order</text>
+          <text x="260" y="241" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">4 of 4 pages &#183; 12 of 12 rows tested &#183; 5 kept</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · B+TREE RECAP -->
+  <section class="slide" data-title="The index over GPA" aria-roledescription="slide" aria-label="The index over GPA">
+    <p class="kicker">The structure we are standing on</p>
+    <h2 class="slide-h" tabindex="-1">The index over GPA</h2>
+    <p>Same B+tree you met in the join lecture, now keyed on <code>GPA</code>:
+    internal nodes hold separators and route a descent; every key lives at the leaf
+    level in ascending order; the leaves are chained left to right.</p>
+    <div class="fig wide">
+      <svg viewBox="0 0 640 250" role="img" aria-labelledby="t5 d5">
+        <title id="t5">A two-level B plus tree over twelve GPA values</title>
+        <desc id="d5">A root node holding the three separator keys 3.05, 3.45 and
+        3.75, with four edges down to four leaf nodes. The leaves hold, left to
+        right, 2.10 2.45 2.80; 3.05 3.20 3.30; 3.45 3.50 3.60; and 3.75 3.90 4.00.
+        Horizontal arrows chain each leaf to the next, so the leaf level reads as
+        one ascending sequence of twelve keys.</desc>
+        <defs>
+          <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+          </marker>
+        </defs>
+        <line x1="215" y1="58" x2="80" y2="150" stroke="#8A93A3" stroke-width="1.7"/>
+        <line x1="285" y1="58" x2="240" y2="150" stroke="#8A93A3" stroke-width="1.7"/>
+        <line x1="355" y1="58" x2="400" y2="150" stroke="#8A93A3" stroke-width="1.7"/>
+        <line x1="425" y1="58" x2="560" y2="150" stroke="#8A93A3" stroke-width="1.7"/>
+        <rect x="204" y="22" width="232" height="36" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.3"/>
+        <g stroke="#0033A0" stroke-width="1.2">
+          <line x1="226" y1="22" x2="226" y2="58"/><line x1="274" y1="22" x2="274" y2="58"/>
+          <line x1="296" y1="22" x2="296" y2="58"/><line x1="344" y1="22" x2="344" y2="58"/>
+          <line x1="366" y1="22" x2="366" y2="58"/><line x1="414" y1="22" x2="414" y2="58"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#00246B">
+          <text x="250" y="45" text-anchor="middle">3.05</text>
+          <text x="320" y="45" text-anchor="middle">3.45</text>
+          <text x="390" y="45" text-anchor="middle">3.75</text>
+        </g>
+        <g font-family="system-ui" font-size="13" fill="#8A93A3" text-anchor="middle">
+          <text x="215" y="46">&#8226;</text><text x="285" y="46">&#8226;</text>
+          <text x="355" y="46">&#8226;</text><text x="425" y="46">&#8226;</text>
+        </g>
+        <text x="14" y="30" font-family="system-ui" font-size="10.5" fill="#4A5160">internal node &#8212;</text>
+        <text x="14" y="43" font-family="system-ui" font-size="10.5" fill="#4A5160">separators only,</text>
+        <text x="14" y="56" font-family="system-ui" font-size="10.5" fill="#4A5160">no rows</text>
+        <g font-family="ui-monospace,monospace" font-size="10.5" font-weight="700" fill="#00246B">
+          <rect x="10" y="150" width="140" height="38" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="80" y="174" text-anchor="middle">2.10 2.45 2.80</text>
+          <rect x="170" y="150" width="140" height="38" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="240" y="174" text-anchor="middle">3.05 3.20 3.30</text>
+          <rect x="330" y="150" width="140" height="38" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="400" y="174" text-anchor="middle">3.45 3.50 3.60</text>
+          <rect x="490" y="150" width="140" height="38" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="560" y="174" text-anchor="middle">3.75 3.90 4.00</text>
+        </g>
+        <g stroke="#7A2708" stroke-width="2.2" marker-end="url(#ahr)">
+          <line x1="152" y1="169" x2="166" y2="169"/>
+          <line x1="312" y1="169" x2="326" y2="169"/>
+          <line x1="472" y1="169" x2="486" y2="169"/>
+        </g>
+        <g font-family="system-ui" font-size="9.5" fill="#4A5160" text-anchor="middle"
+           stroke="#ffffff" stroke-width="3.2" paint-order="stroke">
+          <text x="80" y="140">&lt; 3.05</text>
+          <text x="240" y="140">3.05 &#8804; k &lt; 3.45</text>
+          <text x="400" y="140">3.45 &#8804; k &lt; 3.75</text>
+          <text x="560" y="140">&#8805; 3.75</text>
+        </g>
+        <text x="320" y="214" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#7A2708">leaf level: all twelve keys, ascending, chained</text>
+        <text x="320" y="232" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">each entry also carries a pointer to its row</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 6 · STEP 1, THE DESCENT -->
+  <section class="slide" data-title="Step 1 — descend to the low end" aria-roledescription="slide" aria-label="Step one, the descent">
+    <p class="kicker">The three motions · 1 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Descend to the low end</h2>
+    <div class="two">
+      <div>
+        <p>Take the <strong>lower bound</strong> of the range — 3.05 — and descend
+        the tree with it exactly as if you were looking up a single value.</p>
+        <p>The separators route you: 3.05 is not below 3.05, and it is below 3.45,
+        so take the second child. You land in leaf&nbsp;2.</p>
+        <div class="callout">
+          <h3>The thing students get wrong here</h3>
+          <p style="margin:0">You are not searching for a <em>value</em>. You are
+          searching for a <strong>position</strong> — the first entry at or after
+          3.05. If 3.05 did not exist in the table at all, the descent would still
+          succeed and land you on 3.20, the first entry past it. A range scan never
+          needs its endpoints to be present.</p>
+        </div>
+        <p style="color:var(--muted)">Cost so far: <strong>2 page reads</strong>
+        — the root and one leaf. In a real tree of height 3 or 4 it would be 3 or 4,
+        and the upper levels are almost always already in memory.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 230" role="img" aria-labelledby="t6 d6">
+          <title id="t6">Descending from the root to the leaf holding 3.05</title>
+          <desc id="d6">The same B plus tree with the path from the root to the
+          second leaf drawn as a thick line. The second separator slot and the
+          second leaf are outlined heavily and labeled as the landing point, and
+          the entry 3.05 inside that leaf is marked as the first entry at or after
+          the lower bound.</desc>
+          <line x1="248.5" y1="56" x2="190" y2="140" stroke="#7A2708" stroke-width="3.4"/>
+          <g stroke="#C9D2E0" stroke-width="1.5">
+            <line x1="185.5" y1="56" x2="70" y2="140"/>
+            <line x1="311.5" y1="56" x2="330" y2="140"/>
+            <line x1="374.5" y1="56" x2="470" y2="140"/>
+          </g>
+          <rect x="176" y="22" width="208" height="34" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.2"/>
+          <g stroke="#0033A0" stroke-width="1.1">
+            <line x1="195" y1="22" x2="195" y2="56"/><line x1="239" y1="22" x2="239" y2="56"/>
+            <line x1="258" y1="22" x2="258" y2="56"/><line x1="302" y1="22" x2="302" y2="56"/>
+            <line x1="321" y1="22" x2="321" y2="56"/><line x1="365" y1="22" x2="365" y2="56"/>
+          </g>
+          <rect x="239" y="22" width="19" height="34" fill="#EAF0FB" stroke="#7A2708" stroke-width="2.8"/>
+          <g font-family="ui-monospace,monospace" font-size="10.5" font-weight="700" fill="#00246B">
+            <text x="217" y="44" text-anchor="middle">3.05</text>
+            <text x="280" y="44" text-anchor="middle">3.45</text>
+            <text x="343" y="44" text-anchor="middle">3.75</text>
+          </g>
+          <g font-family="system-ui" font-size="11" fill="#8A93A3" text-anchor="middle">
+            <text x="185.5" y="45">&#8226;</text><text x="311.5" y="45">&#8226;</text>
+            <text x="374.5" y="45">&#8226;</text>
+          </g>
+          <text x="394" y="34" font-family="system-ui" font-size="10" fill="#7A2708" font-weight="700">3.05 &#8804; k &lt; 3.45</text>
+          <text x="394" y="47" font-family="system-ui" font-size="10" fill="#7A2708" font-weight="700">&#8594; this pointer</text>
+          <g font-family="ui-monospace,monospace" font-size="10" fill="#00246B">
+            <rect x="14" y="140" width="112" height="34" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="70" y="161" text-anchor="middle">2.10 2.45 2.80</text>
+            <rect x="134" y="140" width="112" height="34" rx="5" fill="#EAF0FB" stroke="#7A2708" stroke-width="3"/>
+            <text x="190" y="161" text-anchor="middle" font-weight="700">3.05 3.20 3.30</text>
+            <rect x="274" y="140" width="112" height="34" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="330" y="161" text-anchor="middle">3.45 3.50 3.60</text>
+            <rect x="414" y="140" width="112" height="34" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="470" y="161" text-anchor="middle">3.75 3.90 4.00</text>
+          </g>
+          <polygon points="152,186 144,196 160,196" fill="#7A2708"/>
+          <text x="190" y="212" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">first entry at or after 3.05</text>
+          <text x="280" y="226" text-anchor="middle" font-family="system-ui" font-size="10" fill="#4A5160">2 page reads so far: root, then this leaf</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · STEP 2, THE WALK -->
+  <section class="slide" data-title="Step 2 — walk forward along the leaves" aria-roledescription="slide" aria-label="Step two, the walk">
+    <p class="kicker">The three motions · 2 of 3</p>
+    <h2 class="slide-h" tabindex="-1">Walk forward along the leaves</h2>
+    <p>From the landing position, read forward. Every entry you meet qualifies
+    automatically — you are past the lower bound and have not yet reached the upper
+    one. When a leaf runs out, follow its <span class="term">next-leaf pointer</span>
+    and keep going. The upper levels are never touched again.</p>
+    <div class="leafnodes">
+      <div class="leafnode skipped">
+        <h4>leaf 1 <span class="st">&#183; never read</span></h4>
+        <ol class="leafstrip">
+          <li class="faded"><span class="key">2.10</span><span class="pay">S1009</span></li>
+          <li class="faded"><span class="key">2.45</span><span class="pay">S1002</span></li>
+          <li class="faded"><span class="key">2.80</span><span class="pay">S1011</span></li>
+        </ol>
+      </div>
+      <div class="leafnode">
+        <h4>leaf 2 <span class="st">&#183; landed here</span></h4>
+        <ol class="leafstrip">
+          <li class="is-in"><span class="key">3.05</span><span class="pay">S1004</span></li>
+          <li class="is-in"><span class="key">3.20</span><span class="pay">S1001</span></li>
+          <li class="is-in"><span class="key">3.30</span><span class="pay">S1007</span></li>
+        </ol>
+      </div>
+      <div class="leafnode">
+        <h4>leaf 3 <span class="st">&#183; via next-leaf pointer</span></h4>
+        <ol class="leafstrip">
+          <li class="is-in"><span class="key">3.45</span><span class="pay">S1003</span></li>
+          <li class="is-in"><span class="key">3.50</span><span class="pay">S1012</span></li>
+          <li class="is-stop"><span class="key">3.60</span><span class="pay">S1005</span></li>
+        </ol>
+      </div>
+      <div class="leafnode skipped">
+        <h4>leaf 4 <span class="st">&#183; never read</span></h4>
+        <ol class="leafstrip">
+          <li class="faded"><span class="key">3.75</span><span class="pay">S1008</span></li>
+          <li class="faded"><span class="key">3.90</span><span class="pay">S1006</span></li>
+          <li class="faded"><span class="key">4.00</span><span class="pay">S1010</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="callout">
+      <h3>Count what was avoided</h3>
+      <p style="margin:0">Two leaf pages of four were read. Six index entries were
+      examined, five of which qualified. Six of the twelve rows were never looked at
+      in any form &#8212; the engine knows they cannot match
+      <em>without reading them</em>, because sorted order guarantees it.</p>
+    </div>
+  </section>
+
+  <!-- 8 · STEP 3, THE STOP -->
+  <section class="slide" data-title="Step 3 — one comparison past the end" aria-roledescription="slide" aria-label="Step three, the stop">
+    <p class="kicker">The three motions · 3 of 3</p>
+    <h2 class="slide-h" tabindex="-1">One comparison past the end</h2>
+    <div class="two">
+      <div>
+        <p>The walk has to stop somewhere, and the only way to know it has gone too
+        far is to <strong>look at one entry that fails</strong>. Here that entry is
+        3.60: greater than 3.50, so the scan ends.</p>
+        <div class="code"><span class="kw">pos</span> = descend( gpa_idx, 3.05 )
+<span class="kw">while</span> pos.key &lt;= 3.50:         <span class="cm">// the stop test</span>
+    emit row_at( pos )
+    pos = pos.next               <span class="cm">// along the leaf chain</span></div>
+        <p>That single wasted comparison is the entire overhead of knowing where the
+        range ends. Compare it with the full scan, where <em>every</em> comparison
+        that fails is wasted — seven of them here, and millions on a real table.</p>
+        <div class="callout">
+          <h3>Why the upper bound needs no descent</h3>
+          <p style="margin:0">A second descent to find 3.50 would cost another
+          root-to-leaf trip and tell you nothing you will not learn for free by
+          walking into it. You only ever descend for the <strong>start</strong> of
+          the range.</p>
+        </div>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>Every index entry the engine touched, in the order it touched them.</caption>
+          <thead><tr>
+            <th scope="col">#</th><th scope="col" class="mono">GPA</th>
+            <th scope="col">Test against 3.50</th><th scope="col">Result</th>
+          </tr></thead>
+          <tbody>
+            <tr><th scope="row">1</th><td class="mono">3.05</td><td class="mono">3.05 &#8804; 3.50</td><td class="ok">emit</td></tr>
+            <tr><th scope="row">2</th><td class="mono">3.20</td><td class="mono">3.20 &#8804; 3.50</td><td class="ok">emit</td></tr>
+            <tr><th scope="row">3</th><td class="mono">3.30</td><td class="mono">3.30 &#8804; 3.50</td><td class="ok">emit</td></tr>
+            <tr><th scope="row">4</th><td class="mono">3.45</td><td class="mono">3.45 &#8804; 3.50</td><td class="ok">emit</td></tr>
+            <tr><th scope="row">5</th><td class="mono">3.50</td><td class="mono">3.50 &#8804; 3.50</td><td class="ok">emit</td></tr>
+            <tr><th scope="row">6</th><td class="mono">3.60</td><td class="mono">3.60 &gt; 3.50</td><td class="no">stop</td></tr>
+          </tbody>
+        </table>
+        <div class="callout warn">
+          <h3>The whole lecture in one line</h3>
+          <p style="margin:0">Six comparisons produced five rows. A full scan needs
+          twelve comparisons to produce the same five. The ratio only gets better as
+          the table grows, because the index's cost follows the
+          <em>answer</em>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · THE FULL TRACE -->
+  <section class="slide" data-title="The full trace, side by side" aria-roledescription="slide" aria-label="The full trace">
+    <p class="kicker">Reference &#183; the two plans compared</p>
+    <h2 class="slide-h" tabindex="-1">The full trace</h2>
+    <table class="inst trace">
+      <caption><code>SELECT StudentID, Name, GPA FROM STUDENT WHERE GPA BETWEEN 3.05 AND 3.50;</code> over a 12-row, 4-page table.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Step</th>
+          <th scope="col">Full table scan</th>
+          <th scope="col">Index range scan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row" class="keycol">Find the start</th>
+          <td>no start to find &#8212; begin at page 1</td>
+          <td>descend the tree with 3.05: root &#8594; leaf 2 (<span class="mono">2 page reads</span>)</td></tr>
+        <tr><th scope="row" class="keycol">Read</th>
+          <td>all 4 data pages, sequentially</td>
+          <td>leaf 2, then leaf 3 via the next-leaf pointer (<span class="mono">1 more page read</span>)</td></tr>
+        <tr><th scope="row" class="keycol">Compare</th>
+          <td>12 comparisons, one per row</td>
+          <td>6 comparisons &#8212; 5 that pass, 1 that stops the walk</td></tr>
+        <tr><th scope="row" class="keycol">Rows never touched</th>
+          <td class="mono">0</td>
+          <td class="mono">6 of 12</td></tr>
+        <tr><th scope="row" class="keycol">Fetch the rows</th>
+          <td>already in hand &#8212; they were on the pages</td>
+          <td>5 lookups by row pointer, unless the index covers the query</td></tr>
+        <tr><th scope="row" class="keycol">Total page reads</th>
+          <td class="mono">4 sequential</td>
+          <td class="mono">3 + up to 5 row fetches (random)</td></tr>
+        <tr><th scope="row" class="keycol">Scales with</th>
+          <td>the size of the <strong>table</strong></td>
+          <td>the size of the <strong>answer</strong>, plus the tree height</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <h3>Look at the last two rows before you decide who won</h3>
+      <p style="margin:0">On twelve rows the scan is not obviously worse &#8212; four
+      sequential reads can beat three reads plus five random fetches. The index wins
+      decisively as the table grows and the answer does not. That trade-off is what
+      the next demonstrator is about.</p>
+    </div>
+  </section>
+
+  <!-- 10 · WHY NOT A HASH INDEX -->
+  <section class="slide" data-title="Why a hash index cannot do this" aria-roledescription="slide" aria-label="Why a hash index cannot do this">
+    <p class="kicker">The contrast that proves the point</p>
+    <h2 class="slide-h" tabindex="-1">Why a hash index cannot do this</h2>
+    <div class="two">
+      <div>
+        <p>A hash index answers <code>GPA = 3.45</code> in one shot, often faster
+        than a B+tree. Ask it for a <em>range</em> and it has nothing to offer.</p>
+        <p>Hashing deliberately destroys order. 3.05 and 3.20 are neighbors in
+        value and land in unrelated buckets; there is no "next" to follow, and no
+        way to know which buckets hold values in between without visiting them
+        all.</p>
+        <div class="callout">
+          <h3>The rule to remember</h3>
+          <p style="margin:0">Hash indexes serve <span class="term">equality</span>.
+          B+trees serve equality <em>and</em> order: ranges,
+          <code>BETWEEN</code>, <code>&lt;</code> and <code>&gt;</code>, prefix
+          matches like <code>LIKE 'Sm%'</code>, and <code>ORDER BY</code> without a
+          sort. That breadth is why B+trees are the default index in essentially
+          every relational engine, and hash indexes the specialist.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 230" role="img" aria-labelledby="t10 d10">
+          <title id="t10">Hashing scatters adjacent values into unrelated buckets</title>
+          <desc id="d10">Three GPA values that are adjacent in sorted order, 3.05,
+          3.20 and 3.30, each with an arrow to a numbered hash bucket. The arrows
+          cross and land in buckets 7, 2 and 9, far apart and out of order,
+          illustrating that nothing connects neighboring values.</desc>
+          <text x="14" y="20" font-family="system-ui" font-size="10.5" font-weight="700" fill="#00246B">adjacent in value</text>
+          <g font-family="ui-monospace,monospace" font-size="10.5" font-weight="700" fill="#00246B">
+            <rect x="14" y="34" width="64" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="46" y="52" text-anchor="middle">3.05</text>
+            <rect x="14" y="76" width="64" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="46" y="94" text-anchor="middle">3.20</text>
+            <rect x="14" y="118" width="64" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="46" y="136" text-anchor="middle">3.30</text>
+          </g>
+          <text x="140" y="20" font-family="system-ui" font-size="10.5" fill="#4A5160">h(GPA)</text>
+          <g stroke="#7A2708" stroke-width="1.8" opacity=".85" fill="none">
+            <path d="M82 48 Q 180 48 290 160"/>
+            <path d="M82 90 Q 180 90 290 62"/>
+            <path d="M82 132 Q 180 132 290 202"/>
+          </g>
+          <text x="300" y="20" font-family="system-ui" font-size="10.5" font-weight="700" fill="#00246B">scattered across buckets</text>
+          <g font-family="ui-monospace,monospace" font-size="10" fill="#00246B">
+            <rect x="292" y="34" width="150" height="24" rx="4" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/><text x="302" y="51">bucket 1</text>
+            <rect x="292" y="62" width="150" height="24" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="302" y="79" font-weight="700">bucket 2 &#8592; 3.20</text>
+            <rect x="292" y="90" width="150" height="24" rx="4" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/><text x="302" y="107">bucket 3 &#8230;</text>
+            <rect x="292" y="132" width="150" height="24" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="302" y="149" font-weight="700">bucket 7 &#8592; 3.05</text>
+            <rect x="292" y="160" width="150" height="24" rx="4" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/><text x="302" y="177">bucket 8 &#8230;</text>
+            <rect x="292" y="188" width="150" height="24" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="302" y="205" font-weight="700">bucket 9 &#8592; 3.30</text>
+          </g>
+          <text x="260" y="226" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#7A2708" font-weight="700">no next pointer, no order, no range</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · INTERACTIVE DEMONSTRATOR -->
+  <section class="slide" data-title="Demonstrator: widen the range and watch the index lose" aria-roledescription="slide" aria-label="Demonstrator, widen the range">
+    <p class="kicker">Synthesis · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Widen the range. Watch the index lose.</h2>
+    <p>Four predicates over the same twelve rows. Watch the leaf pages light up,
+    and watch the verdict flip once the answer stops being small.</p>
+    <div class="hl-controls" role="group" aria-label="Choose a predicate">
+      <button class="chip" data-p="0" aria-pressed="false">GPA = 3.45</button>
+      <button class="chip" data-p="1" aria-pressed="true">GPA BETWEEN 3.05 AND 3.50</button>
+      <button class="chip" data-p="2" aria-pressed="false">GPA &gt;= 3.45</button>
+      <button class="chip" data-p="3" aria-pressed="false">GPA &gt; 2.00</button>
+    </div>
+    <p id="rg-desc" class="live-desc" role="status" aria-live="polite">The walk starts
+    in leaf 2 at 3.05 and runs to 3.50, ending one entry later at 3.60. Two of the
+    four leaf pages are read; six of the twelve rows are never touched.</p>
+    <div class="leafnodes" id="rg-nodes">
+      <div class="leafnode" data-leaf="0">
+        <h4>leaf 1 <span class="st"></span></h4>
+        <ol class="leafstrip">
+          <li><span class="key">2.10</span><span class="pay">S1009</span></li>
+          <li><span class="key">2.45</span><span class="pay">S1002</span></li>
+          <li><span class="key">2.80</span><span class="pay">S1011</span></li>
+        </ol>
+      </div>
+      <div class="leafnode" data-leaf="1">
+        <h4>leaf 2 <span class="st"></span></h4>
+        <ol class="leafstrip">
+          <li><span class="key">3.05</span><span class="pay">S1004</span></li>
+          <li><span class="key">3.20</span><span class="pay">S1001</span></li>
+          <li><span class="key">3.30</span><span class="pay">S1007</span></li>
+        </ol>
+      </div>
+      <div class="leafnode" data-leaf="2">
+        <h4>leaf 3 <span class="st"></span></h4>
+        <ol class="leafstrip">
+          <li><span class="key">3.45</span><span class="pay">S1003</span></li>
+          <li><span class="key">3.50</span><span class="pay">S1012</span></li>
+          <li><span class="key">3.60</span><span class="pay">S1005</span></li>
+        </ol>
+      </div>
+      <div class="leafnode" data-leaf="3">
+        <h4>leaf 4 <span class="st"></span></h4>
+        <ol class="leafstrip">
+          <li><span class="key">3.75</span><span class="pay">S1008</span></li>
+          <li><span class="key">3.90</span><span class="pay">S1006</span></li>
+          <li><span class="key">4.00</span><span class="pay">S1010</span></li>
+        </ol>
+      </div>
+    </div>
+    <div class="stats" id="rg-stats">
+      <div class="stat"><span class="n" id="rg-rows">5</span><span class="l">rows returned<br>of 12</span></div>
+      <div class="stat"><span class="n" id="rg-leaves">2</span><span class="l">leaf pages read<br>of 4</span></div>
+      <div class="stat"><span class="n" id="rg-reads">3</span><span class="l">index page reads<br>root + leaves</span></div>
+      <div class="stat"><span class="n" id="rg-entries">6</span><span class="l">index entries<br>examined</span></div>
+      <div class="stat"><span class="n" id="rg-sel">42%</span><span class="l">selectivity<br>rows kept</span></div>
+    </div>
+    <p class="verdict" id="rg-verdict">Five rows of twelve. One descent plus one step
+    along the leaf chain. Comfortably worth using the index.</p>
+  </section>
+
+  <!-- 12 · CLUSTERED VS SECONDARY -->
+  <section class="slide" data-title="Clustered or secondary — the random-fetch tax" aria-roledescription="slide" aria-label="Clustered or secondary">
+    <p class="kicker">Where the real cost hides</p>
+    <h2 class="slide-h" tabindex="-1">The random-fetch tax</h2>
+    <div class="two">
+      <div>
+        <p>The walk gives you index entries. Unless the index holds everything the
+        query asked for, each entry then costs a trip to the actual row.</p>
+        <p>In a <span class="term">clustered</span> index the rows are stored in
+        index order, so those trips are sequential and nearly free — the range is a
+        contiguous stretch of the table too.</p>
+        <p>In a <span class="term">secondary</span> index the rows sit wherever they
+        were inserted. Index order tells you nothing about where they are, so each
+        of the five matches is a separate random read, possibly a separate page.</p>
+        <div class="callout warn">
+          <h3>The practical consequence</h3>
+          <p style="margin:0">A secondary index on a range predicate is excellent
+          when the answer is a handful of rows and poor when it is a third of the
+          table &#8212; because the random fetches, not the walk, dominate. One
+          clustered index per table; choose it for the column you range over
+          most.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 520 250" role="img" aria-labelledby="t12 d12">
+          <title id="t12">Clustered versus secondary index row fetches</title>
+          <desc id="d12">Two panels. In the upper panel, a clustered index: five
+          matching index entries point to five rows sitting next to each other on
+          one data page, with short parallel arrows. In the lower panel, a
+          secondary index: the same five entries point to rows scattered across
+          four different data pages, with long crossing arrows.</desc>
+          <text x="12" y="16" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">clustered &#8212; rows follow index order</text>
+          <g font-family="ui-monospace,monospace" font-size="8.5" fill="#00246B">
+            <rect x="12" y="26" width="200" height="20" rx="3" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="112" y="40" text-anchor="middle">3.05 3.20 3.30 3.45 3.50</text>
+            <rect x="12" y="78" width="200" height="20" rx="3" fill="#F4F6FB" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="112" y="92" text-anchor="middle">one data page, rows adjacent</text>
+          </g>
+          <g stroke="#0033A0" stroke-width="1.5">
+            <line x1="32" y1="48" x2="32" y2="76"/><line x1="72" y1="48" x2="72" y2="76"/>
+            <line x1="112" y1="48" x2="112" y2="76"/><line x1="152" y1="48" x2="152" y2="76"/>
+            <line x1="192" y1="48" x2="192" y2="76"/>
+          </g>
+          <text x="224" y="66" font-family="system-ui" font-size="10" font-weight="700" fill="#00246B">5 sequential reads</text>
+          <text x="224" y="79" font-family="system-ui" font-size="10" fill="#4A5160">often 1 page</text>
+          <line x1="12" y1="112" x2="508" y2="112" stroke="#C9D2E0" stroke-width="1.2"/>
+          <text x="12" y="132" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">secondary &#8212; rows sit wherever they landed</text>
+          <g font-family="ui-monospace,monospace" font-size="8.5" fill="#00246B">
+            <rect x="12" y="142" width="200" height="20" rx="3" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.8"/>
+            <text x="112" y="156" text-anchor="middle">3.05 3.20 3.30 3.45 3.50</text>
+          </g>
+          <g font-family="system-ui" font-size="8.5" fill="#4A5160">
+            <rect x="12" y="206" width="110" height="20" rx="3" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/><text x="67" y="220" text-anchor="middle">page 1</text>
+            <rect x="130" y="206" width="110" height="20" rx="3" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/><text x="185" y="220" text-anchor="middle">page 2</text>
+            <rect x="248" y="206" width="110" height="20" rx="3" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/><text x="303" y="220" text-anchor="middle">page 3</text>
+            <rect x="366" y="206" width="110" height="20" rx="3" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/><text x="421" y="220" text-anchor="middle">page 4</text>
+          </g>
+          <g stroke="#7A2708" stroke-width="1.5" fill="none" opacity=".85">
+            <path d="M32 164 Q 60 186 303 204"/>
+            <path d="M72 164 Q 90 186 67 204"/>
+            <path d="M112 164 Q 130 186 421 204"/>
+            <path d="M152 164 Q 170 186 185 204"/>
+            <path d="M192 164 Q 210 186 303 204"/>
+          </g>
+          <text x="260" y="242" text-anchor="middle" font-family="system-ui" font-size="10.5" font-weight="700" fill="#7A2708">5 random reads, up to 4 different pages</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · COVERING INDEXES -->
+  <section class="slide" data-title="Covering indexes — skipping the fetch entirely" aria-roledescription="slide" aria-label="Covering indexes">
+    <p class="kicker">The way out of the tax</p>
+    <h2 class="slide-h" tabindex="-1">When the walk is the whole query</h2>
+    <div class="two">
+      <div>
+        <p>If every column the query needs is already in the index, there is no
+        reason to visit the table at all. The walk returns the answer directly.
+        This is an <span class="term">index-only scan</span>, and the index is said
+        to <span class="term">cover</span> the query.</p>
+        <p>Our query wants <code>StudentID</code>, <code>Name</code> and
+        <code>GPA</code>. An index on <code>GPA</code> alone carries GPA and a row
+        pointer, so it must fetch. Widen it and the fetches disappear:</p>
+        <div class="rel"><span class="cm">INDEX</span> student_gpa_cover
+  <span class="cm">ON</span> STUDENT(<span class="k">GPA</span>, StudentID, Name)</div>
+        <p style="color:var(--muted)">Now the five matches come out of three page
+        reads, full stop. No random fetches, clustered or not.</p>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>What it costs you</h3>
+          <ul style="margin:0">
+            <li>A wider index means fewer entries per page, so a taller tree and
+            more pages to walk.</li>
+            <li>Every one of those columns must be maintained on every insert,
+            update and delete.</li>
+            <li>It helps <em>this</em> query. Add a fourth column to the
+            <code>SELECT</code> and the covering property is gone.</li>
+          </ul>
+        </div>
+        <div class="callout warn">
+          <h3>Judgment, not reflex</h3>
+          <p style="margin:0">Cover a query when it is frequent, selective enough
+          that the walk is short, and stable enough that the column list will not
+          drift. Covering every query is how you end up with a table whose indexes
+          are larger than its data and whose writes have slowed to a crawl.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · SARGABILITY -->
+  <section class="slide" data-title="What silently disables the index" aria-roledescription="slide" aria-label="What silently disables the index">
+    <p class="kicker">The failure mode you will actually hit</p>
+    <h2 class="slide-h" tabindex="-1">What silently disables the index</h2>
+    <p class="lead">The descent works by comparing the predicate's bound against
+    stored keys. Anything that stops the engine comparing a <em>bare column</em>
+    against a <em>constant</em> takes the descent away, and you are back to a full
+    scan — with no error and no warning.</p>
+    <table class="inst">
+      <caption>The index on GPA, or on Name, exists in every row of this table.</caption>
+      <thead>
+        <tr><th scope="col">Written as</th><th scope="col">What happens</th><th scope="col">Write it as</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">WHERE ROUND(GPA) = 3</td>
+          <td>the index stores GPA, not ROUND(GPA) &#8212; nothing to descend with</td>
+          <td class="mono">WHERE GPA &gt;= 2.5 AND GPA &lt; 3.5</td>
+        </tr>
+        <tr>
+          <td class="mono">WHERE GPA + 0.5 &gt; 4.0</td>
+          <td>same problem: the column is inside an expression</td>
+          <td class="mono">WHERE GPA &gt; 3.5</td>
+        </tr>
+        <tr>
+          <td class="mono">WHERE Name LIKE '%smith'</td>
+          <td>a leading wildcard gives no prefix, so no start position exists</td>
+          <td class="mono">WHERE Name LIKE 'smith%'</td>
+        </tr>
+        <tr>
+          <td class="mono">WHERE GPA = '3.45'</td>
+          <td>a type mismatch may force a conversion on the column side</td>
+          <td class="mono">WHERE GPA = 3.45</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <h3>The test to apply</h3>
+      <p style="margin:0">Ask: <em>could I find the first matching entry by descending
+      the tree with a value I already have?</em> If the column is wrapped in
+      anything, the answer is no. A predicate that passes this test is called
+      <span class="term">sargable</span> &#8212; searchable by argument. Some engines
+      recognize and rewrite simple cases, but never rely on that.</p>
+    </div>
+  </section>
+
+  <!-- 15 · WHEN THE OPTIMIZER PICKS THE SCAN -->
+  <section class="slide" data-title="When the optimizer picks the scan" aria-roledescription="slide" aria-label="When the optimizer picks the scan">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">When the optimizer picks the scan</h2>
+    <table class="inst">
+      <caption>N rows on P pages, an answer of k rows, a tree of height h.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Plan</th><th scope="col">Rough cost</th>
+          <th scope="col">Access pattern</th><th scope="col">Chosen when</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="keycol">Full table scan</th>
+          <td class="mono">P</td>
+          <td>sequential, read-ahead friendly</td>
+          <td>the answer is a large fraction of the table, or no usable index exists</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Index range scan<br>+ row fetches</th>
+          <td class="mono">h + (k / entries per page) + k</td>
+          <td>a few sequential leaf reads, then k random fetches</td>
+          <td>k is small relative to N &#8212; often a few percent</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Index-only scan<br>(covering)</th>
+          <td class="mono">h + (k / entries per page)</td>
+          <td>sequential along the leaf chain, no table access</td>
+          <td>the index carries every column the query needs</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Clustered range scan</th>
+          <td class="mono">h + (k / rows per page)</td>
+          <td>sequential in both the index and the table</td>
+          <td>the range is on the clustering column</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <h3>Why the crossover is lower than you expect</h3>
+      <p style="margin:0">Random reads cost far more than sequential ones, so k
+      random fetches can exceed P sequential reads well before k approaches N. On
+      rotating disks the rule of thumb was a few percent; on SSDs it is higher but
+      the shape is the same. This is why the optimizer needs
+      <span class="term">statistics</span> &#8212; without an estimate of k it cannot
+      choose, and a stale histogram is a classic cause of a suddenly slow
+      query.</p>
+    </div>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>A range predicate picks out a <strong>contiguous stretch</strong> of
+          the leaf level, because the leaves are sorted on that column.</li>
+          <li>Answering it is three motions: <span class="term">descend</span> to the
+          lower bound, <span class="term">walk</span> forward along the leaf chain,
+          <span class="term">stop</span> one comparison past the upper bound.</li>
+          <li>You descend for the start only. The end is discovered for the price of
+          a single failed comparison.</li>
+          <li>Cost follows the size of the <em>answer</em>, not the table &#8212;
+          until the row fetches take over, at which point the scan wins.</li>
+          <li>Hash indexes cannot do any of this: they trade order away for
+          equality speed.</li>
+          <li>Wrapping the column in a function removes the descent and silently
+          restores the full scan.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>The lower bound 3.05 is deleted from the table. Does the range scan
+            still work, and what does the descent land on?</li>
+            <li>Why is there no second descent for the upper bound?</li>
+            <li><code>WHERE GPA &gt;= 3.45</code> returns half the table. The index
+            still reads only two leaf pages &#8212; so why might the optimizer
+            refuse to use it?</li>
+            <li>You add <code>Major</code> to the <code>SELECT</code> list of a
+            query served by a covering index. What changes in the plan?</li>
+            <li>Give a predicate on <code>Name</code> that an index on
+            <code>Name</code> can serve, and one it cannot.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next</h3>
+          <p style="margin:0">Composite indexes and why column order decides what
+          a range can use, then selectivity estimation &#8212; how the optimizer
+          guesses k before it has read anything.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">&#8249; Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next &#8250;</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // ---- range-scan demonstrator -------------------------------------------
+  var rgNodes = document.getElementById('rg-nodes');
+  var rgChips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-p]'));
+
+  if (rgNodes && rgChips.length){
+    // entry i lives in leaf Math.floor(i / 3); hits are contiguous by construction
+    var PREDS = [
+      { hits:[6], stop:7, leaves:[2],
+        desc:'An equality probe. The descent lands directly on 3.45 in leaf 3; the very next entry, 3.50, ends the scan. One leaf page of four is read.',
+        verdict:'One row of twelve. Two page reads, root then a single leaf. This is the index doing exactly what it exists for — and a hash index would do it too.' },
+      { hits:[3,4,5,6,7], stop:8, leaves:[1,2],
+        desc:'The walk starts in leaf 2 at 3.05 and runs to 3.50, ending one entry later at 3.60. Two of the four leaf pages are read; six of the twelve rows are never touched.',
+        verdict:'Five rows of twelve. One descent plus one step along the leaf chain. Comfortably worth using the index.' },
+      { hits:[6,7,8,9,10,11], stop:null, leaves:[2,3],
+        desc:'An open-ended range. The descent lands on 3.45 and the walk runs to the end of the chain, so there is no stop comparison — the chain simply ends. Still only two leaf pages.',
+        verdict:'Six rows of twelve — half the table — from just two leaf pages. But on a secondary index that is six random row fetches, and the fetches now cost more than the walk.' },
+      { hits:[0,1,2,3,4,5,6,7,8,9,10,11], stop:null, leaves:[0,1,2,3],
+        desc:'Every row qualifies. The descent lands on the first entry and the walk traverses the entire leaf level, all four pages, before the chain ends.',
+        verdict:'Twelve rows of twelve. The index reads its root and all four leaf pages, then fetches all twelve rows at random. A full table scan reads four pages sequentially and is finished. The optimizer picks the scan.' }
+    ];
+
+    var rgDesc    = document.getElementById('rg-desc');
+    var rgVerdict = document.getElementById('rg-verdict');
+    var rgRows    = document.getElementById('rg-rows');
+    var rgLeaves  = document.getElementById('rg-leaves');
+    var rgReads   = document.getElementById('rg-reads');
+    var rgEntries = document.getElementById('rg-entries');
+    var rgSel     = document.getElementById('rg-sel');
+    var rgItems   = Array.prototype.slice.call(rgNodes.querySelectorAll('.leafstrip li'));
+    var rgLeafEls = Array.prototype.slice.call(rgNodes.querySelectorAll('.leafnode'));
+
+    function rgRender(p){
+      var s = PREDS[p];
+      for (var i = 0; i < rgItems.length; i++){
+        var li = rgItems[i];
+        var isHit  = s.hits.indexOf(i) !== -1;
+        var isStop = (s.stop === i);
+        var onPage = s.leaves.indexOf(Math.floor(i / 3)) !== -1;
+        li.classList.toggle('is-in', isHit);
+        li.classList.toggle('is-stop', isStop);
+        li.classList.toggle('faded', !onPage);
+        if (isHit){ li.setAttribute('aria-current','true'); }
+        else { li.removeAttribute('aria-current'); }
+      }
+      for (var L = 0; L < rgLeafEls.length; L++){
+        var read = s.leaves.indexOf(L) !== -1;
+        rgLeafEls[L].classList.toggle('skipped', !read);
+        var st = rgLeafEls[L].querySelector('.st');
+        if (st) st.textContent = read ? '· read' : '· never read';
+      }
+      var entries = s.hits.length + (s.stop === null ? 0 : 1);
+      if (rgRows)    rgRows.textContent    = s.hits.length;
+      if (rgLeaves)  rgLeaves.textContent  = s.leaves.length;
+      if (rgReads)   rgReads.textContent   = s.leaves.length + 1;
+      if (rgEntries) rgEntries.textContent = entries;
+      if (rgSel)     rgSel.textContent     = Math.round(s.hits.length / 12 * 100) + '%';
+      if (rgDesc)    rgDesc.textContent    = s.desc;
+      if (rgVerdict) rgVerdict.textContent = s.verdict;
+      rgChips.forEach(function(c){
+        c.setAttribute('aria-pressed', String(Number(c.getAttribute('data-p')) === p));
+      });
+    }
+
+    rgChips.forEach(function(c){
+      c.addEventListener('click', function(){
+        rgRender(Number(c.getAttribute('data-p')));
+      });
+    });
+
+    rgRender(1);
+  }
+
+  // deep link (#s3) support, on load and on in-page hash changes
+  function fromHash(moveFocus){
+    var m = (location.hash || '').match(/^#s(\d+)$/);
+    render(m ? (parseInt(m[1], 10) - 1) : 0, moveFocus);
+  }
+  window.addEventListener('hashchange', function(){ fromHash(true); });
+  fromHash(false);
+})();
+</script>
+</body>
+</html>
