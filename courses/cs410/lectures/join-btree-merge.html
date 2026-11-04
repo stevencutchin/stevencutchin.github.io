@@ -1,0 +1,1271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a Join Works — B+Tree Leaves, Traversal and Reconciliation · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- schema / SQL typography ---- */
+.rel{font-family:var(--mono);font-size:.9rem;line-height:1.7;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.rel .k{color:var(--brown);font-weight:700}
+.rel .r{color:var(--blue-ink);font-weight:700}
+.sqlline{font-family:var(--mono);font-size:.9rem;background:#fff;border:1px solid var(--line);
+  border-radius:8px;padding:10px 13px;color:var(--brown);font-weight:700;overflow-x:auto}
+.code{font-family:var(--mono);font-size:.86rem;line-height:1.65;background:var(--surface);
+  border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:8px;
+  padding:11px 14px;margin:10px 0;white-space:pre-wrap;overflow-x:auto}
+.code .cm{color:var(--muted)}
+.code .kw{color:var(--brown);font-weight:700}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.mono,table.inst th.mono{font-family:var(--mono)}
+table.inst tr.is-new td{background:var(--tint)}
+.ok{color:var(--blue-ink);font-weight:700}
+.no{color:var(--brown);font-weight:700}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px;align-items:center}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.btn-s{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;background:var(--blue);
+  color:#fff;border:2px solid var(--blue);border-radius:8px;padding:6px 15px}
+.btn-s:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.btn-s:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.btn-s.ghost{background:#fff;color:var(--blue-ink);border-color:var(--line)}
+.btn-s:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.step-tag{font-family:var(--mono);font-size:.84rem;color:var(--blue-ink);font-weight:700;
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:2px 9px}
+.live-desc{min-height:3.4em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+/* ---- leaf strips: the sorted sequences being walked ---- */
+.leafbox{border:1px solid var(--line);border-radius:10px;background:#fff;padding:11px 13px;
+  margin-bottom:12px}
+.leafbox h3{margin:0 0 2px;font-family:var(--sans);font-size:.95rem;color:var(--blue-ink)}
+.leafbox .sub{margin:0 0 9px;color:var(--muted);font-size:.8rem}
+.leafstrip{list-style:none;display:flex;flex-wrap:nowrap;gap:6px;margin:0;padding:2px 0;
+  overflow-x:auto}
+.leafstrip li{font-family:var(--mono);font-size:.82rem;line-height:1.25;flex:0 0 auto;
+  border:2px solid var(--line);border-radius:7px;padding:5px 8px 5px 7px;background:#fff;
+  min-width:62px;text-align:center}
+.leafstrip li .key{display:block;font-weight:700;color:var(--blue-ink)}
+.leafstrip li .pay{display:block;color:var(--muted);font-size:.95em}
+/* every entry reserves the badge line, so run and non-run keep the same height */
+.leafstrip li::after{content:"\00a0";display:block;font-size:.62rem;line-height:1.3;
+  font-weight:700;color:var(--blue-ink);letter-spacing:.03em}
+/* run membership: dashed outline + tint + a written badge, never color alone */
+.leafstrip li.in-run{border-style:dashed;border-color:var(--blue);background:var(--tint)}
+.leafstrip li.in-run::after{content:"run"}
+/* cursor: thick solid border + a glyph in the flow, never color alone */
+.leafstrip li.is-cursor{border-style:solid;border-width:3px;border-color:var(--brown);
+  padding:4px 7px 4px 6px}
+.leafstrip li.is-cursor .key::before{content:"\25B8 ";color:var(--brown)}
+.leafstrip li.spent{opacity:.55}
+.leafstrip li.spent .key{text-decoration:line-through}
+.outbox{border:1px solid var(--line);border-radius:10px;background:#fff;padding:11px 13px}
+.outbox h3{margin:0 0 7px;font-family:var(--sans);font-size:.95rem;color:var(--blue-ink)}
+.outcount{font-family:var(--mono);font-weight:700;color:var(--brown)}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two,.demo{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.rel,.sqlline,.code,.leafbox,.outbox{border-color:#000}
+  .chip,.leafstrip li{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:6mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.5rem}
+  .fig,.callout,.rel,.sqlline,.code,table.inst,.leafbox,.outbox{break-inside:avoid}
+  .fig.wide svg{width:62%;display:block;margin:0 auto}
+  .demo{grid-template-columns:1fr 1fr}
+  .leafstrip{overflow-x:visible}
+  .leafstrip li{min-width:58px;font-size:.74rem}
+  /* the 12-row trace plus its callout must stay on one page */
+  table.inst.trace{font-size:.74rem;line-height:1.3}
+  table.inst.trace th,table.inst.trace td{padding:2.5px 7px}
+  table.inst.trace + .callout{margin-top:9px;padding:8px 14px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 7 · Query processing</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">How a join works — B+tree leaves, traversal, reconciliation · Elmasri &amp; Navathe, Ch. 17 &amp; 18</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="How a join works — lecture slides">
+
+  <!-- 1 · TITLE / MOTIVATION -->
+  <section class="slide is-active" data-title="A join is a walk down two sorted lists"
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Query processing · what the engine actually does</p>
+    <h2 class="slide-h" tabindex="-1">A join is a walk<br>down two sorted lists</h2>
+    <div class="two">
+      <div>
+        <p class="lead">A join looks like set theory on the page and like magic in
+        the engine. It is neither. At the bottom it is two cursors moving forward
+        through two ordered sequences, comparing the key under each one.</p>
+        <p style="color:var(--muted)">The ordered sequences come from B+tree
+        indexes — because the leaf level of a B+tree <em>is</em> a sorted linked
+        list. Once you see that, the join algorithm is the merge step you already
+        know from merge sort, with one extra rule for repeated keys. That extra
+        rule is the whole of the interesting part.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 220" role="img" aria-labelledby="t1 d1">
+          <title id="t1">Two sorted sequences being merged into a result</title>
+          <desc id="d1">Two horizontal rows of key boxes, one above the other,
+          each in ascending order. A cursor triangle sits under one box in each
+          row. An arrow from the matching pair points down to a result row,
+          showing that output is produced where the two cursors agree.</desc>
+          <text x="12" y="34" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">ENROLLED_IN · by CourseID</text>
+          <g font-family="ui-monospace,monospace" font-size="11.5" fill="#00246B">
+            <rect x="12" y="44" width="76" height="30" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="50" y="63" text-anchor="middle">CS354</text>
+            <rect x="96" y="44" width="76" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+            <text x="134" y="63" text-anchor="middle" font-weight="700">CS410</text>
+            <rect x="180" y="44" width="76" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+            <text x="218" y="63" text-anchor="middle" font-weight="700">CS410</text>
+            <rect x="264" y="44" width="76" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+            <text x="302" y="63" text-anchor="middle" font-weight="700">CS410</text>
+            <rect x="348" y="44" width="76" height="30" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="386" y="63" text-anchor="middle">CS452</text>
+            <rect x="432" y="44" width="76" height="30" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="470" y="63" text-anchor="middle">CS481</text>
+          </g>
+          <text x="12" y="118" font-family="system-ui" font-size="11.5" font-weight="700" fill="#00246B">TEACHES · by CourseID</text>
+          <g font-family="ui-monospace,monospace" font-size="11.5" fill="#00246B">
+            <rect x="96" y="128" width="76" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+            <text x="134" y="147" text-anchor="middle" font-weight="700">CS410</text>
+            <rect x="180" y="128" width="76" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+            <text x="218" y="147" text-anchor="middle" font-weight="700">CS410</text>
+            <rect x="264" y="128" width="76" height="30" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="302" y="147" text-anchor="middle">CS452</text>
+            <rect x="348" y="128" width="76" height="30" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+            <text x="386" y="147" text-anchor="middle">CS471</text>
+          </g>
+          <text x="218" y="190" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#7A2708" font-weight="700">three on top &#215; two below = six result rows</text>
+          <text x="218" y="208" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">everything else is skipped, never compared twice</text>
+        </svg>
+        <p class="figcap">The bold boxes are the one key the two sides agree on.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · WHY THIS MATTERS -->
+  <section class="slide" data-title="Why this is worth an hour" aria-roledescription="slide" aria-label="Why this is worth an hour">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">Why this is worth an hour</h2>
+    <p class="lead">You can write correct SQL without knowing any of this. You
+    cannot read a query plan, choose an index, or explain a slow query without it.</p>
+    <div class="two">
+      <div>
+        <ul>
+          <li><strong>Query plans stop being opaque.</strong> <span class="term">Index
+          Nested Loop</span>, <span class="term">Merge Join</span> and
+          <span class="term">Hash Join</span> in an <code>EXPLAIN</code> output are
+          three concrete strategies, and today you see two of them in full.</li>
+          <li><strong>Index choice becomes a decision, not a habit.</strong> An index
+          on a join column is not "make it faster" — it supplies
+          <em>sorted order</em>, which is the input the merge strategy needs.</li>
+          <li><strong>Join cost becomes estimable.</strong> HW3 asks you to estimate
+          one. The estimate comes straight out of the picture on the next few
+          slides.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The claim we are going to defend</h3>
+          <p style="margin:0">A join of two indexed relations is
+          <strong>list traversal plus reconciliation</strong>. Traversal: walk
+          forward through each index's leaf level, which is already in key order.
+          Reconciliation: at each position decide which side is behind and advance
+          it, and when the two agree, emit the matches. No backtracking, no nested
+          scanning, one pass over each input.</p>
+        </div>
+        <div class="callout warn">
+          <h3>What we are not covering today</h3>
+          <p style="margin:0">Hash join (no ordering, equality only) and external
+          sort-merge for unindexed inputs. Both appear on the cost comparison at
+          the end, and both come back in the optimization lecture.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE QUERY AND THE DATA -->
+  <section class="slide" data-title="The query and the data" aria-roledescription="slide" aria-label="The query and the data">
+    <p class="kicker">The running example</p>
+    <h2 class="slide-h" tabindex="-1">One query, two relations</h2>
+    <p>Our UNIVERSITY mini-world. Which instructors teach which students? Neither
+    relation knows — the answer only exists in the pairing.</p>
+    <div class="rel"><span class="r">ENROLLED_IN</span>(StudentID &#8594; STUDENT, <span class="k">CourseID</span> &#8594; COURSE, Grade)
+<span class="r">TEACHES</span>(EmpID &#8594; EMPLOYEE, <span class="k">CourseID</span> &#8594; COURSE, Term)</div>
+    <p class="sqlline">SELECT e.StudentID, t.EmpID FROM ENROLLED_IN e JOIN TEACHES t ON e.CourseID = t.CourseID;</p>
+    <div class="two" style="margin-top:14px">
+      <div>
+        <table class="inst">
+          <caption>ENROLLED_IN — six rows, shown in CourseID order.</caption>
+          <thead><tr><th scope="col" class="mono">CourseID</th><th scope="col" class="mono">StudentID</th><th scope="col" class="mono">Grade</th></tr></thead>
+          <tbody>
+            <tr><td class="mono keycol">CS354</td><td class="mono">S1002</td><td class="mono">A&#8722;</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1001</td><td class="mono">A</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1003</td><td class="mono">B+</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1007</td><td class="mono">A</td></tr>
+            <tr><td class="mono keycol">CS452</td><td class="mono">S1002</td><td class="mono">B</td></tr>
+            <tr><td class="mono keycol">CS481</td><td class="mono">S1005</td><td class="mono">A&#8722;</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>TEACHES — four rows, shown in CourseID order.</caption>
+          <thead><tr><th scope="col" class="mono">CourseID</th><th scope="col" class="mono">EmpID</th><th scope="col" class="mono">Term</th></tr></thead>
+          <tbody>
+            <tr><td class="mono keycol">CS410</td><td class="mono">E22</td><td class="mono">FA26</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">E31</td><td class="mono">FA26</td></tr>
+            <tr><td class="mono keycol">CS452</td><td class="mono">E22</td><td class="mono">FA26</td></tr>
+            <tr><td class="mono keycol">CS471</td><td class="mono">E40</td><td class="mono">FA26</td></tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          <h3>Two things to notice now</h3>
+          <p style="margin:0">CS410 repeats on <em>both</em> sides — it is co-taught
+          and has three students. And each side holds a course the other does not:
+          CS481 has no instructor assigned, CS471 has no enrollments.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · WHAT A JOIN MUST PRODUCE -->
+  <section class="slide" data-title="What the join must produce, and the cost of being naive" aria-roledescription="slide" aria-label="What the join must produce">
+    <p class="kicker">The specification</p>
+    <h2 class="slide-h" tabindex="-1">What must come out</h2>
+    <div class="two">
+      <div>
+        <p>The definition says: form every pair of one row from each side, keep
+        the pairs where the predicate holds.</p>
+        <div class="code">ENROLLED_IN &#8904;<span class="cm">CourseID</span> TEACHES
+  &#8801; &#963;<span class="cm">[e.CourseID = t.CourseID]</span>( ENROLLED_IN &#215; TEACHES )</div>
+        <p>Six rows &#215; four rows = <strong>24 candidate pairs</strong>, of which
+        <strong>7</strong> survive. That is the answer, and it is the
+        <em>only</em> thing any algorithm is allowed to produce. Everything that
+        follows is about not doing 24 comparisons.</p>
+        <div class="callout warn">
+          <h3>The naive cost</h3>
+          <p style="margin:0">Nested loops is |R| &#215; |S| comparisons. On six and
+          four rows that is free. On a million enrollments and ten thousand
+          teaching assignments it is 10<sup>10</sup> comparisons, and that is
+          before any disk page is read twice.</p>
+        </div>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>The 7 result rows. Produced once; the question is how.</caption>
+          <thead><tr><th scope="col" class="mono">CourseID</th><th scope="col" class="mono">StudentID</th><th scope="col" class="mono">EmpID</th></tr></thead>
+          <tbody>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1001</td><td class="mono">E22</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1001</td><td class="mono">E31</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1003</td><td class="mono">E22</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1003</td><td class="mono">E31</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1007</td><td class="mono">E22</td></tr>
+            <tr><td class="mono keycol">CS410</td><td class="mono">S1007</td><td class="mono">E31</td></tr>
+            <tr><td class="mono keycol">CS452</td><td class="mono">S1002</td><td class="mono">E22</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">CS354, CS481 and CS471 contribute nothing. In an inner
+        join they are silently dropped.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · B+TREE RECAP -->
+  <section class="slide" data-title="B+tree recap — internal nodes route, leaves hold everything" aria-roledescription="slide" aria-label="B plus tree recap">
+    <p class="kicker">The structure we are standing on</p>
+    <h2 class="slide-h" tabindex="-1">Internal nodes route. Leaves hold everything.</h2>
+    <div class="two">
+      <div>
+        <p>In a <span class="term">B+tree</span> the internal nodes carry
+        <em>separator</em> keys only — signposts that tell a descent which child to
+        take. No data hangs off them.</p>
+        <p>Every actual key lives at the <strong>leaf level</strong>, in ascending
+        order, each one paired with a pointer to its row (or, in a clustered
+        primary index, with the row itself).</p>
+        <p>Because the fan-out of a node is large — typically 100 to 300 keys on a
+        disk page — the tree is <strong>short</strong>. Millions of rows sit under
+        three or four levels.</p>
+        <div class="callout">
+          <h3>The property that matters today</h3>
+          <p style="margin:0">Leaf nodes are chained left to right by
+          <span class="term">next-leaf pointers</span>. This is the "+" in B+tree,
+          and it is exactly what a B-tree lacks.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 600 250" role="img" aria-labelledby="t5 d5">
+          <title id="t5">A two-level B plus tree over six course IDs</title>
+          <desc id="d5">A root node holding the two separator keys CS452 and
+          CS481, with three edges down to three leaf nodes. The leaves hold, left
+          to right, CS354 and CS410; CS452 and CS471; CS481 and CS497. Horizontal
+          arrows chain each leaf to the next one, so the leaf level reads as one
+          ascending sequence.</desc>
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+            </marker>
+          </defs>
+          <line x1="220" y1="56" x2="106" y2="146" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="300" y1="56" x2="300" y2="146" stroke="#8A93A3" stroke-width="1.7"/>
+          <line x1="380" y1="56" x2="494" y2="146" stroke="#8A93A3" stroke-width="1.7"/>
+          <rect x="208" y="20" width="184" height="36" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.3"/>
+          <line x1="232" y1="20" x2="232" y2="56" stroke="#0033A0" stroke-width="1.2"/>
+          <line x1="288" y1="20" x2="288" y2="56" stroke="#0033A0" stroke-width="1.2"/>
+          <line x1="312" y1="20" x2="312" y2="56" stroke="#0033A0" stroke-width="1.2"/>
+          <line x1="368" y1="20" x2="368" y2="56" stroke="#0033A0" stroke-width="1.2"/>
+          <text x="260" y="43" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#00246B">CS452</text>
+          <text x="340" y="43" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#00246B">CS481</text>
+          <text x="220" y="44" text-anchor="middle" font-family="system-ui" font-size="13" fill="#8A93A3">&#8226;</text>
+          <text x="300" y="44" text-anchor="middle" font-family="system-ui" font-size="13" fill="#8A93A3">&#8226;</text>
+          <text x="380" y="44" text-anchor="middle" font-family="system-ui" font-size="13" fill="#8A93A3">&#8226;</text>
+          <text x="16" y="28" font-family="system-ui" font-size="10.5" fill="#4A5160">internal node &#8212;</text>
+          <text x="16" y="41" font-family="system-ui" font-size="10.5" fill="#4A5160">two separators,</text>
+          <text x="16" y="54" font-family="system-ui" font-size="10.5" fill="#4A5160">three children,</text>
+          <text x="16" y="67" font-family="system-ui" font-size="10.5" fill="#4A5160">no rows</text>
+          <g font-family="system-ui" font-size="9.5" fill="#4A5160" text-anchor="middle"
+             stroke="#ffffff" stroke-width="3.2" paint-order="stroke">
+            <text x="106" y="136">&lt; CS452</text>
+            <text x="300" y="136">CS452 &#8804; k &lt; CS481</text>
+            <text x="494" y="136">&#8805; CS481</text>
+          </g>
+          <rect x="26" y="146" width="160" height="38" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="106" y="170" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#00246B">CS354 &#183; CS410</text>
+          <rect x="220" y="146" width="160" height="38" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="300" y="170" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#00246B">CS452 &#183; CS471</text>
+          <rect x="414" y="146" width="160" height="38" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.3"/>
+          <text x="494" y="170" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#00246B">CS481 &#183; CS497</text>
+          <line x1="188" y1="165" x2="216" y2="165" stroke="#7A2708" stroke-width="2.2" marker-end="url(#ah)"/>
+          <line x1="382" y1="165" x2="410" y2="165" stroke="#7A2708" stroke-width="2.2" marker-end="url(#ah)"/>
+          <text x="300" y="214" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#7A2708">next-leaf pointers chain the leaf level</text>
+          <text x="300" y="232" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">every key appears exactly once, in ascending order</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · THE REFRAME -->
+  <section class="slide" data-title="The reframe — a B+tree is a sorted list with a fast entry point" aria-roledescription="slide" aria-label="The reframe">
+    <p class="kicker">The idea the whole lecture turns on</p>
+    <h2 class="slide-h" tabindex="-1">A B+tree is a sorted list<br>with a fast way in</h2>
+    <p class="lead">Ignore the upper levels for a moment and look only at the
+    leaves. What is left is a singly linked list of keys in ascending order.</p>
+    <div class="fig wide">
+      <svg viewBox="0 0 600 120" role="img" aria-labelledby="t6 d6">
+        <title id="t6">The leaf level flattened into one sorted sequence</title>
+        <desc id="d6">The six course IDs CS354, CS410, CS452, CS471, CS481 and
+        CS497 drawn as a single left-to-right chain of boxes joined by arrows,
+        with the leaf-node boundaries shown as faint brackets above, making the
+        point that the node boundaries are invisible to a forward scan.</desc>
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A93A3"/>
+          </marker>
+        </defs>
+        <g font-family="ui-monospace,monospace" font-size="11.5" font-weight="700" fill="#00246B">
+          <rect x="14" y="40" width="74" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="51" y="59" text-anchor="middle">CS354</text>
+          <rect x="112" y="40" width="74" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="149" y="59" text-anchor="middle">CS410</text>
+          <rect x="210" y="40" width="74" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="247" y="59" text-anchor="middle">CS452</text>
+          <rect x="308" y="40" width="74" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="345" y="59" text-anchor="middle">CS471</text>
+          <rect x="406" y="40" width="74" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="443" y="59" text-anchor="middle">CS481</text>
+          <rect x="504" y="40" width="74" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+          <text x="541" y="59" text-anchor="middle">CS497</text>
+        </g>
+        <g stroke="#8A93A3" stroke-width="1.8" marker-end="url(#ah2)">
+          <line x1="90" y1="55" x2="108" y2="55"/>
+          <line x1="188" y1="55" x2="206" y2="55"/>
+          <line x1="286" y1="55" x2="304" y2="55"/>
+          <line x1="384" y1="55" x2="402" y2="55"/>
+          <line x1="482" y1="55" x2="500" y2="55"/>
+        </g>
+        <g stroke="#C9D2E0" stroke-width="1.4" fill="none">
+          <path d="M14 30 L14 24 L186 24 L186 30"/>
+          <path d="M210 30 L210 24 L382 24 L382 30"/>
+          <path d="M406 30 L406 24 L578 24 L578 30"/>
+        </g>
+        <text x="296" y="16" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">leaf-node boundaries &#8212; invisible to a forward scan</text>
+        <text x="296" y="98" text-anchor="middle" font-family="system-ui" font-size="11.5" fill="#7A2708" font-weight="700">this is just a sorted list</text>
+      </svg>
+    </div>
+    <div class="two" style="margin-top:6px">
+      <div class="callout">
+        <h3>What the upper levels buy you</h3>
+        <p style="margin:0">One thing: an <strong>entry point</strong>. A descent of
+        height <em>h</em> lands you at any key in the list in <em>h</em> page reads
+        instead of scanning from the front. That is the <em>only</em> service the
+        internal nodes provide to a join.</p>
+      </div>
+      <div class="callout">
+        <h3>What the leaf chain buys you</h3>
+        <p style="margin:0">Everything else: <strong>ordered forward traversal</strong>
+        from wherever you landed, with no further descents and no sort. The data is
+        already in join-key order, for free, permanently, maintained by every
+        insert.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · TWO TREES, TWO LISTS -->
+  <section class="slide" data-title="Two indexes give you two sorted lists" aria-roledescription="slide" aria-label="Two indexes give two sorted lists">
+    <p class="kicker">Setting up the merge</p>
+    <h2 class="slide-h" tabindex="-1">Two indexes, two sorted lists</h2>
+    <p>Put a B+tree index on <code>CourseID</code> on each side. Now both inputs
+    can be read in <code>CourseID</code> order with no sorting step at all.</p>
+    <div class="two">
+      <div>
+        <div class="leafbox">
+          <h3>Index on ENROLLED_IN(CourseID)</h3>
+          <p class="sub">leaf level, read front to back</p>
+          <ol class="leafstrip">
+            <li><span class="key">CS354</span><span class="pay">S1002</span></li>
+            <li><span class="key">CS410</span><span class="pay">S1001</span></li>
+            <li><span class="key">CS410</span><span class="pay">S1003</span></li>
+            <li><span class="key">CS410</span><span class="pay">S1007</span></li>
+            <li><span class="key">CS452</span><span class="pay">S1002</span></li>
+            <li><span class="key">CS481</span><span class="pay">S1005</span></li>
+          </ol>
+        </div>
+        <div class="leafbox">
+          <h3>Index on TEACHES(CourseID)</h3>
+          <p class="sub">leaf level, read front to back</p>
+          <ol class="leafstrip">
+            <li><span class="key">CS410</span><span class="pay">E22</span></li>
+            <li><span class="key">CS410</span><span class="pay">E31</span></li>
+            <li><span class="key">CS452</span><span class="pay">E22</span></li>
+            <li><span class="key">CS471</span><span class="pay">E40</span></li>
+          </ol>
+        </div>
+      </div>
+      <div>
+        <p>Both lists are <strong>sorted on the same attribute</strong>. That is the
+        entire precondition for the algorithm we are about to run — and it is the
+        precondition a B+tree hands you without being asked.</p>
+        <div class="callout">
+          <h3>Two strategies are now available</h3>
+          <ol style="margin:0">
+            <li><strong>Probe repeatedly.</strong> Walk one list; for each entry,
+            descend the <em>other</em> tree to look its key up. Uses the upper
+            levels, ignores the leaf chain.</li>
+            <li><strong>Walk both.</strong> Descend each tree once to find the
+            start, then advance through both leaf chains together. Uses the leaf
+            chain, ignores the upper levels after the first descent.</li>
+          </ol>
+        </div>
+        <p class="figcap">These are <em>index nested loop join</em> and
+        <em>merge join</em>. Next two slides take them one at a time.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · INDEX NESTED LOOP -->
+  <section class="slide" data-title="Strategy 1 — index nested loop, probe per row" aria-roledescription="slide" aria-label="Strategy one, index nested loop">
+    <p class="kicker">Strategy 1 of 2 · random access</p>
+    <h2 class="slide-h" tabindex="-1">Probe once per outer row</h2>
+    <div class="two">
+      <div>
+        <p>Scan the outer relation in any order at all. For each row, take its
+        join key and <strong>descend the inner tree</strong> to find the matching
+        leaf entries. Emit a pair for each one found.</p>
+        <div class="code"><span class="kw">for each</span> row e <span class="kw">in</span> ENROLLED_IN:
+    leaf = descend( TEACHES_idx, e.CourseID )   <span class="cm">// h page reads</span>
+    <span class="kw">while</span> leaf.key == e.CourseID:
+        emit( e, leaf.row )
+        leaf = leaf.next</div>
+        <p>Four of our six enrollments find nothing and pay for the descent
+        anyway. The two that match pay the descent plus the matches.</p>
+        <div class="callout warn">
+          <h3>Where the cost sits</h3>
+          <p style="margin:0">|R| descents of height <em>h</em>. The upper levels
+          cache well, so the real bill is roughly <strong>one random leaf read per
+          outer row</strong>, plus one row fetch per match if the index is not
+          covering. Random reads are the expensive kind.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 260" role="img" aria-labelledby="t8 d8">
+          <title id="t8">Repeated root-to-leaf descents, one per outer row</title>
+          <desc id="d8">Six outer rows listed down the left side. Curved arrows
+          run from each of them to the root of the TEACHES index on the right,
+          and from the root down to the leaf level, illustrating that every outer
+          row causes its own full descent of the tree.</desc>
+          <text x="12" y="22" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">ENROLLED_IN rows</text>
+          <g font-family="ui-monospace,monospace" font-size="10.5" fill="#00246B">
+            <rect x="12" y="32" width="86" height="24" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/><text x="55" y="48" text-anchor="middle">CS354</text>
+            <rect x="12" y="62" width="86" height="24" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/><text x="55" y="78" text-anchor="middle">CS410</text>
+            <rect x="12" y="92" width="86" height="24" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/><text x="55" y="108" text-anchor="middle">CS410</text>
+            <rect x="12" y="122" width="86" height="24" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/><text x="55" y="138" text-anchor="middle">CS410</text>
+            <rect x="12" y="152" width="86" height="24" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/><text x="55" y="168" text-anchor="middle">CS452</text>
+            <rect x="12" y="182" width="86" height="24" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/><text x="55" y="198" text-anchor="middle">CS481</text>
+          </g>
+          <g stroke="#7A2708" stroke-width="1.5" fill="none" opacity=".75">
+            <path d="M100 44 Q 190 44 250 56"/>
+            <path d="M100 74 Q 190 70 250 60"/>
+            <path d="M100 104 Q 190 90 250 64"/>
+            <path d="M100 134 Q 190 110 250 68"/>
+            <path d="M100 164 Q 190 130 250 72"/>
+            <path d="M100 194 Q 190 150 250 76"/>
+          </g>
+          <rect x="250" y="44" width="120" height="32" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.2"/>
+          <text x="310" y="65" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">root</text>
+          <g stroke="#8A93A3" stroke-width="1.5">
+            <line x1="275" y1="76" x2="245" y2="120"/>
+            <line x1="310" y1="76" x2="350" y2="120"/>
+          </g>
+          <rect x="190" y="120" width="112" height="30" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="246" y="140" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">internal</text>
+          <rect x="314" y="120" width="112" height="30" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.8"/>
+          <text x="370" y="140" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#00246B">internal</text>
+          <g stroke="#8A93A3" stroke-width="1.5">
+            <line x1="225" y1="150" x2="205" y2="186"/>
+            <line x1="268" y1="150" x2="300" y2="186"/>
+            <line x1="390" y1="150" x2="420" y2="186"/>
+          </g>
+          <g font-family="ui-monospace,monospace" font-size="10" fill="#00246B">
+            <rect x="152" y="186" width="106" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="205" y="204" text-anchor="middle">CS410 CS410</text>
+            <rect x="268" y="186" width="106" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="321" y="204" text-anchor="middle">CS452</text>
+            <rect x="384" y="186" width="106" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="437" y="204" text-anchor="middle">CS471</text>
+          </g>
+          <text x="310" y="238" text-anchor="middle" font-family="system-ui" font-size="11" fill="#7A2708" font-weight="700">six rows, six independent descents</text>
+          <text x="310" y="254" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">the leaf chain is never followed sideways</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · MERGE JOIN -->
+  <section class="slide" data-title="Strategy 2 — merge join, descend once then walk" aria-roledescription="slide" aria-label="Strategy two, merge join">
+    <p class="kicker">Strategy 2 of 2 · sequential traversal</p>
+    <h2 class="slide-h" tabindex="-1">Descend once. Then just walk.</h2>
+    <div class="two">
+      <div>
+        <p>Descend each tree <strong>one time</strong> to reach the start of its
+        leaf chain. From then on, never touch the upper levels again. Keep one
+        cursor in each chain and move them forward.</p>
+        <p>Both cursors only ever move <em>forward</em>, and between them they
+        traverse each list exactly once. That is the whole control structure:
+        two pointers, monotonically advancing.</p>
+        <div class="callout">
+          <h3>Why it terminates so cheaply</h3>
+          <p style="margin:0">Every step advances at least one cursor, and no
+          cursor ever goes backward past a key it has finished with. So the total
+          work is bounded by |R| + |S| — <strong>additive</strong>, not
+          multiplicative. The six-and-four example costs ten steps, not
+          twenty-four.</p>
+        </div>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 230" role="img" aria-labelledby="t9 d9">
+          <title id="t9">Two cursors moving forward through two leaf chains</title>
+          <desc id="d9">The ENROLLED_IN leaf chain on top and the TEACHES leaf
+          chain below, each as a row of key boxes joined by forward arrows. A
+          triangular cursor marker sits beneath one box in each chain, with a
+          label saying both cursors only move to the right.</desc>
+          <defs>
+            <marker id="ah3" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A93A3"/>
+            </marker>
+          </defs>
+          <text x="12" y="22" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">left cursor &#8594; ENROLLED_IN leaves</text>
+          <g font-family="ui-monospace,monospace" font-size="10.5" font-weight="700" fill="#00246B">
+            <rect x="12" y="32" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="51" y="49" text-anchor="middle">CS354</text>
+            <rect x="100" y="32" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="139" y="49" text-anchor="middle">CS410</text>
+            <rect x="188" y="32" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="227" y="49" text-anchor="middle">CS410</text>
+            <rect x="276" y="32" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="315" y="49" text-anchor="middle">CS410</text>
+            <rect x="364" y="32" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="403" y="49" text-anchor="middle">CS452</text>
+            <rect x="452" y="32" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="491" y="49" text-anchor="middle">CS481</text>
+          </g>
+          <g stroke="#8A93A3" stroke-width="1.6" marker-end="url(#ah3)">
+            <line x1="92" y1="45" x2="97" y2="45"/><line x1="180" y1="45" x2="185" y2="45"/>
+            <line x1="268" y1="45" x2="273" y2="45"/><line x1="356" y1="45" x2="361" y2="45"/>
+            <line x1="444" y1="45" x2="449" y2="45"/>
+          </g>
+          <polygon points="139,66 131,78 147,78" fill="#7A2708"/>
+          <text x="139" y="92" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708">left cursor</text>
+          <text x="12" y="130" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">right cursor &#8594; TEACHES leaves</text>
+          <g font-family="ui-monospace,monospace" font-size="10.5" font-weight="700" fill="#00246B">
+            <rect x="12" y="140" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="51" y="157" text-anchor="middle">CS410</text>
+            <rect x="100" y="140" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="139" y="157" text-anchor="middle">CS410</text>
+            <rect x="188" y="140" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="227" y="157" text-anchor="middle">CS452</text>
+            <rect x="276" y="140" width="78" height="26" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.9"/><text x="315" y="157" text-anchor="middle">CS471</text>
+          </g>
+          <g stroke="#8A93A3" stroke-width="1.6" marker-end="url(#ah3)">
+            <line x1="92" y1="153" x2="97" y2="153"/><line x1="180" y1="153" x2="185" y2="153"/>
+            <line x1="268" y1="153" x2="273" y2="153"/>
+          </g>
+          <polygon points="51,174 43,186 59,186" fill="#7A2708"/>
+          <text x="51" y="200" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708">right cursor</text>
+          <text x="300" y="220" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">neither cursor ever moves left</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · THE RECONCILIATION RULE -->
+  <section class="slide" data-title="The reconciliation rule — three cases, nothing else" aria-roledescription="slide" aria-label="The reconciliation rule">
+    <p class="kicker">The heart of it</p>
+    <h2 class="slide-h" tabindex="-1">Three cases, and nothing else</h2>
+    <p class="lead">At every step you compare the two keys under the cursors. There
+    are exactly three possible answers, and each one dictates a move.</p>
+    <table class="inst">
+      <caption>The entire decision procedure. Nothing is ever compared twice.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Comparison</th>
+          <th scope="col">What it means</th>
+          <th scope="col">Move</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="keycol mono">k<sub>L</sub> &lt; k<sub>R</sub></th>
+          <td>The left key is behind. Everything further right is larger, so this
+          key can never match. It is an orphan.</td>
+          <td><strong>Advance the left cursor.</strong> Emit nothing.</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">k<sub>L</sub> &gt; k<sub>R</sub></th>
+          <td>The right key is behind, by the same argument, mirrored.</td>
+          <td><strong>Advance the right cursor.</strong> Emit nothing.</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">k<sub>L</sub> = k<sub>R</sub></th>
+          <td>A match. But possibly many of them — each side may hold a
+          <em>run</em> of this key.</td>
+          <td><strong>Emit every pair</strong> from the left run &#215; the right
+          run, then advance both past their runs.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="two" style="margin-top:12px">
+      <div class="callout">
+        <h3>Why "reconciliation" is the right word</h3>
+        <p style="margin:0">This is the same procedure a bookkeeper uses to
+        reconcile two sorted ledgers: read down both columns together, tick off
+        what agrees, and when one side is behind, advance it alone. Items present
+        on only one side fall out — which is precisely what an inner join does to
+        CS354, CS481 and CS471.</p>
+      </div>
+      <div>
+        <div class="code"><span class="kw">while</span> L <span class="kw">and</span> R <span class="kw">not</span> exhausted:
+    <span class="kw">if</span>   L.key &lt; R.key:  advance L
+    <span class="kw">elif</span> L.key &gt; R.key:  advance R
+    <span class="kw">else</span>:
+        lrun = <span class="kw">all</span> of L with this key
+        rrun = <span class="kw">all</span> of R with this key
+        emit lrun &#215; rrun
+        advance L, R past their runs</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · INTERACTIVE DEMONSTRATOR -->
+  <section class="slide" data-title="Demonstrator: step through the merge" aria-roledescription="slide" aria-label="Demonstrator, step through the merge">
+    <p class="kicker">Synthesis · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Step through the merge</h2>
+    <p>Twelve steps from start to finish. Watch the two cursors, and watch that
+    neither ever moves backward.</p>
+    <div class="hl-controls" role="group" aria-label="Merge-join stepper controls">
+      <button class="btn-s" id="mj-prev" type="button">&#8249; Back</button>
+      <button class="btn-s" id="mj-next" type="button">Step &#8250;</button>
+      <button class="btn-s ghost" id="mj-reset" type="button">Reset</button>
+      <span class="step-tag" id="mj-tag" aria-hidden="true">Step 1 / 12 &#183; Start</span>
+    </div>
+    <p id="mj-desc" class="live-desc" role="status" aria-live="polite">Both cursors
+    sit on the first entry of their leaf chain. Left key <strong>CS354</strong>,
+    right key <strong>CS410</strong>. Nothing has been emitted yet.</p>
+    <div class="demo">
+      <div>
+        <div class="leafbox">
+          <h3>ENROLLED_IN &#183; leaf chain</h3>
+          <p class="sub">index on CourseID &#8212; left cursor</p>
+          <ol class="leafstrip" id="mj-left">
+            <li class="is-cursor"><span class="key">CS354</span><span class="pay">S1002</span></li>
+            <li><span class="key">CS410</span><span class="pay">S1001</span></li>
+            <li><span class="key">CS410</span><span class="pay">S1003</span></li>
+            <li><span class="key">CS410</span><span class="pay">S1007</span></li>
+            <li><span class="key">CS452</span><span class="pay">S1002</span></li>
+            <li><span class="key">CS481</span><span class="pay">S1005</span></li>
+          </ol>
+        </div>
+        <div class="leafbox">
+          <h3>TEACHES &#183; leaf chain</h3>
+          <p class="sub">index on CourseID &#8212; right cursor</p>
+          <ol class="leafstrip" id="mj-right">
+            <li class="is-cursor"><span class="key">CS410</span><span class="pay">E22</span></li>
+            <li><span class="key">CS410</span><span class="pay">E31</span></li>
+            <li><span class="key">CS452</span><span class="pay">E22</span></li>
+            <li><span class="key">CS471</span><span class="pay">E40</span></li>
+          </ol>
+        </div>
+      </div>
+      <div class="outbox">
+        <h3>Result so far &#8212; <span class="outcount" id="mj-count">0 rows</span></h3>
+        <table class="inst">
+          <caption>Rows are appended as runs are matched; nothing is ever retracted.</caption>
+          <thead><tr>
+            <th scope="col" class="mono">CourseID</th>
+            <th scope="col" class="mono">StudentID</th>
+            <th scope="col" class="mono">EmpID</th>
+          </tr></thead>
+          <tbody id="mj-out">
+            <tr><td colspan="3" style="color:var(--muted)">&#8212; empty &#8212;</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">The full step-by-step trace is on the next slide, and is
+        the version that prints.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · THE FULL TRACE (print / no-JS path) -->
+  <section class="slide" data-title="The full trace, step by step" aria-roledescription="slide" aria-label="The full trace">
+    <p class="kicker">Reference &#183; the same twelve steps in writing</p>
+    <h2 class="slide-h" tabindex="-1">The full trace</h2>
+    <table class="inst trace">
+      <caption>Merge join of ENROLLED_IN and TEACHES on CourseID. L is the left cursor, R the right.</caption>
+      <thead>
+        <tr>
+          <th scope="col">#</th><th scope="col">L key</th><th scope="col">R key</th>
+          <th scope="col">Decision</th><th scope="col">Action</th><th scope="col">Out</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">1</th><td class="mono">CS354</td><td class="mono">CS410</td><td>start</td><td>cursors at the head of each chain</td><td class="mono">0</td></tr>
+        <tr><th scope="row">2</th><td class="mono">CS354</td><td class="mono">CS410</td><td class="mono">L &lt; R</td><td>left key can never match &#8212; advance L</td><td class="mono">0</td></tr>
+        <tr><th scope="row">3</th><td class="mono">CS410</td><td class="mono">CS410</td><td>moved</td><td>L now on CS410</td><td class="mono">0</td></tr>
+        <tr><th scope="row">4</th><td class="mono">CS410</td><td class="mono">CS410</td><td class="mono">L = R</td><td>match &#8212; find the run on each side</td><td class="mono">0</td></tr>
+        <tr class="is-new"><th scope="row">5</th><td class="mono">CS410 &#215;3</td><td class="mono">CS410 &#215;2</td><td>runs marked</td><td>left run of 3, right run of 2</td><td class="mono">0</td></tr>
+        <tr class="is-new"><th scope="row">6</th><td class="mono">CS410</td><td class="mono">CS410</td><td>emit</td><td>3 &#215; 2 = 6 pairs written out</td><td class="mono">6</td></tr>
+        <tr><th scope="row">7</th><td class="mono">CS452</td><td class="mono">CS452</td><td>advance both</td><td>both cursors step past their runs</td><td class="mono">6</td></tr>
+        <tr><th scope="row">8</th><td class="mono">CS452</td><td class="mono">CS452</td><td class="mono">L = R</td><td>match &#8212; runs of one on each side</td><td class="mono">6</td></tr>
+        <tr class="is-new"><th scope="row">9</th><td class="mono">CS452</td><td class="mono">CS452</td><td>emit</td><td>1 &#215; 1 = 1 pair written out</td><td class="mono">7</td></tr>
+        <tr><th scope="row">10</th><td class="mono">CS481</td><td class="mono">CS471</td><td>advance both</td><td>both cursors step past their runs</td><td class="mono">7</td></tr>
+        <tr><th scope="row">11</th><td class="mono">CS481</td><td class="mono">CS471</td><td class="mono">L &gt; R</td><td>right key is behind &#8212; advance R</td><td class="mono">7</td></tr>
+        <tr><th scope="row">12</th><td class="mono">CS481</td><td>&#8212;</td><td>R exhausted</td><td>stop; CS481 never matched and is dropped</td><td class="mono">7</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <h3>Count the work</h3>
+      <p style="margin:0">Six left entries and four right entries were each visited
+      <strong>once</strong>. Seven result rows came out. The naive nested-loop
+      version would have performed 24 comparisons to produce the same seven rows.</p>
+    </div>
+  </section>
+
+  <!-- 13 · RUNS AND THE REWIND -->
+  <section class="slide" data-title="Why duplicates make it more than a plain merge" aria-roledescription="slide" aria-label="Why duplicates make it more than a plain merge">
+    <p class="kicker">The one genuine subtlety</p>
+    <h2 class="slide-h" tabindex="-1">Duplicates: where it stops being merge sort</h2>
+    <div class="two">
+      <div>
+        <p>In merge sort, equal keys are emitted one at a time and both cursors
+        step forward. In a join, equal keys must produce a
+        <strong>cross product of the two runs</strong> — and that needs the right
+        cursor to go over the same ground repeatedly.</p>
+        <p>Engines implement this with <span class="term">mark</span> and
+        <span class="term">restore</span>: when a match is found, mark the start of
+        the right run; after each left row in the run is paired off, restore the
+        right cursor to the mark and replay it.</p>
+        <div class="callout warn">
+          <h3>The one place the cost is not additive</h3>
+          <p style="margin:0">With runs of length <em>m</em> and <em>n</em>, that
+          key alone produces <em>m</em> &#215; <em>n</em> rows and costs that much
+          work. Normally fine. On a low-cardinality join column — a status flag,
+          a term code — the runs are enormous and merge join degrades toward the
+          nested-loop cost it was supposed to avoid.</p>
+        </div>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 520 210" role="img" aria-labelledby="t13 d13">
+            <title id="t13">Mark and restore over a run of equal keys</title>
+            <desc id="d13">Three left entries all holding CS410 on the left, and
+            two right entries holding CS410 on the right. Lines connect every
+            left entry to every right entry, six lines in all, showing the cross
+            product. A bracket on the right marks the span that is replayed for
+            each left row.</desc>
+            <g font-family="ui-monospace,monospace" font-size="10.5" fill="#00246B">
+              <rect x="16" y="26" width="104" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="68" y="45" text-anchor="middle">CS410 S1001</text>
+              <rect x="16" y="76" width="104" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="68" y="95" text-anchor="middle">CS410 S1003</text>
+              <rect x="16" y="126" width="104" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="68" y="145" text-anchor="middle">CS410 S1007</text>
+              <rect x="356" y="51" width="104" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="408" y="70" text-anchor="middle">CS410 E22</text>
+              <rect x="356" y="101" width="104" height="28" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/><text x="408" y="120" text-anchor="middle">CS410 E31</text>
+            </g>
+            <g stroke="#7A2708" stroke-width="1.5" opacity=".8">
+              <line x1="122" y1="40" x2="354" y2="65"/><line x1="122" y1="40" x2="354" y2="115"/>
+              <line x1="122" y1="90" x2="354" y2="65"/><line x1="122" y1="90" x2="354" y2="115"/>
+              <line x1="122" y1="140" x2="354" y2="65"/><line x1="122" y1="140" x2="354" y2="115"/>
+            </g>
+            <path d="M472 51 L482 51 L482 129 L472 129" fill="none" stroke="#7A2708" stroke-width="1.8"/>
+            <text x="490" y="94" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708" transform="rotate(90 490 94)">replayed 3&#215;</text>
+            <text x="240" y="178" text-anchor="middle" font-family="system-ui" font-size="11.5" font-weight="700" fill="#7A2708">3 &#215; 2 = 6 result rows from one key</text>
+            <text x="240" y="196" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">the right run is restored to its mark for each left row</text>
+          </svg>
+        </div>
+        <div class="callout">
+          <h3>If one side is unique</h3>
+          <p style="margin:0">Join on a primary key and the right run is always
+          length one. No mark, no restore, no replay &#8212; a pure merge. This is
+          why PK&#8211;FK joins are the cheap, common case.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · UNMATCHED KEYS AND OUTER JOINS -->
+  <section class="slide" data-title="What happens to the keys that never match" aria-roledescription="slide" aria-label="What happens to keys that never match">
+    <p class="kicker">A free consequence</p>
+    <h2 class="slide-h" tabindex="-1">The keys that never match</h2>
+    <div class="two">
+      <div>
+        <p>CS354 and CS481 exist only in ENROLLED_IN. CS471 exists only in
+        TEACHES. In the inner join they are stepped over and forgotten &#8212; the
+        "advance and emit nothing" branch.</p>
+        <p>But notice <em>the algorithm knows about them</em>. It sees exactly
+        which keys fall out and on which side. That is the whole reason outer
+        joins cost almost nothing extra here.</p>
+        <table class="inst" style="margin-top:10px">
+          <caption>Same traversal, different thing done in the skip branch.</caption>
+          <thead><tr><th scope="col">Join</th><th scope="col">On the skip branch</th><th scope="col">Rows</th></tr></thead>
+          <tbody>
+            <tr><th scope="row" class="keycol">INNER</th><td>drop it</td><td class="mono">7</td></tr>
+            <tr><th scope="row" class="keycol">LEFT OUTER</th><td>on an L-advance, emit the left row with NULL on the right</td><td class="mono">9</td></tr>
+            <tr><th scope="row" class="keycol">RIGHT OUTER</th><td>on an R-advance, emit NULLs on the left</td><td class="mono">8</td></tr>
+            <tr><th scope="row" class="keycol">FULL OUTER</th><td>do both</td><td class="mono">10</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Work it through</h3>
+          <p style="margin:0">LEFT OUTER adds CS354/S1002 and CS481/S1005, the two
+          left keys with no partner &#8212; 7 + 2 = 9. RIGHT OUTER adds CS471/E40,
+          the one unmatched right key &#8212; 7 + 1 = 8. FULL adds all three &#8212;
+          7 + 3 = 10.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Contrast with the probing strategy</h3>
+          <p style="margin:0">Index nested loop gets LEFT OUTER just as cheaply
+          &#8212; a failed probe is a NULL row. But it has no idea which
+          <em>inner</em> rows went unvisited, so RIGHT and FULL OUTER need a
+          second pass or a different algorithm. The merge sees both sides at once;
+          that symmetry is worth something.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · COST COMPARISON -->
+  <section class="slide" data-title="The three strategies side by side" aria-roledescription="slide" aria-label="The three strategies side by side">
+    <p class="kicker">Reference</p>
+    <h2 class="slide-h" tabindex="-1">Three strategies, side by side</h2>
+    <table class="inst">
+      <caption>R is the outer or left input, S the inner or right. h is the height of the inner B+tree.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Strategy</th>
+          <th scope="col">Needs</th>
+          <th scope="col">Rough cost</th>
+          <th scope="col">Access pattern</th>
+          <th scope="col">Wins when</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="keycol">Nested loop</th>
+          <td>nothing</td>
+          <td class="mono">|R| &#215; |S|</td>
+          <td>repeated full scan</td>
+          <td>one input is tiny, or no index exists and no sort is affordable</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Index nested loop</th>
+          <td>B+tree on S's join column</td>
+          <td class="mono">|R| &#215; (h + matches)</td>
+          <td>random, one descent per outer row</td>
+          <td>R is small or heavily filtered, and the index is selective</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Merge join</th>
+          <td>both inputs in join-key order</td>
+          <td class="mono">|R| + |S|</td>
+          <td>sequential, one pass each</td>
+          <td>both sides already sorted &#8212; by index, or by an earlier operator</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Hash join</th>
+          <td>equality predicate, memory for the build side</td>
+          <td class="mono">|R| + |S|</td>
+          <td>sequential plus random probes in memory</td>
+          <td>large unsorted inputs, equijoin, no useful index</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <h3>The caveat that bites in practice</h3>
+      <p style="margin:0">A <strong>secondary</strong> index gives you keys in order
+      but not <em>rows</em> in order. Walking its leaves in key order means a random
+      row fetch per entry, and the sequential advantage evaporates. Merge join is at
+      its best over a <span class="term">clustered</span> index, or over an index
+      that already <span class="term">covers</span> every column the query needs.</p>
+    </div>
+  </section>
+
+  <!-- 16 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>The leaf level of a B+tree is a <strong>sorted linked list</strong>;
+          the upper levels only provide a fast entry point into it.</li>
+          <li>So two indexed relations are two sorted lists, and a join over them
+          is <span class="term">traversal</span> plus
+          <span class="term">reconciliation</span>.</li>
+          <li>Reconciliation is three cases: advance the smaller key, or on
+          equality emit the cross product of the two runs and advance both.</li>
+          <li>Cost goes from multiplicative |R| &#215; |S| to additive |R| + |S|,
+          with the run cross-product as the one exception.</li>
+          <li>Index nested loop uses the <em>descent</em>; merge join uses the
+          <em>chain</em>. Same structure, two different services.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Why can neither cursor ever need to move backward, except within a
+            run of equal keys?</li>
+            <li>CS481 appears on the left and never matches. At which step is that
+            decided, and what does it cost?</li>
+            <li>You join on a column with only four distinct values across a
+            million rows. What happens to merge join, and why?</li>
+            <li>Both relations have a secondary B+tree on the join column. Give one
+            reason the optimizer might still choose a hash join.</li>
+            <li>Under what condition does the mark/restore step disappear
+            entirely?</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next</h3>
+          <p style="margin:0">Hash join and external sort-merge for inputs with no
+          usable index, then cost estimation &#8212; turning these pictures into the
+          numbers an optimizer actually compares.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">&#8249; Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 16</span>
+      <button class="btn" id="next" type="button">Next &#8250;</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // ---- merge-join stepper -------------------------------------------------
+  var mjLeftEl  = document.getElementById('mj-left');
+  var mjRightEl = document.getElementById('mj-right');
+  var mjOutEl   = document.getElementById('mj-out');
+  var mjDescEl  = document.getElementById('mj-desc');
+  var mjTagEl   = document.getElementById('mj-tag');
+  var mjCountEl = document.getElementById('mj-count');
+  var mjNext    = document.getElementById('mj-next');
+  var mjPrev    = document.getElementById('mj-prev');
+  var mjReset   = document.getElementById('mj-reset');
+
+  if (mjLeftEl && mjRightEl && mjOutEl && mjNext){
+    var OUT = [
+      ['CS410','S1001','E22'], ['CS410','S1001','E31'],
+      ['CS410','S1003','E22'], ['CS410','S1003','E31'],
+      ['CS410','S1007','E22'], ['CS410','S1007','E31'],
+      ['CS452','S1002','E22']
+    ];
+
+    // l / r: cursor index (null once exhausted). lrun / rrun: inclusive [start,end].
+    var STEPS = [
+      { l:0, r:0, out:0, label:'Start',
+        desc:'Both cursors sit on the first entry of their leaf chain. Left key CS354, right key CS410. Nothing has been emitted yet.' },
+      { l:0, r:0, out:0, label:'Compare',
+        desc:'CS354 is less than CS410. Every remaining right key is larger still, so CS354 can never find a partner. Advance the left cursor and emit nothing.' },
+      { l:1, r:0, out:0, label:'Advance left',
+        desc:'The left cursor moves to CS410. CS354 is finished with and will never be looked at again. Left key CS410, right key CS410.' },
+      { l:1, r:0, out:0, label:'Compare',
+        desc:'CS410 equals CS410. A match — but each side may hold more than one entry with this key, so before emitting anything we find the full run on each side.' },
+      { l:1, r:0, lrun:[1,3], rrun:[0,1], out:0, label:'Mark runs',
+        desc:'Three left entries carry CS410 — students S1001, S1003 and S1007. Two right entries carry it — instructors E22 and E31. These two runs must be combined pairwise.' },
+      { l:1, r:0, lrun:[1,3], rrun:[0,1], out:6, label:'Emit',
+        desc:'Emit every pair from the two runs: 3 times 2 equals 6 result rows. The right run is replayed once for each left entry, which is the mark-and-restore step.' },
+      { l:4, r:2, out:6, label:'Advance both',
+        desc:'Both cursors step past their runs. Left key is now CS452, right key is now CS452.' },
+      { l:4, r:2, out:6, label:'Compare',
+        desc:'CS452 equals CS452. Another match, with a run of exactly one entry on each side.' },
+      { l:4, r:2, lrun:[4,4], rrun:[2,2], out:7, label:'Emit',
+        desc:'Emit the single pair: 1 times 1 equals 1 result row. Student S1002 is taught by instructor E22 in CS452.' },
+      { l:5, r:3, out:7, label:'Advance both',
+        desc:'Both cursors step past their runs. Left key is now CS481, right key is now CS471.' },
+      { l:5, r:3, out:7, label:'Compare',
+        desc:'CS481 is greater than CS471. This time the right key is the one that is behind, so advance the right cursor and emit nothing.' },
+      { l:5, r:null, out:7, label:'Done',
+        desc:'The right input is exhausted. CS481 never found a match and is simply dropped. The join is complete: 7 result rows, from a single forward pass over each leaf chain.' }
+    ];
+
+    var mjLeftItems  = Array.prototype.slice.call(mjLeftEl.querySelectorAll('li'));
+    var mjRightItems = Array.prototype.slice.call(mjRightEl.querySelectorAll('li'));
+    var mjAt = 0;
+
+    function paintStrip(items, cursor, run){
+      for (var i = 0; i < items.length; i++){
+        var li = items[i];
+        var isCursor = (cursor !== null && cursor !== undefined && i === cursor);
+        var inRun = !!(run && i >= run[0] && i <= run[1]);
+        var spent = (cursor === null || cursor === undefined) ? true
+                    : (i < cursor && !inRun);
+        li.classList.toggle('is-cursor', isCursor);
+        li.classList.toggle('in-run', inRun);
+        li.classList.toggle('spent', spent && !isCursor);
+        if (isCursor){ li.setAttribute('aria-current','true'); }
+        else { li.removeAttribute('aria-current'); }
+      }
+    }
+
+    function paintOut(n){
+      while (mjOutEl.firstChild) mjOutEl.removeChild(mjOutEl.firstChild);
+      if (n === 0){
+        var tr0 = document.createElement('tr');
+        var td0 = document.createElement('td');
+        td0.setAttribute('colspan','3');
+        td0.style.color = 'var(--muted)';
+        td0.textContent = '\u2014 empty \u2014';
+        tr0.appendChild(td0);
+        mjOutEl.appendChild(tr0);
+      } else {
+        for (var i = 0; i < n; i++){
+          var tr = document.createElement('tr');
+          for (var c = 0; c < 3; c++){
+            var td = document.createElement('td');
+            td.className = 'mono' + (c === 0 ? ' keycol' : '');
+            td.textContent = OUT[i][c];
+            tr.appendChild(td);
+          }
+          mjOutEl.appendChild(tr);
+        }
+      }
+      if (mjCountEl){
+        mjCountEl.textContent = n + (n === 1 ? ' row' : ' rows');
+      }
+    }
+
+    function mjRender(n){
+      mjAt = Math.max(0, Math.min(STEPS.length - 1, n));
+      var s = STEPS[mjAt];
+      paintStrip(mjLeftItems,  s.l, s.lrun);
+      paintStrip(mjRightItems, s.r, s.rrun);
+      paintOut(s.out);
+      if (mjDescEl) mjDescEl.textContent = s.desc;
+      if (mjTagEl)  mjTagEl.textContent =
+        'Step ' + (mjAt + 1) + ' / ' + STEPS.length + ' \u00B7 ' + s.label;
+      if (mjNext) mjNext.disabled = (mjAt === STEPS.length - 1);
+      if (mjPrev) mjPrev.disabled = (mjAt === 0);
+    }
+
+    mjNext.addEventListener('click', function(){ mjRender(mjAt + 1); });
+    if (mjPrev)  mjPrev.addEventListener('click', function(){ mjRender(mjAt - 1); });
+    if (mjReset) mjReset.addEventListener('click', function(){ mjRender(0); });
+
+    mjRender(0);
+  }
+
+  // deep link (#s3) support, on load and on in-page hash changes
+  function fromHash(moveFocus){
+    var m = (location.hash || '').match(/^#s(\d+)$/);
+    render(m ? (parseInt(m[1], 10) - 1) : 0, moveFocus);
+  }
+  window.addEventListener('hashchange', function(){ fromHash(true); });
+  fromHash(false);
+})();
+</script>
+</body>
+</html>
