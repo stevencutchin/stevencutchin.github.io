@@ -1,0 +1,1585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From SELECT to B+Tree Steps — How a Query Becomes a Plan · CS 410/510</title>
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:18px;line-height:1.55}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:1040px;margin:0 auto;padding:18px 20px 40px}
+.topbar{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;
+  border-top:6px solid var(--blue);padding:14px 2px 12px}
+.topbar .course{font-weight:700;color:var(--blue-ink)}
+.topbar .where{color:var(--muted);font-size:.92rem}
+.unit-tag{display:inline-block;font-size:.78rem;font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:1px 8px}
+
+/* ---- deck stage ---- */
+.deck{background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:34px 40px;min-height:64vh;position:relative}
+.slide{display:block}
+html.js .slide{display:none}
+html.js .slide.is-active{display:block;animation:fade .18s ease-out}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+.kicker{font-family:var(--sans);font-weight:600;color:var(--blue);font-size:.92rem;
+  margin:0 0 6px}
+.slide-h{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:1.9rem;line-height:1.12;margin:0 0 14px;outline:none}
+.slide-h:focus-visible{outline:3px solid var(--orange);outline-offset:4px;border-radius:4px}
+.slide p{max-width:64ch;margin:0 0 12px}
+.slide ul,.slide ol{max-width:64ch;margin:0 0 12px;padding-left:1.2rem}
+.slide li{margin:7px 0}
+.lead{font-size:1.12rem;color:var(--muted);max-width:60ch}
+.two{display:grid;grid-template-columns:1.05fr .95fr;gap:26px 34px;align-items:start}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 20px;align-items:start}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:9px;padding:12px 16px;margin:14px 0}
+.callout.warn{border-left-color:var(--orange)}
+.callout h3{margin:0 0 4px;font-family:var(--sans);font-size:1rem;color:var(--blue-ink)}
+.callout.warn h3{color:var(--brown)}
+.term{color:var(--blue-ink);font-weight:700}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;padding:14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.86rem;margin:8px 2px 0}
+.objlist li::marker{color:var(--blue);font-weight:700}
+
+/* ---- schema / SQL typography ---- */
+.rel{font-family:var(--mono);font-size:.9rem;line-height:1.7;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--blue);
+  border-radius:8px;padding:11px 14px;margin:10px 0;overflow-x:auto;white-space:pre-wrap}
+.rel .k{color:var(--brown);font-weight:700}
+.rel .r{color:var(--blue-ink);font-weight:700}
+.sqlline{font-family:var(--mono);font-size:.9rem;background:#fff;border:1px solid var(--line);
+  border-radius:8px;padding:10px 13px;color:var(--brown);font-weight:700;overflow-x:auto;
+  white-space:pre-wrap;margin:10px 0}
+.code{font-family:var(--mono);font-size:.86rem;line-height:1.65;background:var(--surface);
+  border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:8px;
+  padding:11px 14px;margin:10px 0;white-space:pre-wrap;overflow-x:auto}
+.code .cm{color:var(--muted)}
+.code .kw{color:var(--brown);font-weight:700}
+.algebra{font-family:var(--mono);font-size:.95rem;line-height:1.8;background:#fff;
+  border:1px solid var(--line);border-left:5px solid var(--brown);border-radius:8px;
+  padding:11px 14px;margin:10px 0;color:var(--blue-ink);overflow-x:auto;white-space:pre-wrap}
+
+/* ---- instance tables ---- */
+table.inst{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:4px}
+table.inst caption{text-align:left;color:var(--muted);font-size:.82rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst .keycol{background:var(--tint);font-weight:700;color:var(--blue-ink)}
+table.inst td.mono,table.inst th.mono{font-family:var(--mono)}
+table.inst tr.is-new td{background:var(--tint)}
+table.inst.tight{font-size:.84rem}
+table.inst.tight th,table.inst.tight td{padding:4px 8px}
+.ok{color:var(--blue-ink);font-weight:700}
+.no{color:var(--brown);font-weight:700}
+
+/* ---- interactive demonstrator ---- */
+.hl-controls{display:none;flex-wrap:wrap;gap:8px;margin:2px 0 10px;align-items:center}
+html.js .hl-controls{display:flex}
+.chip{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 14px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.btn-s{font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;background:var(--blue);
+  color:#fff;border:2px solid var(--blue);border-radius:8px;padding:6px 15px}
+.btn-s:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.btn-s:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.btn-s.ghost{background:#fff;color:var(--blue-ink);border-color:var(--line)}
+.btn-s:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.step-tag{font-family:var(--mono);font-size:.84rem;color:var(--blue-ink);font-weight:700;
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;padding:2px 9px}
+.live-desc{min-height:3.4em;background:var(--surface);border:1px solid var(--line);
+  border-radius:8px;padding:10px 14px;color:var(--ink);font-size:.96rem;max-width:none}
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+/* ---- leaf strips: the sorted sequences being walked ---- */
+.leafbox{border:1px solid var(--line);border-radius:10px;background:#fff;padding:11px 13px;
+  margin-bottom:12px}
+.leafbox h3{margin:0 0 2px;font-family:var(--sans);font-size:.95rem;color:var(--blue-ink)}
+.leafbox .sub{margin:0 0 9px;color:var(--muted);font-size:.8rem}
+.leafstrip{list-style:none;display:flex;flex-wrap:nowrap;gap:6px;margin:0;padding:2px 0;
+  overflow-x:auto}
+.leafstrip li{font-family:var(--mono);font-size:.82rem;line-height:1.25;flex:0 0 auto;
+  border:2px solid var(--line);border-radius:7px;padding:5px 8px 5px 7px;background:#fff;
+  min-width:62px;text-align:center}
+.leafstrip li .key{display:block;font-weight:700;color:var(--blue-ink)}
+.leafstrip li .pay{display:block;color:var(--muted);font-size:.95em}
+.leafstrip li::after{content:"\00a0";display:block;font-size:.62rem;line-height:1.3;
+  font-weight:700;color:var(--blue-ink);letter-spacing:.03em}
+.leafstrip li.in-run{border-style:dashed;border-color:var(--blue);background:var(--tint)}
+.leafstrip li.in-run::after{content:"in range"}
+.leafstrip li.is-cursor{border-style:solid;border-width:3px;border-color:var(--brown);
+  padding:4px 7px 4px 6px}
+.leafstrip li.is-cursor .key::before{content:"\25B8 ";color:var(--brown)}
+.leafstrip li.spent{opacity:.55}
+.leafstrip li.spent .key{text-decoration:line-through}
+.leafstrip li.stopper{border-style:solid;border-color:var(--brown);background:#fff}
+.leafstrip li.stopper::after{content:"stop"}
+/* the demonstrator strip carries six entries in a half-width column */
+#px-idx li{min-width:44px;padding:5px 6px}
+#px-idx li.is-cursor{padding:4px 5px}
+.outbox{border:1px solid var(--line);border-radius:10px;background:#fff;padding:11px 13px}
+.outbox h3{margin:0 0 7px;font-family:var(--sans);font-size:.95rem;color:var(--blue-ink)}
+.outcount{font-family:var(--mono);font-weight:700;color:var(--brown)}
+
+/* ---- probe panel: the second tree being descended ---- */
+.probe{border:1px solid var(--line);border-radius:10px;background:#fff;padding:11px 13px;
+  margin-bottom:12px}
+.probe h3{margin:0 0 7px;font-family:var(--sans);font-size:.95rem;color:var(--blue-ink)}
+.probe dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;
+  font-size:.86rem}
+.probe dt{color:var(--muted)}
+.probe dd{margin:0;font-family:var(--mono);color:var(--blue-ink);font-weight:700}
+.badge{display:inline-block;font-family:var(--sans);font-size:.8rem;font-weight:700;
+  border-radius:5px;padding:1px 8px;border:1.5px solid var(--line);color:var(--muted)}
+.badge.pass{border-color:var(--blue);background:var(--tint);color:var(--blue-ink)}
+.badge.fail{border-color:var(--brown);background:#fff;color:var(--brown)}
+.iobar{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 10px;font-size:.86rem;
+  color:var(--muted)}
+.iobar strong{font-family:var(--mono);color:var(--brown);font-size:.95rem}
+
+/* ---- chrome: progress + nav ---- */
+.deck-chrome{margin-top:16px}
+html:not(.js) .deck-chrome{display:none}
+.bar{height:6px;background:#E3E8F2;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;width:6%;background:var(--blue);border-radius:999px;
+  transition:width .2s ease}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+.nav .btn{font:inherit;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;
+  border:2px solid var(--blue);border-radius:8px;padding:9px 18px}
+.nav .btn:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+.nav .btn:disabled{background:#fff;color:#9aa2b1;border-color:var(--line);cursor:default}
+.nav .btn:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.counter{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.95rem}
+.hint{color:var(--muted);font-size:.82rem;text-align:center;margin:10px 0 0}
+
+@media (max-width:760px){
+  body{font-size:16px}
+  .deck{padding:22px 18px;min-height:0}
+  .two,.demo,.three{grid-template-columns:1fr;gap:18px}
+  .slide-h{font-size:1.55rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .unit-tag,.fig,.callout,.rel,.sqlline,.code,.algebra,.leafbox,.outbox,.probe{border-color:#000}
+  .chip,.leafstrip li,.badge{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+
+/* ---- print / PDF: every slide on its own page, no chrome ---- */
+@page{size:landscape;margin:14mm}
+@media print{
+  body{background:#fff;font-size:10.5pt}
+  .skip,.deck-chrome,.hl-controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .deck{border:none;border-radius:0;padding:0;min-height:0}
+  .slide{display:block!important;break-before:page;padding-top:5mm}
+  .slide:first-of-type{break-before:auto}
+  .slide-h{font-size:1.42rem;margin-bottom:10px}
+  .kicker{margin-bottom:4px}
+  .lead{font-size:1.02rem}
+  .slide p{margin-bottom:9px}
+  .slide li{margin:4px 0}
+  .callout{padding:9px 13px;margin:9px 0}
+  .two{gap:18px 26px}
+  table.inst{font-size:.84rem}
+  table.inst th,table.inst td{padding:4px 8px}
+  table.inst.tight{font-size:.76rem}
+  table.inst.tight th,table.inst.tight td{padding:3px 6px}
+  .rel,.sqlline,.code,.algebra{font-size:.8rem;padding:8px 12px;margin:8px 0}
+  .figcap{margin-top:5px}
+  /* the two content-dense slides need a little more squeeze to hold one page */
+  .slide.dense table.inst{font-size:.78rem}
+  .slide.dense table.inst th,.slide.dense table.inst td{padding:3px 7px}
+  .slide.dense table.inst.tight{font-size:.72rem}
+  .slide.dense table.inst.tight th,.slide.dense table.inst.tight td{padding:2.5px 5px}
+  .slide.dense .callout{padding:7px 12px;margin:7px 0}
+  .slide.dense .rel,.slide.dense .sqlline{line-height:1.45;margin:7px 0}
+  .slide.dense .slide-h{margin-bottom:8px}
+  .fig,.callout,.rel,.sqlline,.code,.algebra,table.inst,.leafbox,.outbox,.probe{break-inside:avoid}
+  .fig.wide svg{width:62%;display:block;margin:0 auto}
+  .demo,.three{grid-template-columns:1fr 1fr}
+  .leafstrip{overflow-x:visible}
+  .leafstrip li{min-width:58px;font-size:.74rem}
+  table.inst.trace{font-size:.7rem;line-height:1.3}
+  table.inst.trace th,table.inst.trace td{padding:2.5px 6px}
+  table.inst.trace + .callout{margin-top:9px;padding:8px 14px}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#deck">Skip to the slides</a>
+
+<div class="wrap">
+  <div class="topbar">
+    <span class="unit-tag">Unit 7 · Query processing</span>
+    <span class="course">CS 410/510 Databases</span>
+    <span class="where">From SELECT to B+tree steps — parsing, planning, execution · Elmasri &amp; Navathe, Ch. 17–19</span>
+  </div>
+
+  <div id="deck" class="deck" role="region" aria-label="From SELECT to B+tree steps — lecture slides">
+
+  <!-- 1 · TITLE / MOTIVATION -->
+  <section class="slide is-active" data-title="SQL says what. The engine has to write the how."
+           aria-roledescription="slide" aria-label="Title">
+    <p class="kicker">Query processing · the translation nobody shows you</p>
+    <h2 class="slide-h" tabindex="-1">SQL says <em>what</em>.<br>The engine writes the <em>how</em>.</h2>
+    <div class="two">
+      <div>
+        <p class="lead">You write one declarative sentence. What runs is a small
+        program: a handful of B+tree operations, in a chosen order, pulling rows
+        through a chain of operators until the output table is full.</p>
+        <p style="color:var(--muted)">Nothing in your <code>SELECT</code> says
+        descend a tree, scan a leaf chain, or stop at a key. Yet that is all the
+        machine can do. Today we follow one query with a <code>WHERE</code> and a
+        <code>JOIN</code> all the way down to those operations, and back up to
+        the rows that come out.</p>
+      </div>
+      <div class="fig">
+        <svg viewBox="0 0 560 250" role="img" aria-labelledby="t1 d1">
+          <title id="t1">One SQL statement descending into B+tree operations</title>
+          <desc id="d1">A single SQL statement at the top, an arrow down to a
+          stack of three plan operators labeled project, filter and join, and
+          arrows from those down to two B plus trees at the bottom, one labeled
+          index seek and one labeled index probe. The picture shows one
+          declarative statement turning into several concrete tree operations.</desc>
+          <defs>
+            <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+            </marker>
+          </defs>
+          <rect x="60" y="14" width="440" height="34" rx="6" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+          <text x="280" y="36" text-anchor="middle" font-family="ui-monospace,monospace"
+                font-size="11" font-weight="700" fill="#7A2708">SELECT … FROM … JOIN … WHERE …</text>
+          <line x1="280" y1="48" x2="280" y2="70" stroke="#7A2708" stroke-width="2" marker-end="url(#m1)"/>
+          <g font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">
+            <rect x="178" y="72" width="204" height="26" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.9"/>
+            <text x="280" y="90" text-anchor="middle">project  Name, Grade</text>
+            <rect x="178" y="104" width="204" height="26" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.9"/>
+            <text x="280" y="122" text-anchor="middle">filter  Year &#8805; 3</text>
+            <rect x="178" y="136" width="204" height="26" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="1.9"/>
+            <text x="280" y="154" text-anchor="middle">join  on StudentID</text>
+          </g>
+          <line x1="230" y1="162" x2="150" y2="190" stroke="#7A2708" stroke-width="1.8" marker-end="url(#m1)"/>
+          <line x1="330" y1="162" x2="410" y2="190" stroke="#7A2708" stroke-width="1.8" marker-end="url(#m1)"/>
+          <g>
+            <rect x="60" y="192" width="180" height="44" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+            <text x="150" y="211" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">B+tree on CourseID</text>
+            <text x="150" y="227" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">seek, then scan forward</text>
+            <rect x="320" y="192" width="180" height="44" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+            <text x="410" y="211" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">B+tree on StudentID</text>
+            <text x="410" y="227" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">one probe per row</text>
+          </g>
+        </svg>
+        <p class="figcap">One statement in. Two trees, four operators, and a
+        fixed order out.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · WHY THIS MATTERS -->
+  <section class="slide" data-title="Why this is worth an hour" aria-roledescription="slide" aria-label="Why this is worth an hour">
+    <p class="kicker">Motivation</p>
+    <h2 class="slide-h" tabindex="-1">Why this is worth an hour</h2>
+    <p class="lead">Every performance conversation you will ever have about a
+    database is a conversation about this translation.</p>
+    <div class="two">
+      <div>
+        <ul>
+          <li><strong><code>EXPLAIN</code> becomes readable.</strong> The tree it
+          prints is exactly the physical plan we build on slide 12, with the same
+          operator names and the same bottom-up data flow.</li>
+          <li><strong>You learn which predicates are free and which are not.</strong>
+          A <code>WHERE</code> clause that becomes a tree seek costs almost
+          nothing. The same clause written slightly differently reads every row in
+          the table. The difference is a rule you can apply by eye.</li>
+          <li><strong>Index choice stops being superstition.</strong> You will see
+          precisely which plan step an index serves, and therefore which index is
+          worth its maintenance cost.</li>
+          <li><strong>It is the bridge to the rest of the unit.</strong> Cost
+          estimation and optimization only make sense once you can see the
+          alternatives being costed.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>The claim we are going to defend</h3>
+          <p style="margin:0">A <code>SELECT</code> with a <code>WHERE</code> and
+          a <code>JOIN</code> compiles into a plan whose every leaf is one of just
+          five B+tree operations: <strong>descend</strong>, <strong>position</strong>,
+          <strong>scan next</strong>, <strong>stop at key</strong>,
+          <strong>fetch by pointer</strong>. The operators above the leaves add
+          nothing the tree cannot do — they only decide <em>which</em> of those five
+          happens next.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Where this sits</h3>
+          <p style="margin:0">The join deck established <em>how one join
+          mechanism works</em> on leaf chains. This deck is the layer above: how a
+          query gets turned into a sequence of such mechanisms in the first place.
+          Cost estimation and the optimizer's search over plans come next.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · THE QUERY, THE DATA, THE INDEXES -->
+  <section class="slide dense" data-title="The query, the data, and the indexes that exist" aria-roledescription="slide" aria-label="The query, the data and the indexes">
+    <p class="kicker">The running example</p>
+    <h2 class="slide-h" tabindex="-1">One query, two relations,<br>two indexes</h2>
+    <p>Our UNIVERSITY mini-world. Name the students in CS 410 who are juniors or
+    above, with the grade they earned.</p>
+    <div class="rel"><span class="r">STUDENT</span>(<span class="k">StudentID</span>, Name, Year, Major)
+<span class="r">ENROLLED_IN</span>(<span class="k">StudentID</span> &#8594; STUDENT, <span class="k">CourseID</span> &#8594; COURSE, Grade)</div>
+    <p class="sqlline">SELECT s.Name, e.Grade
+FROM   STUDENT s JOIN ENROLLED_IN e ON s.StudentID = e.StudentID
+WHERE  e.CourseID = 'CS410' AND s.Year &gt;= 3;</p>
+    <div class="two" style="margin-top:12px">
+      <div>
+        <table class="inst tight">
+          <caption>STUDENT — stored in a clustered B+tree on StudentID.</caption>
+          <thead><tr><th scope="col" class="mono">StudentID</th><th scope="col" class="mono">Name</th><th scope="col" class="mono">Year</th><th scope="col" class="mono">Major</th></tr></thead>
+          <tbody>
+            <tr><td class="mono keycol">S1001</td><td class="mono">Dana Okafor</td><td class="mono">3</td><td class="mono">CS</td></tr>
+            <tr><td class="mono keycol">S1002</td><td class="mono">Luis Marin</td><td class="mono">2</td><td class="mono">CS</td></tr>
+            <tr><td class="mono keycol">S1003</td><td class="mono">Priya Raman</td><td class="mono">2</td><td class="mono">Math</td></tr>
+            <tr><td class="mono keycol">S1005</td><td class="mono">Tom Becker</td><td class="mono">4</td><td class="mono">CS</td></tr>
+            <tr><td class="mono keycol">S1007</td><td class="mono">Ana Ruiz</td><td class="mono">3</td><td class="mono">CS</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <table class="inst tight">
+          <caption>ENROLLED_IN — a heap, with a secondary B+tree on CourseID.</caption>
+          <thead><tr><th scope="col" class="mono">Row</th><th scope="col" class="mono">CourseID</th><th scope="col" class="mono">StudentID</th><th scope="col" class="mono">Grade</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">r1</td><td class="mono keycol">CS354</td><td class="mono">S1002</td><td class="mono">A&#8722;</td></tr>
+            <tr><td class="mono">r2</td><td class="mono keycol">CS410</td><td class="mono">S1001</td><td class="mono">A</td></tr>
+            <tr><td class="mono">r3</td><td class="mono keycol">CS410</td><td class="mono">S1003</td><td class="mono">B+</td></tr>
+            <tr><td class="mono">r4</td><td class="mono keycol">CS410</td><td class="mono">S1007</td><td class="mono">A</td></tr>
+            <tr><td class="mono">r5</td><td class="mono keycol">CS452</td><td class="mono">S1002</td><td class="mono">B</td></tr>
+            <tr><td class="mono">r6</td><td class="mono keycol">CS481</td><td class="mono">S1005</td><td class="mono">A&#8722;</td></tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          <h3>Three facts that decide everything</h3>
+          <p style="margin:0">There is an index on <code>ENROLLED_IN(CourseID)</code>
+          — so the <code>WHERE</code> on CourseID can become a seek. STUDENT's
+          index is on its <em>primary key</em>, which is also the join column — so
+          the join can become a probe. And there is <strong>no index on
+          <code>Year</code></strong> — so that predicate has nowhere to go but a
+          per-row test.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE ANSWER, AND THE NAIVE COST -->
+  <section class="slide" data-title="What has to come out, and what the definition would cost" aria-roledescription="slide" aria-label="What has to come out">
+    <p class="kicker">The specification</p>
+    <h2 class="slide-h" tabindex="-1">What must come out</h2>
+    <div class="two">
+      <div>
+        <p>Read declaratively, the statement means: form every pairing of a
+        student with an enrollment, throw away the pairings that fail the three
+        conditions, keep two columns of what is left.</p>
+        <div class="algebra">&#960;<sub>Name, Grade</sub>(
+  &#963;<sub>CourseID='CS410' &#8743; Year&#8805;3 &#8743; s.StudentID=e.StudentID</sub>(
+    STUDENT &#215; ENROLLED_IN ))</div>
+        <p>Five students &#215; six enrollments = <strong>30 candidate pairings</strong>,
+        of which <strong>2</strong> survive. That is the answer, and any plan that
+        produces anything else is wrong. Everything that follows is about reaching
+        those two rows without ever building the 30.</p>
+        <div class="callout warn">
+          <h3>Why the definition is not a plan</h3>
+          <p style="margin:0">At real scale this reading is unrunnable. Eight
+          thousand students against fifty thousand enrollments is 400 million
+          pairings materialized and then discarded, to return a few dozen rows.
+          The relational algebra defines <em>the answer</em>, not the route.</p>
+        </div>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>The 2 result rows. Produced once; the question is how.</caption>
+          <thead><tr><th scope="col" class="mono">Name</th><th scope="col" class="mono">Grade</th></tr></thead>
+          <tbody>
+            <tr><td class="mono keycol">Dana Okafor</td><td class="mono">A</td></tr>
+            <tr><td class="mono keycol">Ana Ruiz</td><td class="mono">A</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">S1003 (Priya Raman) is enrolled in CS 410 but is a
+        sophomore, so she is filtered out. The other three enrollments are in
+        other courses and are never considered at all.</p>
+        <div class="callout">
+          <h3>Keep this number in mind</h3>
+          <p style="margin:0">By the end of the walkthrough the plan will have
+          touched <strong>11 pages</strong> and examined <strong>3 of the 6</strong>
+          enrollment entries. The two rows above will come out one at a time,
+          before the plan has even finished reading.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · THE FIVE STAGES -->
+  <section class="slide" data-title="The five stages from text to rows" aria-roledescription="slide" aria-label="The five stages">
+    <p class="kicker">The map for the next ten slides</p>
+    <h2 class="slide-h" tabindex="-1">Five stages, text to rows</h2>
+    <div class="fig wide">
+      <svg viewBox="0 0 600 190" role="img" aria-labelledby="t5 d5">
+        <title id="t5">The five stages of query processing</title>
+        <desc id="d5">Five boxes in a left-to-right chain, joined by arrows:
+        parse, logical plan, rewrite, physical plan, and execute. Under each box
+        is the artifact it produces: a parse tree, an algebra expression, a
+        better algebra expression, an operator tree with access methods, and
+        finally result rows. A note under the chain says the first four stages
+        happen once, before any data is read.</desc>
+        <defs>
+          <marker id="m5" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+          </marker>
+        </defs>
+        <g font-family="system-ui" font-size="10.5" font-weight="700" fill="#00246B">
+          <rect x="8" y="30" width="104" height="38" rx="6" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="60" y="47" text-anchor="middle">1 · Parse</text>
+          <text x="60" y="61" text-anchor="middle" font-weight="400" fill="#4A5160">&amp; check names</text>
+          <rect x="128" y="30" width="104" height="38" rx="6" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="180" y="47" text-anchor="middle">2 · Logical plan</text>
+          <text x="180" y="61" text-anchor="middle" font-weight="400" fill="#4A5160">canonical algebra</text>
+          <rect x="248" y="30" width="104" height="38" rx="6" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="300" y="47" text-anchor="middle">3 · Rewrite</text>
+          <text x="300" y="61" text-anchor="middle" font-weight="400" fill="#4A5160">push, reshape</text>
+          <rect x="368" y="30" width="104" height="38" rx="6" fill="#F1F5FC" stroke="#0033A0" stroke-width="2"/>
+          <text x="420" y="47" text-anchor="middle">4 · Physical plan</text>
+          <text x="420" y="61" text-anchor="middle" font-weight="400" fill="#4A5160">pick methods</text>
+          <rect x="488" y="30" width="104" height="38" rx="6" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+          <text x="540" y="47" text-anchor="middle">5 · Execute</text>
+          <text x="540" y="61" text-anchor="middle" font-weight="400" fill="#4A5160">pull rows</text>
+        </g>
+        <g stroke="#7A2708" stroke-width="1.8" marker-end="url(#m5)">
+          <line x1="113" y1="49" x2="125" y2="49"/>
+          <line x1="233" y1="49" x2="245" y2="49"/>
+          <line x1="353" y1="49" x2="365" y2="49"/>
+          <line x1="473" y1="49" x2="485" y2="49"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="9" fill="#4A5160" text-anchor="middle">
+          <text x="60" y="88">parse tree</text>
+          <text x="180" y="88">&#960; &#963; &#215;</text>
+          <text x="300" y="88">&#960; &#963; &#8904;</text>
+          <text x="420" y="88">seek / probe / filter</text>
+          <text x="540" y="88">2 rows</text>
+        </g>
+        <path d="M8 104 L8 98 L472 98 L472 104" fill="none" stroke="#C9D2E0" stroke-width="1.5"/>
+        <text x="240" y="120" text-anchor="middle" font-family="system-ui" font-size="11"
+              font-weight="700" fill="#00246B">compiled once &#8212; no data is read yet</text>
+        <path d="M488 104 L488 98 L592 98 L592 104" fill="none" stroke="#C9D2E0" stroke-width="1.5"/>
+        <text x="540" y="120" text-anchor="middle" font-family="system-ui" font-size="11"
+              font-weight="700" fill="#7A2708">where the I/O is</text>
+        <text x="300" y="150" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">Stages 1&#8211;3 are purely syntactic. Stage 4 is the only one that consults statistics and the catalog.</text>
+        <text x="300" y="170" text-anchor="middle" font-family="system-ui" font-size="11" fill="#4A5160">Stage 5 is the only one that touches a B+tree.</text>
+      </svg>
+    </div>
+    <div class="three" style="margin-top:4px">
+      <div class="callout" style="margin:0">
+        <h3>Stages 1&#8211;3</h3>
+        <p style="margin:0">Mechanical. Same result every time for the same text,
+        regardless of what is in the tables.</p>
+      </div>
+      <div class="callout" style="margin:0">
+        <h3>Stage 4</h3>
+        <p style="margin:0">Judgment. Which index, which join method, which order
+        — decided from catalog statistics, and possibly decided differently
+        tomorrow.</p>
+      </div>
+      <div class="callout" style="margin:0">
+        <h3>Stage 5</h3>
+        <p style="margin:0">The only stage that reads a page. Everything we care
+        about in cost terms happens here.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · STAGE 1: PARSE -->
+  <section class="slide" data-title="Stage 1 — parse the text into named pieces" aria-roledescription="slide" aria-label="Stage one, parse">
+    <p class="kicker">Stage 1 of 5 · syntax</p>
+    <h2 class="slide-h" tabindex="-1">Parse: three clauses,<br>three jobs</h2>
+    <div class="two">
+      <div>
+        <p>The parser does not understand your query. It splits it into clauses,
+        resolves every name against the catalog, and hands on a tree. Three
+        clauses, three distinct roles:</p>
+        <table class="inst">
+          <caption>What each clause contributes to the plan.</caption>
+          <thead><tr><th scope="col">Clause</th><th scope="col">Becomes</th></tr></thead>
+          <tbody>
+            <tr><th scope="row" class="keycol mono">FROM</th>
+                <td>the set of <strong>inputs</strong>, and therefore the leaves of
+                the plan tree</td></tr>
+            <tr><th scope="row" class="keycol mono">WHERE + ON</th>
+                <td>a bag of <strong>conjuncts</strong> — one condition each,
+                joined by AND, to be placed wherever they can be tested</td></tr>
+            <tr><th scope="row" class="keycol mono">SELECT</th>
+                <td>the <strong>output columns</strong> — the projection at the top</td></tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          <h3>The one idea that matters here</h3>
+          <p style="margin:0"><code>ON</code> and <code>WHERE</code> are
+          <em>pooled</em>. For an inner join the engine does not care which clause
+          a condition arrived in; it collects all three conditions into one bag and
+          decides independently where each one is best evaluated. (For outer joins
+          the distinction is real and changes the answer — a later deck.)</p>
+        </div>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 520 240" role="img" aria-labelledby="t6 d6">
+            <title id="t6">The parse tree for the example query</title>
+            <desc id="d6">A tree with a query block at the root and three
+            children: a SELECT list holding Name and Grade, a FROM list holding
+            STUDENT and ENROLLED underscore IN, and a condition bag holding three
+            conjuncts: CourseID equals CS410, Year at least 3, and s dot
+            StudentID equals e dot StudentID.</desc>
+            <rect x="188" y="12" width="140" height="28" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.2"/>
+            <text x="258" y="31" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#00246B">query block</text>
+            <g stroke="#8A93A3" stroke-width="1.6">
+              <line x1="222" y1="40" x2="88" y2="70"/>
+              <line x1="258" y1="40" x2="258" y2="70"/>
+              <line x1="294" y1="40" x2="420" y2="70"/>
+            </g>
+            <g font-family="system-ui" font-size="10" font-weight="700" fill="#00246B">
+              <rect x="22" y="70" width="132" height="24" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="88" y="86" text-anchor="middle">SELECT list</text>
+              <rect x="196" y="70" width="124" height="24" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="258" y="86" text-anchor="middle">FROM list</text>
+              <rect x="352" y="70" width="146" height="24" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="425" y="86" text-anchor="middle">condition bag</text>
+            </g>
+            <g font-family="ui-monospace,monospace" font-size="9.5" fill="#00246B">
+              <rect x="22" y="108" width="132" height="22" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+              <text x="88" y="123" text-anchor="middle">s.Name</text>
+              <rect x="22" y="136" width="132" height="22" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+              <text x="88" y="151" text-anchor="middle">e.Grade</text>
+              <rect x="196" y="108" width="124" height="22" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+              <text x="258" y="123" text-anchor="middle">STUDENT s</text>
+              <rect x="196" y="136" width="124" height="22" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+              <text x="258" y="151" text-anchor="middle">ENROLLED_IN e</text>
+              <rect x="352" y="108" width="146" height="22" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+              <text x="425" y="123" text-anchor="middle">CourseID='CS410'</text>
+              <rect x="352" y="136" width="146" height="22" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+              <text x="425" y="151" text-anchor="middle">Year &#8805; 3</text>
+              <rect x="352" y="164" width="146" height="22" rx="4" fill="#EAF0FB" stroke="#0033A0" stroke-width="1.6"/>
+              <text x="425" y="179" text-anchor="middle">s.StudentID=e.StudentID</text>
+            </g>
+            <g stroke="#C9D2E0" stroke-width="1.4">
+              <line x1="88" y1="94" x2="88" y2="108"/><line x1="88" y1="130" x2="88" y2="136"/>
+              <line x1="258" y1="94" x2="258" y2="108"/><line x1="258" y1="130" x2="258" y2="136"/>
+              <line x1="425" y1="94" x2="425" y2="108"/><line x1="425" y1="130" x2="425" y2="136"/>
+              <line x1="425" y1="158" x2="425" y2="164"/>
+            </g>
+            <text x="260" y="212" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">three conjuncts, pooled from WHERE and ON</text>
+            <text x="260" y="230" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">each one will be placed separately in stage 3</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · STAGE 2: THE CANONICAL PLAN -->
+  <section class="slide" data-title="Stage 2 — the canonical logical plan, and why it is a strawman" aria-roledescription="slide" aria-label="Stage two, the canonical plan">
+    <p class="kicker">Stage 2 of 5 · logical algebra</p>
+    <h2 class="slide-h" tabindex="-1">The canonical plan:<br>correct, and unusable</h2>
+    <div class="two">
+      <div>
+        <p>The parse tree translates into relational algebra by a fixed recipe:
+        cross-product everything in <code>FROM</code>, apply the whole condition
+        bag as one selection, project at the end.</p>
+        <div class="algebra">&#960;<sub>Name, Grade</sub>( &#963;<sub>all three conjuncts</sub>( STUDENT &#215; ENROLLED_IN ) )</div>
+        <p>This is a faithful statement of the answer, and it is the plan no engine
+        would ever run. Its defect is structural, not cosmetic: the
+        <strong>&#215; is at the bottom</strong>, so the largest intermediate
+        relation in the whole query is built first, and every condition that could
+        have prevented that work is tested afterwards.</p>
+        <div class="callout warn">
+          <h3>What it would cost here</h3>
+          <p style="margin:0">30 intermediate rows for a 2-row answer. At table
+          scale, 400 million. The cross product is also the one operator whose
+          output size you cannot reduce by being clever about access paths — it is
+          |R| &#215; |S| by definition.</p>
+        </div>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 440 250" role="img" aria-labelledby="t7 d7">
+            <title id="t7">The canonical plan tree with cross product at the bottom</title>
+            <desc id="d7">A vertical plan tree. At the bottom, STUDENT and
+            ENROLLED underscore IN feed into a cross product node labeled thirty
+            rows. Above it a selection node applying all three conditions
+            reduces it to two rows, and above that a projection node produces the
+            final two rows. The width of the boxes suggests the cross product is
+            the widest point.</desc>
+            <g font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#00246B">
+              <rect x="150" y="14" width="140" height="28" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="33" text-anchor="middle">&#960; Name, Grade</text>
+              <rect x="124" y="74" width="192" height="28" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="93" text-anchor="middle">&#963; all conditions</text>
+              <rect x="66" y="134" width="308" height="30" rx="5" fill="#FDECE4" stroke="#D64309" stroke-width="2.4"/>
+              <text x="220" y="154" text-anchor="middle" fill="#7A2708">&#215;  cross product</text>
+              <rect x="66" y="198" width="140" height="26" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="136" y="216" text-anchor="middle">STUDENT</text>
+              <rect x="234" y="198" width="140" height="26" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="304" y="216" text-anchor="middle">ENROLLED_IN</text>
+            </g>
+            <g stroke="#8A93A3" stroke-width="1.7">
+              <line x1="220" y1="42" x2="220" y2="74"/>
+              <line x1="220" y1="102" x2="220" y2="134"/>
+              <line x1="136" y1="198" x2="180" y2="164"/>
+              <line x1="304" y1="198" x2="260" y2="164"/>
+            </g>
+            <g font-family="system-ui" font-size="10" fill="#4A5160">
+              <text x="298" y="33">2 rows out</text>
+              <text x="324" y="93">2 rows</text>
+              <text x="382" y="153" fill="#7A2708" font-weight="700">30 rows</text>
+              <text x="30" y="216">5</text><text x="382" y="216">6</text>
+            </g>
+            <text x="220" y="243" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">the widest point of the plan is also the first thing built</text>
+          </svg>
+        </div>
+        <div class="callout">
+          <h3>Why bother writing it down</h3>
+          <p style="margin:0">Because it is the <em>definition of correctness</em>
+          against which every rewrite is checked. A rewrite is legal exactly when
+          it produces the same relation as this tree. That is the whole discipline
+          of the next slide.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · STAGE 3: REWRITE -->
+  <section class="slide" data-title="Stage 3 — push the selections down and fuse the join" aria-roledescription="slide" aria-label="Stage three, rewrite">
+    <p class="kicker">Stage 3 of 5 · heuristic rewriting</p>
+    <h2 class="slide-h" tabindex="-1">Push the conditions down</h2>
+    <p class="lead">Two transformations, applied in this order, turn the strawman
+    into something runnable. Both are provably answer-preserving.</p>
+    <div class="two">
+      <div>
+        <ol>
+          <li><strong>Push each single-table selection to its table.</strong>
+          <code>CourseID='CS410'</code> mentions only ENROLLED_IN, so it can be
+          applied before the pairing rather than after. Same for
+          <code>Year&#8805;3</code> on STUDENT. Filtering early shrinks everything
+          downstream.</li>
+          <li><strong>Fuse the remaining condition into the product.</strong> A
+          &#963; over a &#215; whose condition compares the two inputs <em>is</em>
+          a join: &#963;<sub>p</sub>(R &#215; S) &#8801; R &#8904;<sub>p</sub> S.
+          This is a rewrite of notation, but it is the one that matters — it turns
+          a build-then-discard into a single operator that can be implemented
+          cleverly.</li>
+        </ol>
+        <div class="algebra">&#960;<sub>Name, Grade</sub>(
+  &#963;<sub>Year&#8805;3</sub>(STUDENT)
+    &#8904;<sub>s.StudentID = e.StudentID</sub>
+  &#963;<sub>CourseID='CS410'</sub>(ENROLLED_IN) )</div>
+        <div class="callout">
+          <h3>Still no decisions made</h3>
+          <p style="margin:0">Nothing here says <em>how</em> to evaluate the join
+          or the selections. This is still a logical plan — it has shape, but no
+          algorithms. The &#8904; is a promise, not a procedure.</p>
+        </div>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 440 250" role="img" aria-labelledby="t8 d8">
+            <title id="t8">The rewritten plan tree with selections pushed to the leaves</title>
+            <desc id="d8">A vertical plan tree. STUDENT feeds a selection for
+            Year at least 3, producing three rows, and ENROLLED underscore IN
+            feeds a selection for CourseID equals CS410, producing three rows.
+            Both feed a join node on StudentID producing two rows, and a
+            projection above it produces the final two rows. No node is wider
+            than six rows.</desc>
+            <g font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#00246B">
+              <rect x="150" y="14" width="140" height="28" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="33" text-anchor="middle">&#960; Name, Grade</text>
+              <rect x="128" y="74" width="184" height="28" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+              <text x="220" y="93" text-anchor="middle">&#8904; StudentID</text>
+              <rect x="20" y="134" width="170" height="28" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+              <text x="105" y="153" text-anchor="middle" font-size="10">&#963; Year &#8805; 3</text>
+              <rect x="250" y="134" width="170" height="28" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2"/>
+              <text x="335" y="153" text-anchor="middle" font-size="10">&#963; CourseID='CS410'</text>
+              <rect x="20" y="198" width="170" height="26" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="105" y="216" text-anchor="middle" font-size="10">STUDENT</text>
+              <rect x="250" y="198" width="170" height="26" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="335" y="216" text-anchor="middle" font-size="10">ENROLLED_IN</text>
+            </g>
+            <g stroke="#8A93A3" stroke-width="1.7">
+              <line x1="220" y1="42" x2="220" y2="74"/>
+              <line x1="105" y1="134" x2="170" y2="102"/>
+              <line x1="335" y1="134" x2="270" y2="102"/>
+              <line x1="105" y1="198" x2="105" y2="162"/>
+              <line x1="335" y1="198" x2="335" y2="162"/>
+            </g>
+            <g font-family="system-ui" font-size="10" fill="#4A5160">
+              <text x="298" y="33">2 rows out</text>
+              <text x="320" y="93">2</text>
+              <text x="196" y="153">3</text><text x="426" y="153">3</text>
+              <text x="196" y="216">5</text><text x="426" y="216">6</text>
+            </g>
+            <text x="220" y="243" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">nothing wider than 6 rows anywhere in the tree</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · PREDICATE CLASSIFICATION -->
+  <section class="slide" data-title="Stage 4a — classify every condition: seek, join key, or residual filter" aria-roledescription="slide" aria-label="Classify every condition">
+    <p class="kicker">Stage 4 of 5 · the slide to remember</p>
+    <h2 class="slide-h" tabindex="-1">Every condition becomes<br>one of three things</h2>
+    <p class="lead">This is where a <code>WHERE</code> clause turns into B+tree
+    work — or fails to. The deciding question for each conjunct: can this be
+    answered by <em>positioning</em> in a tree, or only by <em>looking at a row</em>?</p>
+    <table class="inst">
+      <caption>The three conjuncts of our query, and the fate of each.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Conjunct</th><th scope="col">Shape</th>
+          <th scope="col">Becomes</th><th scope="col">Rows it saves</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="keycol mono">e.CourseID = 'CS410'</th>
+          <td>indexed column = constant</td>
+          <td><strong>A seek</strong> into <code>ENROLLED_IN(CourseID)</code> at key
+          CS410, plus a <strong>stop condition</strong> when the key changes. Called
+          <span class="term">sargable</span>.</td>
+          <td class="ok">3 of 6 entries never read at all</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">s.StudentID = e.StudentID</th>
+          <td>column = column, two tables</td>
+          <td><strong>The join's matching rule.</strong> Because STUDENT is indexed
+          on this column, it also becomes a <strong>probe key</strong> — one descent
+          per row from the other side.</td>
+          <td class="ok">all 30 pairings avoided</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">s.Year &gt;= 3</th>
+          <td>unindexed column vs constant</td>
+          <td><strong>A residual filter</strong> — a test applied to each STUDENT row
+          after it has been fetched. Nothing to position on.</td>
+          <td class="no">none; the work is already spent</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="two" style="margin-top:12px">
+      <div class="callout">
+        <h3>The rule in one line</h3>
+        <p style="margin:0">A condition can become a seek when it compares an
+        <strong>indexed column, standing bare on one side</strong>, to something
+        constant for the query. Then the predicate is a <em>position</em> in a
+        sorted sequence, and the tree can jump there.</p>
+      </div>
+      <div class="callout warn">
+        <h3>How to destroy a usable index by accident</h3>
+        <p style="margin:0">Wrap the column in anything and the seek is gone, even
+        with the index in place: <code>WHERE YEAR(EnrollDate) = 2026</code>,
+        <code>WHERE UPPER(Name) = 'RUIZ'</code>,
+        <code>WHERE Year + 1 &gt;= 4</code>. The tree is sorted by the column, not
+        by a function of it, so there is no position to jump to and every row must
+        be read and tested.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · THE FIVE PRIMITIVES -->
+  <section class="slide dense" data-title="Stage 4b — the five B+tree operations a plan can call" aria-roledescription="slide" aria-label="The five B plus tree operations">
+    <p class="kicker">Stage 4 of 5 · the instruction set</p>
+    <h2 class="slide-h" tabindex="-1">The whole instruction set:<br>five operations</h2>
+    <p>Whatever the plan looks like, this is all it can ask a B+tree to do. Every
+    access method in every engine is a composition of these.</p>
+    <table class="inst">
+      <caption>The B+tree operations, their cost, and which part of a query produces them.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Operation</th><th scope="col">What it does</th>
+          <th scope="col">Cost</th><th scope="col">Produced by</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row" class="keycol mono">descend(k)</th>
+          <td>Root to leaf, following separator keys, to the page that would hold k.</td>
+          <td class="mono">h page reads<br>(h = 2 here)</td>
+          <td>a sargable equality or a range's lower bound; each probe of a join</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">position(k)</th>
+          <td>Within that leaf, land on the first entry with key &#8805; k.</td>
+          <td class="mono">0 — in memory</td>
+          <td>the same predicate; this is where "seek" ends</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">scan_next()</th>
+          <td>Step one entry right, crossing to the next leaf via the next-leaf
+          pointer when the page runs out.</td>
+          <td class="mono">0, or 1 at a<br>page boundary</td>
+          <td>a run of duplicate keys; a range; a full index scan</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">stop_at(k)</th>
+          <td>Halt the scan as soon as the key leaves the wanted range.</td>
+          <td class="mono">0</td>
+          <td>the upper bound of a range, or the end of an equality run</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol mono">fetch(ptr)</th>
+          <td>Follow a leaf entry's row pointer to the table page holding the full
+          row.</td>
+          <td class="mono">1 random<br>page read</td>
+          <td>any column the index does not itself carry</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="two" style="margin-top:12px">
+      <div class="callout">
+        <h3>Where the bill comes from</h3>
+        <p style="margin:0">Only <code>descend</code> and <code>fetch</code> are
+        expensive, and both are <strong>random</strong> reads. A good plan is one
+        that does few descents and few fetches, and gets as much as it can out of
+        <code>scan_next</code>, which is nearly free.</p>
+      </div>
+      <div class="callout">
+        <h3>The fetch you can delete</h3>
+        <p style="margin:0">If the index's leaf entries already carry every column
+        the query needs, <code>fetch</code> never happens — the index
+        <span class="term">covers</span> the query. Adding <code>StudentID</code>
+        and <code>Grade</code> to our CourseID index would remove three page reads
+        from the plan we are about to run.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · ACCESS PATH SELECTION -->
+  <section class="slide" data-title="Stage 4c — choosing an access path for each table" aria-roledescription="slide" aria-label="Choosing an access path">
+    <p class="kicker">Stage 4 of 5 · the decisions</p>
+    <h2 class="slide-h" tabindex="-1">One access path per table</h2>
+    <div class="two">
+      <div>
+        <p>With the conjuncts classified, each leaf of the logical plan gets an
+        access method. Two tables, two decisions — and the second decision depends
+        on the first.</p>
+        <table class="inst">
+          <caption>The two choices, and the reasoning behind each.</caption>
+          <thead><tr><th scope="col">Table</th><th scope="col">Chosen path</th><th scope="col">Because</th></tr></thead>
+          <tbody>
+            <tr>
+              <th scope="row" class="keycol">ENROLLED_IN</th>
+              <td><strong>Index seek</strong> on <code>(CourseID)</code> at CS410,
+              then <code>fetch</code> per entry</td>
+              <td>a sargable predicate on an indexed column, and it is
+              <em>selective</em> — 3 of 6 rows here, 120 of 50,000 at scale</td>
+            </tr>
+            <tr>
+              <th scope="row" class="keycol">STUDENT</th>
+              <td><strong>Index probe</strong> on the clustered primary key, driven
+              by each enrollment's StudentID</td>
+              <td>the join column is the key of a clustered index, so a probe lands
+              directly on the row — no fetch at all</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout warn">
+          <h3>Why STUDENT is the inner side, not the outer</h3>
+          <p style="margin:0">The filtered ENROLLED_IN side yields only 3 rows, so
+          using it to drive 3 probes is cheap. Driving the other way — scan all
+          students, probe enrollments — would cost 5 probes here and 8,000 at
+          scale. <strong>The selective side goes outer.</strong></p>
+        </div>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 440 260" role="img" aria-labelledby="t11 d11">
+            <title id="t11">The STUDENT clustered B plus tree, height two</title>
+            <desc id="d11">A root node holding separator keys S1003 and S1007
+            with three children. The three leaf nodes hold, left to right, S1001
+            and S1002; S1003 and S1005; S1007 and S1009. A note says each leaf
+            entry is the whole student row, because the index is clustered, so a
+            probe costs two page reads and no fetch.</desc>
+            <rect x="130" y="16" width="180" height="34" rx="5" fill="#F1F5FC" stroke="#0033A0" stroke-width="2.3"/>
+            <line x1="190" y1="16" x2="190" y2="50" stroke="#0033A0" stroke-width="1.2"/>
+            <line x1="250" y1="16" x2="250" y2="50" stroke="#0033A0" stroke-width="1.2"/>
+            <text x="220" y="38" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" font-weight="700" fill="#00246B">S1003 S1007</text>
+            <text x="20" y="30" font-family="system-ui" font-size="10" fill="#4A5160">root &#8212; separators</text>
+            <text x="20" y="44" font-family="system-ui" font-size="10" fill="#4A5160">only, no rows</text>
+            <g stroke="#8A93A3" stroke-width="1.7">
+              <line x1="160" y1="50" x2="78" y2="104"/>
+              <line x1="220" y1="50" x2="220" y2="104"/>
+              <line x1="280" y1="50" x2="362" y2="104"/>
+            </g>
+            <g font-family="system-ui" font-size="9" fill="#4A5160" text-anchor="middle"
+               stroke="#ffffff" stroke-width="3" paint-order="stroke">
+              <text x="78" y="96">&lt; S1003</text>
+              <text x="220" y="96">S1003 &#8804; k &lt; S1007</text>
+              <text x="362" y="96">&#8805; S1007</text>
+            </g>
+            <g font-family="ui-monospace,monospace" font-size="9.5" font-weight="700" fill="#00246B">
+              <rect x="14" y="104" width="128" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="78" y="120" text-anchor="middle">S1001 Dana</text>
+              <text x="78" y="135" text-anchor="middle">S1002 Luis</text>
+              <rect x="156" y="104" width="128" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="120" text-anchor="middle">S1003 Priya</text>
+              <text x="220" y="135" text-anchor="middle">S1005 Tom</text>
+              <rect x="298" y="104" width="128" height="40" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="362" y="120" text-anchor="middle">S1007 Ana</text>
+              <text x="362" y="135" text-anchor="middle">S1009 &#8230;</text>
+            </g>
+            <g stroke="#7A2708" stroke-width="2" fill="none">
+              <path d="M142 124 L154 124" marker-end="url(#m11)"/>
+              <path d="M284 124 L296 124" marker-end="url(#m11)"/>
+            </g>
+            <defs>
+              <marker id="m11" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+              </marker>
+            </defs>
+            <text x="220" y="172" text-anchor="middle" font-family="system-ui" font-size="11" font-weight="700" fill="#7A2708">clustered: the leaf entry IS the row</text>
+            <text x="220" y="190" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">so a probe costs 2 reads and no fetch</text>
+            <rect x="40" y="206" width="360" height="42" rx="6" fill="#F4F6FB" stroke="#C9D2E0" stroke-width="1.5"/>
+            <text x="220" y="223" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">A secondary index here would cost one extra random</text>
+            <text x="220" y="239" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#14181F">fetch per probe &#8212; 3 more page reads in this query.</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · THE PHYSICAL PLAN -->
+  <section class="slide" data-title="The physical plan, and what EXPLAIN calls each operator" aria-roledescription="slide" aria-label="The physical plan">
+    <p class="kicker">Stage 4 of 5 · the finished plan</p>
+    <h2 class="slide-h" tabindex="-1">The plan that actually runs</h2>
+    <div class="two">
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 440 290" role="img" aria-labelledby="t12 d12">
+            <title id="t12">The physical plan tree with four operators</title>
+            <desc id="d12">A vertical plan tree read bottom to top. At the bottom
+            left an index seek on ENROLLED underscore IN by CourseID equals
+            CS410, feeding a row fetch. At the bottom right an index probe on the
+            STUDENT clustered primary key. Both feed an index nested loop join on
+            StudentID, which feeds a filter for Year at least three, which feeds a
+            projection of Name and Grade at the top producing two rows.</desc>
+            <defs>
+              <marker id="m12" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="5.5" markerHeight="5.5" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+              </marker>
+            </defs>
+            <g font-family="system-ui" font-size="10" font-weight="700" fill="#00246B">
+              <rect x="128" y="12" width="184" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+              <text x="220" y="26" text-anchor="middle">4 &#183; PROJECT</text>
+              <text x="220" y="38" text-anchor="middle" font-weight="400" font-size="9.5" fill="#4A5160">Name, Grade</text>
+              <rect x="128" y="66" width="184" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+              <text x="220" y="80" text-anchor="middle">3 &#183; FILTER</text>
+              <text x="220" y="92" text-anchor="middle" font-weight="400" font-size="9.5" fill="#4A5160">residual: Year &#8805; 3</text>
+              <rect x="110" y="120" width="220" height="30" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.4"/>
+              <text x="220" y="134" text-anchor="middle">2 &#183; INDEX NESTED LOOP JOIN</text>
+              <text x="220" y="146" text-anchor="middle" font-weight="400" font-size="9.5" fill="#4A5160">probe key = e.StudentID</text>
+              <rect x="8" y="182" width="176" height="44" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="96" y="197" text-anchor="middle">1a &#183; INDEX SEEK</text>
+              <text x="96" y="209" text-anchor="middle" font-weight="400" font-size="9" fill="#4A5160">ENROLLED_IN(CourseID)</text>
+              <text x="96" y="220" text-anchor="middle" font-weight="400" font-size="9" fill="#4A5160">= 'CS410', stop on change</text>
+              <rect x="256" y="182" width="176" height="44" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="344" y="197" text-anchor="middle">1b &#183; INDEX PROBE</text>
+              <text x="344" y="209" text-anchor="middle" font-weight="400" font-size="9" fill="#4A5160">STUDENT PK, clustered</text>
+              <text x="344" y="220" text-anchor="middle" font-weight="400" font-size="9" fill="#4A5160">no fetch needed</text>
+              <rect x="8" y="244" width="176" height="26" rx="5" fill="#fff" stroke="#C9D2E0" stroke-width="1.8"/>
+              <text x="96" y="261" text-anchor="middle" font-weight="400" font-size="9.5">+ FETCH row by pointer</text>
+            </g>
+            <g stroke="#7A2708" stroke-width="2" marker-end="url(#m12)">
+              <line x1="220" y1="66" x2="220" y2="48"/>
+              <line x1="220" y1="120" x2="220" y2="102"/>
+              <line x1="96" y1="182" x2="170" y2="152"/>
+              <line x1="344" y1="182" x2="270" y2="152"/>
+              <line x1="96" y1="244" x2="96" y2="228"/>
+            </g>
+            <text x="220" y="284" text-anchor="middle" font-family="system-ui" font-size="10.5" fill="#4A5160">rows flow upward; requests flow downward</text>
+          </svg>
+        </div>
+      </div>
+      <div>
+        <p>Four operators. Note what is <em>not</em> there: no cross product, no
+        sort, no intermediate table. And note where the three conjuncts went —
+        one into the seek at 1a, one into the join at 2, one into the filter at 3.</p>
+        <table class="inst tight">
+          <caption>The same operators, as the major engines name them in EXPLAIN.</caption>
+          <thead><tr><th scope="col">Here</th><th scope="col">PostgreSQL</th><th scope="col">MySQL / InnoDB</th></tr></thead>
+          <tbody>
+            <tr><th scope="row" class="keycol">Index seek</th><td class="mono">Index Scan<br>(with Index Cond)</td><td class="mono">type: ref<br>key: idx_course</td></tr>
+            <tr><th scope="row" class="keycol">Fetch</th><td class="mono">(part of Index Scan;<br>separate in Bitmap Heap Scan)</td><td class="mono">implicit;<br>absent if covering</td></tr>
+            <tr><th scope="row" class="keycol">Index nested loop</th><td class="mono">Nested Loop</td><td class="mono">Nested loop<br>+ eq_ref inner</td></tr>
+            <tr><th scope="row" class="keycol">Residual filter</th><td class="mono">Filter:</td><td class="mono">Using where</td></tr>
+          </tbody>
+        </table>
+        <div class="callout">
+          <h3>Reading an EXPLAIN from now on</h3>
+          <p style="margin:0">Two things tell you most of the story:
+          <strong>Index Cond versus Filter</strong> — the first was turned into a
+          seek, the second is costing you a row read each time; and
+          <strong>rows removed by filter</strong> — work you paid for and threw
+          away.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · THE ITERATOR MODEL -->
+  <section class="slide" data-title="How the plan runs — one row pulled at a time" aria-roledescription="slide" aria-label="The iterator model">
+    <p class="kicker">Stage 5 of 5 · execution</p>
+    <h2 class="slide-h" tabindex="-1">Rows are pulled, not pushed</h2>
+    <div class="two">
+      <div>
+        <p>Every operator in the tree exposes the same three calls, and that is
+        the entire execution engine:</p>
+        <div class="code"><span class="kw">open</span>()   <span class="cm">// get ready; for a seek, descend the tree</span>
+<span class="kw">next</span>()   <span class="cm">// return one row, or "done"</span>
+<span class="kw">close</span>()  <span class="cm">// release the cursor</span></div>
+        <p>The client calls <code>next()</code> on the top operator. PROJECT calls
+        <code>next()</code> on FILTER, which calls <code>next()</code> on the JOIN,
+        which calls <code>next()</code> on the seek, which performs one
+        <code>scan_next</code> on a leaf. A row then travels back up, is probed
+        against, tested, trimmed, and handed out.</p>
+        <div class="callout">
+          <h3>Two consequences worth having</h3>
+          <p style="margin:0"><strong>Results start before the work finishes.</strong>
+          Our first output row is ready after 5 page reads of the eventual 11 —
+          which is why <code>LIMIT 1</code> on this plan is genuinely cheap.
+          <strong>And no intermediate relation is ever stored.</strong> The 30-row
+          cross product of the canonical plan never exists anywhere.</p>
+        </div>
+      </div>
+      <div>
+        <div class="fig">
+          <svg viewBox="0 0 440 250" role="img" aria-labelledby="t13 d13">
+            <title id="t13">Requests travelling down the operator tree and rows travelling up</title>
+            <desc id="d13">Four stacked operator boxes: project, filter, join and
+            index seek. On the left, downward arrows labeled next() run from each
+            operator to the one below it. On the right, upward arrows labeled one
+            row run from each operator to the one above. At the bottom the seek
+            box connects to a leaf page, and at the top the project box connects
+            to the client.</desc>
+            <defs>
+              <marker id="md" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+              </marker>
+              <marker id="mu" viewBox="0 0 10 10" refX="9" refY="5"
+                      markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#0033A0"/>
+              </marker>
+            </defs>
+            <g font-family="system-ui" font-size="10" font-weight="700" fill="#00246B">
+              <rect x="150" y="10" width="140" height="22" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/>
+              <text x="220" y="25" text-anchor="middle" font-weight="400" fill="#4A5160">client</text>
+              <rect x="150" y="50" width="140" height="26" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="67" text-anchor="middle">PROJECT</text>
+              <rect x="150" y="98" width="140" height="26" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="115" text-anchor="middle">FILTER</text>
+              <rect x="150" y="146" width="140" height="26" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="163" text-anchor="middle">JOIN</text>
+              <rect x="150" y="194" width="140" height="26" rx="5" fill="#EAF0FB" stroke="#0033A0" stroke-width="2.2"/>
+              <text x="220" y="211" text-anchor="middle">INDEX SEEK</text>
+              <rect x="150" y="234" width="140" height="22" rx="4" fill="#fff" stroke="#C9D2E0" stroke-width="1.6"/>
+              <text x="220" y="249" text-anchor="middle" font-weight="400" fill="#4A5160">leaf page</text>
+            </g>
+            <g stroke="#7A2708" stroke-width="1.7" marker-end="url(#md)">
+              <line x1="170" y1="76" x2="170" y2="96"/>
+              <line x1="170" y1="124" x2="170" y2="144"/>
+              <line x1="170" y1="172" x2="170" y2="192"/>
+            </g>
+            <g stroke="#0033A0" stroke-width="1.7" marker-end="url(#mu)">
+              <line x1="270" y1="192" x2="270" y2="174"/>
+              <line x1="270" y1="144" x2="270" y2="126"/>
+              <line x1="270" y1="96" x2="270" y2="78"/>
+            </g>
+            <g font-family="ui-monospace,monospace" font-size="9" fill="#7A2708" text-anchor="end">
+              <text x="162" y="90">next()</text><text x="162" y="138">next()</text><text x="162" y="186">next()</text>
+            </g>
+            <g font-family="ui-monospace,monospace" font-size="9" fill="#0033A0">
+              <text x="278" y="186">1 row</text><text x="278" y="138">1 row</text><text x="278" y="90">1 row</text>
+            </g>
+            <text x="60" y="36" font-family="system-ui" font-size="9.5" fill="#7A2708" font-weight="700">requests</text>
+            <text x="60" y="48" font-family="system-ui" font-size="9.5" fill="#7A2708">go down</text>
+            <text x="330" y="36" font-family="system-ui" font-size="9.5" fill="#0033A0" font-weight="700">rows</text>
+            <text x="330" y="48" font-family="system-ui" font-size="9.5" fill="#0033A0">come up</text>
+          </svg>
+        </div>
+        <div class="callout warn">
+          <h3>Which operators break the stream</h3>
+          <p style="margin:0">Seek, probe, filter and project are
+          <span class="term">pipelined</span> — one row in, one row out. Sorting,
+          grouping, and the build side of a hash join are
+          <span class="term">blocking</span>: they must consume their whole input
+          before emitting anything. Add an <code>ORDER BY</code> on an unindexed
+          column and the early-rows property on the left disappears.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · INTERACTIVE DEMONSTRATOR -->
+  <section class="slide" data-title="Demonstrator: run the plan on the B+trees" aria-roledescription="slide" aria-label="Demonstrator, run the plan">
+    <p class="kicker">Synthesis · interactive</p>
+    <h2 class="slide-h" tabindex="-1">Run the plan</h2>
+    <p>Thirteen steps, from an unopened plan to the finished output table. Watch
+    the page counter: every increment is a real disk read.</p>
+    <div class="hl-controls" role="group" aria-label="Plan execution stepper controls">
+      <button class="btn-s" id="px-prev" type="button">&#8249; Back</button>
+      <button class="btn-s" id="px-next" type="button">Step &#8250;</button>
+      <button class="btn-s ghost" id="px-reset" type="button">Reset</button>
+      <span class="step-tag" id="px-tag" aria-hidden="true">Step 1 / 13 &#183; Open</span>
+    </div>
+    <p id="px-desc" class="live-desc" role="status" aria-live="polite">The plan is
+    open and no page has been read. The client asks PROJECT for its first row, and
+    the request travels down to the index seek at the bottom of the tree.</p>
+    <p class="iobar">
+      <span>pages read <strong id="px-io">0</strong></span>
+      <span>rows out <strong id="px-count">0</strong></span>
+      <span>rows rejected by the filter <strong id="px-rej">0</strong></span>
+    </p>
+    <div class="demo">
+      <div>
+        <div class="leafbox">
+          <h3>ENROLLED_IN(CourseID) &#183; leaf chain</h3>
+          <p class="sub">seek key CS410 &#183; entries hold the key and a row pointer</p>
+          <ol class="leafstrip" id="px-idx">
+            <li><span class="key">CS354</span><span class="pay">&#8594;r1</span></li>
+            <li><span class="key">CS410</span><span class="pay">&#8594;r2</span></li>
+            <li><span class="key">CS410</span><span class="pay">&#8594;r3</span></li>
+            <li><span class="key">CS410</span><span class="pay">&#8594;r4</span></li>
+            <li><span class="key">CS452</span><span class="pay">&#8594;r5</span></li>
+            <li><span class="key">CS481</span><span class="pay">&#8594;r6</span></li>
+          </ol>
+        </div>
+        <div class="probe">
+          <h3>STUDENT primary key tree &#183; probe</h3>
+          <dl>
+            <dt>probe key</dt><dd id="px-pkey">&#8212;</dd>
+            <dt>descent</dt><dd id="px-ppath">&#8212;</dd>
+            <dt>row found</dt><dd id="px-prow">&#8212;</dd>
+            <dt>residual test</dt><dd><span class="badge" id="px-pverdict">not yet applied</span></dd>
+          </dl>
+        </div>
+      </div>
+      <div class="outbox">
+        <h3>Output table so far &#8212; <span class="outcount" id="px-outcount">0 rows</span></h3>
+        <table class="inst">
+          <caption>Rows are emitted as they are produced; nothing is ever retracted.</caption>
+          <thead><tr>
+            <th scope="col" class="mono">Name</th><th scope="col" class="mono">Grade</th>
+          </tr></thead>
+          <tbody id="px-out">
+            <tr><td colspan="2" style="color:var(--muted)">&#8212; empty &#8212;</td></tr>
+          </tbody>
+        </table>
+        <p class="figcap">The full step-by-step trace is on the next slide, and is
+        the version that prints.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · THE FULL TRACE -->
+  <section class="slide" data-title="The full execution trace, step by step" aria-roledescription="slide" aria-label="The full execution trace">
+    <p class="kicker">Reference &#183; the same thirteen steps in writing</p>
+    <h2 class="slide-h" tabindex="-1">The full trace</h2>
+    <table class="inst trace">
+      <caption>Executing the plan from slide 12. "Op" is the B+tree operation; pages is the running total of page reads.</caption>
+      <thead>
+        <tr>
+          <th scope="col">#</th><th scope="col">Operator</th><th scope="col">Op</th>
+          <th scope="col">What happens</th><th scope="col">Pages</th><th scope="col">Out</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">1</th><td>all</td><td class="mono">open</td><td>cursors created; nothing read</td><td class="mono">0</td><td class="mono">0</td></tr>
+        <tr><th scope="row">2</th><td>Index seek</td><td class="mono">descend + position</td><td>root then leaf of the CourseID index, seeking CS410; land on the first CS410 entry</td><td class="mono">2</td><td class="mono">0</td></tr>
+        <tr><th scope="row">3</th><td>Fetch</td><td class="mono">fetch(r2)</td><td>index entry gives a pointer only, so follow it for the row: CS410, S1001, grade A</td><td class="mono">3</td><td class="mono">0</td></tr>
+        <tr><th scope="row">4</th><td>Join</td><td class="mono">descend(S1001)</td><td>probe the STUDENT key tree: root, then leaf 1. Clustered, so the leaf entry is the row: Dana Okafor, year 3</td><td class="mono">5</td><td class="mono">0</td></tr>
+        <tr class="is-new"><th scope="row">5</th><td>Filter + Project</td><td class="mono">&#8212;</td><td>Year 3 &#8805; 3 passes; trim to Name and Grade; <strong>emit row 1</strong></td><td class="mono">5</td><td class="mono">1</td></tr>
+        <tr><th scope="row">6</th><td>Index seek + Fetch</td><td class="mono">scan_next, fetch(r3)</td><td>step right in the same leaf page (free), key still CS410; fetch the row: S1003, grade B+</td><td class="mono">6</td><td class="mono">1</td></tr>
+        <tr><th scope="row">7</th><td>Join</td><td class="mono">descend(S1003)</td><td>probe STUDENT: root, then leaf 2. Priya Raman, year 2</td><td class="mono">8</td><td class="mono">1</td></tr>
+        <tr><th scope="row">8</th><td>Filter</td><td class="mono">&#8212;</td><td>Year 2 &#8805; 3 fails; <strong>row discarded</strong> after 3 page reads were spent on it</td><td class="mono">8</td><td class="mono">1</td></tr>
+        <tr><th scope="row">9</th><td>Index seek + Fetch</td><td class="mono">scan_next, fetch(r4)</td><td>step right again, key still CS410; fetch the row: S1007, grade A</td><td class="mono">9</td><td class="mono">1</td></tr>
+        <tr><th scope="row">10</th><td>Join</td><td class="mono">descend(S1007)</td><td>probe STUDENT: root, then leaf 3. Ana Ruiz, year 3</td><td class="mono">11</td><td class="mono">1</td></tr>
+        <tr class="is-new"><th scope="row">11</th><td>Filter + Project</td><td class="mono">&#8212;</td><td>year 3 passes; <strong>emit row 2</strong></td><td class="mono">11</td><td class="mono">2</td></tr>
+        <tr><th scope="row">12</th><td>Index seek</td><td class="mono">scan_next, stop_at</td><td>next key is CS452, outside the range &#8212; the stop condition fires. CS452 and CS481 are never fetched</td><td class="mono">11</td><td class="mono">2</td></tr>
+        <tr><th scope="row">13</th><td>all</td><td class="mono">close</td><td>cursors released; the output table is complete</td><td class="mono">11</td><td class="mono">2</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">
+      <h3>Count the work</h3>
+      <p style="margin:0"><strong>11 page reads</strong> for a 2-row answer. Three
+      of the six index entries were ever looked at, and three of the five students
+      were ever read. The canonical plan from slide 7 would have built 30
+      intermediate rows to produce the same two.</p>
+    </div>
+  </section>
+
+  <!-- 16 · COST, AND THE PLANS NOT CHOSEN -->
+  <section class="slide" data-title="What it cost, and what the alternatives would have cost" aria-roledescription="slide" aria-label="Cost and the alternatives">
+    <p class="kicker">Why this plan and not another</p>
+    <h2 class="slide-h" tabindex="-1">The same query at real scale</h2>
+    <p>Six rows prove nothing about cost. Scale the tables up and keep the plan:
+    <strong>50,000 enrollments on 500 pages</strong>,
+    <strong>8,000 students on 200 pages</strong>, <strong>120 students in CS 410</strong>,
+    both trees of height 3 with the upper levels cached.</p>
+    <table class="inst">
+      <caption>Three plans for the same query. Page reads, dominated by the random ones.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Plan</th><th scope="col">How it gets the enrollments</th>
+          <th scope="col">How it gets the students</th><th scope="col">Pages</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="is-new">
+          <th scope="row" class="keycol">Chosen: seek + index nested loop</th>
+          <td>seek to CS410, scan 120 entries, fetch 120 rows &#8594; <span class="mono">~124</span></td>
+          <td>120 probes, 1 leaf read each &#8594; <span class="mono">120</span></td>
+          <td class="mono ok">~244</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Scan + index nested loop</th>
+          <td>full scan of the table &#8594; <span class="mono">500</span></td>
+          <td>120 probes &#8594; <span class="mono">120</span></td>
+          <td class="mono">~620</td>
+        </tr>
+        <tr>
+          <th scope="row" class="keycol">Scan + hash join</th>
+          <td>full scan &#8594; <span class="mono">500</span></td>
+          <td>full scan to build the hash table &#8594; <span class="mono">200</span></td>
+          <td class="mono">~700</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="two" style="margin-top:12px">
+      <div class="callout warn">
+        <h3>Now change one number</h3>
+        <p style="margin:0">Suppose the <code>WHERE</code> matched
+        <strong>20,000</strong> enrollments instead of 120. The chosen plan becomes
+        20,000 fetches plus 20,000 probes — <strong>40,000 random reads</strong>,
+        far worse than the hash join's 700 sequential ones. Same query text, same
+        indexes, opposite decision. <strong>Selectivity, not the index's
+        existence, decides.</strong></p>
+      </div>
+      <div class="callout">
+        <h3>And the plan we skipped</h3>
+        <p style="margin:0">If both sides were indexed on <code>StudentID</code>,
+        a <strong>merge join</strong> over the two leaf chains becomes available:
+        no probes, one forward pass each, cost additive rather than per-row. That
+        mechanism is the subject of the companion deck — and the optimizer costs it
+        against these three every time.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 17 · RECAP -->
+  <section class="slide" data-title="Recap and what's next" aria-roledescription="slide" aria-label="Recap and what's next">
+    <p class="kicker">Wrap-up</p>
+    <h2 class="slide-h" tabindex="-1">Recap &amp; what's next</h2>
+    <div class="two">
+      <div>
+        <h3 style="font-family:var(--serif);color:var(--blue-ink);margin:0 0 6px">Today</h3>
+        <ul>
+          <li>A query becomes rows in <strong>five stages</strong>: parse, canonical
+          algebra, rewrite, physical plan, execute. Only the last one reads a page.</li>
+          <li><code>WHERE</code> and <code>ON</code> dissolve into a
+          <strong>bag of conjuncts</strong>, and each conjunct is placed
+          independently.</li>
+          <li>Each conjunct becomes exactly one of three things: a
+          <strong>seek</strong>, a <strong>join matching rule</strong>, or a
+          <strong>residual filter</strong>. The first is nearly free, the last is
+          paid for per row.</li>
+          <li>Underneath, the plan has only five moves available:
+          <strong>descend, position, scan next, stop at, fetch</strong>. Descend
+          and fetch are the expensive ones.</li>
+          <li>Execution is <strong>pull-based</strong>: one row at a time, up
+          through the operators, with no intermediate relation stored anywhere.</li>
+          <li>The plan is chosen on <strong>selectivity</strong>. An index is not
+          "faster" — it is only faster for a predicate selective enough to justify
+          the random reads.</li>
+        </ul>
+      </div>
+      <div>
+        <div class="callout">
+          <h3>Check yourself</h3>
+          <ol style="margin:0">
+            <li>Which of the three conjuncts could have been eliminated by a
+            different index, and what index would it be?</li>
+            <li>At step 8 the plan discards a row after spending 3 page reads on
+            it. Could any plan have avoided that cost? Why or why not?</li>
+            <li>Rewrite the <code>WHERE</code> as
+            <code>e.CourseID LIKE 'CS41%'</code>. Is it still sargable? What about
+            <code>LIKE '%410'</code>?</li>
+            <li>Add <code>StudentID</code> and <code>Grade</code> to the CourseID
+            index. How many page reads does the trace lose, and which steps
+            disappear?</li>
+            <li>The query returns 2 rows and reads 11 pages. Give a query over the
+            same tables that returns 2 rows and must read all 500.</li>
+          </ol>
+        </div>
+        <div class="callout warn">
+          <h3>Next</h3>
+          <p style="margin:0">Cost estimation: where numbers like "120 of 50,000"
+          come from, how the catalog's statistics produce them, and how the
+          optimizer searches the space of plans instead of enumerating it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /deck -->
+
+  <div class="deck-chrome">
+    <div class="bar"><div class="bar-fill" id="deck-bar-fill"></div></div>
+    <div class="nav">
+      <button class="btn" id="prev" type="button">&#8249; Previous</button>
+      <span class="counter" id="deck-counter" aria-hidden="true">1 / 17</span>
+      <button class="btn" id="next" type="button">Next &#8250;</button>
+    </div>
+    <p class="hint">Move with the arrow keys, or Previous / Next. Home and End jump to the ends.</p>
+    <p class="vh" id="deck-status" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var total   = slides.length;
+  var idx     = 0;
+  var counter = document.getElementById('deck-counter');
+  var status  = document.getElementById('deck-status');
+  var fill    = document.getElementById('deck-bar-fill');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+
+  function clamp(n){ return Math.max(0, Math.min(total - 1, n)); }
+
+  function render(n, moveFocus){
+    idx = clamp(n);
+    for (var i = 0; i < total; i++){
+      var active = (i === idx);
+      slides[i].classList.toggle('is-active', active);
+      if (active){ slides[i].removeAttribute('hidden'); }
+      else { slides[i].setAttribute('hidden', ''); }
+    }
+    var title = slides[idx].getAttribute('data-title') || ('Slide ' + (idx + 1));
+    if (counter) counter.textContent = (idx + 1) + ' / ' + total;
+    if (fill) fill.style.width = (((idx + 1) / total) * 100) + '%';
+    if (prevBtn) prevBtn.disabled = (idx === 0);
+    if (nextBtn) nextBtn.disabled = (idx === total - 1);
+    if (status) status.textContent = 'Slide ' + (idx + 1) + ' of ' + total + ': ' + title;
+    if (window.history && history.replaceState){
+      history.replaceState(null, '', '#s' + (idx + 1));
+    }
+    if (moveFocus){
+      var h = slides[idx].querySelector('.slide-h');
+      if (h) h.focus();
+    }
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function(){ render(idx - 1, true); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ render(idx + 1, true); });
+
+  document.addEventListener('keydown', function(e){
+    var t = e.target;
+    if (t && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) &&
+        (e.key === ' ' || e.key === 'Enter')) return;
+    switch (e.key){
+      case 'ArrowRight': case 'PageDown': render(idx + 1, true); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':   render(idx - 1, true); e.preventDefault(); break;
+      case 'Home': render(0, true); e.preventDefault(); break;
+      case 'End':  render(total - 1, true); e.preventDefault(); break;
+    }
+  });
+
+  // ---- plan-execution stepper ---------------------------------------------
+  var pxIdxEl   = document.getElementById('px-idx');
+  var pxOutEl   = document.getElementById('px-out');
+  var pxDescEl  = document.getElementById('px-desc');
+  var pxTagEl   = document.getElementById('px-tag');
+  var pxOutCnt  = document.getElementById('px-outcount');
+  var pxCount   = document.getElementById('px-count');
+  var pxRej     = document.getElementById('px-rej');
+  var pxIo      = document.getElementById('px-io');
+  var pxKey     = document.getElementById('px-pkey');
+  var pxPath    = document.getElementById('px-ppath');
+  var pxRow     = document.getElementById('px-prow');
+  var pxVerdict = document.getElementById('px-pverdict');
+  var pxNext    = document.getElementById('px-next');
+  var pxPrev    = document.getElementById('px-prev');
+  var pxReset   = document.getElementById('px-reset');
+
+  if (pxIdxEl && pxOutEl && pxNext){
+    var OUT = [ ['Dana Okafor','A'], ['Ana Ruiz','A'] ];
+    var DASH = '—';
+
+    // cur: index of the index-leaf cursor (null = not positioned)
+    // run: inclusive span of entries confirmed inside the seek range
+    // stop: entry at which the stop condition fired
+    var STEPS = [
+      { cur:null, out:0, rej:0, io:0, label:'Open',
+        key:DASH, path:DASH, row:DASH, verdict:'not yet applied', vclass:'',
+        desc:'The plan is open and no page has been read. The client asks PROJECT for its first row, and the request travels down to the index seek at the bottom.' },
+      { cur:1, run:[1,1], out:0, rej:0, io:2, label:'Seek',
+        key:DASH, path:DASH, row:DASH, verdict:'not yet applied', vclass:'',
+        desc:'Descend the CourseID index from the root looking for CS410: one root page, one leaf page, two reads. Position on the first entry whose key is CS410.' },
+      { cur:1, run:[1,1], out:0, rej:0, io:3, label:'Fetch',
+        key:DASH, path:DASH, row:'CS410 S1001 A', verdict:'not yet applied', vclass:'',
+        desc:'The leaf entry holds the key and a row pointer, r2, but not StudentID or Grade. Follow the pointer into the table: one more page read. The enrollment row is CS410, S1001, grade A.' },
+      { cur:1, run:[1,1], out:0, rej:0, io:5, label:'Probe',
+        key:'S1001', path:'root → leaf 1', row:'Dana Okafor · year 3', verdict:'not yet applied', vclass:'',
+        desc:'The join predicate becomes a probe key. Descend the STUDENT primary key tree for S1001: root, then leaf one. The index is clustered, so the leaf entry is the student row itself. No fetch needed.' },
+      { cur:1, run:[1,1], out:1, rej:0, io:5, label:'Emit',
+        key:'S1001', path:'root → leaf 1', row:'Dana Okafor · year 3', verdict:'passes: 3 ≥ 3', vclass:'pass',
+        desc:'Now the residual filter can finally be tested, because the row is in hand. Year 3 is at least 3, so the row survives. PROJECT trims it to Name and Grade and the first output row leaves the plan.' },
+      { cur:2, run:[1,2], out:1, rej:0, io:6, label:'Scan + fetch',
+        key:DASH, path:DASH, row:'CS410 S1003 B+', verdict:'not yet applied', vclass:'',
+        desc:'Step one entry to the right. Still inside the same leaf page, so that movement is free. The key is still CS410, so fetch its row: S1003, grade B plus. One page read.' },
+      { cur:2, run:[1,2], out:1, rej:0, io:8, label:'Probe',
+        key:'S1003', path:'root → leaf 2', row:'Priya Raman · year 2', verdict:'not yet applied', vclass:'',
+        desc:'Probe the STUDENT tree for S1003: root, then leaf two. Two page reads. The student row is Priya Raman, year 2.' },
+      { cur:2, run:[1,2], out:1, rej:1, io:8, label:'Reject',
+        key:'S1003', path:'root → leaf 2', row:'Priya Raman · year 2', verdict:'fails: 2 ≥ 3 is false', vclass:'fail',
+        desc:'Year 2 fails the residual filter, so the row is discarded. Note what that cost: three page reads were spent fetching and probing a row that produces nothing. This is exactly the price of a predicate that cannot become a seek.' },
+      { cur:3, run:[1,3], out:1, rej:1, io:9, label:'Scan + fetch',
+        key:DASH, path:DASH, row:'CS410 S1007 A', verdict:'not yet applied', vclass:'',
+        desc:'Step right once more, still CS410, still the same leaf page. Fetch the row: S1007, grade A. One page read.' },
+      { cur:3, run:[1,3], out:1, rej:1, io:11, label:'Probe',
+        key:'S1007', path:'root → leaf 3', row:'Ana Ruiz · year 3', verdict:'not yet applied', vclass:'',
+        desc:'Probe the STUDENT tree for S1007: root, then leaf three. Two page reads. The student row is Ana Ruiz, year 3.' },
+      { cur:3, run:[1,3], out:2, rej:1, io:11, label:'Emit',
+        key:'S1007', path:'root → leaf 3', row:'Ana Ruiz · year 3', verdict:'passes: 3 ≥ 3', vclass:'pass',
+        desc:'The filter passes and the second output row leaves the plan. The answer is now complete, though the plan does not know that yet.' },
+      { cur:4, run:[1,3], stop:4, out:2, rej:1, io:11, label:'Stop',
+        key:DASH, path:DASH, row:DASH, verdict:'not applied — range ended', vclass:'',
+        desc:'Step right again. The key is CS452, which is outside the wanted range, so the stop condition fires immediately. CS452 and CS481 are never fetched and their students are never probed.' },
+      { cur:null, run:[1,3], stop:4, out:2, rej:1, io:11, label:'Done',
+        key:DASH, path:DASH, row:DASH, verdict:'not yet applied', vclass:'',
+        desc:'Cursors closed. Two rows out for eleven page reads. Three of six index entries were examined and three of five students were read. The thirty-row cross product of the canonical plan never existed.' }
+    ];
+
+    var pxItems = Array.prototype.slice.call(pxIdxEl.querySelectorAll('li'));
+    var pxAt = 0;
+
+    function paintStrip(s){
+      for (var i = 0; i < pxItems.length; i++){
+        var li = pxItems[i];
+        var isCursor = (s.cur !== null && s.cur !== undefined && i === s.cur);
+        var inRun = !!(s.run && i >= s.run[0] && i <= s.run[1]);
+        var isStop = (s.stop !== undefined && i === s.stop);
+        var spent = inRun && s.cur !== null && s.cur !== undefined && i < s.cur;
+        if (s.cur === null && s.run){ spent = inRun; }
+        li.classList.toggle('is-cursor', isCursor);
+        li.classList.toggle('in-run', inRun && !isStop);
+        li.classList.toggle('stopper', isStop);
+        li.classList.toggle('spent', spent && !isCursor);
+        if (isCursor){ li.setAttribute('aria-current','true'); }
+        else { li.removeAttribute('aria-current'); }
+      }
+    }
+
+    function paintOut(n){
+      while (pxOutEl.firstChild) pxOutEl.removeChild(pxOutEl.firstChild);
+      if (n === 0){
+        var tr0 = document.createElement('tr');
+        var td0 = document.createElement('td');
+        td0.setAttribute('colspan','2');
+        td0.style.color = 'var(--muted)';
+        td0.textContent = '— empty —';
+        tr0.appendChild(td0);
+        pxOutEl.appendChild(tr0);
+      } else {
+        for (var i = 0; i < n; i++){
+          var tr = document.createElement('tr');
+          for (var c = 0; c < 2; c++){
+            var td = document.createElement('td');
+            td.className = 'mono' + (c === 0 ? ' keycol' : '');
+            td.textContent = OUT[i][c];
+            tr.appendChild(td);
+          }
+          pxOutEl.appendChild(tr);
+        }
+      }
+      if (pxOutCnt) pxOutCnt.textContent = n + (n === 1 ? ' row' : ' rows');
+    }
+
+    function pxRender(n){
+      pxAt = Math.max(0, Math.min(STEPS.length - 1, n));
+      var s = STEPS[pxAt];
+      paintStrip(s);
+      paintOut(s.out);
+      if (pxCount) pxCount.textContent = s.out;
+      if (pxRej)   pxRej.textContent = s.rej;
+      if (pxIo)    pxIo.textContent = s.io;
+      if (pxKey)   pxKey.textContent = s.key;
+      if (pxPath)  pxPath.textContent = s.path;
+      if (pxRow)   pxRow.textContent = s.row;
+      if (pxVerdict){
+        pxVerdict.textContent = s.verdict;
+        pxVerdict.className = 'badge' + (s.vclass ? ' ' + s.vclass : '');
+      }
+      if (pxDescEl) pxDescEl.textContent = s.desc;
+      if (pxTagEl)  pxTagEl.textContent =
+        'Step ' + (pxAt + 1) + ' / ' + STEPS.length + ' · ' + s.label;
+      if (pxNext) pxNext.disabled = (pxAt === STEPS.length - 1);
+      if (pxPrev) pxPrev.disabled = (pxAt === 0);
+    }
+
+    pxNext.addEventListener('click', function(){ pxRender(pxAt + 1); });
+    if (pxPrev)  pxPrev.addEventListener('click', function(){ pxRender(pxAt - 1); });
+    if (pxReset) pxReset.addEventListener('click', function(){ pxRender(0); });
+
+    pxRender(0);
+  }
+
+  // deep link (#s3) support, on load and on in-page hash changes
+  function fromHash(moveFocus){
+    var m = (location.hash || '').match(/^#s(\d+)$/);
+    render(m ? (parseInt(m[1], 10) - 1) : 0, moveFocus);
+  }
+  window.addEventListener('hashchange', function(){ fromHash(true); });
+  fromHash(false);
+})();
+</script>
+</body>
+</html>
