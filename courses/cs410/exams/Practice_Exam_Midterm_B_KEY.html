@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice Exam Answer Key · CS 410/510 Databases</title>
+<meta name="author" content="Steven Cutchin">
+<meta name="description" content="Worked answers and self-scoring guide for the CS 410/510 Databases practice exam.">
+<meta name="keywords" content="CS 410, CS 510, databases, practice exam, answer key, SQL, B+tree, normalization">
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:17px;line-height:1.5}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.wrap{max-width:900px;margin:0 auto;padding:16px 20px 48px}
+.paper{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+  padding:30px 42px 42px}
+
+/* ---- masthead + confidentiality banner ---- */
+.masthead{border-top:6px solid var(--blue);padding-top:16px;margin-bottom:18px}
+.key-title{font-family:var(--serif);font-weight:700;font-size:2rem;line-height:1.1;
+  color:var(--ink);margin:0 0 4px}
+.key-sub{font-family:var(--sans);font-weight:600;color:var(--blue-ink);
+  font-size:1.02rem;margin:0 0 14px}
+.confid{background:var(--tint);border:2px solid var(--blue);border-radius:9px;
+  padding:11px 16px;margin:0 0 20px}
+.confid p{margin:0;max-width:70ch;color:var(--blue-ink);font-weight:600}
+
+/* ---- headings ---- */
+h2.part{font-family:var(--serif);font-weight:700;font-size:1.5rem;line-height:1.15;
+  color:var(--ink);margin:34px 0 6px;padding-bottom:8px;border-bottom:3px solid var(--blue)}
+h2.part:first-of-type{margin-top:10px}
+h3.qh{font-family:var(--serif);font-weight:700;font-size:1.12rem;color:var(--blue-ink);
+  margin:24px 0 6px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.qnum{flex:0 0 auto;font-family:var(--mono);font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;
+  padding:1px 8px;font-size:.78rem}
+.pts{font-family:var(--sans);font-weight:700;color:var(--orange);font-size:.84rem}
+p{max-width:72ch;margin:0 0 11px}
+.ask{color:var(--muted);font-style:italic;max-width:72ch;margin:0 0 10px}
+ul,ol{max-width:72ch;margin:0 0 11px;padding-left:1.25rem}
+li{margin:5px 0}
+code{font-family:var(--mono);font-size:.9em}
+
+/* ---- answer blocks ---- */
+.ans{border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:9px;
+  background:var(--surface);padding:12px 16px;margin:0 0 12px}
+.ans > :last-child{margin-bottom:0}
+.ans .lbl{display:block;font-size:.7rem;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--blue-ink);margin-bottom:6px}
+.grading{border:1px solid var(--line);border-left:5px solid var(--orange);border-radius:9px;
+  background:#fff;padding:11px 16px;margin:0 0 14px}
+.grading > :last-child{margin-bottom:0}
+.grading .lbl{display:block;font-size:.7rem;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--brown);margin-bottom:6px}
+.grading ul{margin:0;padding-left:1.15rem}
+.note{border:1px solid var(--line);border-left:5px solid var(--brown);border-radius:9px;
+  background:#FFFBF8;padding:11px 16px;margin:0 0 14px}
+.note > :last-child{margin-bottom:0}
+.note .lbl{display:block;font-size:.7rem;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--brown);margin-bottom:6px}
+
+/* ---- code ---- */
+.code{font-family:var(--mono);font-size:.84rem;line-height:1.6;background:#fff;
+  border:1px solid var(--line);border-radius:7px;padding:10px 13px;margin:9px 0;
+  white-space:pre;overflow-x:auto}
+.code .kw{color:var(--brown);font-weight:700}
+.code .cm{color:var(--muted)}
+.ra{font-family:var(--mono);font-size:.84rem;background:#fff;border:1px solid var(--line);
+  border-radius:7px;padding:9px 13px;margin:9px 0;overflow-x:auto;color:var(--blue-ink)}
+
+/* ---- result tables ---- */
+table.res{border-collapse:collapse;font-size:.87rem;margin:8px 0 12px;min-width:260px}
+table.res caption{text-align:left;color:var(--muted);font-size:.8rem;padding-bottom:5px}
+table.res th,table.res td{border:1px solid var(--line);padding:5px 11px;text-align:left;
+  font-family:var(--mono)}
+table.res thead th{background:var(--blue);color:#fff;font-weight:600}
+table.res tbody tr:nth-child(even) td{background:var(--surface)}
+.cols{display:flex;flex-wrap:wrap;gap:24px}
+
+/* ---- figure ---- */
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;
+  padding:12px 14px;margin:8px 0 14px}
+.fig svg{display:block;width:100%;height:auto}
+.figcap{color:var(--muted);font-size:.84rem;margin:8px 2px 0;max-width:72ch}
+
+/* ---- toggle ---- */
+.controls{display:none;flex-wrap:wrap;gap:10px;align-items:center;
+  margin:0 0 14px;padding:10px 14px;background:var(--bg);border:1px solid var(--line);
+  border-radius:10px}
+html.js .controls{display:flex}
+.controls .label{font-size:.88rem;font-weight:600;color:var(--blue-ink)}
+.chip{font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;background:#fff;
+  color:var(--blue-ink);border:2px solid var(--line);border-radius:999px;padding:5px 15px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.controls .hint{font-size:.82rem;color:var(--muted);margin:0;flex:1 1 100%}
+html.review .grading{display:none}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .paper{padding:22px 18px 28px}
+  .key-title{font-size:1.65rem}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .ans,.grading,.note,.code,.ra,.fig,.chip,.qnum,table.res th,table.res td{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+@page{size:Letter portrait;margin:15mm 15mm 17mm;
+  @bottom-left{content:"CS 410/510 — Practice Exam · Answer Key";
+    font-family:var(--sans);font-size:8pt;color:#7A2708;vertical-align:top;padding-top:5mm}
+  @bottom-right{content:"Page " counter(page) " of " counter(pages);
+    font-family:var(--sans);font-size:8pt;color:#4A5160;vertical-align:top;padding-top:5mm}
+}
+@media print{
+  html.review .grading{display:block}
+  body{background:#fff;font-size:10pt}
+  .skip,.controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .paper{border:none;border-radius:0;padding:0}
+  h2.part{break-before:page;break-after:avoid}
+  h2.part:first-of-type{break-before:auto}
+  h3.qh{break-after:avoid}
+  .ans,.grading,.note,.code,.ra,table.res,.fig{break-inside:avoid}
+}
+</style>
+
+</head>
+<body>
+<a class="skip" href="#key">Skip to the answer key</a>
+
+<div class="wrap">
+  <div class="controls" role="group" aria-label="What to show">
+    <span class="label" id="v-label">Show</span>
+    <button class="chip" id="v-all" type="button" aria-pressed="true"
+            aria-describedby="v-label">Answers + scoring</button>
+    <button class="chip" id="v-rev" type="button" aria-pressed="false"
+            aria-describedby="v-label">Answers only</button>
+    <p class="hint" id="v-hint" role="status" aria-live="polite">Showing answers with
+      scoring notes and common mistakes. Switch to answers only for a quick check.</p>
+  </div>
+
+<div class="paper" id="key">
+
+  <div class="masthead">
+    <h1 class="key-title">Practice Exam — Answer Key</h1>
+    <p class="key-sub">CS 410/510 — Databases · 90 points · 75 minutes</p>
+  </div>
+
+  <div class="confid">
+    <p>Work the practice exam closed-book in one timed sitting before you read this.
+    Checking answers you have not yet attempted feels productive and teaches almost nothing.</p>
+  </div>
+
+  <p>Each question below gives the answer, the reasoning behind it, and how the points
+  divide so you can score yourself honestly. Where a question has several correct
+  formulations, the one shown is an example — if yours differs but computes the same thing,
+  it is right. The <em>Watch out</em> boxes describe the mistakes that actually cost marks.</p>
+
+  <!-- ============================= PART 1 ============================= -->
+  <h2 class="part">Part 1 (40 points): Issue Tracker Data Model</h2>
+
+  <h3 class="qh"><span class="qnum">1.1</span> Reverse engineering <span class="pts">20 pts</span></h3>
+
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p><strong>Three entity types.</strong></p>
+    <ul>
+      <li><strong>APP_USER</strong> — <u>user_id</u> (key), username, email, pw_hash,
+      joined_on. Both username and email are additional candidate keys, since each is
+      <code>NOT NULL UNIQUE</code>.</li>
+      <li><strong>PROJECT</strong> — <u>project_id</u> (key), name, summary, created_on.</li>
+      <li><strong>ISSUE</strong> — <u>issue_id</u> (key), title, body, opened_on.</li>
+    </ul>
+    <p><strong>Four relationships.</strong></p>
+    <ul>
+      <li><strong>MEMBER_OF</strong> — M:N between APP_USER and PROJECT, carrying the
+      descriptive attribute <code>joined_on</code>. <code>project_membership</code> is a
+      junction table: in an E-R diagram it is a <em>relationship</em>, not a third entity.
+      The giveaway is that its primary key is exactly the two foreign keys and it carries
+      nothing else of its own but a timestamp.</li>
+      <li><strong>REPORTED_BY</strong> — N:1 from ISSUE to APP_USER, with total
+      participation on the ISSUE side: <code>reporter_id</code> is <code>NOT NULL</code>, so
+      every issue has a reporter.</li>
+      <li><strong>BELONGS_TO</strong> — N:1 from ISSUE to PROJECT, partial participation,
+      because <code>project_id</code> is nullable: an issue need not sit in a project.</li>
+      <li><strong>SUB_ISSUE_OF</strong> — a recursive 1:N relationship from ISSUE to itself.
+      An issue has at most one parent and may have many children; partial on both sides,
+      since <code>parent_issue_id</code> is nullable.</li>
+    </ul>
+    <p>Reading the nullability tells you the shape of the world the schema allows: an issue
+    can be a standalone report filed against a project, a sub-issue of another issue, both,
+    or neither.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">How the 20 points divide</span>
+    <ul>
+      <li><strong>9</strong> — three entity types with attributes and primary keys marked
+      (3 each).</li>
+      <li><strong>4</strong> — MEMBER_OF as an M:N relationship carrying joined_on.</li>
+      <li><strong>4</strong> — REPORTED_BY and BELONGS_TO with correct N:1 cardinality,
+      and their participation constraints.</li>
+      <li><strong>3</strong> — the recursive SUB_ISSUE_OF relationship.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>The recursive relationship is the single most-missed item on this style of question.
+    If you listed <code>parent_issue_id</code> as an ordinary attribute of ISSUE and drew no
+    loop, you lost those 3 points. Any column that references its own table is a recursive
+    relationship and must appear as one.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">1.2 a</span> Ten most prolific reporters <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <div class="code"><span class="kw">SELECT</span> u.user_id, u.username, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> issue_count
+<span class="kw">FROM</span> app_user u <span class="kw">JOIN</span> issue i <span class="kw">ON</span> i.reporter_id = u.user_id
+<span class="kw">GROUP BY</span> u.user_id, u.username
+<span class="kw">ORDER BY</span> issue_count <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 10;</div>
+    <p>An inner join is right here: someone who has opened no issues is not a prolific
+    reporter, so dropping them is what you want. After an inner join
+    <code>COUNT(*)</code> and <code>COUNT(i.issue_id)</code> agree.</p>
+    <p><strong>Graduate students.</strong> The grouping is expressible in relational
+    algebra; ordering and "top 10" are not operators of the algebra, so write the
+    aggregation and say so:</p>
+    <div class="ra">γ <sub>reporter_id ; COUNT(issue_id) → cnt</sub> ( issue )</div>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul>
+      <li>2 — join and grouping by user.</li>
+      <li>1 — the count in the select list.</li>
+      <li>1 — <code>ORDER BY … DESC</code> with <code>LIMIT 10</code>.</li>
+    </ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">1.2 b</span> Twenty-five most recent sub-issues of dana's issues <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <div class="code"><span class="kw">SELECT</span> c.issue_id, c.title, c.opened_on
+<span class="kw">FROM</span> issue c
+  <span class="kw">JOIN</span> issue parent <span class="kw">ON</span> c.parent_issue_id = parent.issue_id
+  <span class="kw">JOIN</span> app_user u <span class="kw">ON</span> parent.reporter_id = u.user_id
+<span class="kw">WHERE</span> u.username = <span class="cm">'dana'</span>
+<span class="kw">ORDER BY</span> c.opened_on <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 25;</div>
+    <p>The whole difficulty is the self-join. <code>issue</code> appears twice under two
+    aliases: <code>c</code> is the child, which is what the query returns, and
+    <code>parent</code> is the issue dana filed, which is what the
+    <code>WHERE</code> clause tests. Once you see that two different rows of the same table
+    play two different roles, the query writes itself.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul>
+      <li>2 — the self-join on <code>c.parent_issue_id = parent.issue_id</code>.</li>
+      <li>1 — testing the username on the <em>parent</em> side.</li>
+      <li>1 — <code>ORDER BY opened_on DESC LIMIT 25</code>.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>Filtering <code>c.reporter_id</code> by dana gives the sub-issues dana
+    <em>wrote</em>, not the sub-issues written <em>on</em> her issues. It is a one-word
+    difference in the query and a completely different result set. Read role-based questions
+    twice: "replies to X's posts" and "replies by X" are not the same question.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">1.2 c</span> Five newest users <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <div class="code"><span class="kw">SELECT</span> user_id, username, joined_on
+<span class="kw">FROM</span> app_user
+<span class="kw">ORDER BY</span> joined_on <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 5;</div>
+    <p>"Newest" means most recent, so the sort is descending. Ascending would give you the
+    five <em>oldest</em> accounts — the only real trap in the question.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul><li>2 — correct table and columns. 2 — <code>DESC</code> with <code>LIMIT 5</code>.</li></ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">1.2 d</span> Users who never opened an issue <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span> — any of these three is fully correct:
+    <div class="code"><span class="cm">-- outer join, then keep the rows that found no match</span>
+<span class="kw">SELECT</span> u.user_id, u.username
+<span class="kw">FROM</span> app_user u <span class="kw">LEFT JOIN</span> issue i <span class="kw">ON</span> i.reporter_id = u.user_id
+<span class="kw">WHERE</span> i.issue_id <span class="kw">IS NULL</span>;
+
+<span class="cm">-- correlated subquery</span>
+<span class="kw">SELECT</span> user_id, username <span class="kw">FROM</span> app_user u
+<span class="kw">WHERE NOT EXISTS</span> (<span class="kw">SELECT</span> 1 <span class="kw">FROM</span> issue i <span class="kw">WHERE</span> i.reporter_id = u.user_id);
+
+<span class="cm">-- set difference</span>
+<span class="kw">SELECT</span> user_id, username <span class="kw">FROM</span> app_user
+<span class="kw">WHERE</span> user_id <span class="kw">NOT IN</span> (<span class="kw">SELECT</span> reporter_id <span class="kw">FROM</span> issue);</div>
+    <p>The third is safe <em>here</em> only because <code>issue.reporter_id</code> is
+    declared <code>NOT NULL</code>. If that column could be NULL, a single NULL inside the
+    subquery would make <code>NOT IN</code> return the empty set — the same three-valued
+    logic that question 3.3 is about. The <code>NOT EXISTS</code> form has no such hazard,
+    which is why experienced people reach for it by default.</p>
+    <p><strong>Graduate students.</strong> This one is clean in relational algebra:</p>
+    <div class="ra">π <sub>user_id</sub> ( app_user ) − ρ <sub>user_id ← reporter_id</sub> ( π <sub>reporter_id</sub> ( issue ) )</div>
+    <p>The rename matters: set difference requires both sides to be union-compatible, so the
+    projected column has to carry the same name.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul>
+      <li>4 — any of the three forms, correctly written.</li>
+      <li>Graduate students: full marks require the set difference, not a join rewritten in
+      algebra notation.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>Writing <code>WHERE i.issue_id IS NULL</code> against an <em>inner</em> join returns
+    nothing at all: an inner join never produces a NULL-padded row, so there is nothing for
+    the test to find. The outer join is what manufactures the NULLs that the
+    <code>WHERE</code> clause then looks for.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">1.2 e</span> Projects with at least three members <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <div class="code"><span class="kw">SELECT</span> p.project_id, p.name, <span class="kw">COUNT</span>(*) <span class="kw">AS</span> members
+<span class="kw">FROM</span> project p <span class="kw">JOIN</span> project_membership m <span class="kw">ON</span> m.project_id = p.project_id
+<span class="kw">GROUP BY</span> p.project_id, p.name
+<span class="kw">HAVING</span> <span class="kw">COUNT</span>(*) &gt;= 3;</div>
+    <p>If you only need the id, grouping <code>project_membership</code> by itself is
+    equally correct — the join exists to get the project's name into the output.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul><li>2 — grouping by project. 2 — the <code>HAVING COUNT(*) &gt;= 3</code> test.</li></ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>A count cannot go in <code>WHERE</code>. <code>WHERE</code> is evaluated row by row
+    <em>before</em> any grouping happens, so there is no group yet to count.
+    <code>HAVING</code> is the filter that runs after grouping. If you wrote
+    <code>WHERE COUNT(*) &gt;= 3</code>, the shape of your answer was right but the order of
+    evaluation was not — and the database would reject the query outright.</p>
+  </div>
+
+  <!-- ============================= PART 2 ============================= -->
+  <h2 class="part">Part 2 (20 points): Query Interpretation</h2>
+  <p class="ask">Book: (1, writer 2, Tidewater), (2, writer 1, Quarry), (3, writer 1, Lantern).
+  Author: (1, Mira, Peru), (2, Noor, Chile), (3, Otto, Brazil).</p>
+
+  <h3 class="qh"><span class="qnum">2 a</span> <code>SELECT author_id, name FROM author ORDER BY country</code> <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <table class="res">
+      <thead><tr><th scope="col">author_id</th><th scope="col">name</th></tr></thead>
+      <tbody>
+        <tr><td>3</td><td>Otto</td></tr>
+        <tr><td>2</td><td>Noor</td></tr>
+        <tr><td>1</td><td>Mira</td></tr>
+      </tbody>
+    </table>
+    <p>Sorting is alphabetical on <code>country</code>: Brazil, Chile, Peru — so Otto, Noor,
+    Mira. All three rows come back; only the order changes. Note that
+    <code>country</code> determines the order but does not appear in the output: a column
+    may be sorted on without being selected.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul><li>2 — all three rows, only the two requested columns. 2 — correct order.</li></ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">2 b</span> <code>SELECT name, title FROM author, book</code> <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span> — a Cartesian product: 3 × 3 = <strong>9 rows</strong>.
+    <table class="res">
+      <thead><tr><th scope="col">name</th><th scope="col">title</th></tr></thead>
+      <tbody>
+        <tr><td>Mira</td><td>Tidewater</td></tr>
+        <tr><td>Mira</td><td>Quarry</td></tr>
+        <tr><td>Mira</td><td>Lantern</td></tr>
+        <tr><td>Noor</td><td>Tidewater</td></tr>
+        <tr><td>Noor</td><td>Quarry</td></tr>
+        <tr><td>Noor</td><td>Lantern</td></tr>
+        <tr><td>Otto</td><td>Tidewater</td></tr>
+        <tr><td>Otto</td><td>Quarry</td></tr>
+        <tr><td>Otto</td><td>Lantern</td></tr>
+      </tbody>
+    </table>
+    <p>The comma between two tables is a cross join, and there is no <code>WHERE</code>
+    clause to restrict it. Nothing here respects authorship: Otto is paired with three books
+    although he wrote none, and Mira is paired with Tidewater although Noor wrote it. Row
+    order is not defined by the query, so any ordering is acceptable.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul><li>2 — recognising the Cartesian product and its 9 rows. 2 — the pairs listed correctly.</li></ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>The commonest error is answering with the three rows of 2c — quietly supplying a join
+    condition the query never stated. That is exactly the misconception this question is
+    built to expose. A comma join with no <code>WHERE</code> clause <em>always</em> returns
+    every combination.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">2 c</span> <code>… author JOIN book ON (author_id = writer_id)</code> <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span> — <strong>3 rows</strong>, one per book.
+    <table class="res">
+      <thead><tr><th scope="col">name</th><th scope="col">title</th></tr></thead>
+      <tbody>
+        <tr><td>Noor</td><td>Tidewater</td></tr>
+        <tr><td>Mira</td><td>Quarry</td></tr>
+        <tr><td>Mira</td><td>Lantern</td></tr>
+      </tbody>
+    </table>
+    <p>Each book is matched to the author whose <code>author_id</code> equals its
+    <code>writer_id</code>. Otto wrote nothing, and an inner join silently drops him —
+    which is the entire difference between this question and 2e.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul><li>3 — the three correct pairings. 1 — Otto correctly absent.</li></ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">2 d</span> Inner join, grouped and counted <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span> — <strong>2 rows</strong>.
+    <table class="res">
+      <thead><tr><th scope="col">author_id</th><th scope="col">name</th><th scope="col">COUNT(book_id)</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>Noor</td><td>1</td></tr>
+        <tr><td>1</td><td>Mira</td><td>2</td></tr>
+      </tbody>
+    </table>
+    <p>Mira wrote Quarry and Lantern, Noor wrote Tidewater. Otto was removed by the inner
+    join before grouping ran, so he never forms a group at all.
+    <code>ORDER BY</code> defaults to ascending, so the smaller count comes first.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul>
+      <li>2 — correct counts. 1 — Otto absent. 1 — ascending order, Noor first.</li>
+    </ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">2 e</span> Left outer join, grouped and counted <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span> — <strong>3 rows</strong>.
+    <table class="res">
+      <thead><tr><th scope="col">author_id</th><th scope="col">name</th><th scope="col">COUNT(book_id)</th></tr></thead>
+      <tbody>
+        <tr><td>3</td><td>Otto</td><td>0</td></tr>
+        <tr><td>2</td><td>Noor</td><td>1</td></tr>
+        <tr><td>1</td><td>Mira</td><td>2</td></tr>
+      </tbody>
+    </table>
+    <p>The outer join keeps Otto and pads the book columns with NULL.
+    <code>COUNT(book_id)</code> counts non-null values only, so Otto's count is
+    <strong>0</strong> and he sorts to the top.</p>
+  </div>
+  <div class="note">
+    <span class="lbl">The point of 2d and 2e together</span>
+    <p>Had the query said <code>COUNT(*)</code> instead of <code>COUNT(book_id)</code>,
+    Otto's row would report <strong>1</strong>, not 0 — because <code>COUNT(*)</code> counts
+    rows, and the outer join produced one padded row for him. <code>COUNT(column)</code>
+    counts non-null values; <code>COUNT(*)</code> counts rows. On a query with an outer join
+    those two are different numbers, and this pair of questions exists to find out whether
+    you know which is which.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul>
+      <li>2 — Otto present. 1 — his count is 0, not 1 or NULL. 1 — ascending order.</li>
+    </ul>
+  </div>
+
+  <!-- ============================= PART 3 ============================= -->
+  <h2 class="part">Part 3 (8 points): Keys and Table Design</h2>
+
+  <h3 class="qh"><span class="qnum">3.1</span> Why <code>user_id</code> beats <code>username</code> <span class="pts">2 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span> — any two of:
+    <ul>
+      <li><strong>Usernames change.</strong> People rename themselves. A primary key is
+      copied into every table that references it, so one rename forces a cascading update
+      across the whole database. A surrogate <code>user_id</code> is never updated because
+      it never means anything.</li>
+      <li><strong>It is wide.</strong> <code>VARCHAR(100)</code> against a 4-byte integer
+      means larger index entries, fewer entries per B+tree page, lower fanout and a deeper
+      tree — and every foreign key elsewhere carries a full copy of that string.</li>
+      <li><strong>It carries meaning from outside the database.</strong> Anything with
+      real-world significance is eventually subject to real-world change: policy on
+      case-sensitivity, reserved names, reuse of a released name after an account closes.</li>
+    </ul>
+    <p>Note what is <em>not</em> a reason: <code>username</code> is a perfectly valid
+    candidate key. The question is about which candidate key to promote, not about legality.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 2 pts</span>
+    <ul><li>1 per reason, correctly stated with its consequence. "It's a string" alone is
+    not a reason — say what goes wrong.</li></ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">3.2</span> Keys of <code>project_membership</code> <span class="pts">3 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <ul>
+      <li><strong>Primary key:</strong> the composite <code>(user_id, project_id)</code>.</li>
+      <li><strong>Foreign keys:</strong> <code>user_id</code> → <code>app_user(user_id)</code>;
+      <code>project_id</code> → <code>project(project_id)</code>.</li>
+      <li><strong>The rule it enforces:</strong> a given user can join a given project at
+      most once. It does <em>not</em> limit how many projects a user joins, or how many
+      members a project has — only the pairing is unique.</li>
+    </ul>
+    <p>Each key attribute is simultaneously part of the primary key and a foreign key on its
+    own. That double role is the signature of a junction table implementing an M:N
+    relationship, and <code>joined_on</code> is a descriptive attribute of the relationship
+    rather than of either entity.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 3 pts</span>
+    <ul><li>1 — composite primary key. 1 — both foreign keys. 1 — the uniqueness rule stated
+    correctly.</li></ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>Naming <code>user_id</code> alone as the primary key would mean each user could join
+    only one project ever — which defeats the entire purpose of the table.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">3.3</span> Why <code>title &lt;&gt; 'crash'</code> hides NULL rows <span class="pts">3 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p><strong>What the query evaluates.</strong> For a row whose title is NULL, the
+    expression <code>NULL &lt;&gt; 'crash'</code> is neither true nor false — it is
+    <strong>UNKNOWN</strong>, SQL's third truth value. A <code>WHERE</code> clause keeps
+    only rows for which the predicate came out TRUE, so rows evaluating to UNKNOWN are
+    discarded just as firmly as rows evaluating to FALSE.</p>
+    <p><strong>Which reading of NULL this reflects.</strong> The "<strong>value is not
+    known</strong>" interpretation. If the title exists but was never recorded, then
+    whether it differs from 'crash' is simply unanswerable — the missing value might be
+    'crash' and might not. SQL declines to guess and returns UNKNOWN rather than committing
+    to an answer it has no basis for.</p>
+    <p><strong>The rewrite.</strong> Ask the second question explicitly:</p>
+    <div class="code"><span class="kw">SELECT</span> * <span class="kw">FROM</span> issue <span class="kw">WHERE</span> title &lt;&gt; <span class="cm">'crash'</span> <span class="kw">OR</span> title <span class="kw">IS NULL</span>;</div>
+    <p><code>IS NULL</code> is a separate test precisely because it asks about the marker
+    itself rather than about the value behind it, so it always returns a definite true or
+    false. PostgreSQL also offers <code>WHERE title IS DISTINCT FROM 'crash'</code>, which
+    does the same job in one operator.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 3 pts</span>
+    <ul>
+      <li>1 — the comparison yields UNKNOWN, and <code>WHERE</code> keeps only TRUE.</li>
+      <li>1 — naming the "value is not known" reading.</li>
+      <li>1 — a rewrite that brings the NULL rows back.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>Answering "the comparison returns FALSE" loses a point. FALSE and UNKNOWN are
+    genuinely different: under <code>NOT</code> they behave differently —
+    <code>NOT FALSE</code> is TRUE, while <code>NOT UNKNOWN</code> is still UNKNOWN — which
+    is why you cannot escape the problem by negating the condition.</p>
+  </div>
+
+  <!-- ============================= PART 4 ============================= -->
+  <h2 class="part">Part 4 (22 points): B+trees, Indexes, and Normalization</h2>
+
+  <h3 class="qh"><span class="qnum">4.1</span> Range scan over the B+tree <span class="pts">4 pts</span></h3>
+  <p class="ask">Root separators 20 | 35 | 52 over leaves [6 12 17] [20 26 31] [35 44 49]
+  [52 60 71]; query <code>WHERE weight BETWEEN 26 AND 49</code>.</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 620 220" role="img" aria-labelledby="pk-t pk-d">
+      <title id="pk-t">The pages read when this range scan runs</title>
+      <desc id="pk-d">The same B+tree as on the practice exam, with the traversal marked.
+      The root is labelled read first. A thick path runs from the root's second pointer down
+      to leaf 2, labelled read second. Thick arrows run along the leaf chain from leaf 2 to
+      leaf 3, labelled read third, and on from leaf 3 to leaf 4, labelled read fourth. Leaf
+      1 is drawn faded and dashed and labelled never read. Within leaf 2 the keys 26 and 31
+      are marked as qualifying while the key 20 is faded, within leaf 3 all three keys 35,
+      44 and 49 are marked as qualifying, and in leaf 4 the key 52 is outlined and labelled
+      as the key that stops the scan, with the rest of leaf 4 faded.</desc>
+      <defs>
+        <marker id="pkar" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+        </marker>
+      </defs>
+      <line x1="272" y1="58" x2="232" y2="130" stroke="#7A2708" stroke-width="3.4"/>
+      <line x1="205" y1="58" x2="78" y2="130" stroke="#D7DEE8" stroke-width="1.5"/>
+      <line x1="340" y1="58" x2="386" y2="130" stroke="#D7DEE8" stroke-width="1.5"/>
+      <line x1="408" y1="58" x2="540" y2="130" stroke="#D7DEE8" stroke-width="1.5"/>
+      <rect x="194" y="24" width="224" height="34" rx="5" fill="#F1F5FC"
+            stroke="#0033A0" stroke-width="2.3"/>
+      <g stroke="#0033A0" stroke-width="1.2">
+        <line x1="215" y1="24" x2="215" y2="58"/><line x1="262" y1="24" x2="262" y2="58"/>
+        <line x1="283" y1="24" x2="283" y2="58"/><line x1="330" y1="24" x2="330" y2="58"/>
+        <line x1="351" y1="24" x2="351" y2="58"/><line x1="398" y1="24" x2="398" y2="58"/>
+      </g>
+      <rect x="262" y="24" width="21" height="34" fill="#EAF0FB" stroke="#7A2708" stroke-width="2.8"/>
+      <g font-family="ui-monospace,monospace" font-size="12" font-weight="700" fill="#00246B">
+        <text x="238" y="46" text-anchor="middle">20</text>
+        <text x="306" y="46" text-anchor="middle">35</text>
+        <text x="374" y="46" text-anchor="middle">52</text>
+      </g>
+      <g font-family="system-ui" font-size="13" fill="#8A93A3" text-anchor="middle">
+        <text x="205" y="47">&#8226;</text><text x="272" y="47">&#8226;</text>
+        <text x="340" y="47">&#8226;</text><text x="408" y="47">&#8226;</text>
+      </g>
+      <text x="14" y="34" font-family="system-ui" font-size="10" font-weight="700" fill="#7A2708">1st read</text>
+      <text x="14" y="47" font-family="system-ui" font-size="10" fill="#4A5160">root</text>
+      <text x="430" y="40" font-family="system-ui" font-size="9.5" font-weight="700" fill="#7A2708">20 &#8804; k &lt; 35</text>
+      <text x="430" y="52" font-family="system-ui" font-size="9.5" font-weight="700" fill="#7A2708">&#8594; descend here</text>
+
+      <rect x="12" y="130" width="132" height="34" rx="5" fill="#F7F9FC"
+            stroke="#C9D2E0" stroke-width="2" stroke-dasharray="5 3"/>
+      <text x="78" y="152" text-anchor="middle" font-family="ui-monospace,monospace"
+            font-size="11" fill="#A6AEBC">6&#160;&#160; 12&#160; 17</text>
+
+      <rect x="166" y="130" width="132" height="34" rx="5" fill="#EAF0FB"
+            stroke="#0033A0" stroke-width="2.6"/>
+      <text x="196" y="152" text-anchor="middle" font-family="ui-monospace,monospace"
+            font-size="11" fill="#A6AEBC">20</text>
+      <text x="252" y="152" text-anchor="middle" font-family="ui-monospace,monospace"
+            font-size="11" font-weight="700" fill="#00246B">26&#160; 31</text>
+
+      <rect x="320" y="130" width="132" height="34" rx="5" fill="#EAF0FB"
+            stroke="#0033A0" stroke-width="2.6"/>
+      <text x="386" y="152" text-anchor="middle" font-family="ui-monospace,monospace"
+            font-size="11" font-weight="700" fill="#00246B">35&#160; 44&#160; 49</text>
+
+      <rect x="474" y="130" width="132" height="34" rx="5" fill="#EAF0FB"
+            stroke="#0033A0" stroke-width="2.6"/>
+      <rect x="480" y="134" width="36" height="26" rx="4" fill="#fff"
+            stroke="#7A2708" stroke-width="2.4" stroke-dasharray="4 2.5"/>
+      <text x="498" y="152" text-anchor="middle" font-family="ui-monospace,monospace"
+            font-size="11" font-weight="700" fill="#7A2708">52</text>
+      <text x="562" y="152" text-anchor="middle" font-family="ui-monospace,monospace"
+            font-size="11" fill="#A6AEBC">60&#160; 71</text>
+
+      <g stroke="#7A2708" stroke-width="2.6" marker-end="url(#pkar)">
+        <line x1="300" y1="147" x2="316" y2="147"/>
+        <line x1="454" y1="147" x2="470" y2="147"/>
+      </g>
+      <g font-family="system-ui" font-size="9.5" text-anchor="middle">
+        <text x="78" y="180" fill="#A6AEBC">leaf 1 &#183; never read</text>
+        <text x="232" y="180" font-weight="700" fill="#7A2708">leaf 2 &#183; 2nd read</text>
+        <text x="386" y="180" font-weight="700" fill="#7A2708">leaf 3 &#183; 3rd read</text>
+        <text x="540" y="180" font-weight="700" fill="#7A2708">leaf 4 &#183; 4th read</text>
+      </g>
+      <text x="540" y="198" text-anchor="middle" font-family="system-ui" font-size="9.5"
+            font-weight="700" fill="#7A2708">52 &gt; 49 &#8212; stop</text>
+      <text x="300" y="198" text-anchor="middle" font-family="system-ui" font-size="9.5"
+            fill="#4A5160">leaf 3 ends without a failing key &#8212; the walk must go on</text>
+      <text x="310" y="214" text-anchor="middle" font-family="system-ui" font-size="10"
+            fill="#4A5160">qualifying keys: 26, 31, 35, 44, 49 &#8212; five rows</text>
+    </svg>
+    <p class="figcap">Four pages read, and a final leaf that yields nothing but the key that
+    stops the scan.</p>
+  </div>
+
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <ol>
+      <li><strong>Root → leaf 2 → leaf 3 → leaf 4.</strong> The descent carries the lower
+      bound 26: at the root, 26 is not below the separator 20 but is below 35, so the second
+      pointer is taken into leaf 2, landing on the first entry at or after 26. Leaves 3 and
+      4 follow through the next-leaf pointers, never through the root.</li>
+      <li><strong>Four index pages.</strong></li>
+      <li><strong>52 ends the scan, and it is on leaf 4.</strong> The upper bound 49 happens
+      to be the <em>last</em> key of leaf 3, so leaf 3 runs out without the walk ever
+      meeting a key that fails. A leaf running out is not evidence that the range has ended
+      — the next leaf might open with more qualifying keys. The only way to establish that
+      the range is finished is to follow the next-leaf pointer and read one key, and that
+      key, 52, is the first one that exceeds 49. Leaf 4 therefore costs a page read while
+      contributing no rows at all.</li>
+    </ol>
+    <p>Qualifying keys: <strong>26, 31, 35, 44, 49</strong> — five rows. Note that 20 sits
+    on leaf 2 and is read into memory with the rest of the page, but fails the lower bound
+    and is not part of the answer.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul>
+      <li>1.5 — the four nodes named in the right order.</li>
+      <li>1 — the count of four.</li>
+      <li>1.5 — identifying 52 on leaf 4, and explaining why that leaf must be read.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>If you answered "three pages, stopping at 49", you assumed the scan can tell it is
+    finished when a leaf ends. It cannot. This is the same principle as the ordinary
+    stopping rule — the walk always needs <em>one</em> comparison that fails — and here that
+    comparison simply happens to live on the following page. Whenever a range's upper bound
+    lands on a leaf boundary, expect one extra page read.</p>
+    <p>The other frequent error is a second root-to-leaf descent to find the upper bound.
+    There is never one: you descend for the start of a range and discover its end by walking
+    into it.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">4.2</span> Fanout and height <span class="pts">2 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p><strong>Why it stays shallow.</strong> Each index page holds about 250 entries, so
+    every extra level multiplies the number of reachable entries by roughly 250 rather than
+    by 2. Depth therefore grows as the logarithm of the table size in base 250:
+    three levels reach 250<sup>3</sup> ≈ 15.6 million, which is not enough for 50 million
+    rows, while four reach 250<sup>4</sup> ≈ 3.9 <em>billion</em> — far more than needed.
+    The table would have to grow about 250-fold before a fifth level became necessary, which
+    is why B+tree depth is nearly constant across databases of wildly different sizes.</p>
+    <p><strong>What the lookup costs.</strong> One page read per level:
+    <strong>4 index page reads</strong> to reach the leaf entry. Add one more to fetch the
+    row itself if the index is secondary and does not already carry every column the query
+    needs. In practice the root and the level below it are almost always sitting in the
+    buffer pool, so the measured cost is usually lower.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 2 pts</span>
+    <ul>
+      <li>1 — the fanout argument. An arithmetic demonstration
+      (250<sup>3</sup> against 250<sup>4</sup>) earns it just as well as the word
+      "logarithmic".</li>
+      <li>1 — the number 4, one read per level.</li>
+    </ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">4.3</span> Index for a date range, and for <code>YEAR(opened_on)</code> <span class="pts">3 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer (a)</span>
+    <p><strong>BTREE</strong>, on <strong><code>opened_on</code></strong>.</p>
+    <p><code>BETWEEN</code> is a range test, and only an ordered index can answer one: the
+    engine descends to the first entry at or after <code>'2026-01-01'</code>, walks the leaf
+    chain, and stops one key past <code>'2026-03-31'</code>. A HASH index serves equality
+    alone, because hashing deliberately destroys order — there is no "next" entry to follow.
+    FULLTEXT builds an inverted index over words and has nothing to say about timestamps.</p>
+    <span class="lbl" style="margin-top:12px">Answer (b)</span>
+    <p><strong>No.</strong> <code>YEAR(opened_on)</code> wraps the column in a function. The
+    index stores <code>opened_on</code> itself, not the result of calling
+    <code>YEAR</code> on it, so the engine has no value it can descend the tree with. The
+    index is simply ignored and the query falls back to a full table scan — with no error
+    and no warning, which is what makes this failure so easy to miss in practice.</p>
+    <p>Two ways out. Rewrite the predicate so the column stands bare, which the existing
+    index serves —</p>
+    <div class="code"><span class="kw">WHERE</span> opened_on &gt;= <span class="cm">'2026-01-01'</span> <span class="kw">AND</span> opened_on &lt; <span class="cm">'2027-01-01'</span></div>
+    <p>— or build a functional index on the expression <code>YEAR(opened_on)</code> itself,
+    if the query cannot be changed.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 3 pts</span>
+    <ul>
+      <li>1 — BTREE on <code>opened_on</code>.</li>
+      <li>1 — why: ranges need ordering, which hash indexes do not provide.</li>
+      <li>1 — "no" for part (b), with the reason the index cannot be used.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <span class="lbl">The rule worth memorising</span>
+    <p>A predicate is <em>sargable</em> — searchable by argument — when the engine could find
+    the first matching entry by descending the tree with a value it already has. Put the
+    column inside any function or expression and that becomes impossible. Keep the column
+    bare on one side of the comparison and do the arithmetic on the other side.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">4.4</span> Index for <code>MATCH (title, body) AGAINST ('deadlock')</code> <span class="pts">3 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p><strong>FULLTEXT</strong>, on <strong><code>(title, body)</code> together</strong> —
+    one index covering both columns, not an index on each.</p>
+    <p><code>MATCH … AGAINST</code> looks for a word <em>inside</em> a block of text. A
+    B+tree orders whole values, so it can answer a prefix test like
+    <code>LIKE 'dead%'</code> but has no way to find a word buried in the middle of a body;
+    a hash index is limited to equality on the entire value, which would mean a body
+    consisting of exactly the word "deadlock". A full-text index inverts the relationship,
+    storing each distinct word with the list of rows containing it, so a word lookup becomes
+    a direct probe.</p>
+    <p>The column list is part of the answer: <code>MATCH</code> must name exactly the set
+    of columns its full-text index was built over, so <code>FULLTEXT(title, body)</code> is
+    required here. Separate indexes on <code>title</code> and on <code>body</code> will not
+    satisfy this query.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 3 pts</span>
+    <ul>
+      <li>1 — FULLTEXT. 1 — both columns in a single index. 1 — the reasoning about
+      word-level search.</li>
+    </ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">4.5</span> Normalization of R(Technician, Machine, Workshop, Specialty, Shift) <span class="pts">10 pts</span></h3>
+  <p class="ask">FDs = { Technician → Specialty ; Technician, Machine → Workshop ;
+  Workshop → Shift }</p>
+
+  <h3 class="qh"><span class="qnum">4.5.1</span> Candidate keys <span class="pts">2 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p><strong>{Technician, Machine}</strong> — and it is the only candidate key.</p>
+    <p>Start from a useful shortcut: <strong>Technician</strong> and <strong>Machine</strong>
+    never appear on the right-hand side of any dependency, so nothing can ever derive them.
+    Any key must therefore contain both. Now test whether those two alone suffice:</p>
+    <div class="ra">{T, M}<sup>+</sup> = {T, M}
+&#160;&#160;&#160;&#160;&#8594; add Specialty&#160; (Technician → Specialty)
+&#160;&#160;&#160;&#160;&#8594; add Workshop&#160;&#160; (Technician, Machine → Workshop)
+&#160;&#160;&#160;&#160;&#8594; add Shift&#160;&#160;&#160;&#160;&#160; (Workshop → Shift)
+&#160;&#160;&#160;&#160;= {T, M, Specialty, Workshop, Shift} = R</div>
+    <p>The closure reaches every attribute, so {Technician, Machine} is a key. It is minimal
+    because neither half works alone: {Technician}<sup>+</sup> = {Technician, Specialty} and
+    {Machine}<sup>+</sup> = {Machine}. Since every key must contain both attributes and those
+    two already suffice, there is no other candidate key.</p>
+    <p>The <strong>prime attributes</strong> are therefore Technician and Machine. Workshop,
+    Specialty and Shift are all non-prime — remember this for 4.5.4.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 2 pts</span>
+    <ul><li>1 — the correct key. 1 — the closure computation shown.</li></ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">4.5.2</span> A non-minimal superkey <span class="pts">2 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p>For example <strong>{Technician, Machine, Workshop}</strong>.</p>
+    <p>It is a superkey because it contains {Technician, Machine} and so determines every
+    attribute of R. It is not minimal because Workshop can be removed and what remains still
+    determines everything — a minimal superkey is precisely what "candidate key" means.
+    {Technician, Machine, Shift} and the full attribute set work equally well as examples.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 2 pts</span>
+    <ul><li>1 — a genuine superkey containing both key attributes. 1 — saying why it is not
+    minimal.</li></ul>
+  </div>
+
+  <h3 class="qh"><span class="qnum">4.5.3</span> Is R in BCNF? <span class="pts">2 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p><strong>No — and there are two separate violations.</strong> BCNF demands that the
+    left-hand side of every nontrivial dependency be a superkey. Test all three:</p>
+    <ul>
+      <li><code>Technician, Machine → Workshop</code> — the left side is the candidate key.
+      <strong>Fine.</strong></li>
+      <li><code>Technician → Specialty</code> — {Technician}<sup>+</sup> = {Technician,
+      Specialty}, which is not all of R, so Technician is not a superkey.
+      <strong>Violates BCNF.</strong></li>
+      <li><code>Workshop → Shift</code> — {Workshop}<sup>+</sup> = {Workshop, Shift}, also
+      not all of R. <strong>Violates BCNF.</strong></li>
+    </ul>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 2 pts</span>
+    <ul><li>1 — the verdict "no". 1 — naming <em>both</em> violating dependencies; finding
+    only one earns half.</li></ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>Check every dependency, not just the first one that looks suspicious. The question
+    asked for all violations, and <code>Workshop → Shift</code> is easy to overlook because
+    neither of its attributes is part of the key — which is exactly what makes it a
+    violation.</p>
+  </div>
+
+  <h3 class="qh"><span class="qnum">4.5.4</span> Is R in 3NF? If not, decompose <span class="pts">4 pts</span></h3>
+  <div class="ans">
+    <span class="lbl">Answer</span>
+    <p><strong>No, R is not in 3NF either.</strong></p>
+    <p>3NF is more forgiving than BCNF: a dependency X → A is acceptable if X is a superkey
+    <em>or</em> A is a prime attribute. From 4.5.1 the prime attributes are Technician and
+    Machine, so test the two dependencies that failed BCNF:</p>
+    <ul>
+      <li><code>Technician → Specialty</code> — Technician is not a superkey, and Specialty
+      is not prime. Both escape clauses fail, so this violates 3NF.</li>
+      <li><code>Workshop → Shift</code> — Workshop is not a superkey, and Shift is not
+      prime. This violates 3NF too; it is a textbook transitive dependency, since the key
+      determines Workshop and Workshop in turn determines Shift.</li>
+    </ul>
+    <p><strong>Decomposition.</strong> The given FDs are already a minimal cover, so apply
+    3NF synthesis — one relation per dependency:</p>
+    <div class="code">R1 ( <span class="kw">Technician</span>, Specialty )             <span class="cm">-- Technician → Specialty</span>
+R2 ( <span class="kw">Technician</span>, <span class="kw">Machine</span>, Workshop )    <span class="cm">-- Technician, Machine → Workshop</span>
+R3 ( <span class="kw">Workshop</span>, Shift )                  <span class="cm">-- Workshop → Shift</span></div>
+    <p>R2 contains the candidate key {Technician, Machine}, so no additional relation has to
+    be bolted on to preserve it.</p>
+    <p><strong>Lossless.</strong> Join them back in stages. R1 ∩ R2 = {Technician}, which is
+    the key of R1, so that join is lossless. The result then meets R3 on
+    {Workshop}, which is the key of R3, so that join is lossless as well. Whenever the
+    shared attributes form a key of one of the two relations being joined, no spurious
+    tuples can appear.</p>
+    <p><strong>Dependency-preserving.</strong> Each of the three original dependencies lives
+    entirely inside one relation — Technician → Specialty in R1, Technician, Machine →
+    Workshop in R2, Workshop → Shift in R3 — so every constraint can be enforced without
+    joining anything.</p>
+    <p>A bonus worth noticing: each fragment's only dependency has that fragment's own key on
+    the left, so all three are in <strong>BCNF</strong> as well. This decomposition gets BCNF
+    <em>and</em> dependency preservation at once, which is not always possible — sometimes
+    you must choose.</p>
+  </div>
+  <div class="grading">
+    <span class="lbl">Scoring · 4 pts</span>
+    <ul>
+      <li>1 — "no", with the reason: a non-prime attribute depending on a non-superkey, or
+      equivalently a transitive dependency.</li>
+      <li>2 — the three-relation decomposition.</li>
+      <li>1 — justifying lossless join and dependency preservation.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <span class="lbl">Watch out</span>
+    <p>Stopping after splitting off Specialty leaves <code>Workshop → Shift</code> still
+    violating 3NF inside R2 — a decomposition that fixes one violation and ignores another
+    is not in 3NF. Always re-check each fragment you produce.</p>
+  </div>
+
+  <!-- ============================= TOTALS ============================= -->
+  <h2 class="part">Score yourself</h2>
+  <table class="res">
+    <caption>Totals, matching the grading table on the cover sheet.</caption>
+    <thead><tr><th scope="col">Section</th><th scope="col">Points</th></tr></thead>
+    <tbody>
+      <tr><td>1.1 Reverse engineering</td><td>20</td></tr>
+      <tr><td>1.2 a–e Writing queries (4 each)</td><td>20</td></tr>
+      <tr><td>2 a–e Query interpretation (4 each)</td><td>20</td></tr>
+      <tr><td>3.1 / 3.2 / 3.3</td><td>2 + 3 + 3 = 8</td></tr>
+      <tr><td>4.1 / 4.2 / 4.3 / 4.4</td><td>4 + 2 + 3 + 3 = 12</td></tr>
+      <tr><td>4.5.1–4.5.4</td><td>2 + 2 + 2 + 4 = 10</td></tr>
+      <tr><th scope="row">Total</th><td><strong>90</strong></td></tr>
+    </tbody>
+  </table>
+  <p>If you lost points in Part 1, re-read the ER-to-relational mapping and practise reading
+  a schema backwards. If Part 2 cost you, the lesson is almost always inner versus outer
+  join and <code>COUNT(*)</code> versus <code>COUNT(column)</code>. Parts 3 and 4 reward
+  knowing a small number of rules precisely rather than many of them vaguely.</p>
+</div>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+  var all = document.getElementById('v-all');
+  var rev = document.getElementById('v-rev');
+  var hint = document.getElementById('v-hint');
+  function set(reviewOnly){
+    root.classList.toggle('review', reviewOnly);
+    if (all) all.setAttribute('aria-pressed', String(!reviewOnly));
+    if (rev) rev.setAttribute('aria-pressed', String(reviewOnly));
+    if (hint){
+      hint.textContent = reviewOnly
+        ? 'Showing answers only — scoring notes hidden. Printing still includes them.'
+        : 'Showing answers with scoring notes and common mistakes. Switch to answers only for a quick check.';
+    }
+  }
+  if (all) all.addEventListener('click', function(){ set(false); });
+  if (rev) rev.addEventListener('click', function(){ set(true); });
+})();
+</script>
+</body>
+</html>

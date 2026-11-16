@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice Exam · CS 410/510 Databases</title>
+<meta name="author" content="Steven Cutchin">
+<meta name="description" content="Practice exam for Midterm B, CS 410/510 Databases, Boise State University — 90 points, 75 minutes.">
+<meta name="keywords" content="CS 410, CS 510, databases, practice exam, SQL, E-R, B+tree, normalization">
+<style>
+:root{
+  --blue:#0033A0; --blue-ink:#00246B; --orange:#D64309; --brown:#7A2708;
+  --ink:#14181F; --muted:#4A5160; --line:#C9D2E0;
+  --bg:#ffffff; --surface:#F4F6FB; --tint:#EAF0FB;
+  --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--sans);
+  font-size:17px;line-height:1.5}
+.skip{position:absolute;left:-999px;top:auto}
+.skip:focus{left:12px;top:12px;z-index:30;background:#fff;color:var(--blue-ink);
+  padding:8px 14px;border:2px solid var(--blue);border-radius:6px}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- shell ---- */
+.wrap{max-width:860px;margin:0 auto;padding:16px 20px 48px}
+.paper{background:var(--bg);border:1px solid var(--line);border-radius:12px;
+  padding:34px 42px 42px}
+
+/* ---- masthead ---- */
+.masthead{border-top:6px solid var(--blue);padding-top:16px;margin-bottom:22px}
+.exam-title{font-family:var(--serif);font-weight:700;font-size:2.1rem;line-height:1.1;
+  color:var(--ink);margin:0 0 4px}
+.exam-sub{font-family:var(--sans);font-weight:600;color:var(--blue-ink);
+  font-size:1.05rem;margin:0 0 16px}
+.rubric{background:var(--surface);border:1px solid var(--line);
+  border-left:5px solid var(--orange);border-radius:9px;padding:12px 16px;margin:0 0 20px}
+.rubric p{margin:0;max-width:66ch}
+.namefield{font-family:var(--serif);font-size:1.08rem;margin:0 0 18px;
+  padding-bottom:2px}
+.namefield .rule{display:inline-block;min-width:22em;border-bottom:1.5px solid var(--ink);
+  margin-left:.4em}
+
+/* ---- score table ---- */
+table.score{border-collapse:collapse;width:100%;max-width:520px;font-size:.94rem;
+  margin:0 0 6px}
+table.score caption{text-align:left;color:var(--muted);font-size:.84rem;padding-bottom:6px}
+table.score th,table.score td{border:1px solid var(--line);padding:7px 11px;text-align:left}
+table.score thead th{background:var(--blue);color:#fff;font-weight:600}
+table.score td.ptcol,table.score th.ptcol{text-align:right;font-family:var(--mono);width:5.5em}
+table.score td.box{width:6em;background:var(--surface)}
+table.score tr.total th,table.score tr.total td{font-weight:700;color:var(--blue-ink);
+  background:var(--tint)}
+
+/* ---- headings ---- */
+h2.part{font-family:var(--serif);font-weight:700;font-size:1.55rem;line-height:1.15;
+  color:var(--ink);margin:0 0 6px;padding-bottom:8px;border-bottom:3px solid var(--blue)}
+h3.sect{font-family:var(--serif);font-weight:700;font-size:1.2rem;color:var(--blue-ink);
+  margin:26px 0 8px}
+.part-points{font-family:var(--sans);font-size:.95rem;font-weight:600;color:var(--orange)}
+p{max-width:68ch;margin:0 0 12px}
+.lead{color:var(--muted)}
+
+/* ---- questions ---- */
+.q{margin:0 0 6px;page-break-inside:avoid}
+.q > .qhead{display:flex;gap:10px;align-items:baseline;margin:0 0 8px}
+.qnum{flex:0 0 auto;font-family:var(--mono);font-weight:700;color:var(--blue-ink);
+  background:var(--tint);border:1px solid var(--blue);border-radius:5px;
+  padding:1px 8px;font-size:.84rem;white-space:nowrap}
+.qtext{margin:0;max-width:64ch}
+.pts{font-weight:700;color:var(--orange);white-space:nowrap}
+
+/* ---- code / DDL ---- */
+.code{font-family:var(--mono);font-size:.85rem;line-height:1.6;background:var(--surface);
+  border:1px solid var(--line);border-left:5px solid var(--blue);border-radius:8px;
+  padding:12px 15px;margin:10px 0 16px;white-space:pre;overflow-x:auto}
+.code .kw{color:var(--brown);font-weight:700}
+.code .r{color:var(--blue-ink);font-weight:700}
+.sqlq{font-family:var(--mono);font-size:.86rem;line-height:1.6;background:#fff;
+  border:1px solid var(--line);border-left:5px solid var(--brown);border-radius:8px;
+  padding:11px 14px;margin:8px 0 10px;white-space:pre;overflow-x:auto;
+  color:var(--brown);font-weight:700}
+
+/* ---- data instance tables ---- */
+.instances{display:flex;flex-wrap:wrap;gap:22px;margin:4px 0 18px}
+.instances > div{flex:1 1 230px}
+table.inst{border-collapse:collapse;width:100%;font-size:.88rem}
+table.inst caption{text-align:left;font-family:var(--serif);font-weight:700;
+  color:var(--blue-ink);font-size:1rem;padding-bottom:6px}
+table.inst th,table.inst td{border:1px solid var(--line);padding:5px 10px;text-align:left}
+table.inst thead th{background:var(--blue);color:#fff;font-weight:600}
+table.inst td,table.inst th{font-family:var(--mono)}
+table.inst tbody th{background:var(--tint);color:var(--blue-ink);font-weight:700}
+
+/* ---- answer space ---- */
+.ans{border:1px solid var(--line);border-radius:8px;background:#fff;
+  margin:0 0 20px;padding:0}
+.ans::before{content:"Answer";display:block;font-family:var(--sans);font-size:.72rem;
+  font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);
+  padding:5px 10px 0}
+.ans .lines{display:block;padding:4px 10px 10px}
+.ans .lines span{display:block;border-bottom:1px solid var(--line);height:1.85em}
+.ans.sm .lines span:nth-child(n+4){display:none}
+.ans.lg .lines span:nth-child(n+11){display:none}
+.ans.xl .lines span:nth-child(n+16){display:none}
+.drawbox{border:2px dashed var(--line);border-radius:10px;background:#fff;
+  min-height:420px;margin:0 0 18px;position:relative}
+.drawbox::before{content:"Draw your E-R diagram here";position:absolute;top:10px;left:14px;
+  font-size:.78rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--muted)}
+
+.note{background:var(--surface);border:1px solid var(--line);
+  border-left:5px solid var(--blue);border-radius:9px;padding:11px 15px;margin:14px 0 18px}
+.fig{border:1px solid var(--line);border-radius:10px;background:#fff;
+  padding:12px 14px;margin:4px 0 14px}
+.fig svg{display:block;width:100%;height:auto}
+.note h4{margin:0 0 4px;font-family:var(--sans);font-size:.95rem;color:var(--blue-ink)}
+.note p{margin:0}
+.turnpage{font-family:var(--serif);font-style:italic;color:var(--muted);
+  text-align:right;margin:18px 0 0}
+
+/* ---- page scaffolding ---- */
+.page{padding-top:4px}
+.page + .page{border-top:1px dashed var(--line);margin-top:30px;padding-top:26px}
+.pagemark{display:none;font-size:.74rem;color:var(--muted);letter-spacing:.04em;
+  text-transform:uppercase;font-weight:700;margin:0 0 10px}
+.page + .page .pagemark{display:block}
+
+/* ---- density control ---- */
+.controls{display:none;flex-wrap:wrap;gap:10px;align-items:center;
+  margin:0 0 14px;padding:10px 14px;background:var(--bg);border:1px solid var(--line);
+  border-radius:10px}
+html.js .controls{display:flex}
+.controls .label{font-size:.88rem;font-weight:600;color:var(--blue-ink)}
+.chip{font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;
+  background:#fff;color:var(--blue-ink);border:2px solid var(--line);
+  border-radius:999px;padding:5px 15px}
+.chip[aria-pressed="true"]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.controls .hint{font-size:.82rem;color:var(--muted);margin:0;flex:1 1 100%}
+/* compact mode: collapse the writing space for on-screen reading */
+html.compact .ans .lines span:nth-child(n+2){display:none}
+html.compact .drawbox{min-height:120px}
+html.compact .page + .page{margin-top:22px;padding-top:20px}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .paper{padding:22px 18px 28px}
+  .exam-title{font-size:1.7rem}
+  .instances{gap:16px}
+}
+@media (prefers-contrast:more){
+  :root{--muted:#242830;--line:#3d4450}
+  .code,.sqlq,.note,.ans,.rubric,table.inst th,table.inst td,
+  table.score th,table.score td,.chip,.qnum{border-color:#000}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---- print: portrait exam, original page breaks preserved ---- */
+@page{
+  size:Letter portrait;margin:16mm 16mm 18mm;
+  @bottom-left{
+    content:"CS 410/510 — Practice Exam";
+    font-family:var(--sans);font-size:8.5pt;color:#4A5160;
+    vertical-align:top;padding-top:5mm;
+  }
+  @bottom-right{
+    content:"Page " counter(page) " of " counter(pages);
+    font-family:var(--sans);font-size:8.5pt;color:#4A5160;
+    vertical-align:top;padding-top:5mm;
+  }
+}
+/* the cover carries the title already — no running footer label on it */
+@page:first{ @bottom-left{content:""} }
+@media print{
+  html.compact .ans .lines span{display:block}
+  html.compact .ans.sm .lines span:nth-child(n+4){display:none}
+  html.compact .ans.lg .lines span:nth-child(n+11){display:none}
+  html.compact .ans.xl .lines span:nth-child(n+16){display:none}
+  html.compact .drawbox{min-height:420px}
+  body{background:#fff;font-size:10.5pt}
+  .skip,.controls{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .paper{border:none;border-radius:0;padding:0}
+  .page{break-before:page;padding-top:0}
+  .page:first-of-type{break-before:auto}
+  .page + .page{border-top:none;margin-top:0;padding-top:0}
+  .pagemark{display:none!important}
+  .code,.sqlq,.note,table.inst,table.score,.ans,.drawbox,.q{break-inside:avoid}
+  h2.part,h3.sect{break-after:avoid}
+}
+</style>
+
+</head>
+<body>
+<a class="skip" href="#exam">Skip to the practice exam</a>
+
+<div class="wrap">
+
+  <div class="controls" role="group" aria-label="Display density">
+    <span class="label" id="dens-label">Answer space</span>
+    <button class="chip" id="dens-full" type="button" aria-pressed="true"
+            aria-describedby="dens-label">Full (print)</button>
+    <button class="chip" id="dens-compact" type="button" aria-pressed="false"
+            aria-describedby="dens-label">Compact (screen)</button>
+    <p class="hint" id="dens-hint" role="status" aria-live="polite">Showing full writing
+      space, as the exam prints. Printing always uses the full space whichever view is on screen.</p>
+  </div>
+
+<div class="paper" id="exam">
+
+  <!-- ===================== PAGE 1 ===================== -->
+  <section class="page" aria-label="Cover page">
+    <div class="masthead">
+      <h1 class="exam-title">Practice Exam</h1>
+      <p class="exam-sub">CS 410/510 — Databases · preparation for Midterm B</p>
+    </div>
+
+    <div class="rubric">
+      <p>This practice exam totals <strong>90 points</strong> and is designed for
+      <strong>75 minutes</strong> — the same length, structure and point distribution as the
+      real midterm. Only the data is different. Time yourself: the most common way to lose
+      points on the real exam is spending forty minutes on Part 1.</p>
+    </div>
+
+    <p class="namefield">Name: <span class="rule"></span></p>
+
+    <table class="score">
+      <caption>What each part is worth, and what it tests.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Part</th>
+          <th scope="col" class="ptcol">Points</th>
+          <th scope="col">Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">1.1 — Reverse-engineering an E-R model</th><td class="ptcol">20</td><td class="box"></td></tr>
+        <tr><th scope="row">1.2 — Writing queries</th><td class="ptcol">20</td><td class="box"></td></tr>
+        <tr><th scope="row">2 — Interpreting queries</th><td class="ptcol">20</td><td class="box"></td></tr>
+        <tr><th scope="row">3 — Keys and table design</th><td class="ptcol">8</td><td class="box"></td></tr>
+        <tr><th scope="row">4 — B+trees, Indexes and Normalization</th><td class="ptcol">22</td><td class="box"></td></tr>
+        <tr class="total"><th scope="row">Total</th><td class="ptcol">90</td><td class="box"></td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <h4>How to use this</h4>
+      <p>Work it closed-book in one 75-minute sitting before looking at anything else. The
+      questions are not the midterm questions, but every one of them exercises a skill the
+      midterm asks for, in the same proportion.</p>
+    </div>
+  </section>
+
+  <!-- ===================== PAGE 2 ===================== -->
+  <section class="page" aria-labelledby="p1-h">
+    <p class="pagemark">Page 2</p>
+    <h2 class="part" id="p1-h">Part 1 <span class="part-points">(40 points)</span>: Issue Tracker Data Model</h2>
+
+    <p>Consider the following SQL DDL:</p>
+
+    <div class="code"><span class="kw">CREATE TABLE</span> <span class="r">app_user</span> (
+  user_id SERIAL <span class="kw">PRIMARY KEY</span>,
+  username VARCHAR(100) <span class="kw">NOT NULL UNIQUE</span>,
+  email VARCHAR(100) <span class="kw">NOT NULL UNIQUE</span>,
+  pw_hash VARCHAR(100) <span class="kw">NOT NULL</span>,
+  joined_on TIMESTAMP <span class="kw">NOT NULL DEFAULT</span> CURRENT_TIMESTAMP
+);
+
+<span class="kw">CREATE TABLE</span> <span class="r">project</span> (
+  project_id SERIAL <span class="kw">PRIMARY KEY</span>,
+  name VARCHAR(255) <span class="kw">NOT NULL</span>,
+  summary TEXT <span class="kw">NOT NULL</span>,
+  created_on TIMESTAMP <span class="kw">NOT NULL DEFAULT</span> CURRENT_TIMESTAMP
+);
+
+<span class="kw">CREATE TABLE</span> <span class="r">project_membership</span> (
+  user_id INTEGER <span class="kw">NOT NULL REFERENCES</span> app_user,
+  project_id INTEGER <span class="kw">NOT NULL REFERENCES</span> project,
+  joined_on TIMESTAMP <span class="kw">NOT NULL DEFAULT</span> CURRENT_TIMESTAMP,
+  <span class="kw">PRIMARY KEY</span> (user_id, project_id)
+);
+
+<span class="kw">CREATE TABLE</span> <span class="r">issue</span> (
+  issue_id SERIAL <span class="kw">PRIMARY KEY</span>,
+  project_id INTEGER <span class="kw">REFERENCES</span> project (project_id),
+  parent_issue_id INTEGER <span class="kw">REFERENCES</span> issue (issue_id),
+  reporter_id INTEGER <span class="kw">NOT NULL REFERENCES</span> app_user (user_id),
+  title VARCHAR(255),
+  body TEXT <span class="kw">NOT NULL</span>,
+  opened_on TIMESTAMP <span class="kw">NOT NULL DEFAULT</span> CURRENT_TIMESTAMP
+);</div>
+
+    <p class="turnpage">Questions begin on the next page.</p>
+  </section>
+
+  <!-- ===================== PAGE 3 ===================== -->
+  <section class="page" aria-labelledby="p11-h">
+    <p class="pagemark">Page 3</p>
+    <h3 class="sect" id="p11-h">1.1 — Reverse Engineering <span class="pts">(20 points)</span></h3>
+    <p>Draw an E-R diagram of the logical model for the database reported on page&nbsp;2.</p>
+    <div class="drawbox" role="group" aria-label="Blank space for the E-R diagram"></div>
+  </section>
+
+  <!-- ===================== PAGE 4 ===================== -->
+  <section class="page" aria-labelledby="p12-h">
+    <p class="pagemark">Page 4</p>
+    <h3 class="sect" id="p12-h">1.2 — Writing Queries <span class="pts">(20 points)</span></h3>
+    <p>Write an SQL query to answer each of the following questions (<em>graduate students
+    only</em>: please also write the queries in relational algebra whenever possible):</p>
+  </section>
+
+  <!-- ===================== PAGE 5 ===================== -->
+  <section class="page" aria-label="Question 1.2 a">
+    <p class="pagemark">Page 5</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">1.2 a</span>
+        <p class="qtext">Who are the 10 most prolific reporters in the system, and how many
+        issues has each opened?</p></div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 6 ===================== -->
+  <section class="page" aria-label="Question 1.2 b">
+    <p class="pagemark">Page 6</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">1.2 b</span>
+        <p class="qtext">What are the 25 most recent sub-issues of any issue reported by
+        user ‘dana’?</p></div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 7 ===================== -->
+  <section class="page" aria-label="Question 1.2 c">
+    <p class="pagemark">Page 7</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">1.2 c</span>
+        <p class="qtext">Who are the 5 newest users?</p></div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 8 ===================== -->
+  <section class="page" aria-label="Question 1.2 d">
+    <p class="pagemark">Page 8</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">1.2 d</span>
+        <p class="qtext">Which users have never opened an issue?</p></div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 9 ===================== -->
+  <section class="page" aria-label="Question 1.2 e">
+    <p class="pagemark">Page 9</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">1.2 e</span>
+        <p class="qtext">Which projects have at least 3 members?</p></div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 10 ===================== -->
+  <section class="page" aria-labelledby="p2-h">
+    <p class="pagemark">Page 10</p>
+    <h2 class="part" id="p2-h">Part 2 <span class="part-points">(20 points)</span>: Query Interpretation</h2>
+
+    <p>Given the following tables <strong>Book</strong> and <strong>Author</strong>:</p>
+
+    <div class="instances">
+      <div>
+        <table class="inst">
+          <caption>Book</caption>
+          <thead><tr>
+            <th scope="col">book_id</th><th scope="col">writer_id</th><th scope="col">title</th>
+          </tr></thead>
+          <tbody>
+            <tr><th scope="row">1</th><td>2</td><td>Tidewater</td></tr>
+            <tr><th scope="row">2</th><td>1</td><td>Quarry</td></tr>
+            <tr><th scope="row">3</th><td>1</td><td>Lantern</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <table class="inst">
+          <caption>Author</caption>
+          <thead><tr>
+            <th scope="col">author_id</th><th scope="col">name</th><th scope="col">country</th>
+          </tr></thead>
+          <tbody>
+            <tr><th scope="row">1</th><td>Mira</td><td>Peru</td></tr>
+            <tr><th scope="row">2</th><td>Noor</td><td>Chile</td></tr>
+            <tr><th scope="row">3</th><td>Otto</td><td>Brazil</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p>Write the output of each of the following SQL queries:</p>
+  </section>
+
+  <!-- ===================== PAGE 11 ===================== -->
+  <section class="page" aria-label="Question 2 a">
+    <p class="pagemark">Page 11</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">2 a</span>
+        <p class="qtext">Write the output of this query:</p></div>
+      <div class="sqlq">SELECT author_id, name FROM author ORDER BY country</div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 12 ===================== -->
+  <section class="page" aria-label="Question 2 b">
+    <p class="pagemark">Page 12</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">2 b</span>
+        <p class="qtext">Write the output of this query:</p></div>
+      <div class="sqlq">SELECT name, title FROM author, book</div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 13 ===================== -->
+  <section class="page" aria-label="Question 2 c">
+    <p class="pagemark">Page 13</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">2 c</span>
+        <p class="qtext">Write the output of this query:</p></div>
+      <div class="sqlq">SELECT name, title
+FROM author JOIN book ON (author_id = writer_id)</div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 14 ===================== -->
+  <section class="page" aria-label="Question 2 d">
+    <p class="pagemark">Page 14</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">2 d</span>
+        <p class="qtext">Write the output of this query:</p></div>
+      <div class="sqlq">SELECT author_id, name, COUNT(book_id)
+FROM author JOIN book ON (author_id = writer_id)
+GROUP BY author_id, name
+ORDER BY COUNT(book_id)</div>
+    </div>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 15 ===================== -->
+  <section class="page" aria-label="Question 2 e">
+    <p class="pagemark">Page 15</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">2 e</span>
+        <p class="qtext">Write the output of this query:</p></div>
+      <div class="sqlq">SELECT author_id, name, COUNT(book_id)
+FROM author LEFT OUTER JOIN book ON (author_id = writer_id)
+GROUP BY author_id, name
+ORDER BY COUNT(book_id)</div>
+    </div>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 16 ===================== -->
+  <section class="page" aria-labelledby="p3-h">
+    <p class="pagemark">Page 16</p>
+    <h2 class="part" id="p3-h">Part 3 <span class="part-points">(8 points)</span>: Keys and Table Design</h2>
+
+    <div class="q">
+      <div class="qhead"><span class="qnum">3.1</span>
+        <p class="qtext">Consider the <code>app_user</code> table in Part&nbsp;I (also
+        reported here below).</p></div>
+    </div>
+    <div class="code"><span class="kw">CREATE TABLE</span> <span class="r">app_user</span> (
+  user_id SERIAL <span class="kw">PRIMARY KEY</span>,
+  username VARCHAR(100) <span class="kw">NOT NULL UNIQUE</span>,
+  email VARCHAR(100) <span class="kw">NOT NULL UNIQUE</span>,
+  pw_hash VARCHAR(100) <span class="kw">NOT NULL</span>,
+  joined_on TIMESTAMP <span class="kw">NOT NULL DEFAULT</span> CURRENT_TIMESTAMP
+);</div>
+    <p>The attribute <code>username</code> is declared <code>NOT NULL UNIQUE</code>, so it
+    could legally serve as the primary key. Give two reasons why <code>user_id</code> is
+    the better choice. <span class="pts">(2 pts)</span></p>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 17 ===================== -->
+  <section class="page" aria-label="Question 3.2">
+    <p class="pagemark">Page 17</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">3.2</span>
+        <p class="qtext">Consider the <code>project_membership</code> table in Part&nbsp;I
+        (also reported here below).</p></div>
+    </div>
+    <div class="code"><span class="kw">CREATE TABLE</span> <span class="r">project_membership</span> (
+  user_id INTEGER <span class="kw">NOT NULL REFERENCES</span> app_user,
+  project_id INTEGER <span class="kw">NOT NULL REFERENCES</span> project,
+  joined_on TIMESTAMP <span class="kw">NOT NULL DEFAULT</span> CURRENT_TIMESTAMP,
+  <span class="kw">PRIMARY KEY</span> (user_id, project_id)
+);</div>
+    <p>Indicate what the primary key is, and which attributes are foreign keys. Then state
+    what rule the primary key enforces about users and projects.
+    <span class="pts">(3 pts)</span></p>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 18 ===================== -->
+  <section class="page" aria-label="Question 3.3">
+    <p class="pagemark">Page 18</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">3.3</span>
+        <p class="qtext">A colleague runs
+        <code>SELECT * FROM issue WHERE title &lt;&gt; 'crash'</code> and is surprised that
+        rows whose <code>title</code> is <code>NULL</code> do not appear, even though NULL
+        is certainly not the text ‘crash’. Explain what the query actually evaluates for
+        those rows, which of SQL’s two readings of <code>NULL</code> this reflects, and how
+        the colleague should rewrite the query to include them.
+        <span class="pts">(3 pts)</span></p></div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 19 ===================== -->
+  <section class="page" aria-labelledby="p4-h">
+    <p class="pagemark">Page 19</p>
+    <h2 class="part" id="p4-h">Part 4 <span class="part-points">(22 points)</span>: B+trees, Indexes, and Normalization</h2>
+
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.1</span>
+        <p class="qtext">The B+tree below indexes the column <code>weight</code>. Each node
+        shown is one page, and the leaves are chained left to right.
+        <span class="pts">(4 pts)</span></p></div>
+    </div>
+
+    <div class="fig">
+      <svg viewBox="0 0 620 210" role="img" aria-labelledby="pb-t pb-d">
+        <title id="pb-t">A B+tree indexing the column weight</title>
+        <desc id="pb-d">A root node holding the three separator keys 20, 35 and 52, with
+        four pointers descending to four leaf nodes. The leaves hold, from left to right:
+        6, 12 and 17; then 20, 26 and 31; then 35, 44 and 49; then 52, 60 and 71. A
+        horizontal arrow chains each leaf to the leaf on its right, so the leaf level reads
+        as one ascending sequence of twelve keys. The leaves are labelled leaf 1 through
+        leaf 4.</desc>
+        <defs>
+          <marker id="pbarrow" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#7A2708"/>
+          </marker>
+        </defs>
+        <line x1="205" y1="56" x2="78" y2="128" stroke="#8A93A3" stroke-width="1.7"/>
+        <line x1="272" y1="56" x2="232" y2="128" stroke="#8A93A3" stroke-width="1.7"/>
+        <line x1="340" y1="56" x2="386" y2="128" stroke="#8A93A3" stroke-width="1.7"/>
+        <line x1="408" y1="56" x2="540" y2="128" stroke="#8A93A3" stroke-width="1.7"/>
+        <rect x="194" y="22" width="224" height="34" rx="5" fill="#F1F5FC"
+              stroke="#0033A0" stroke-width="2.3"/>
+        <g stroke="#0033A0" stroke-width="1.2">
+          <line x1="215" y1="22" x2="215" y2="56"/><line x1="262" y1="22" x2="262" y2="56"/>
+          <line x1="283" y1="22" x2="283" y2="56"/><line x1="330" y1="22" x2="330" y2="56"/>
+          <line x1="351" y1="22" x2="351" y2="56"/><line x1="398" y1="22" x2="398" y2="56"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="12" font-weight="700" fill="#00246B">
+          <text x="238" y="44" text-anchor="middle">20</text>
+          <text x="306" y="44" text-anchor="middle">35</text>
+          <text x="374" y="44" text-anchor="middle">52</text>
+        </g>
+        <g font-family="system-ui" font-size="13" fill="#8A93A3" text-anchor="middle">
+          <text x="205" y="45">&#8226;</text><text x="272" y="45">&#8226;</text>
+          <text x="340" y="45">&#8226;</text><text x="408" y="45">&#8226;</text>
+        </g>
+        <text x="14" y="32" font-family="system-ui" font-size="10.5" fill="#4A5160">root</text>
+        <g font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#00246B">
+          <rect x="12" y="128" width="132" height="34" rx="5" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="78" y="150" text-anchor="middle">6&#160;&#160; 12&#160; 17</text>
+          <rect x="166" y="128" width="132" height="34" rx="5" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="232" y="150" text-anchor="middle">20&#160; 26&#160; 31</text>
+          <rect x="320" y="128" width="132" height="34" rx="5" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="386" y="150" text-anchor="middle">35&#160; 44&#160; 49</text>
+          <rect x="474" y="128" width="132" height="34" rx="5" fill="#EAF0FB"
+                stroke="#0033A0" stroke-width="2.2"/>
+          <text x="540" y="150" text-anchor="middle">52&#160; 60&#160; 71</text>
+        </g>
+        <g stroke="#7A2708" stroke-width="2.2" marker-end="url(#pbarrow)">
+          <line x1="146" y1="145" x2="162" y2="145"/>
+          <line x1="300" y1="145" x2="316" y2="145"/>
+          <line x1="454" y1="145" x2="470" y2="145"/>
+        </g>
+        <g font-family="system-ui" font-size="10" fill="#4A5160" text-anchor="middle">
+          <text x="78" y="178">leaf 1</text><text x="232" y="178">leaf 2</text>
+          <text x="386" y="178">leaf 3</text><text x="540" y="178">leaf 4</text>
+        </g>
+        <text x="310" y="199" text-anchor="middle" font-family="system-ui" font-size="10"
+              fill="#4A5160">every key appears at the leaf level, in ascending order</text>
+      </svg>
+    </div>
+
+    <p>The engine evaluates <code>WHERE weight BETWEEN 26 AND 49</code> using this index.
+    Answer all three parts:</p>
+    <ol style="max-width:64ch;margin:0 0 10px;padding-left:1.3rem">
+      <li>List the nodes that are read, in the order they are read.</li>
+      <li>How many index pages are read in total?</li>
+      <li>Which key ends the scan, and which leaf is it on? Explain why that leaf has to be
+      read even though it contributes no rows to the answer.</li>
+    </ol>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 20 ===================== -->
+  <section class="page" aria-label="Questions 4.2 and 4.3">
+    <p class="pagemark">Page 20</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.2</span>
+        <p class="qtext">A B+tree indexes a table of 50 million rows, and each index page
+        holds roughly 250 entries. The tree is 4 levels deep. Explain why the tree stays
+        this shallow, and state how many index page reads an equality lookup such as
+        <code>WHERE weight = 44</code> costs. <span class="pts">(2 pts)</span></p></div>
+    </div>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </span></div>
+
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.3</span>
+        <p class="qtext">Consider the following query:</p></div>
+      <div class="sqlq">SELECT issue_id, title
+FROM issue
+WHERE opened_on BETWEEN '2026-01-01' AND '2026-03-31';</div>
+      <p>(a) Which type of index is more convenient to create (<code>HASH</code>,
+      <code>BTREE</code>, or <code>FULLTEXT</code>) to speed up this query, on which
+      attribute, and why? (b) Would that same index speed up
+      <code>WHERE YEAR(opened_on) = 2026</code>? Explain.
+      <span class="pts">(3 pts)</span></p>
+    </div>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 21 ===================== -->
+  <section class="page" aria-label="Question 4.4">
+    <p class="pagemark">Page 21</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.4</span>
+        <p class="qtext">Consider the following query:</p></div>
+      <div class="sqlq">SELECT issue_id, title
+FROM issue
+WHERE MATCH (title, body) AGAINST ('deadlock');</div>
+      <p>Which type of index is more convenient to create (<code>HASH</code>,
+      <code>BTREE</code>, or <code>FULLTEXT</code>) to speed up the query computation? Why?
+      On which attribute(s) should the index be created? <span class="pts">(3 pts)</span></p>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 22 ===================== -->
+  <section class="page" aria-label="Question 4.5">
+    <p class="pagemark">Page 22</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.5</span>
+        <p class="qtext">Consider the relation
+        <strong>R(Technician, Machine, Workshop, Specialty, Shift)</strong> and the
+        following set of functional dependencies, and answer the following questions
+        <span class="pts">(10 pts)</span>:</p></div>
+      <div class="sqlq">FDs = { Technician → Specialty,
+        Technician, Machine → Workshop,
+        Workshop → Shift }</div>
+    </div>
+
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.5.1</span>
+        <p class="qtext">Find the set of candidate keys for the relation R. Show your
+        closure computation. <span class="pts">(2 pts)</span></p></div>
+    </div>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </span></div>
+
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.5.2</span>
+        <p class="qtext">Provide an example of a non-minimal superkey, and say why it is not
+        minimal. <span class="pts">(2 pts)</span></p></div>
+    </div>
+    <div class="ans sm"><span class="lines">
+      <span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+  <!-- ===================== PAGE 23 ===================== -->
+  <section class="page" aria-label="Questions 4.5.3 and 4.5.4">
+    <p class="pagemark">Page 23</p>
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.5.3</span>
+        <p class="qtext">Is the relation R in Boyce-Codd normal form (BCNF)? Please motivate
+        your answer, naming every dependency that violates it.
+        <span class="pts">(2 pts)</span></p></div>
+    </div>
+    <div class="ans lg"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span>
+    </span></div>
+
+    <div class="q">
+      <div class="qhead"><span class="qnum">4.5.4</span>
+        <p class="qtext">Is the relation R in Third normal form (3NF)? Please motivate your
+        answer. If R is not in 3NF, please provide a decomposition of R which is in 3NF,
+        preserves all the functional dependencies and is lossless.
+        <span class="pts">(4 pts)</span></p></div>
+    </div>
+    <div class="ans xl"><span class="lines">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span>
+    </span></div>
+  </section>
+
+</div><!-- /paper -->
+</div><!-- /wrap -->
+
+<script>
+(function(){
+  var root = document.documentElement;
+  root.classList.add('js');
+  var full    = document.getElementById('dens-full');
+  var compact = document.getElementById('dens-compact');
+  var hint    = document.getElementById('dens-hint');
+  function set(isCompact){
+    root.classList.toggle('compact', isCompact);
+    if (full)    full.setAttribute('aria-pressed', String(!isCompact));
+    if (compact) compact.setAttribute('aria-pressed', String(isCompact));
+    if (hint){
+      hint.textContent = isCompact
+        ? 'Showing compact view — writing space collapsed so the questions read in one pass. Printing still uses the full space.'
+        : 'Showing full writing space, as the exam prints. Printing always uses the full space whichever view is on screen.';
+    }
+  }
+  if (full)    full.addEventListener('click', function(){ set(false); });
+  if (compact) compact.addEventListener('click', function(){ set(true); });
+})();
+</script>
+</body>
+</html>
